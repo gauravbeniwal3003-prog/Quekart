@@ -120,7 +120,7 @@ export default function Header({
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-6">
           
           {/* Logo & Refer row on Mobile, Logo on Left on Desktop */}
-          <div className="flex items-center justify-between md:justify-start gap-4 flex-shrink-0">
+          <div className="flex items-center justify-between md:justify-start gap-4 flex-shrink-0 w-full md:w-auto">
             {/* Left Section (Profile & Refer) - Mobile Only */}
             <div className="flex items-center gap-2 md:hidden">
               <button
@@ -137,7 +137,7 @@ export default function Header({
               </button>
 
               <div
-                className="flex items-center gap-1.5 bg-pink-50 border border-pink-200 rounded-full px-2.5 py-1 text-[11px] font-semibold text-pink-700 animate-pulse cursor-pointer"
+                className="hidden sm:flex items-center gap-1.5 bg-pink-50 border border-pink-200 rounded-full px-2.5 py-1 text-[11px] font-semibold text-pink-700 animate-pulse cursor-pointer"
                 id="refer-pill-mobile"
               >
                 <Gift className="w-3.5 h-3.5 text-pink-600 animate-bounce" />
