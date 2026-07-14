@@ -1,0 +1,6 @@
+{
+  "name": "QueKart",
+  "description": "A professional e-commerce store featuring rich catalogs, categories navigation, interactive reviews, order tracking, and a fully functional shopping cart.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
