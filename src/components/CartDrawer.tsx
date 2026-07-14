@@ -73,7 +73,7 @@ export default function CartDrawer({
     setCouponError('');
     const coupon = coupons.find(c => c.code.toUpperCase() === code.trim().toUpperCase());
     if (!coupon) {
-      setCouponError('Invalid code. Try LUCKY50, WELCOME20, or MEESHO15!');
+      setCouponError('Invalid code. Try QUEKART50, WELCOME20, or MEESHO15!');
       setAppliedCoupon(null);
       return;
     }
@@ -387,7 +387,7 @@ export default function CartDrawer({
                           setInputCoupon(e.target.value.toUpperCase());
                           setCouponError('');
                         }}
-                        placeholder="Enter Promo Code (e.g. LUCKY50)"
+                        placeholder="Enter Promo Code (e.g. QUEKART50)"
                         className="w-full bg-slate-50 border border-gray-200/80 rounded-md pl-8 pr-3 py-2 text-xs font-semibold tracking-wider text-gray-800 focus:outline-hidden focus:border-lucky-magenta uppercase placeholder:normal-case placeholder:tracking-normal placeholder:font-normal"
                         id="coupon-input-field"
                       />

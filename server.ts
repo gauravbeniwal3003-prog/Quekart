@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from '@google/genai';
 import { mockProducts, initialOrders } from './src/data.js';
-import { Product, Order, Coupon, CartItem } from './src/types.js';
+import { Product, Order, Coupon, CartItem, Vendor } from './src/types.js';
 
 // Load environment variables
 dotenv.config();
@@ -47,6 +47,13 @@ if (SUPABASE_URL && SUPABASE_ANON_KEY) {
 // -------------------------------------------------------------
 const initialCouponsList: Coupon[] = [
   {
+    code: 'QUEKART50',
+    discountType: 'flat',
+    value: 50,
+    minPurchase: 299,
+    description: 'Flat ₹50 OFF on orders above ₹299'
+  },
+  {
     code: 'LUCKY50',
     discountType: 'flat',
     value: 50,
@@ -76,9 +83,40 @@ const initialCouponsList: Coupon[] = [
   }
 ];
 
-let localProducts: Product[] = [...mockProducts];
+const initialVendors: Vendor[] = [
+  {
+    id: 'vendor-big-raj',
+    name: 'Rajasthan Handloom House',
+    email: 'raj.handloom@quekart.com',
+    phone: '9876543210',
+    vendorType: 'big',
+    businessCategory: 'Apparel & Sarees',
+    gstin: '08AAAAA1111A1Z1',
+    rating: 4.8,
+    status: 'active',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'vendor-small-craft',
+    name: 'Jaipur Handcrafted Decors',
+    email: 'jaipur.crafts@quekart.com',
+    phone: '9123456789',
+    vendorType: 'small',
+    businessCategory: 'Home & Kitchen',
+    gstin: '08BBBBB2222B2Z2',
+    rating: 4.2,
+    status: 'active',
+    createdAt: new Date().toISOString()
+  }
+];
+
+let localProducts: Product[] = mockProducts.map(p => ({
+  ...p,
+  approvalStatus: p.approvalStatus || 'approved'
+}));
 let localOrders: Order[] = [...initialOrders];
 let localCoupons: Coupon[] = [...initialCouponsList];
+let localVendors: Vendor[] = [...initialVendors];
 
 // -------------------------------------------------------------
 // HELPER: TEST SUPABASE TABLES & AUTO-SEED
@@ -90,6 +128,7 @@ async function testAndSeedSupabase() {
     // 1. Verify products table
     const { data: pData, error: pError } = await supabase.from('products').select('id').limit(1);
     if (pError) {
+      console.error('❌ Supabase products table check failed with error:', pError);
       console.log('⚠️ "products" table not found or inaccessible in Supabase. Falling back to local memory for products.');
       console.log('PostgreSQL Table Creation Query is provided in /schema.sql for quick setup.');
       useSupabase = false;
@@ -120,6 +159,15 @@ async function testAndSeedSupabase() {
       console.log('🌱 Seeding & Upserting default orders into Supabase...');
       for (const o of localOrders) {
         await supabase.from('orders').upsert({ id: o.id, data: o }, { onConflict: 'id' });
+      }
+    }
+
+    // 4. Verify vendors table and upsert initial vendors
+    const { error: vError } = await supabase.from('vendors').select('id').limit(1);
+    if (!vError) {
+      console.log('🌱 Seeding & Upserting default vendors into Supabase...');
+      for (const v of localVendors) {
+        await supabase.from('vendors').upsert({ id: v.id, data: v }, { onConflict: 'id' });
       }
     }
 
@@ -232,32 +280,151 @@ app.post('/api/upload-image', authenticateAdmin, async (req, res) => {
 // API ENDPOINTS
 // -------------------------------------------------------------
 
+// --- SYSTEM STATUS & DIAGNOSTICS ---
+app.get('/api/system-status', async (req, res) => {
+  try {
+    let supabaseConnected = false;
+    let tableChecks = {
+      products: false,
+      orders: false,
+      vendors: false,
+      coupons: false
+    };
+    let lastError = null;
+
+    if (useSupabase && supabase) {
+      try {
+        const [pCheck, oCheck, vCheck, cCheck] = await Promise.all([
+          supabase.from('products').select('id').limit(1),
+          supabase.from('orders').select('id').limit(1),
+          supabase.from('vendors').select('id').limit(1),
+          supabase.from('coupons').select('code').limit(1)
+        ]);
+
+        tableChecks.products = !pCheck.error;
+        tableChecks.orders = !oCheck.error;
+        tableChecks.vendors = !vCheck.error;
+        tableChecks.coupons = !cCheck.error;
+
+        supabaseConnected = !pCheck.error && !oCheck.error && !vCheck.error && !cCheck.error;
+        if (pCheck.error) lastError = pCheck.error.message;
+        else if (oCheck.error) lastError = oCheck.error.message;
+        else if (vCheck.error) lastError = vCheck.error.message;
+        else if (cCheck.error) lastError = cCheck.error.message;
+      } catch (err: any) {
+        lastError = err.message || 'Failed checking tables';
+      }
+    }
+
+    res.json({
+      useSupabase,
+      supabaseConnected,
+      supabaseInitialized: !!supabase,
+      tableChecks,
+      lastError,
+      localCounts: {
+        products: localProducts.length,
+        orders: localOrders.length,
+        vendors: localVendors.length,
+        coupons: localCoupons.length
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed checking system status' });
+  }
+});
+
 // --- PRODUCTS ---
 app.get('/api/products', async (req, res) => {
+  const allParam = req.query.all === 'true';
+  const vendorIdParam = req.query.vendorId as string;
+
   try {
+    let productsList: Product[] = [];
     if (useSupabase && supabase) {
       const { data, error } = await supabase.from('products').select('*');
       if (!error && data) {
-        return res.json(data.map((row: any) => row.data));
+        productsList = data.map((row: any) => row.data);
+      } else {
+        console.warn('Supabase product query failed, fallback to memory database:', error);
+        productsList = localProducts;
       }
-      console.warn('Supabase product query failed, fallback to memory database:', error);
+    } else {
+      productsList = localProducts;
     }
-    res.json(localProducts);
+
+    // Filter based on parameters
+    if (vendorIdParam) {
+      // Filter by specific vendor
+      productsList = productsList.filter(p => p.vendorId === vendorIdParam);
+    } else if (!allParam) {
+      // Standard user view: show only approved products or seed products (where approvalStatus is undefined or approved)
+      productsList = productsList.filter(p => p.approvalStatus === 'approved' || !p.approvalStatus);
+    }
+
+    res.json(productsList);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch products' });
   }
 });
 
-app.post('/api/products', authenticateAdmin, async (req, res) => {
+app.post('/api/products', async (req, res) => {
   const newProduct: Product = req.body;
+  const adminSecret = req.headers['x-admin-secret'];
+  const vendorId = req.headers['x-vendor-id'] as string;
+
   if (!newProduct || !newProduct.id || !newProduct.title) {
     return res.status(400).json({ error: 'Invalid product data' });
+  }
+
+  // Authorize request: must be Admin OR a registered Vendor
+  let isAuthorized = false;
+  let isBigVendor = false;
+  let finalVendorId = '';
+  let finalVendorName = newProduct.soldBy || 'Verified Supplier';
+
+  if (adminSecret && adminSecret === ADMIN_SECRET) {
+    isAuthorized = true;
+    newProduct.approvalStatus = 'approved'; // Admin uploads are auto-approved
+  } else if (vendorId) {
+    // Find vendor
+    let vendor: Vendor | undefined;
+    if (useSupabase && supabase) {
+      const { data, error } = await supabase.from('vendors').select('*').eq('id', vendorId).single();
+      if (!error && data) {
+        vendor = data.data;
+      }
+    }
+    if (!vendor) {
+      vendor = localVendors.find(v => v.id === vendorId);
+    }
+
+    if (vendor) {
+      if (vendor.status === 'suspended') {
+        return res.status(403).json({ error: 'Your seller account has been suspended. Listing products is blocked.' });
+      }
+      isAuthorized = true;
+      finalVendorId = vendor.id;
+      finalVendorName = vendor.name;
+      isBigVendor = vendor.vendorType === 'big';
+      
+      // Small vendors are 'pending', big vendors are 'approved'
+      newProduct.approvalStatus = isBigVendor ? 'approved' : 'pending';
+      newProduct.vendorId = finalVendorId;
+      newProduct.soldBy = finalVendorName;
+      newProduct.soldByRating = vendor.rating || 4.2;
+    }
+  }
+
+  if (!isAuthorized) {
+    return res.status(403).json({ error: 'Unauthorized. Product submission rejected.' });
   }
 
   try {
     if (useSupabase && supabase) {
       const { error } = await supabase.from('products').insert([{ id: newProduct.id, data: newProduct }]);
       if (!error) {
+        localProducts.unshift(newProduct);
         return res.status(201).json(newProduct);
       }
       throw error;
@@ -270,16 +437,62 @@ app.post('/api/products', authenticateAdmin, async (req, res) => {
   }
 });
 
-app.put('/api/products', authenticateAdmin, async (req, res) => {
+app.put('/api/products', async (req, res) => {
   const updatedProduct: Product = req.body;
+  const adminSecret = req.headers['x-admin-secret'];
+  const vendorId = req.headers['x-vendor-id'] as string;
+
   if (!updatedProduct || !updatedProduct.id) {
     return res.status(400).json({ error: 'Invalid product details' });
+  }
+
+  // Authorize request: must be Admin OR the product owner vendor
+  let isAuthorized = false;
+  if (adminSecret && adminSecret === ADMIN_SECRET) {
+    isAuthorized = true;
+  } else if (vendorId) {
+    // Check if vendor owns this product
+    let existingProduct: Product | undefined;
+    if (useSupabase && supabase) {
+      const { data, error } = await supabase.from('products').select('*').eq('id', updatedProduct.id).single();
+      if (!error && data) {
+        existingProduct = data.data;
+      }
+    }
+    if (!existingProduct) {
+      existingProduct = localProducts.find(p => p.id === updatedProduct.id);
+    }
+
+    if (existingProduct && existingProduct.vendorId === vendorId) {
+      isAuthorized = true;
+      // If vendor edits product:
+      // Small vendor edits go back to pending! Big vendor stays approved.
+      let vendor: Vendor | undefined;
+      if (useSupabase && supabase) {
+        const { data, error } = await supabase.from('vendors').select('*').eq('id', vendorId).single();
+        if (!error && data) {
+          vendor = data.data;
+        }
+      }
+      if (!vendor) {
+        vendor = localVendors.find(v => v.id === vendorId);
+      }
+      
+      if (vendor) {
+        updatedProduct.approvalStatus = vendor.vendorType === 'big' ? 'approved' : 'pending';
+      }
+    }
+  }
+
+  if (!isAuthorized) {
+    return res.status(403).json({ error: 'Unauthorized. Product modification blocked.' });
   }
 
   try {
     if (useSupabase && supabase) {
       const { error } = await supabase.from('products').update({ data: updatedProduct }).eq('id', updatedProduct.id);
       if (!error) {
+        localProducts = localProducts.map(p => p.id === updatedProduct.id ? updatedProduct : p);
         return res.json(updatedProduct);
       }
       throw error;
@@ -292,13 +505,38 @@ app.put('/api/products', authenticateAdmin, async (req, res) => {
   }
 });
 
-app.delete('/api/products/:id', authenticateAdmin, async (req, res) => {
+app.delete('/api/products/:id', async (req, res) => {
   const { id } = req.params;
-  // Parameterized safety: input is used only in .eq filter, preventing SQL Injection
+  const adminSecret = req.headers['x-admin-secret'];
+  const vendorId = req.headers['x-vendor-id'] as string;
+
+  let isAuthorized = false;
+  if (adminSecret && adminSecret === ADMIN_SECRET) {
+    isAuthorized = true;
+  } else if (vendorId) {
+    // check ownership
+    let existingProduct: Product | undefined;
+    if (useSupabase && supabase) {
+      const { data } = await supabase.from('products').select('*').eq('id', id).single();
+      if (data) existingProduct = data.data;
+    }
+    if (!existingProduct) {
+      existingProduct = localProducts.find(p => p.id === id);
+    }
+    if (existingProduct && existingProduct.vendorId === vendorId) {
+      isAuthorized = true;
+    }
+  }
+
+  if (!isAuthorized) {
+    return res.status(403).json({ error: 'Unauthorized. Deletion blocked.' });
+  }
+
   try {
     if (useSupabase && supabase) {
       const { error } = await supabase.from('products').delete().eq('id', id);
       if (!error) {
+        localProducts = localProducts.filter(p => p.id !== id);
         return res.json({ success: true, message: 'Product deleted successfully' });
       }
       throw error;
@@ -308,6 +546,118 @@ app.delete('/api/products/:id', authenticateAdmin, async (req, res) => {
     res.json({ success: true, message: 'Product deleted successfully' });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to delete product' });
+  }
+});
+
+// --- PRODUCT APPROVALS (Admin only) ---
+app.put('/api/products/:id/approve', authenticateAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { status, rejectionReason } = req.body; // status: 'approved' | 'rejected'
+
+  if (!['approved', 'rejected'].includes(status)) {
+    return res.status(400).json({ error: 'Invalid approval status value' });
+  }
+
+  try {
+    let product: Product | null = null;
+    if (useSupabase && supabase) {
+      const { data } = await supabase.from('products').select('*').eq('id', id).single();
+      if (data) product = data.data;
+    } else {
+      product = localProducts.find(p => p.id === id) || null;
+    }
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    product.approvalStatus = status;
+    if (status === 'rejected') {
+      product.rejectionReason = rejectionReason || 'Product does not meet standard quality criteria.';
+    } else {
+      product.rejectionReason = undefined;
+    }
+
+    if (useSupabase && supabase) {
+      const { error } = await supabase.from('products').update({ data: product }).eq('id', id);
+      if (error) throw error;
+      localProducts = localProducts.map(p => p.id === id ? product! : p);
+    } else {
+      localProducts = localProducts.map(p => p.id === id ? product! : p);
+    }
+
+    res.json({ success: true, product });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to process product approval' });
+  }
+});
+
+// --- VENDORS ---
+app.get('/api/vendors', async (req, res) => {
+  try {
+    if (useSupabase && supabase) {
+      const { data, error } = await supabase.from('vendors').select('*');
+      if (!error && data) {
+        return res.json(data.map((row: any) => row.data));
+      }
+      console.warn('Supabase vendor query failed, fallback to local vendors:', error);
+    }
+    res.json(localVendors);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch vendors' });
+  }
+});
+
+app.post('/api/vendors', async (req, res) => {
+  const newVendor: Vendor = req.body;
+  if (!newVendor || !newVendor.id || !newVendor.name || !newVendor.email) {
+    return res.status(400).json({ error: 'Invalid vendor registration data' });
+  }
+
+  try {
+    if (useSupabase && supabase) {
+      const { error } = await supabase.from('vendors').insert([{ id: newVendor.id, data: newVendor }]);
+      if (!error) {
+        // Cache locally as well
+        if (!localVendors.some(v => v.id === newVendor.id)) {
+          localVendors.push(newVendor);
+        }
+        return res.status(201).json(newVendor);
+      }
+      throw error;
+    }
+
+    if (!localVendors.some(v => v.id === newVendor.id)) {
+      localVendors.push(newVendor);
+    }
+    res.status(201).json(newVendor);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to register vendor' });
+  }
+});
+
+app.put('/api/vendors/:id', async (req, res) => {
+  const { id } = req.params;
+  const updatedVendor: Vendor = req.body;
+
+  if (!updatedVendor || !updatedVendor.id) {
+    return res.status(400).json({ error: 'Invalid vendor details' });
+  }
+
+  try {
+    if (useSupabase && supabase) {
+      const { error } = await supabase.from('vendors').update({ data: updatedVendor }).eq('id', id);
+      if (!error) {
+        localVendors = localVendors.map(v => v.id === id ? updatedVendor : v);
+        return res.json(updatedVendor);
+      }
+      throw error;
+    }
+
+    localVendors = localVendors.map(v => v.id === id ? updatedVendor : v);
+    res.json(updatedVendor);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to update vendor' });
   }
 });
 
@@ -355,6 +705,7 @@ app.delete('/api/coupons/:code', authenticateAdmin, async (req, res) => {
     if (useSupabase && supabase) {
       const { error } = await supabase.from('coupons').delete().eq('code', code);
       if (!error) {
+        localCoupons = localCoupons.filter(c => c.code !== code);
         return res.json({ success: true, message: 'Coupon deleted successfully' });
       }
       throw error;
@@ -654,6 +1005,7 @@ app.delete('/api/orders/:id', authenticateAdmin, async (req, res) => {
     if (useSupabase && supabase) {
       const { error } = await supabase.from('orders').delete().eq('id', id);
       if (!error) {
+        localOrders = localOrders.filter(o => o.id !== id);
         return res.json({ success: true, message: 'Order deleted successfully' });
       }
       throw error;
@@ -970,7 +1322,7 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Lucky Meesho Clone Backend active at: http://localhost:${PORT}`);
+    console.log(`🚀 QueKart Meesho Clone Backend active at: http://localhost:${PORT}`);
   });
 }
 

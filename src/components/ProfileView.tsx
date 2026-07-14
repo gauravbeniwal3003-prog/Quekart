@@ -559,7 +559,7 @@ export default function ProfileView({
 
               {/* Become a Supplier */}
               <div 
-                onClick={() => setActiveSubPage('become-supplier')}
+                onClick={() => onSelectTab('vendor')}
                 className="px-4 py-3.5 flex items-center justify-between cursor-pointer hover:bg-opacity-5 transition-colors"
                 id="row-supplier"
               >

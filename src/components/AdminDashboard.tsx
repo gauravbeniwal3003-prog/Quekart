@@ -33,7 +33,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Product, Order, Coupon, CartItem } from '../types';
+import { Product, Order, Coupon, CartItem, Vendor } from '../types';
 
 interface AdminDashboardProps {
   products: Product[];
@@ -109,7 +109,153 @@ export default function AdminDashboard({
   };
 
   // Navigation State
-  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'coupons'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'coupons' | 'approvals' | 'vendors'>('overview');
+
+  // Real-time local admin directories for vendors & approvals
+  const [liveProducts, setLiveProducts] = useState<Product[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [isLoadingAdminData, setIsLoadingAdminData] = useState(false);
+  const [rejectionReasonInput, setRejectionReasonInput] = useState<{ [productId: string]: string }>({});
+  const [showRejectionForm, setShowRejectionForm] = useState<string | null>(null);
+  const [systemStatus, setSystemStatus] = useState<{
+    useSupabase: boolean;
+    supabaseConnected: boolean;
+    supabaseInitialized: boolean;
+    tableChecks: { products: boolean; orders: boolean; vendors: boolean; coupons: boolean };
+    lastError: string | null;
+    localCounts: { products: number; orders: number; vendors: number; coupons: number };
+  } | null>(null);
+
+  // Load and refresh vendors and products
+  const loadAdminData = async () => {
+    setIsLoadingAdminData(true);
+    try {
+      const [vendorsRes, productsRes, statusRes] = await Promise.all([
+        fetch('/api/vendors'),
+        fetch('/api/products?all=true'),
+        fetch('/api/system-status').catch(() => null)
+      ]);
+      if (vendorsRes.ok) {
+        const vendorsData = await vendorsRes.json();
+        setVendors(vendorsData);
+      }
+      if (productsRes.ok) {
+        const productsData = await productsRes.json();
+        setLiveProducts(productsData);
+      }
+      if (statusRes && statusRes.ok) {
+        const statusData = await statusRes.json();
+        setSystemStatus(statusData);
+      }
+    } catch (err) {
+      console.warn('Failed to load admin directories, falling back locally.', err);
+    } finally {
+      setIsLoadingAdminData(false);
+    }
+  };
+
+  React.useEffect(() => {
+    loadAdminData();
+  }, [products]);
+
+  // Product Approval Operations
+  const handleApproveProduct = async (productId: string) => {
+    try {
+      const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+      const res = await fetch(`/api/products/${productId}/approve`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Secret': adminSecret
+        },
+        body: JSON.stringify({ status: 'approved' })
+      });
+
+      if (res.ok) {
+        setLiveProducts(prev => prev.map(p => p.id === productId ? { ...p, approvalStatus: 'approved', rejectionReason: undefined } : p));
+        // Also refresh list to be absolutely sure
+        setTimeout(loadAdminData, 500);
+      } else {
+        const err = await res.json();
+        alert(`Approval failed: ${err.error}`);
+      }
+    } catch (err) {
+      // Offline local emulation
+      setLiveProducts(prev => prev.map(p => p.id === productId ? { ...p, approvalStatus: 'approved' } : p));
+    }
+  };
+
+  const handleRejectProduct = async (productId: string) => {
+    const reason = rejectionReasonInput[productId]?.trim() || 'Product listing contains low-resolution images or invalid descriptions.';
+    try {
+      const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+      const res = await fetch(`/api/products/${productId}/approve`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Secret': adminSecret
+        },
+        body: JSON.stringify({ status: 'rejected', rejectionReason: reason })
+      });
+
+      if (res.ok) {
+        setLiveProducts(prev => prev.map(p => p.id === productId ? { ...p, approvalStatus: 'rejected', rejectionReason: reason } : p));
+        setShowRejectionForm(null);
+        setTimeout(loadAdminData, 500);
+      } else {
+        const err = await res.json();
+        alert(`Rejection failed: ${err.error}`);
+      }
+    } catch (err) {
+      setLiveProducts(prev => prev.map(p => p.id === productId ? { ...p, approvalStatus: 'rejected', rejectionReason: reason } : p));
+      setShowRejectionForm(null);
+    }
+  };
+
+  // Vendor Directory Operations
+  const handleToggleVendorStatus = async (vendor: Vendor) => {
+    const nextStatus = vendor.status === 'active' ? 'suspended' : 'active';
+    const updatedVendor: Vendor = { ...vendor, status: nextStatus };
+    try {
+      const res = await fetch(`/api/vendors/${vendor.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updatedVendor)
+      });
+      if (res.ok) {
+        setVendors(prev => prev.map(v => v.id === vendor.id ? updatedVendor : v));
+      } else {
+        const err = await res.json();
+        alert(`Failed to update seller status: ${err.error}`);
+      }
+    } catch (err) {
+      setVendors(prev => prev.map(v => v.id === vendor.id ? updatedVendor : v));
+    }
+  };
+
+  const handleToggleVendorTier = async (vendor: Vendor) => {
+    const nextType = vendor.vendorType === 'big' ? 'small' : 'big';
+    const updatedVendor: Vendor = { ...vendor, vendorType: nextType };
+    try {
+      const res = await fetch(`/api/vendors/${vendor.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updatedVendor)
+      });
+      if (res.ok) {
+        setVendors(prev => prev.map(v => v.id === vendor.id ? updatedVendor : v));
+      } else {
+        const err = await res.json();
+        alert(`Failed to update seller classification: ${err.error}`);
+      }
+    } catch (err) {
+      setVendors(prev => prev.map(v => v.id === vendor.id ? updatedVendor : v));
+    }
+  };
 
   // Search & Filter States
   const [productSearch, setProductSearch] = useState('');
@@ -618,11 +764,59 @@ export default function AdminDashboard({
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Real-time Database Diagnostics & Status */}
+        {systemStatus && (
+          <div className="bg-slate-900 border border-slate-800 text-white p-4 rounded-xl mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm" id="db-diagnostic-banner">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-slate-800 rounded-lg text-emerald-400">
+                <span className="relative flex h-3 w-3">
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${systemStatus.supabaseConnected ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
+                  <span className={`relative inline-flex rounded-full h-3 w-3 ${systemStatus.supabaseConnected ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                </span>
+              </div>
+              <div>
+                <h3 className="text-xs font-black tracking-wide uppercase text-slate-400 flex items-center gap-2">
+                  <span>Database Connection Status</span>
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${systemStatus.supabaseConnected ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
+                    {systemStatus.supabaseConnected ? 'Live Supabase Connected' : 'Local Fallback Mode'}
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-300 mt-1">
+                  {systemStatus.supabaseConnected 
+                    ? 'Perfect! All products, vendors, and coupon data are securely fetched and stored in your live cloud database.'
+                    : systemStatus.lastError 
+                      ? `Supabase integration is configured but tables are missing or inaccessible: ${systemStatus.lastError}. Operating in local memory fallback mode.`
+                      : 'Website is currently operating in in-memory local database mode. Set your SUPABASE_URL & SUPABASE_ANON_KEY to go live.'
+                  }
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2.5 w-full md:w-auto">
+              {systemStatus.supabaseConnected ? (
+                <div className="text-[10px] text-slate-400 font-mono space-y-0.5">
+                  <div>🛒 Products: <span className="text-white font-bold">{systemStatus.localCounts.products}</span></div>
+                  <div>📦 Orders: <span className="text-white font-bold">{systemStatus.localCounts.orders}</span></div>
+                </div>
+              ) : (
+                <button
+                  onClick={async () => {
+                    await loadAdminData();
+                  }}
+                  className="w-full md:w-auto bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 hover:border-slate-600 font-extrabold text-[11px] px-3.5 py-2 rounded-lg cursor-pointer transition-colors"
+                >
+                  Verify DB Connection
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Responsive Horizontal Tabs / Navigation Menu */}
-        <div className="bg-white rounded-xl border border-slate-200/80 p-1.5 flex flex-wrap gap-1 mb-6 shadow-3xs" id="admin-tabs">
+        <div className="bg-white rounded-xl border border-slate-200/80 p-1.5 flex flex-wrap gap-1.5 mb-6 shadow-3xs" id="admin-tabs">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`flex-1 min-w-[100px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
+            className={`flex-1 min-w-[110px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
               activeTab === 'overview'
                 ? 'bg-slate-900 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -634,7 +828,7 @@ export default function AdminDashboard({
           
           <button
             onClick={() => setActiveTab('products')}
-            className={`flex-1 min-w-[100px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
+            className={`flex-1 min-w-[110px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
               activeTab === 'products'
                 ? 'bg-slate-900 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -643,10 +837,34 @@ export default function AdminDashboard({
             <Package className="w-4 h-4" />
             <span>Products</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('approvals')}
+            className={`flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
+              activeTab === 'approvals'
+                ? 'bg-pink-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            <span>Approvals ({liveProducts.filter(p => p.approvalStatus === 'pending').length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('vendors')}
+            className={`flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
+              activeTab === 'vendors'
+                ? 'bg-indigo-900 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>Sellers ({vendors.length})</span>
+          </button>
           
           <button
             onClick={() => setActiveTab('orders')}
-            className={`flex-1 min-w-[100px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
+            className={`flex-1 min-w-[110px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
               activeTab === 'orders'
                 ? 'bg-slate-900 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -658,7 +876,7 @@ export default function AdminDashboard({
           
           <button
             onClick={() => setActiveTab('coupons')}
-            className={`flex-1 min-w-[100px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
+            className={`flex-1 min-w-[110px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
               activeTab === 'coupons'
                 ? 'bg-slate-900 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -1346,6 +1564,204 @@ export default function AdminDashboard({
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* 5. PRODUCT APPROVALS MANAGER TAB */}
+          {activeTab === 'approvals' && (
+            <div className="space-y-4 animate-fadeIn">
+              <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-3xs">
+                <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                  <span>🗳️ Small-Vendor SKU Approval Dashboard</span>
+                  <span className="bg-amber-100 text-amber-800 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    {liveProducts.filter(p => p.approvalStatus === 'pending').length} Awaiting Review
+                  </span>
+                </h3>
+                <p className="text-[11px] text-slate-400 font-medium mt-1">Review listed catalogs uploaded by small-scale supplier accounts. Big-scale accounts are auto-approved.</p>
+              </div>
+
+              {liveProducts.filter(p => p.approvalStatus === 'pending').length === 0 ? (
+                <div className="bg-white rounded-xl border border-slate-200/80 p-12 text-center shadow-3xs">
+                  <span className="text-4xl">🎉</span>
+                  <h4 className="text-sm font-bold text-slate-800 mt-3">All clear! No pending approvals</h4>
+                  <p className="text-xs text-slate-400 mt-1">Sellers have no pending uploads awaiting moderation.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {liveProducts.filter(p => p.approvalStatus === 'pending').map(p => (
+                    <div 
+                      key={p.id} 
+                      className="bg-white rounded-xl border border-slate-200/80 p-4 flex gap-4 shadow-3xs hover:shadow-2xs transition-shadow relative"
+                    >
+                      <div className="w-24 h-24 bg-slate-50 rounded-lg overflow-hidden shrink-0 border border-slate-100">
+                        <img 
+                          src={p.images[0]} 
+                          alt={p.title} 
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex justify-between items-start gap-2">
+                          <span className="bg-pink-50 text-lucky-magenta text-[9px] font-black px-2 py-0.5 rounded-sm uppercase tracking-wider">
+                            {p.category}
+                          </span>
+                          <span className="text-[10px] text-gray-400 font-bold">Wholesale Cost: <strong>₹{p.price}</strong></span>
+                        </div>
+
+                        <h4 className="text-xs font-black text-slate-800 truncate">{p.title}</h4>
+                        <p className="text-[10px] text-slate-400 line-clamp-1">{p.description}</p>
+                        
+                        <div className="pt-1.5 flex flex-wrap gap-x-2 text-[10px] text-slate-500 font-semibold">
+                          <span>Sold by: <strong className="text-slate-800 underline">{p.soldBy}</strong></span>
+                          <span>•</span>
+                          <span>Rating: <strong className="text-amber-500">★ {p.soldByRating}</strong></span>
+                        </div>
+
+                        {/* Actions buttons or feedback form */}
+                        {showRejectionForm === p.id ? (
+                          <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
+                            <label className="text-[9px] text-slate-400 font-black uppercase tracking-wide block">Rejection Feedback *</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Image resolution too low, or price typo."
+                              value={rejectionReasonInput[p.id] || ''}
+                              onChange={e => setRejectionReasonInput({ ...rejectionReasonInput, [p.id]: e.target.value })}
+                              className="w-full text-xs font-semibold border border-slate-200 rounded-md p-1.5 focus:outline-hidden focus:border-lucky-magenta"
+                            />
+                            <div className="flex justify-end gap-1.5">
+                              <button
+                                onClick={() => setShowRejectionForm(null)}
+                                className="px-2.5 py-1 text-[10px] font-bold text-gray-500 hover:text-gray-800"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={() => handleRejectProduct(p.id)}
+                                className="bg-red-500 hover:bg-red-600 text-white font-extrabold text-[10px] px-3 py-1 rounded-md"
+                              >
+                                Confirm Reject
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="pt-2.5 flex gap-2">
+                            <button
+                              onClick={() => handleApproveProduct(p.id)}
+                              className="bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-[10px] py-1.5 px-3 rounded-md flex items-center gap-1 cursor-pointer"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              <span>Approve SKU</span>
+                            </button>
+                            <button
+                              onClick={() => setShowRejectionForm(p.id)}
+                              className="bg-slate-100 hover:bg-red-50 hover:text-red-500 text-slate-600 font-extrabold text-[10px] py-1.5 px-3 rounded-md cursor-pointer transition-colors"
+                            >
+                              Reject & Give Feedback
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 6. VENDORS / SELLERS DIRECTORY TAB */}
+          {activeTab === 'vendors' && (
+            <div className="space-y-4 animate-fadeIn">
+              <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-3xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                    <span>🏢 Wholesale Suppliers Directory</span>
+                    <span className="bg-purple-100 text-purple-800 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      {vendors.length} Active Listings
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-medium mt-1">Manage commissions-free suppliers, audit their ratings, change tier classifications, and enforce marketplace suspension.</p>
+                </div>
+              </div>
+
+              {vendors.length === 0 ? (
+                <div className="bg-white rounded-xl border border-slate-200/80 p-12 text-center shadow-3xs">
+                  <span className="text-4xl">🏚️</span>
+                  <h4 className="text-sm font-bold text-slate-800 mt-3">No registered sellers found</h4>
+                  <p className="text-xs text-slate-400 mt-1">Suppliers have not completed registration processes yet.</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-3xs">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-150 text-slate-400 font-extrabold uppercase tracking-wider">
+                          <th className="p-4">Supplier / Firm Name</th>
+                          <th className="p-4">Category</th>
+                          <th className="p-4">Classification Tier</th>
+                          <th className="p-4">Business Details</th>
+                          <th className="p-4">Account Status</th>
+                          <th className="p-4 text-right">Moderation Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                        {vendors.map(v => (
+                          <tr key={v.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="p-4">
+                              <div className="flex items-center gap-2.5">
+                                <span className="text-lg">🏪</span>
+                                <div>
+                                  <h4 className="font-black text-slate-900">{v.name}</h4>
+                                  <span className="text-[9.5px] text-slate-400 font-mono">ID: {v.id}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-4 font-bold text-slate-900">{v.businessCategory}</td>
+                            <td className="p-4">
+                              <button
+                                onClick={() => handleToggleVendorTier(v)}
+                                className={`px-2.5 py-1 rounded-md font-black text-[9.5px] uppercase tracking-wide cursor-pointer transition-colors ${
+                                  v.vendorType === 'big' 
+                                    ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-200' 
+                                    : 'bg-blue-50 text-blue-800 hover:bg-blue-100 border border-blue-200'
+                                }`}
+                                title="Click to Change Classification"
+                              >
+                                {v.vendorType === 'big' ? '👑 Big scale (Instant live)' : '🌱 Small scale (Needs review)'}
+                              </button>
+                            </td>
+                            <td className="p-4 space-y-0.5 text-[10px] text-slate-500">
+                              <p>GSTIN: <strong className="text-slate-800">{v.gstin || 'EXEMPT'}</strong></p>
+                              <p>Phone: <strong>{v.phone}</strong></p>
+                              <p>Email: <strong>{v.email}</strong></p>
+                            </td>
+                            <td className="p-4">
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                                v.status === 'suspended' ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
+                              }`}>
+                                {v.status}
+                              </span>
+                            </td>
+                            <td className="p-4 text-right">
+                              <button
+                                onClick={() => handleToggleVendorStatus(v)}
+                                className={`text-[10px] font-black uppercase py-1.5 px-3 rounded-lg transition-colors cursor-pointer ${
+                                  v.status === 'suspended' 
+                                    ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-100' 
+                                    : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-100'
+                                }`}
+                              >
+                                {v.status === 'suspended' ? 'Re-Activate seller' : 'Suspend Account'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

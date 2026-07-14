@@ -11,8 +11,16 @@ import OrdersView from './components/OrdersView';
 import CartDrawer from './components/CartDrawer';
 import ProfileView from './components/ProfileView';
 import AdminDashboard from './components/AdminDashboard';
+import VendorDashboard from './components/VendorDashboard';
 
 const initialCoupons: Coupon[] = [
+  {
+    code: 'QUEKART50',
+    discountType: 'flat',
+    value: 50,
+    minPurchase: 299,
+    description: 'Flat ₹50 OFF on orders above ₹299'
+  },
   {
     code: 'LUCKY50',
     discountType: 'flat',
@@ -83,6 +91,8 @@ export default function App() {
       }
     } else if (parts[0] === 'admin') {
       tab = 'admin';
+    } else if (parts[0] === 'vendor') {
+      tab = 'vendor';
     } else if (['home', 'categories', 'orders', 'wishlist'].includes(parts[0])) {
       tab = parts[0];
     } else {
@@ -317,6 +327,94 @@ export default function App() {
       }
     } catch (e) {
       console.warn('Network error: deleting locally', e);
+      setProducts((prev) => prev.filter((p) => p.id !== productId));
+    }
+  };
+
+  // Vendor Action Proxies
+  const handleVendorAddProduct = async (newProduct: Product) => {
+    let vendorId = '';
+    try {
+      const saved = localStorage.getItem('quekart_current_vendor');
+      if (saved) {
+        vendorId = JSON.parse(saved).id;
+      }
+    } catch (_) {}
+
+    try {
+      const res = await fetch('/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Vendor-ID': vendorId
+        },
+        body: JSON.stringify(newProduct)
+      });
+      if (res.ok) {
+        const saved = await res.json();
+        setProducts((prev) => [saved, ...prev]);
+      } else {
+        const err = await res.json();
+        alert(`Failed to list product: ${err.error}`);
+      }
+    } catch (e) {
+      setProducts((prev) => [newProduct, ...prev]);
+    }
+  };
+
+  const handleVendorEditProduct = async (updatedProduct: Product) => {
+    let vendorId = '';
+    try {
+      const saved = localStorage.getItem('quekart_current_vendor');
+      if (saved) {
+        vendorId = JSON.parse(saved).id;
+      }
+    } catch (_) {}
+
+    try {
+      const res = await fetch('/api/products', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Vendor-ID': vendorId
+        },
+        body: JSON.stringify(updatedProduct)
+      });
+      if (res.ok) {
+        const saved = await res.json();
+        setProducts((prev) => prev.map((p) => (p.id === saved.id ? saved : p)));
+      } else {
+        const err = await res.json();
+        alert(`Failed to update product: ${err.error}`);
+      }
+    } catch (e) {
+      setProducts((prev) => prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p)));
+    }
+  };
+
+  const handleVendorDeleteProduct = async (productId: string) => {
+    let vendorId = '';
+    try {
+      const saved = localStorage.getItem('quekart_current_vendor');
+      if (saved) {
+        vendorId = JSON.parse(saved).id;
+      }
+    } catch (_) {}
+
+    try {
+      const res = await fetch(`/api/products/${productId}`, {
+        method: 'DELETE',
+        headers: {
+          'X-Vendor-ID': vendorId
+        }
+      });
+      if (res.ok) {
+        setProducts((prev) => prev.filter((p) => p.id !== productId));
+      } else {
+        const err = await res.json();
+        alert(`Failed to delete product: ${err.error}`);
+      }
+    } catch (e) {
       setProducts((prev) => prev.filter((p) => p.id !== productId));
     }
   };
@@ -557,6 +655,17 @@ export default function App() {
                   onClose={() => navigateTo('/profile')}
                 />
               )}
+
+              {activeTab === 'vendor' && (
+                <VendorDashboard
+                  products={products}
+                  orders={orders}
+                  onAddProduct={handleVendorAddProduct}
+                  onEditProduct={handleVendorEditProduct}
+                  onDeleteProduct={handleVendorDeleteProduct}
+                  onClose={() => navigateTo('/profile')}
+                />
+              )}
             </>
           )}
         </div>
@@ -573,7 +682,7 @@ export default function App() {
         />
  
         {/* Global Bottom Navigation shown except on detailed product checkout screens */}
-        {!selectedProduct && activeTab !== 'admin' && (
+        {!selectedProduct && activeTab !== 'admin' && activeTab !== 'vendor' && (
           <BottomNav
             activeTab={activeTab}
             cartCount={cart.reduce((acc, item) => acc + item.quantity, 0)}

@@ -52,6 +52,22 @@ export interface Product {
   tag?: string; // e.g. "Top Rated", "Lowest Price"
   timeLeftText?: string; // "01h : 25m : 26s" for flash offers
   reviews: Review[];
+  vendorId?: string;
+  approvalStatus?: 'approved' | 'pending' | 'rejected';
+  rejectionReason?: string;
+}
+
+export interface Vendor {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  vendorType: 'small' | 'big';
+  businessCategory: string;
+  gstin?: string;
+  rating: number;
+  status: 'active' | 'suspended';
+  createdAt: string;
 }
 
 export interface CartItem {

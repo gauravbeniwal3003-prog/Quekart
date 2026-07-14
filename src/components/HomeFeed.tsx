@@ -39,7 +39,10 @@ export default function HomeFeed({
   const [timerText, setTimerText] = useState('01h : 25m : 26s');
 
   // Apply filters and sort (hoisted above useEffects to prevent temporal dead zone)
-  let filteredProducts = [...products];
+  // Shoppers should only see verified/approved items
+  let filteredProducts = products.filter(
+    (p) => !p.approvalStatus || p.approvalStatus === 'approved'
+  );
 
   // 1. Category Filter
   if (selectedCategory !== 'All') {
@@ -521,9 +524,15 @@ export default function HomeFeed({
                 <div className="p-2.5 flex-1 flex flex-col justify-between overflow-hidden">
                   <div>
                     {/* Title */}
-                    <h3 className="text-xs font-medium text-gray-500 line-clamp-2 leading-tight tracking-tight mb-1 break-words overflow-hidden" title={product.title}>
+                    <h3 className="text-xs font-medium text-gray-500 line-clamp-1 leading-tight tracking-tight mb-1 break-words overflow-hidden" title={product.title}>
                       {product.title}
                     </h3>
+
+                    {/* Vendor Name Display */}
+                    <div className="text-[10px] font-extrabold text-[#e91e63] mb-1.5 flex items-center gap-1 truncate">
+                      <span>🏪</span>
+                      <span className="truncate">{product.soldBy || 'Jaipur Wholesale'}</span>
+                    </div>
 
                     {/* Price and Strikethrough Row */}
                     <div className="flex items-baseline gap-1.5 flex-wrap overflow-hidden">
