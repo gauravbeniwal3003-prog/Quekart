@@ -513,9 +513,9 @@ export default function HomeFeed({
 
                   {/* Countdown deal banner if available */}
                   {product.timeLeftText && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-amber-500/90 text-white py-1 px-2 text-[10px] font-semibold flex items-center justify-between gap-1">
-                      <span className="flex items-center gap-0.5">⏱️ {timerText}</span>
-                      <span className="text-[9px] uppercase tracking-wider font-extrabold text-amber-95 animate-pulse">Flash Deal</span>
+                    <div className="absolute bottom-0 left-0 right-0 bg-amber-500/90 text-white py-1 px-1.5 text-[10px] font-semibold flex items-center justify-between whitespace-nowrap overflow-hidden">
+                      <span className="flex items-center gap-0.5 truncate flex-shrink min-w-0">⏱️ {timerText}</span>
+                      <span className="text-[8px] sm:text-[9px] uppercase tracking-wider font-extrabold text-amber-50 animate-pulse flex-shrink-0 ml-1">Flash Deal</span>
                     </div>
                   )}
                 </div>

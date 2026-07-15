@@ -235,33 +235,6 @@ export default function ProductDetail({
             </div>
           </div>
 
-          {/* Swatches / Similar Products Swatches list */}
-          <div className="bg-white p-4 border-b md:border border-gray-200 md:rounded-xl md:shadow-3xs" id="variants-swatches-section">
-            <span className="text-xs font-bold text-gray-500 tracking-wide uppercase">5 Similar Products</span>
-            <div className="flex gap-2.5 mt-2 overflow-x-auto py-1 scrollbar-hide" id="variants-swatches-row">
-              {product.variants.map((v, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleVariantSelect(idx)}
-                  className={`w-[60px] flex-shrink-0 aspect-[3/4] rounded-md overflow-hidden border-2 transition-all p-0.5 bg-white shadow-xs cursor-pointer ${
-                    selectedVariantIndex === idx ? 'border-lucky-magenta scale-105 shadow-md' : 'border-transparent opacity-80 hover:opacity-100'
-                  }`}
-                  id={`variant-swatch-${idx}`}
-                >
-                  <img
-                    src={v.imageUrl}
-                    alt={v.colorName}
-                    className="w-full h-full object-cover rounded-sm"
-                    referrerPolicy="no-referrer"
-                  />
-                </button>
-              ))}
-            </div>
-            <p className="text-[11px] text-gray-400 mt-1.5">
-              Selected: <span className="font-bold text-gray-700">{currentVariant.colorName}</span>
-            </p>
-          </div>
-
           {/* Trust Badges - Lucky Quality Indicators */}
           <div className="grid grid-cols-3 bg-white border-y border-gray-100/80 md:border md:rounded-xl p-4 text-center" id="trust-indicators-grid">
             <div className="flex flex-col items-center justify-center py-1">
@@ -483,6 +456,33 @@ export default function ProductDetail({
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Swatches / Similar Products Swatches list */}
+          <div className="bg-white p-4 border-b md:border border-gray-200 md:rounded-xl md:shadow-3xs" id="variants-swatches-section">
+            <span className="text-xs font-bold text-gray-500 tracking-wide uppercase">Suggested Products</span>
+            <div className="flex gap-2.5 mt-2 overflow-x-auto py-1 scrollbar-hide" id="variants-swatches-row">
+              {product.variants.map((v, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleVariantSelect(idx)}
+                  className={`w-[60px] flex-shrink-0 aspect-[3/4] rounded-md overflow-hidden border-2 transition-all p-0.5 bg-white shadow-xs cursor-pointer ${
+                    selectedVariantIndex === idx ? 'border-lucky-magenta scale-105 shadow-md' : 'border-transparent opacity-80 hover:opacity-100'
+                  }`}
+                  id={`variant-swatch-${idx}`}
+                >
+                  <img
+                    src={v.imageUrl}
+                    alt={v.colorName}
+                    className="w-full h-full object-cover rounded-sm"
+                    referrerPolicy="no-referrer"
+                  />
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-gray-400 mt-1.5">
+              Selected: <span className="font-bold text-gray-700">{currentVariant.colorName}</span>
+            </p>
           </div>
 
           {/* Customer Ratings & Reviews Card Section (Screenshot 1 & 2) */}

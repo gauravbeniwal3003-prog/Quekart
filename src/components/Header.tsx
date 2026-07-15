@@ -122,7 +122,7 @@ export default function Header({
           {/* Logo & Refer row on Mobile, Logo on Left on Desktop */}
           <div className="flex items-center justify-between md:justify-start gap-4 flex-shrink-0 w-full md:w-auto">
             {/* Left Section (Profile & Refer) - Mobile Only */}
-            <div className="flex items-center gap-2 md:hidden">
+            <div className="flex items-center gap-2 md:hidden flex-shrink-0">
               <button
                 onClick={() => onSelectTab('profile')}
                 className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center cursor-pointer transition-transform active:scale-95"
@@ -146,12 +146,18 @@ export default function Header({
             </div>
 
             {/* Logo */}
-            <div className="text-center md:text-left cursor-pointer" onClick={() => onSelectTab('home')}>
-              <span className="font-display font-black text-lucky-magenta text-xl md:text-2xl tracking-tight">QueKart</span>
+            <div className="flex items-center gap-1.5 sm:gap-2 justify-center md:justify-start cursor-pointer flex-shrink min-w-0 overflow-hidden" onClick={() => onSelectTab('home')}>
+              <img 
+                src="https://i.ibb.co/dwTX49yG/37145-removebg-preview.png" 
+                alt="QueKart Logo" 
+                className="h-7 sm:h-9 md:h-10 lg:h-11 w-auto max-w-[40px] sm:max-w-[150px] md:max-w-none object-contain flex-shrink-0 transition-transform duration-200 hover:scale-105 active:scale-95"
+                referrerPolicy="no-referrer"
+              />
+              <span className="font-display font-black text-lucky-magenta text-lg sm:text-xl md:text-2xl tracking-tight truncate">QueKart</span>
             </div>
 
             {/* Action icons - Mobile Only */}
-            <div className="flex items-center gap-3 md:hidden">
+            <div className="flex items-center gap-3 md:hidden flex-shrink-0">
               <button
                 onClick={() => onSelectTab('wishlist')}
                 className="p-1.5 hover:bg-gray-100 rounded-full relative cursor-pointer text-gray-700 transition-colors"
