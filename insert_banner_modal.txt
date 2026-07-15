@@ -1,0 +1,85 @@
+
+      {/* --- ADD BANNER MODAL DIALOG --- */}
+      <AnimatePresence>
+        {isBannerModalOpen && (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-xl shadow-xl border border-slate-100 max-w-md w-full overflow-hidden"
+            >
+              <div className="bg-slate-950 text-white px-6 py-4 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-black">Add New Banner</h3>
+                  <p className="text-[10px] text-slate-300 font-semibold uppercase tracking-wider mt-0.5">Home Page Banner Slot</p>
+                </div>
+                <button 
+                  onClick={() => setIsBannerModalOpen(false)}
+                  className="p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleBannerSubmit} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Banner Type *</label>
+                  <select
+                    value={bType}
+                    onChange={(e) => setBType(e.target.value as any)}
+                    className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2.5 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+                  >
+                    <option value="promotional">Promotional Offer</option>
+                    <option value="news">Latest News / Announcement</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Image URL *</label>
+                  <input
+                    type="url"
+                    required
+                    value={bImageUrl}
+                    onChange={(e) => setBImageUrl(e.target.value)}
+                    placeholder="https://example.com/image.jpg"
+                    className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+                  />
+                  {bImageUrl && (
+                    <div className="mt-3 aspect-[3/1] bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
+                      <img src={bImageUrl} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Link URL (Optional)</label>
+                  <input
+                    type="url"
+                    value={bLinkUrl}
+                    onChange={(e) => setBLinkUrl(e.target.value)}
+                    placeholder="https://quekart.com/category"
+                    className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+                  />
+                </div>
+
+                <div className="pt-4 flex justify-end gap-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setIsBannerModalOpen(false)}
+                    className="bg-slate-100 text-slate-700 hover:bg-slate-200 font-extrabold text-xs px-4 py-2.5 rounded-lg cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-slate-900 text-white hover:bg-slate-850 font-extrabold text-xs px-5 py-2.5 rounded-lg cursor-pointer shadow-md"
+                  >
+                    Add Banner
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>

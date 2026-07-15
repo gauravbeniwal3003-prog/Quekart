@@ -33,12 +33,13 @@ import {
   Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Product, Order, Coupon, CartItem, Vendor } from '../types';
+import { Product, Order, Coupon, CartItem, Vendor, Banner } from '../types';
 
 interface AdminDashboardProps {
   products: Product[];
   orders: Order[];
   coupons: Coupon[];
+  banners?: Banner[];
   onAddProduct: (product: Product) => void;
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (id: string) => void;
@@ -46,13 +47,18 @@ interface AdminDashboardProps {
   onDeleteOrder: (orderId: string) => void;
   onAddCoupon: (coupon: Coupon) => void;
   onDeleteCoupon: (code: string) => void;
+  onAddBanner?: (banner: Banner) => void;
+  onDeleteBanner?: (id: string) => void;
   onClose: () => void;
+  activeSubPage?: string | null;
+  setActiveSubPage?: (page: string) => void;
 }
 
 export default function AdminDashboard({
   products,
   orders,
   coupons,
+  banners = [],
   onAddProduct,
   onEditProduct,
   onDeleteProduct,
@@ -60,7 +66,11 @@ export default function AdminDashboard({
   onDeleteOrder,
   onAddCoupon,
   onDeleteCoupon,
-  onClose
+  onAddBanner,
+  onDeleteBanner,
+  onClose,
+  activeSubPage,
+  setActiveSubPage
 }: AdminDashboardProps) {
   // Admin Passcode State
   const [adminPasscode, setAdminPasscode] = useState(() => localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123');
@@ -109,7 +119,8 @@ export default function AdminDashboard({
   };
 
   // Navigation State
-  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'coupons' | 'approvals' | 'vendors'>('overview');
+  const activeTab = activeSubPage || 'overview';
+  const setActiveTab = setActiveSubPage || (() => {});
 
   // Real-time local admin directories for vendors & approvals
   const [liveProducts, setLiveProducts] = useState<Product[]>([]);
@@ -267,6 +278,12 @@ export default function AdminDashboard({
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
+  const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
+
+  // New Banner Form Fields
+  const [bType, setBType] = useState<'promotional' | 'news'>('promotional');
+  const [bImageUrl, setBImageUrl] = useState('');
+  const [bLinkUrl, setBLinkUrl] = useState('');
 
   // New/Edit Product Form Fields
   const [pTitle, setPTitle] = useState('');
@@ -649,6 +666,24 @@ export default function AdminDashboard({
     setIsProductModalOpen(false);
   };
 
+  // Submit Banner Form
+  const handleBannerSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bImageUrl.trim() || !onAddBanner) return;
+
+    onAddBanner({
+      id: `banner-${Date.now()}`,
+      imageUrl: bImageUrl.trim(),
+      linkUrl: bLinkUrl.trim() || undefined,
+      type: bType
+    });
+    
+    setBImageUrl('');
+    setBLinkUrl('');
+    setBType('promotional');
+    setIsBannerModalOpen(false);
+  };
+
   // Submit Coupon Form
   const handleCouponSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -710,7 +745,7 @@ export default function AdminDashboard({
       case 'Ordered':
         return 'bg-amber-50 text-amber-700 border-amber-100';
       case 'Cancelled':
-        return 'bg-rose-50 text-rose-700 border-rose-100';
+        return 'bg-red-50 text-red-700 border-red-100';
       default:
         return 'bg-slate-50 text-slate-700 border-slate-100';
     }
@@ -731,7 +766,7 @@ export default function AdminDashboard({
             </button>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-black bg-gradient-to-r from-pink-500 to-rose-500 text-white px-2 py-0.5 rounded-md tracking-wider">PRO</span>
+                <span className="text-sm font-black bg-gradient-to-r from-blue-500 to-red-500 text-white px-2 py-0.5 rounded-md tracking-wider">PRO</span>
                 <h1 className="text-base font-extrabold tracking-tight">Admin Operations Suite</h1>
               </div>
               <p className="text-[10px] text-slate-400">Total System Control & Product Configs</p>
@@ -842,7 +877,7 @@ export default function AdminDashboard({
             onClick={() => setActiveTab('approvals')}
             className={`flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
               activeTab === 'approvals'
-                ? 'bg-pink-600 text-white shadow-xs'
+                ? 'bg-blue-600 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >
@@ -884,6 +919,18 @@ export default function AdminDashboard({
           >
             <Ticket className="w-4 h-4" />
             <span>Coupons ({coupons.length})</span>
+          </button>
+          
+          <button
+            onClick={() => setActiveSubPage?.('banners')}
+            className={`flex-1 min-w-[110px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
+              activeTab === 'banners'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            }`}
+          >
+            <ImageIcon className="w-4 h-4" />
+            <span>Banners ({banners.length})</span>
           </button>
         </div>
 
@@ -954,13 +1001,13 @@ export default function AdminDashboard({
                 </div>
 
                 <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-3xs hover:shadow-xs transition-shadow flex items-start gap-4">
-                  <div className="p-3 bg-pink-50 rounded-lg text-pink-600">
+                  <div className="p-3 bg-blue-50 rounded-lg text-blue-600">
                     <Package className="w-6 h-6" />
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Catalog</span>
                     <span className="text-xl font-black text-slate-900 block mt-0.5">{totalProductsCount}</span>
-                    <span className="text-[9px] text-pink-600 font-extrabold bg-pink-50/50 px-1.5 py-0.5 rounded-sm inline-block mt-1">Active SKUs</span>
+                    <span className="text-[9px] text-blue-600 font-extrabold bg-blue-50/50 px-1.5 py-0.5 rounded-sm inline-block mt-1">Active SKUs</span>
                   </div>
                 </div>
 
@@ -998,8 +1045,8 @@ export default function AdminDashboard({
                     <svg className="absolute inset-0 w-full h-full" viewBox="0 0 500 200" preserveAspectRatio="none">
                       <defs>
                         <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#db2777" stopOpacity="0.18" />
-                          <stop offset="100%" stopColor="#db2777" stopOpacity="0.00" />
+                          <stop offset="0%" stopColor="#17436B" stopOpacity="0.18" />
+                          <stop offset="100%" stopColor="#17436B" stopOpacity="0.00" />
                         </linearGradient>
                       </defs>
                       {/* Area beneath */}
@@ -1011,15 +1058,15 @@ export default function AdminDashboard({
                       <path 
                         d="M 0 160 Q 100 120 200 140 T 400 60 T 500 40" 
                         fill="none" 
-                        stroke="#db2777" 
+                        stroke="#17436B" 
                         strokeWidth="3.5"
                         strokeLinecap="round"
                       />
                       {/* Scatter Data Dots */}
-                      <circle cx="100" cy="125" r="5" fill="#db2777" stroke="#ffffff" strokeWidth="2" />
-                      <circle cx="200" cy="140" r="5" fill="#db2777" stroke="#ffffff" strokeWidth="2" />
-                      <circle cx="350" cy="72" r="5" fill="#db2777" stroke="#ffffff" strokeWidth="2" />
-                      <circle cx="500" cy="40" r="5" fill="#db2777" stroke="#ffffff" strokeWidth="2" />
+                      <circle cx="100" cy="125" r="5" fill="#17436B" stroke="#ffffff" strokeWidth="2" />
+                      <circle cx="200" cy="140" r="5" fill="#17436B" stroke="#ffffff" strokeWidth="2" />
+                      <circle cx="350" cy="72" r="5" fill="#17436B" stroke="#ffffff" strokeWidth="2" />
+                      <circle cx="500" cy="40" r="5" fill="#17436B" stroke="#ffffff" strokeWidth="2" />
                     </svg>
 
                     {/* Chart Labels Overlay */}
@@ -1046,7 +1093,7 @@ export default function AdminDashboard({
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-400 font-bold block">Conversion Rate</span>
-                      <span className="text-base font-black text-pink-600">4.12%</span>
+                      <span className="text-base font-black text-blue-600">4.12%</span>
                     </div>
                   </div>
                 </div>
@@ -1134,7 +1181,7 @@ export default function AdminDashboard({
                                 setOrderSearch(order.id);
                                 setActiveTab('orders');
                               }}
-                              className="text-lucky-magenta hover:text-pink-700 font-bold px-2 py-1 bg-pink-50/50 rounded-md cursor-pointer"
+                              className="text-lucky-magenta hover:text-blue-700 font-bold px-2 py-1 bg-blue-50/50 rounded-md cursor-pointer"
                             >
                               Edit Status
                             </button>
@@ -1266,7 +1313,7 @@ export default function AdminDashboard({
                                     onDeleteProduct(product.id);
                                   }
                                 }}
-                                className="p-2 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                                 title="Delete Product"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -1333,7 +1380,7 @@ export default function AdminDashboard({
                                   onDeleteProduct(product.id);
                                 }
                               }}
-                              className="p-1.5 rounded-md text-rose-600 hover:bg-rose-50 cursor-pointer"
+                              className="p-1.5 rounded-md text-red-600 hover:bg-red-50 cursor-pointer"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -1425,7 +1472,7 @@ export default function AdminDashboard({
                               onDeleteOrder(order.id);
                             }
                           }}
-                          className="p-1.5 rounded-md text-rose-600 hover:bg-rose-50 cursor-pointer"
+                          className="p-1.5 rounded-md text-red-600 hover:bg-red-50 cursor-pointer"
                           title="Delete Order Log"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1478,7 +1525,7 @@ export default function AdminDashboard({
                         
                         <div className="flex items-center justify-between border-t border-slate-100 pt-2 mt-2 font-bold text-xs">
                           <span className="text-slate-400 font-black">ORDER TOTAL VALUE</span>
-                          <span className="text-sm font-black text-lucky-magenta bg-pink-50/50 px-2 py-0.5 rounded-md border border-pink-100">
+                          <span className="text-sm font-black text-lucky-magenta bg-blue-50/50 px-2 py-0.5 rounded-md border border-blue-100">
                             ₹{order.totalPrice}
                           </span>
                         </div>
@@ -1537,7 +1584,7 @@ export default function AdminDashboard({
                               onDeleteCoupon(coupon.code);
                             }
                           }}
-                          className="text-rose-500 hover:text-rose-700 p-1 rounded-md hover:bg-rose-50 transition-colors cursor-pointer"
+                          className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors cursor-pointer"
                           title="Revoke Coupon"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1604,7 +1651,7 @@ export default function AdminDashboard({
 
                       <div className="flex-1 min-w-0 space-y-1">
                         <div className="flex justify-between items-start gap-2">
-                          <span className="bg-pink-50 text-lucky-magenta text-[9px] font-black px-2 py-0.5 rounded-sm uppercase tracking-wider">
+                          <span className="bg-blue-50 text-lucky-magenta text-[9px] font-black px-2 py-0.5 rounded-sm uppercase tracking-wider">
                             {p.category}
                           </span>
                           <span className="text-[10px] text-gray-400 font-bold">Wholesale Cost: <strong>₹{p.price}</strong></span>
@@ -1677,7 +1724,7 @@ export default function AdminDashboard({
                 <div>
                   <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
                     <span>🏢 Wholesale Suppliers Directory</span>
-                    <span className="bg-purple-100 text-purple-800 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    <span className="bg-blue-100 text-blue-800 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
                       {vendors.length} Active Listings
                     </span>
                   </h3>
@@ -1767,8 +1814,65 @@ export default function AdminDashboard({
 
         </div>
       </div>
+      {/* 7. BANNERS TAB */}
+      {activeTab === 'banners' && (
+        <div className="space-y-4 animate-fadeIn p-4 md:p-6">
+          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-3xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-lucky-magenta" />
+                <span>Dynamic Layout Banners</span>
+              </h3>
+              <p className="text-[11px] text-slate-400 font-medium mt-1">Manage promotional banners and latest news images shown on the home page.</p>
+            </div>
+            <button
+              onClick={() => setIsBannerModalOpen(true)}
+              className="bg-slate-900 text-white px-5 py-2.5 rounded-lg text-xs font-extrabold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow-md cursor-pointer shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add New Banner</span>
+            </button>
+          </div>
 
-      {/* --- ADD / EDIT PRODUCT MODAL DIALOG --- */}
+          {banners.length === 0 ? (
+            <div className="bg-white rounded-xl border border-slate-200/80 p-12 text-center shadow-3xs">
+              <ImageIcon className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+              <h4 className="text-sm font-bold text-slate-800">No Banners Configured</h4>
+              <p className="text-xs text-slate-400 mt-1">Add banners to highlight promotions or news.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {banners.map((b) => (
+                <div key={b.id} className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-sm flex flex-col group relative">
+                  <div className="aspect-[3/1] w-full bg-slate-50 relative">
+                    <img src={b.imageUrl} alt={b.type} className="w-full h-full object-cover" />
+                    <div className="absolute top-2 right-2 bg-black/60 text-white text-[9px] font-black uppercase px-2 py-1 rounded">
+                      {b.type === 'promotional' ? 'Promo' : 'News'}
+                    </div>
+                  </div>
+                  <div className="p-3 bg-white flex items-center justify-between">
+                    <div className="text-[10px] text-slate-500 font-medium truncate pr-4">
+                      {b.linkUrl || 'No specific link associated'}
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (confirm('Delete this banner?')) {
+                          onDeleteBanner?.(b.id);
+                        }
+                      }}
+                      className="w-7 h-7 flex items-center justify-center rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors shrink-0 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+
       <AnimatePresence>
         {isProductModalOpen && (
           <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
@@ -1959,7 +2063,7 @@ export default function AdminDashboard({
                               onClick={() => {
                                 setPImages(pImages.filter(url => url !== img));
                               }}
-                              className="bg-slate-900/80 text-white hover:bg-rose-600 p-1.5 rounded-lg shadow-sm transition-colors cursor-pointer"
+                              className="bg-slate-900/80 text-white hover:bg-red-600 p-1.5 rounded-lg shadow-sm transition-colors cursor-pointer"
                               title="Delete Image"
                             >
                               <X className="w-3.5 h-3.5" />
@@ -2115,6 +2219,91 @@ export default function AdminDashboard({
         )}
       </AnimatePresence>
 
+
+      {/* --- ADD BANNER MODAL DIALOG --- */}
+      <AnimatePresence>
+        {isBannerModalOpen && (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-xl shadow-xl border border-slate-100 max-w-md w-full overflow-hidden"
+            >
+              <div className="bg-slate-950 text-white px-6 py-4 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-black">Add New Banner</h3>
+                  <p className="text-[10px] text-slate-300 font-semibold uppercase tracking-wider mt-0.5">Home Page Banner Slot</p>
+                </div>
+                <button 
+                  onClick={() => setIsBannerModalOpen(false)}
+                  className="p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleBannerSubmit} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Banner Type *</label>
+                  <select
+                    value={bType}
+                    onChange={(e) => setBType(e.target.value as any)}
+                    className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2.5 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+                  >
+                    <option value="promotional">Promotional Offer</option>
+                    <option value="news">Latest News / Announcement</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Image URL *</label>
+                  <input
+                    type="url"
+                    required
+                    value={bImageUrl}
+                    onChange={(e) => setBImageUrl(e.target.value)}
+                    placeholder="https://example.com/image.jpg"
+                    className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+                  />
+                  {bImageUrl && (
+                    <div className="mt-3 aspect-[3/1] bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
+                      <img src={bImageUrl} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Link URL (Optional)</label>
+                  <input
+                    type="url"
+                    value={bLinkUrl}
+                    onChange={(e) => setBLinkUrl(e.target.value)}
+                    placeholder="https://quekart.com/category"
+                    className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+                  />
+                </div>
+
+                <div className="pt-4 flex justify-end gap-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setIsBannerModalOpen(false)}
+                    className="bg-slate-100 text-slate-700 hover:bg-slate-200 font-extrabold text-xs px-4 py-2.5 rounded-lg cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-slate-900 text-white hover:bg-slate-850 font-extrabold text-xs px-5 py-2.5 rounded-lg cursor-pointer shadow-md"
+                  >
+                    Add Banner
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
       {/* --- CREATE COUPON MODAL DIALOG --- */}
       <AnimatePresence>
         {isCouponModalOpen && (
@@ -2242,7 +2431,7 @@ export default function AdminDashboard({
               {/* Header */}
               <div className="border-b border-slate-800 px-5 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#db2777] animate-pulse" />
+                  <div className="w-2 h-2 rounded-full bg-[#17436B] animate-pulse" />
                   <h3 className="text-xs font-black uppercase tracking-wider text-slate-100">
                     Fine Tune 1:1 Ratio Crop
                   </h3>
@@ -2297,7 +2486,7 @@ export default function AdminDashboard({
                 <div className="w-full space-y-1.5 px-2">
                   <div className="flex items-center justify-between text-xs text-slate-400 font-bold">
                     <span>Zoom Scale</span>
-                    <span className="text-[#db2777] font-extrabold">{Math.round(cropZoom * 100)}%</span>
+                    <span className="text-[#17436B] font-extrabold">{Math.round(cropZoom * 100)}%</span>
                   </div>
                   <input
                     type="range"
@@ -2306,7 +2495,7 @@ export default function AdminDashboard({
                     step="0.05"
                     value={cropZoom}
                     onChange={(e) => setCropZoom(Number(e.target.value))}
-                    className="w-full accent-[#db2777] bg-slate-800 rounded-lg appearance-none h-2 cursor-pointer"
+                    className="w-full accent-[#17436B] bg-slate-800 rounded-lg appearance-none h-2 cursor-pointer"
                   />
                 </div>
 
@@ -2329,7 +2518,7 @@ export default function AdminDashboard({
                   type="button"
                   onClick={handleCropConfirm}
                   disabled={imageUploadLoading}
-                  className="bg-[#db2777] hover:bg-opacity-90 text-white font-extrabold text-xs px-5 py-2.5 rounded-lg cursor-pointer shadow-md flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  className="bg-[#17436B] hover:bg-opacity-90 text-white font-extrabold text-xs px-5 py-2.5 rounded-lg cursor-pointer shadow-md flex items-center gap-1.5 transition-colors disabled:opacity-50"
                 >
                   {imageUploadLoading ? (
                     <>

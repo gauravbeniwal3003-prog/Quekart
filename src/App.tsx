@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, Heart, HelpCircle, ArrowLeft, Smile } from 'lucide-react';
-import { mockProducts, initialOrders } from './data';
-import { Product, CartItem, Order, Coupon } from './types';
+import { Sparkles, Heart, HelpCircle, ArrowLeft, Smile, Search } from 'lucide-react';
+import { mockProducts, initialOrders, initialBanners } from './data';
+import { Product, CartItem, Order, Coupon, Banner } from './types';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
 import HomeFeed from './components/HomeFeed';
 import CategoriesView from './components/CategoriesView';
 import ProductDetail from './components/ProductDetail';
 import OrdersView from './components/OrdersView';
-import CartDrawer from './components/CartDrawer';
+import CartView from './components/CartView';
 import ProfileView from './components/ProfileView';
 import AdminDashboard from './components/AdminDashboard';
 import VendorDashboard from './components/VendorDashboard';
+import LogoView from './components/LogoView';
 
 const initialCoupons: Coupon[] = [
   {
@@ -91,9 +92,15 @@ export default function App() {
       }
     } else if (parts[0] === 'admin') {
       tab = 'admin';
+      if (parts[1]) {
+        subPage = parts[1];
+      }
     } else if (parts[0] === 'vendor') {
       tab = 'vendor';
-    } else if (['home', 'categories', 'orders', 'wishlist'].includes(parts[0])) {
+      if (parts[1]) {
+        subPage = parts[1];
+      }
+    } else if (['home', 'categories', 'orders', 'wishlist', 'cart', 'logo'].includes(parts[0])) {
       tab = parts[0];
     } else {
       tab = 'home';
@@ -102,7 +109,7 @@ export default function App() {
     return { tab, productId, subPage };
   };
 
-  const { tab: activeTab, productId, subPage: activeProfileSubPage } = parseCurrentPath();
+  const { tab: activeTab, productId, subPage: activeSubPage } = parseCurrentPath();
 
   // Dynamic persistent products state
   const [products, setProducts] = useState<Product[]>(() => {
@@ -120,6 +127,12 @@ export default function App() {
   const [coupons, setCoupons] = useState<Coupon[]>(() => {
     const saved = localStorage.getItem('lucky_coupons');
     return saved ? JSON.parse(saved) : initialCoupons;
+  });
+
+  // Dynamic persistent banners state
+  const [banners, setBanners] = useState<Banner[]>(() => {
+    const saved = localStorage.getItem('lucky_banners');
+    return saved ? JSON.parse(saved) : initialBanners;
   });
 
   // Fetch initial data from server-side secure intermediate proxy
@@ -171,7 +184,6 @@ export default function App() {
   
   // Cart state
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
 
   // Wishlist state (product IDs)
   const [wishlist, setWishlist] = useState<string[]>(['prod-watch-lr05']);
@@ -250,8 +262,8 @@ export default function App() {
   const handleDirectBuyNow = (product: Product, size: string, variantIndex: number) => {
     // Add item first
     handleAddToCart(product, size, variantIndex);
-    // Open cart drawer immediately
-    setIsCartOpen(true);
+    // Navigate to cart
+    navigateTo('/cart');
   };
 
   // Wishlist toggle
@@ -509,6 +521,22 @@ export default function App() {
     }
   };
 
+  const handleAddBanner = (newBanner: Banner) => {
+    setBanners(prev => {
+      const updated = [newBanner, ...prev];
+      localStorage.setItem('lucky_banners', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleDeleteBanner = (id: string) => {
+    setBanners(prev => {
+      const updated = prev.filter(b => b.id !== id);
+      localStorage.setItem('lucky_banners', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   // Filtered products for Search query
   const searchedProducts = products.filter((p) => {
     const titleMatch = p.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -529,6 +557,8 @@ export default function App() {
             /* PRODUCT DETAILS VIEW */
             <ProductDetail
               product={selectedProduct}
+              suggestedProducts={products.filter(p => p.category === selectedProduct.category && p.id !== selectedProduct.id).slice(0, 10)}
+              onSelectProduct={(id) => navigateTo('/product/' + id)}
               onBack={() => navigateTo('/' + activeTab)}
               onAddToCart={handleAddToCart}
               onDirectBuy={handleDirectBuyNow}
@@ -538,10 +568,10 @@ export default function App() {
           ) : (
             <>
               {/* Render Header on most tabs */}
-              {activeTab !== 'profile' && activeTab !== 'wishlist' && activeTab !== 'admin' && (
+              {activeTab !== 'profile' && activeTab !== 'admin' && activeTab !== 'logo' && (
                 <Header
                   cart={cart}
-                  onOpenCart={() => setIsCartOpen(true)}
+                  onOpenCart={() => navigateTo('/cart')}
                   onSearch={setSearchQuery}
                   searchQuery={searchQuery}
                   onSelectTab={(tab) => navigateTo('/' + tab)}
@@ -549,11 +579,13 @@ export default function App() {
                   products={products}
                 />
               )}
+
  
               {/* Tab Switcher */}
               {activeTab === 'home' && (
                 <HomeFeed
                   products={searchedProducts}
+                  banners={banners}
                   onSelectProduct={(p) => navigateTo('/product/' + p.id)}
                   wishlist={wishlist}
                   onToggleWishlist={handleToggleWishlist}
@@ -562,6 +594,7 @@ export default function App() {
                   searchQuery={searchQuery}
                 />
               )}
+
  
               {activeTab === 'categories' && (
                 <CategoriesView
@@ -569,6 +602,7 @@ export default function App() {
                   onSelectTab={(tab) => navigateTo('/' + tab)}
                 />
               )}
+
  
               {activeTab === 'orders' && (
                 <OrdersView
@@ -577,16 +611,31 @@ export default function App() {
                   onSelectTab={(tab) => navigateTo('/' + tab)}
                 />
               )}
- 
+
               {activeTab === 'wishlist' && (
-                <div className="p-4" id="wishlist-page">
-                  <div className="flex items-center gap-3 mb-5 border-b border-gray-100 pb-3">
-                    <button onClick={() => navigateTo('/home')} className="p-1 hover:bg-gray-100 rounded-full">
-                      <ArrowLeft className="w-5 h-5 text-gray-800" />
-                    </button>
-                    <h1 className="text-sm font-black text-gray-800 tracking-wider">MY WISHLIST</h1>
+                <div className="bg-gray-50 min-h-[calc(100vh-130px)] pb-16 w-full" id="wishlist-page">
+                  <div className="sticky top-[60px] md:top-[120px] z-[90] bg-gray-50 px-4 pt-3 pb-3 border-b border-gray-200/80 shadow-xs flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => navigateTo('/home')} className="p-1 hover:bg-gray-100 rounded-full cursor-pointer">
+                        <ArrowLeft className="w-5 h-5 text-gray-800" />
+                      </button>
+                      <h1 className="text-sm font-black text-gray-800 tracking-wider">MY WISHLIST</h1>
+                    </div>
+                    {/* Local Search for Wishlist */}
+                    <div className="relative flex-1 w-full">
+                      <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search wishlist..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-white border border-gray-200 rounded-lg py-2 pl-9 pr-4 text-xs font-medium focus:outline-hidden focus:border-lucky-magenta"
+                        id="wishlist-search-input"
+                      />
+                    </div>
                   </div>
- 
+
+                  <div className="px-4 mt-4" id="wishlist-list-content">
                   {wishlist.length === 0 ? (
                     <div className="text-center py-16" id="empty-wishlist-view">
                       <Heart className="w-12 h-12 text-gray-300 mx-auto mb-2" />
@@ -601,7 +650,7 @@ export default function App() {
                   ) : (
                     <div className="grid grid-cols-2 gap-3" id="wishlist-grid">
                       {products
-                        .filter((p) => wishlist.includes(p.id))
+                        .filter((p) => wishlist.includes(p.id) && p.title.toLowerCase().includes(searchQuery.toLowerCase()))
                         .map((p) => (
                           <div
                             key={p.id}
@@ -624,19 +673,36 @@ export default function App() {
                         ))}
                     </div>
                   )}
+                  </div>
                 </div>
               )}
- 
+
+              {activeTab === 'logo' && (
+                <LogoView onBack={() => navigateTo('/home')} />
+              )}
+
               {activeTab === 'profile' && (
                 <ProfileView
                   onBack={() => navigateTo('/home')}
-                  onOpenCart={() => setIsCartOpen(true)}
+                  onOpenCart={() => navigateTo('/cart')}
                   cartCount={cart.reduce((acc, item) => acc + item.quantity, 0)}
                   onSelectTab={(tab) => navigateTo('/' + tab)}
                   wishlistCount={wishlist.length}
                   ordersCount={orders.length}
-                  activeSubPage={activeProfileSubPage}
+                  activeSubPage={activeSubPage}
                   setActiveSubPage={(sub) => navigateTo(sub ? `/profile/${sub}` : '/profile')}
+                />
+              )}
+
+              {activeTab === 'cart' && (
+                <CartView
+                  isOpen={true}
+                  onClose={() => navigateTo('/home')}
+                  cart={cart}
+                  onUpdateQuantity={handleUpdateQuantity}
+                  onRemoveItem={handleRemoveItem}
+                  onPlaceOrder={handlePlaceOrder}
+                  coupons={coupons}
                 />
               )}
 
@@ -645,6 +711,7 @@ export default function App() {
                   products={products}
                   orders={orders}
                   coupons={coupons}
+                  banners={banners}
                   onAddProduct={handleAddProduct}
                   onEditProduct={handleEditProduct}
                   onDeleteProduct={handleDeleteProduct}
@@ -652,7 +719,11 @@ export default function App() {
                   onDeleteOrder={handleDeleteOrder}
                   onAddCoupon={handleAddCoupon}
                   onDeleteCoupon={handleDeleteCoupon}
-                  onClose={() => navigateTo('/profile')}
+                  onAddBanner={handleAddBanner}
+                  onDeleteBanner={handleDeleteBanner}
+                  onClose={() => navigateTo('/home')}
+                  activeSubPage={activeSubPage}
+                  setActiveSubPage={(sub) => navigateTo(sub ? `/admin/${sub}` : '/admin')}
                 />
               )}
 
@@ -663,39 +734,24 @@ export default function App() {
                   onAddProduct={handleVendorAddProduct}
                   onEditProduct={handleVendorEditProduct}
                   onDeleteProduct={handleVendorDeleteProduct}
-                  onClose={() => navigateTo('/profile')}
+                  onClose={() => navigateTo('/home')}
+                  activeSubPage={activeSubPage}
+                  setActiveSubPage={(sub) => navigateTo(sub ? `/vendor/${sub}` : '/vendor')}
                 />
               )}
             </>
           )}
         </div>
- 
-        {/* Global Cart Slide Drawer */}
-        <CartDrawer
-          isOpen={isCartOpen}
-          onClose={() => setIsCartOpen(false)}
-          cart={cart}
-          onUpdateQuantity={handleUpdateQuantity}
-          onRemoveItem={handleRemoveItem}
-          onPlaceOrder={handlePlaceOrder}
-          coupons={coupons}
-        />
- 
+        
         {/* Global Bottom Navigation shown except on detailed product checkout screens */}
-        {!selectedProduct && activeTab !== 'admin' && activeTab !== 'vendor' && (
+        {!selectedProduct && activeTab !== 'admin' && activeTab !== 'vendor' && activeTab !== 'logo' && (
           <BottomNav
             activeTab={activeTab}
             cartCount={cart.reduce((acc, item) => acc + item.quantity, 0)}
-            isCartOpen={isCartOpen}
             onSelectTab={(tab) => {
-              if (tab === 'cart') {
-                setIsCartOpen(true);
-              } else {
-                navigateTo('/' + tab);
-                setIsCartOpen(false);
-                setSearchQuery('');
-                setSelectedCategory('All');
-              }
+              navigateTo('/' + tab);
+              setSearchQuery('');
+              setSelectedCategory('All');
             }}
           />
         )}

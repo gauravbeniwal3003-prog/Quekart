@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Heart, ShoppingCart, Mic, Camera, Gift, Sparkles, TrendingUp, Tag, ArrowRight } from 'lucide-react';
 import { CartItem, Product } from '../types';
+import Logo from './Logo';
 
 interface HeaderProps {
   cart: CartItem[];
@@ -137,22 +138,17 @@ export default function Header({
               </button>
 
               <div
-                className="hidden sm:flex items-center gap-1.5 bg-pink-50 border border-pink-200 rounded-full px-2.5 py-1 text-[11px] font-semibold text-pink-700 animate-pulse cursor-pointer"
+                className="hidden sm:flex items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-full px-2.5 py-1 text-[11px] font-semibold text-blue-700 animate-pulse cursor-pointer"
                 id="refer-pill-mobile"
               >
-                <Gift className="w-3.5 h-3.5 text-pink-600 animate-bounce" />
+                <Gift className="w-3.5 h-3.5 text-blue-600 animate-bounce" />
                 <span>Refer and Earn</span>
               </div>
             </div>
 
             {/* Logo */}
             <div className="flex items-center gap-1.5 sm:gap-2 justify-center md:justify-start cursor-pointer flex-shrink min-w-0 overflow-hidden" onClick={() => onSelectTab('home')}>
-              <img 
-                src="https://i.ibb.co/dwTX49yG/37145-removebg-preview.png" 
-                alt="QueKart Logo" 
-                className="h-7 sm:h-9 md:h-10 lg:h-11 w-auto max-w-[40px] sm:max-w-[150px] md:max-w-none object-contain flex-shrink-0 transition-transform duration-200 hover:scale-105 active:scale-95"
-                referrerPolicy="no-referrer"
-              />
+              <Logo className="h-7 w-7 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-11 lg:w-11 flex-shrink-0 transition-transform duration-200 hover:scale-105 active:scale-95" animated={true} width="100%" height="100%" />
               <span className="font-display font-black text-lucky-magenta text-lg sm:text-xl md:text-2xl tracking-tight truncate">QueKart</span>
             </div>
 
@@ -219,7 +215,7 @@ export default function Header({
                 {!query ? (
                   <div className="p-4 space-y-3">
                     <div className="flex items-center gap-1.5 text-gray-400 text-[11px] font-bold tracking-wider uppercase">
-                      <TrendingUp className="w-3.5 h-3.5 text-pink-500" />
+                      <TrendingUp className="w-3.5 h-3.5 text-blue-500" />
                       <span>Trending Searches</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -227,8 +223,8 @@ export default function Header({
                         <button
                           key={term}
                           onClick={() => handleSuggestionClick(term)}
-                          className={`text-xs px-3 py-1.5 rounded-full border border-gray-100 bg-gray-50 text-gray-600 hover:bg-pink-50 hover:text-lucky-magenta hover:border-pink-200 cursor-pointer font-semibold transition-all ${
-                            activeSuggestionIndex === index ? 'bg-pink-50 text-lucky-magenta border-pink-200' : ''
+                          className={`text-xs px-3 py-1.5 rounded-full border border-gray-100 bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-lucky-magenta hover:border-blue-200 cursor-pointer font-semibold transition-all ${
+                            activeSuggestionIndex === index ? 'bg-blue-50 text-lucky-magenta border-blue-200' : ''
                           }`}
                         >
                           {term}
@@ -258,7 +254,7 @@ export default function Header({
                             >
                               <div className="flex items-center gap-3">
                                 {item.type === 'category' || item.type === 'subcategory' ? (
-                                  <Tag className="w-4 h-4 text-pink-500 flex-shrink-0" />
+                                  <Tag className="w-4 h-4 text-blue-500 flex-shrink-0" />
                                 ) : (
                                   <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
                                 )}
@@ -284,7 +280,7 @@ export default function Header({
                     ) : (
                       <div className="px-4 py-4 text-center">
                         <p className="text-xs text-gray-500 font-bold">
-                          No instant match for "<span className="text-pink-600">{searchQuery}</span>"
+                          No instant match for "<span className="text-blue-600">{searchQuery}</span>"
                         </p>
                         <p className="text-[10px] text-gray-400 mt-1 font-semibold leading-relaxed">
                           Press <kbd className="bg-gray-100 px-1 py-0.5 border border-gray-200 rounded-sm">Enter</kbd> or click search for online fallback recommendations!
@@ -301,11 +297,11 @@ export default function Header({
           <div className="hidden md:flex items-center gap-6 flex-shrink-0">
             {/* Refer and Earn */}
             <div
-              className="flex items-center gap-1.5 bg-pink-50 border border-pink-100 hover:border-pink-200 rounded-full px-3.5 py-1.5 text-xs font-semibold text-pink-700 cursor-pointer hover:bg-pink-100/40 transition-colors"
+              className="flex items-center gap-1.5 bg-blue-50 border border-blue-100 hover:border-blue-200 rounded-full px-3.5 py-1.5 text-xs font-semibold text-blue-700 cursor-pointer hover:bg-blue-100/40 transition-colors"
               id="refer-pill-desktop"
               onClick={() => onSelectTab('profile')}
             >
-              <Gift className="w-4 h-4 text-pink-600 animate-bounce" />
+              <Gift className="w-4 h-4 text-blue-600 animate-bounce" />
               <span>Refer & Earn</span>
             </div>
 

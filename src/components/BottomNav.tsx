@@ -33,13 +33,13 @@ export default function BottomNav({ activeTab, onSelectTab, cartCount = 0, isCar
           >
             {item.id === 'cart' && cartCount > 0 ? (
               <div className="relative">
-                <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5px] fill-pink-50' : 'stroke-[1.8px]'}`} />
+                <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5px] fill-blue-50' : 'stroke-[1.8px]'}`} />
                 <span className="absolute -top-1.5 -right-2 bg-lucky-magenta text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
                   {cartCount}
                 </span>
               </div>
             ) : (
-              <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5px] fill-pink-50' : 'stroke-[1.8px]'}`} />
+              <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5px] fill-blue-50' : 'stroke-[1.8px]'}`} />
             )}
             <span className={`text-[10px] mt-1 font-medium tracking-tight ${isActive ? 'font-bold' : ''}`}>
               {item.label}

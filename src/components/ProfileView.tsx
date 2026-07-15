@@ -390,8 +390,8 @@ export default function ProfileView({
               className={`border rounded-xl p-4 flex flex-col items-center text-center cursor-pointer transition-all hover:scale-[1.02] shadow-2xs ${simulatedTwilightTheme ? 'border-slate-700 bg-slate-900/50 hover:bg-slate-700' : 'border-gray-200/80 hover:bg-gray-50'}`}
               id="profile-refer-card"
             >
-              <div className="w-12 h-12 rounded-full bg-pink-50 flex items-center justify-center mb-2.5 shadow-2xs">
-                <Gift className="w-5 h-5 text-lucky-magenta fill-pink-50 stroke-[2]" />
+              <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mb-2.5 shadow-2xs">
+                <Gift className="w-5 h-5 text-lucky-magenta fill-blue-50 stroke-[2]" />
               </div>
               <span className="text-xs font-bold">Refer & Earn</span>
               <span className="text-[10px] text-lucky-magenta font-extrabold mt-0.5">Get ₹150 Free</span>
@@ -454,7 +454,7 @@ export default function ProfileView({
                 id="row-change-lang"
               >
                 <div className="flex items-center gap-3.5">
-                  <div className="w-9 h-9 rounded-full bg-pink-50 flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center">
                     <span className="text-[11px] font-black text-lucky-magenta font-sans uppercase">अ A</span>
                   </div>
                   <div>
@@ -495,7 +495,7 @@ export default function ProfileView({
                 id="row-shared"
               >
                 <div className="flex items-center gap-3.5">
-                  <div className="w-9 h-9 rounded-full bg-pink-50 flex items-center justify-center text-lucky-magenta shadow-3xs">
+                  <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-lucky-magenta shadow-3xs">
                     <Share2 className="w-5 h-5 stroke-[2]" />
                   </div>
                   <div>
@@ -540,7 +540,7 @@ export default function ProfileView({
                 id="row-lucky-balance"
               >
                 <div className="flex items-center gap-3.5">
-                  <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 shadow-3xs">
+                  <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shadow-3xs">
                     <Wallet className="w-4.5 h-4.5 stroke-[2.5]" />
                   </div>
                   <div>
@@ -667,7 +667,7 @@ export default function ProfileView({
                 id="row-logout"
               >
                 <div className="flex items-center gap-3.5">
-                  <div className="w-9 h-9 rounded-full bg-rose-50 flex items-center justify-center text-rose-500 shadow-3xs">
+                  <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center text-red-500 shadow-3xs">
                     <LogOut className="w-5 h-5 stroke-[2]" />
                   </div>
                   <div>
@@ -684,7 +684,7 @@ export default function ProfileView({
           <div className="mt-8 px-4 flex flex-col items-center" id="bharat-banner-wrapper">
             <div className={`w-full rounded-2xl p-5 border flex items-center justify-between overflow-hidden relative shadow-2xs ${simulatedTwilightTheme ? 'bg-slate-800 border-slate-700' : 'bg-[#f4f7fa] border-gray-100'}`} id="bharat-banner">
               {/* Confetti decorative circles */}
-              <div className="absolute top-2 right-12 w-2 h-2 rounded-full bg-pink-300 opacity-60"></div>
+              <div className="absolute top-2 right-12 w-2 h-2 rounded-full bg-blue-300 opacity-60"></div>
               <div className="absolute bottom-3 left-20 w-1.5 h-1.5 rounded-full bg-yellow-400 opacity-60"></div>
               <div className="absolute top-1/2 left-28 w-2.5 h-2.5 rounded-full bg-blue-300 opacity-40"></div>
 
@@ -770,7 +770,7 @@ export default function ProfileView({
                 <span className="text-[9px] font-bold text-gray-500 uppercase">Shirt Color</span>
                 <div className="flex gap-1.5 mt-1">
                   <button onClick={() => setAvatarShirt("#3b82f6")} className={`w-4 h-4 rounded-md bg-[#3b82f6] ${avatarShirt === "#3b82f6" ? 'ring-2 ring-lucky-magenta' : ''}`} />
-                  <button onClick={() => setAvatarShirt("#db2777")} className={`w-4 h-4 rounded-md bg-[#db2777] ${avatarShirt === "#db2777" ? 'ring-2 ring-lucky-magenta' : ''}`} />
+                  <button onClick={() => setAvatarShirt("#17436B")} className={`w-4 h-4 rounded-md bg-[#17436B] ${avatarShirt === "#17436B" ? 'ring-2 ring-lucky-magenta' : ''}`} />
                   <button onClick={() => setAvatarShirt("#10b981")} className={`w-4 h-4 rounded-md bg-[#10b981] ${avatarShirt === "#10b981" ? 'ring-2 ring-lucky-magenta' : ''}`} />
                 </div>
               </div>
@@ -927,7 +927,7 @@ export default function ProfileView({
                       <ChevronRight className={`w-4 h-4 text-gray-400 transform transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                     </button>
                     {isExpanded && (
-                      <div className="px-4 pb-4 pt-1 border-t border-gray-50 text-[11px] text-gray-500 leading-relaxed font-medium bg-pink-50/10">
+                      <div className="px-4 pb-4 pt-1 border-t border-gray-50 text-[11px] text-gray-500 leading-relaxed font-medium bg-blue-50/10">
                         {faq.a}
                       </div>
                     )}
@@ -945,7 +945,7 @@ export default function ProfileView({
               </div>
               <div>
                 <h4 className="text-xs font-black">QueKart Live Support</h4>
-                <p className="text-[9px] text-pink-100 font-bold">● Active Customer Assistant</p>
+                <p className="text-[9px] text-blue-100 font-bold">● Active Customer Assistant</p>
               </div>
             </div>
 
@@ -1001,38 +1001,38 @@ export default function ProfileView({
               </div>
             </div>
             {/* Quick Balance badge */}
-            <div className="bg-pink-50 border border-pink-100 px-2.5 py-1 rounded-full flex items-center gap-1.5">
-              <Coins className="w-3.5 h-3.5 text-lucky-magenta fill-pink-100" />
+            <div className="bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-full flex items-center gap-1.5">
+              <Coins className="w-3.5 h-3.5 text-lucky-magenta fill-blue-100" />
               <span className="text-xs font-black text-lucky-magenta">₹{luckyBalance}</span>
             </div>
           </div>
 
           {/* Core Meesho-Style Earnings Stats Banner */}
-          <div className="bg-linear-to-r from-[#9c1359] to-[#db2777] rounded-2xl p-4.5 text-white shadow-md mb-5 relative overflow-hidden" id="meesho-stats-banner">
+          <div className="bg-linear-to-r from-[#0F2F4F] to-[#17436B] rounded-2xl p-4.5 text-white shadow-md mb-5 relative overflow-hidden" id="meesho-stats-banner">
             <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
             <div className="absolute -left-6 -bottom-6 w-20 h-20 bg-black/10 rounded-full blur-xl"></div>
             
-            <span className="bg-amber-400 text-purple-950 text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-2xs">
+            <span className="bg-amber-400 text-blue-950 text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-2xs">
               👑 QueKart Star Club Partner
             </span>
             
             <div className="grid grid-cols-3 gap-2 mt-4 text-center border-t border-white/15 pt-3.5">
               <div className="border-r border-white/15 pr-1">
-                <span className="text-[10px] text-pink-200 block uppercase font-extrabold tracking-wider">Total Earned</span>
+                <span className="text-[10px] text-blue-200 block uppercase font-extrabold tracking-wider">Total Earned</span>
                 <span className="text-lg font-black mt-0.5 block flex items-center justify-center gap-0.5">
                   <span className="text-amber-300 font-bold">₹</span>{luckyBalance}
                 </span>
               </div>
               
               <div className="border-r border-white/15 px-1">
-                <span className="text-[10px] text-pink-200 block uppercase font-extrabold tracking-wider">Pending</span>
-                <span className="text-lg font-black mt-0.5 block flex items-center justify-center gap-0.5 text-pink-100">
+                <span className="text-[10px] text-blue-200 block uppercase font-extrabold tracking-wider">Pending</span>
+                <span className="text-lg font-black mt-0.5 block flex items-center justify-center gap-0.5 text-blue-100">
                   <span>₹</span>{referralHistory.filter(r => r.status === 'Pending').reduce((sum, r) => sum + r.reward, 0)}
                 </span>
               </div>
               
               <div className="pl-1">
-                <span className="text-[10px] text-pink-200 block uppercase font-extrabold tracking-wider">Completed</span>
+                <span className="text-[10px] text-blue-200 block uppercase font-extrabold tracking-wider">Completed</span>
                 <span className="text-lg font-black mt-0.5 block">
                   {referralHistory.filter(r => r.status === 'Completed').length} Friends
                 </span>
@@ -1055,7 +1055,7 @@ export default function ProfileView({
                   onClick={() => setActiveReferEarnTab(tab.id)}
                   className={`py-2 px-3 flex items-center gap-1 cursor-pointer transition-all border-b-2 font-black ${
                     isActive 
-                      ? "border-lucky-magenta text-lucky-magenta bg-pink-50/10" 
+                      ? "border-lucky-magenta text-lucky-magenta bg-blue-50/10" 
                       : "border-transparent hover:text-gray-600"
                   }`}
                 >
@@ -1093,7 +1093,7 @@ export default function ProfileView({
                   </div>
                   <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden flex">
                     <div 
-                      className="bg-linear-to-r from-lucky-magenta to-pink-500 h-full transition-all duration-500 rounded-full" 
+                      className="bg-linear-to-r from-lucky-magenta to-blue-500 h-full transition-all duration-500 rounded-full" 
                       style={{ width: `${Math.min(100, (referralHistory.filter(r => r.status === 'Completed').length / 5) * 100)}%` }}
                     />
                   </div>
@@ -1149,7 +1149,7 @@ export default function ProfileView({
                     { step: "3", title: "Get Instant Cash Card", text: "You get a cash scratch card worth up to ₹150 for EVERY friend's first order!" }
                   ].map(step => (
                     <div key={step.step} className="flex gap-3.5 items-start">
-                      <span className="bg-pink-100 text-lucky-magenta w-5.5 h-5.5 rounded-full flex items-center justify-center font-black text-xs flex-shrink-0 shadow-3xs">
+                      <span className="bg-blue-100 text-lucky-magenta w-5.5 h-5.5 rounded-full flex items-center justify-center font-black text-xs flex-shrink-0 shadow-3xs">
                         {step.step}
                       </span>
                       <div className="text-left">
@@ -1218,7 +1218,7 @@ export default function ProfileView({
                       className={`aspect-square rounded-2xl flex flex-col items-center justify-center p-3 text-center border relative overflow-hidden transition-all duration-300 ${
                         card.scratched 
                           ? 'bg-linear-to-br from-emerald-50 to-teal-50 border-emerald-200 text-emerald-800 scale-100' 
-                          : 'bg-linear-to-br from-pink-500 via-[#db2777] to-purple-600 border-pink-400 hover:scale-[1.03] cursor-pointer shadow-md shadow-pink-100 animate-pulse'
+                          : 'bg-linear-to-br from-blue-500 via-[#17436B] to-blue-600 border-blue-400 hover:scale-[1.03] cursor-pointer shadow-md shadow-blue-100 animate-pulse'
                       }`}
                     >
                       {/* Shiny Overlay for Unscratched */}
@@ -1240,7 +1240,7 @@ export default function ProfileView({
                           </div>
                           <Gift className="w-10 h-10 text-white stroke-[1.8] animate-bounce mb-1" />
                           <span className="text-white font-extrabold text-xs tracking-tight">Tap & Scratch</span>
-                          <span className="text-[8px] text-pink-100 font-black uppercase tracking-wider mt-1 block">Value up to ₹150</span>
+                          <span className="text-[8px] text-blue-100 font-black uppercase tracking-wider mt-1 block">Value up to ₹150</span>
                           <p className="text-[7px] text-white/70 font-semibold mt-1">From {card.friendName}</p>
                         </>
                       )}
@@ -1499,7 +1499,7 @@ export default function ProfileView({
           <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-3xs">
             <div className="flex items-center justify-between mb-4 border-b border-gray-50 pb-2">
               <h3 className="text-xs font-black text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
-                <Smartphone className="w-4.5 h-4.5 text-pink-500" />
+                <Smartphone className="w-4.5 h-4.5 text-blue-500" />
                 <span>Linked UPI ID</span>
               </h3>
               <button 
@@ -1670,7 +1670,7 @@ export default function ProfileView({
                   key={lang.code}
                   onClick={() => setSelectedLanguage(lang.label)}
                   className={`border-2 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
-                    isSelected ? 'border-lucky-magenta bg-pink-50/20 scale-[1.03] shadow-xs' : 'border-gray-100 bg-white hover:bg-gray-50'
+                    isSelected ? 'border-lucky-magenta bg-blue-50/20 scale-[1.03] shadow-xs' : 'border-gray-100 bg-white hover:bg-gray-50'
                   }`}
                 >
                   <span className={`text-base font-black ${isSelected ? 'text-lucky-magenta' : 'text-gray-800'}`}>{lang.sub}</span>
@@ -1813,15 +1813,15 @@ export default function ProfileView({
 
           <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-3xs mb-5 text-center flex flex-col items-center relative overflow-hidden">
             {/* Ambient background accent */}
-            <div className="absolute -top-10 -left-10 w-24 h-24 bg-purple-100 rounded-full blur-xl"></div>
-            <div className="absolute -bottom-10 -right-10 w-24 h-24 bg-pink-100 rounded-full blur-xl"></div>
+            <div className="absolute -top-10 -left-10 w-24 h-24 bg-blue-100 rounded-full blur-xl"></div>
+            <div className="absolute -bottom-10 -right-10 w-24 h-24 bg-blue-100 rounded-full blur-xl"></div>
 
-            <div className="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center mb-2.5 shadow-2xs text-purple-600">
+            <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mb-2.5 shadow-2xs text-blue-600">
               <Wallet className="w-6 h-6 stroke-[2.2]" />
             </div>
             <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest">Available Balance</span>
             <h3 className="text-3xl font-black text-gray-900 mt-1 flex items-center gap-1.5">
-              <span className="text-purple-600">₹</span>{luckyBalance}
+              <span className="text-blue-600">₹</span>{luckyBalance}
             </h3>
             <p className="text-[10px] text-emerald-600 font-extrabold bg-emerald-50 px-2 py-0.5 rounded-full mt-2 border border-emerald-100">100% Usable on Checkout</p>
           </div>
@@ -1831,15 +1831,15 @@ export default function ProfileView({
             <h4 className="text-xs font-black text-gray-800 border-b border-gray-50 pb-2 mb-3">How to earn and spend Balance?</h4>
             <ul className="space-y-3.5 text-[11px] font-medium text-gray-500">
               <li className="flex gap-2.5 items-start">
-                <span className="bg-purple-100 text-purple-600 w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold text-[9px] flex-shrink-0">1</span>
+                <span className="bg-blue-100 text-blue-600 w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold text-[9px] flex-shrink-0">1</span>
                 <p>Refer friends via the **Refer & Earn** portal. Every verified sign-up wins you custom scratch card rewards of up to ₹150.</p>
               </li>
               <li className="flex gap-2.5 items-start">
-                <span className="bg-purple-100 text-purple-600 w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold text-[9px] flex-shrink-0">2</span>
+                <span className="bg-blue-100 text-blue-600 w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold text-[9px] flex-shrink-0">2</span>
                 <p>QueKart Balance is applied **automatically** at checkout to deduct order costs. No promo code input required!</p>
               </li>
               <li className="flex gap-2.5 items-start">
-                <span className="bg-purple-100 text-purple-600 w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold text-[9px] flex-shrink-0">3</span>
+                <span className="bg-blue-100 text-blue-600 w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold text-[9px] flex-shrink-0">3</span>
                 <p>Coins can also be won by sharing product reviews and leaving detailed ratings with photos of items.</p>
               </li>
             </ul>
@@ -2122,7 +2122,7 @@ export default function ProfileView({
                       }}
                       className={`text-[10px] font-bold px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
                         isSelected 
-                          ? 'bg-pink-50 border-lucky-magenta text-lucky-magenta scale-105 shadow-2xs' 
+                          ? 'bg-blue-50 border-lucky-magenta text-lucky-magenta scale-105 shadow-2xs' 
                           : 'bg-white border-gray-200 text-gray-500'
                       }`}
                     >

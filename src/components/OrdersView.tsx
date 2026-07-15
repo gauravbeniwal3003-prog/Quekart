@@ -23,30 +23,35 @@ export default function OrdersView({
   );
 
   return (
-    <div className="bg-gray-50 min-h-[calc(100vh-130px)] pb-16 px-4 py-3" id="orders-view-container">
-      {/* Title */}
-      <div className="mb-3 border-b border-gray-200/60 pb-2">
-        <h1 className="text-sm font-black text-gray-800 tracking-wider">MY ORDERS</h1>
+    <div className="bg-gray-50 min-h-[calc(100vh-130px)] pb-16 w-full" id="orders-view-container">
+      {/* Sticky Header Section */}
+      <div className="sticky top-[60px] md:top-[120px] z-[90] bg-gray-50 px-4 pt-3 pb-3 border-b border-gray-200/80 shadow-xs" id="orders-sticky-header">
+        {/* Title */}
+        <div className="mb-3 border-b border-gray-200/60 pb-2">
+          <h1 className="text-sm font-black text-gray-800 tracking-wider">MY ORDERS</h1>
+        </div>
+
+        {/* Search orders & filters row */}
+        <div className="flex items-center gap-3" id="orders-search-row">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search orders"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white border border-gray-200 rounded-lg py-2 pl-9 pr-4 text-xs font-medium focus:outline-hidden focus:border-lucky-magenta"
+              id="orders-search-input"
+            />
+          </div>
+          <button className="flex items-center gap-1.5 border border-gray-200 bg-white rounded-lg px-3.5 py-2 text-xs font-bold text-lucky-magenta cursor-pointer" id="orders-filter-btn">
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span>Filters</span>
+          </button>
+        </div>
       </div>
 
-      {/* Search orders & filters row */}
-      <div className="flex items-center gap-3 mb-4" id="orders-search-row">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search orders"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-gray-200 rounded-lg py-2 pl-9 pr-4 text-xs font-medium focus:outline-hidden focus:border-lucky-magenta"
-            id="orders-search-input"
-          />
-        </div>
-        <button className="flex items-center gap-1.5 border border-gray-200 bg-white rounded-lg px-3.5 py-2 text-xs font-bold text-lucky-magenta cursor-pointer" id="orders-filter-btn">
-          <SlidersHorizontal className="w-3.5 h-3.5" />
-          <span>Filters</span>
-        </button>
-      </div>
+      <div className="px-4 mt-4" id="orders-list-content">
 
       {/* Orders List */}
       {filteredOrders.length > 0 ? (
@@ -105,7 +110,7 @@ export default function OrdersView({
         {/* Vector SVG representation of the Indian woman in a saree holding her hand on her heart */}
         <div className="w-48 h-48 relative mb-4" id="traditional-saree-woman-avatar">
           {/* Circular backdrop circle */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-pink-50 to-pink-100/50 rounded-full"></div>
+          <div className="absolute inset-0 bg-gradient-to-tr from-blue-50 to-blue-100/50 rounded-full"></div>
           
           {/* Custom SVG Indian Lady with saree */}
           <svg viewBox="0 0 200 200" className="w-full h-full absolute inset-0 z-10" id="traditional-girl-svg">
@@ -169,6 +174,7 @@ export default function OrdersView({
         >
           Explore Trending Products
         </button>
+      </div>
       </div>
     </div>
   );

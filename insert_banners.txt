@@ -1,0 +1,57 @@
+      {/* 7. BANNERS TAB */}
+      {activeTab === 'banners' && (
+        <div className="space-y-4 animate-fadeIn p-4 md:p-6">
+          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-3xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-lucky-magenta" />
+                <span>Dynamic Layout Banners</span>
+              </h3>
+              <p className="text-[11px] text-slate-400 font-medium mt-1">Manage promotional banners and latest news images shown on the home page.</p>
+            </div>
+            <button
+              onClick={() => setIsBannerModalOpen(true)}
+              className="bg-slate-900 text-white px-5 py-2.5 rounded-lg text-xs font-extrabold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow-md cursor-pointer shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add New Banner</span>
+            </button>
+          </div>
+
+          {banners.length === 0 ? (
+            <div className="bg-white rounded-xl border border-slate-200/80 p-12 text-center shadow-3xs">
+              <ImageIcon className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+              <h4 className="text-sm font-bold text-slate-800">No Banners Configured</h4>
+              <p className="text-xs text-slate-400 mt-1">Add banners to highlight promotions or news.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {banners.map((b) => (
+                <div key={b.id} className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-sm flex flex-col group relative">
+                  <div className="aspect-[3/1] w-full bg-slate-50 relative">
+                    <img src={b.imageUrl} alt={b.type} className="w-full h-full object-cover" />
+                    <div className="absolute top-2 right-2 bg-black/60 text-white text-[9px] font-black uppercase px-2 py-1 rounded">
+                      {b.type === 'promotional' ? 'Promo' : 'News'}
+                    </div>
+                  </div>
+                  <div className="p-3 bg-white flex items-center justify-between">
+                    <div className="text-[10px] text-slate-500 font-medium truncate pr-4">
+                      {b.linkUrl || 'No specific link associated'}
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (confirm('Delete this banner?')) {
+                          onDeleteBanner?.(b.id);
+                        }
+                      }}
+                      className="w-7 h-7 flex items-center justify-center rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors shrink-0 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}

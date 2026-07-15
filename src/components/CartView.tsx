@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Trash2, ShieldCheck, MapPin, CheckCircle, ArrowLeft, CreditCard, Ticket, Tag, Percent, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Trash2, ShieldCheck, MapPin, CheckCircle, ArrowLeft, CreditCard, Ticket, Tag, Percent, ChevronDown, ChevronUp, Search } from 'lucide-react';
 import { CartItem, Order, Coupon } from '../types';
 
 interface CartDrawerProps {
@@ -28,6 +28,9 @@ export default function CartDrawer({
   const [city, setCity] = useState('Gurugram');
   const [pincode, setPincode] = useState('122001');
   const [state, setState] = useState('Haryana');
+
+  // Local Search state
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Checkout phases: 'cart' -> 'address' -> 'payment' -> 'success'
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'address' | 'success'>('cart');
@@ -139,16 +142,15 @@ export default function CartDrawer({
     setCheckoutStep('success');
   };
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-hidden flex justify-end font-sans" id="cart-drawer-overlay">
-      {/* Dark backdrop */}
-      <div className="absolute inset-0 bg-black/60 transition-opacity" onClick={onClose}></div>
+  const filteredCart = cart.filter(item => item.product.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      {/* Slide out Container */}
-      <div className="relative w-full max-w-md bg-white h-full flex flex-col shadow-2xl z-10 pb-[60px] md:pb-0" id="cart-drawer-panel">
+  return (
+    <div className="bg-gray-50 min-h-[calc(100vh-130px)] pb-16 w-full flex justify-center font-sans" id="cart-view-container">
+      {/* Main Container */}
+      <div className="relative w-full max-w-md bg-white h-full min-h-screen flex flex-col shadow-sm z-10" id="cart-view-panel">
         
         {/* Header */}
-        <div className="px-4 py-4 border-b border-gray-100 flex items-center justify-between" id="cart-header">
+        <div className="sticky top-[60px] md:top-[120px] z-[90] bg-white px-4 py-4 border-b border-gray-200/80 flex flex-col gap-3 shadow-xs" id="cart-sticky-header">
           <div className="flex items-center gap-2">
             {checkoutStep === 'address' && (
               <button onClick={() => setCheckoutStep('cart')} className="p-1 hover:bg-gray-100 rounded-full">
@@ -161,9 +163,21 @@ export default function CartDrawer({
               {checkoutStep === 'success' && 'Order Placed!'}
             </h2>
           </div>
-          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 rounded-full cursor-pointer">
-            <X className="w-6 h-6" />
-          </button>
+          
+          {/* Local Search inside Cart View */}
+          {checkoutStep === 'cart' && cart.length > 0 && (
+            <div className="relative flex-1 w-full mt-2">
+              <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search cart items..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2 pl-9 pr-4 text-xs font-medium focus:outline-hidden focus:border-lucky-magenta"
+                id="cart-search-input"
+              />
+            </div>
+          )}
         </div>
 
         {/* Success Screen */}
@@ -207,9 +221,13 @@ export default function CartDrawer({
                     <h3 className="text-sm font-bold text-gray-800">Your cart is empty</h3>
                     <p className="text-xs text-gray-400 mt-1">Explore similar QueKart products to add items here!</p>
                   </div>
+                ) : filteredCart.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-center" id="empty-search-cart-state">
+                    <p className="text-xs text-gray-400 mt-1">No cart items matched "{searchQuery}"</p>
+                  </div>
                 ) : (
                   <div className="space-y-3.5" id="cart-items-list">
-                    {cart.map((item) => {
+                    {filteredCart.map((item) => {
                       const variant = item.product.variants[item.selectedVariantIndex] || {
                         imageUrl: item.product.images[0],
                         price: item.product.price,
@@ -287,7 +305,7 @@ export default function CartDrawer({
               ) : (
                 /* PHASE 2: Address Form */
                 <form onSubmit={handleCheckoutSubmit} className="space-y-3.5" id="checkout-address-form">
-                  <div className="bg-pink-50/40 p-3 rounded-lg border border-pink-100/50 flex items-center gap-2 text-xs font-medium text-pink-900">
+                  <div className="bg-blue-50/40 p-3 rounded-lg border border-blue-100/50 flex items-center gap-2 text-xs font-medium text-blue-900">
                     <MapPin className="w-4 h-4 text-lucky-magenta" />
                     <span>Please provide a valid Indian shipping address.</span>
                   </div>

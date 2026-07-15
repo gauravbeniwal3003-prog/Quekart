@@ -41,7 +41,7 @@ export default function CategoriesView({
             >
               {/* Star or simple category indicator icon */}
               <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-transform flex-shrink-0 ${
-                isActive ? 'bg-pink-50 text-lucky-magenta scale-105' : 'bg-white text-gray-400'
+                isActive ? 'bg-blue-50 text-lucky-magenta scale-105' : 'bg-white text-gray-400'
               }`}>
                 {cat.id === 'cat-popular' ? (
                   <Sparkles className="w-5 h-5 fill-amber-300 stroke-amber-500 animate-pulse" />
@@ -76,7 +76,7 @@ export default function CategoriesView({
               id={`subcategory-item-${index}`}
             >
               {/* Image Circle */}
-              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden bg-pink-50/50 border border-pink-100/40 p-1 flex items-center justify-center shadow-xs">
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden bg-blue-50/50 border border-blue-100/40 p-1 flex items-center justify-center shadow-xs">
                 <img
                   src={sub.image}
                   alt={sub.name}
@@ -94,7 +94,7 @@ export default function CategoriesView({
         </div>
 
         {/* All Popular Banner / Info Box */}
-        <div className="mt-8 pt-4 border-t border-gray-100 bg-gradient-to-r from-pink-50/40 to-white p-3 rounded-lg flex items-center justify-between" id="categories-banner">
+        <div className="mt-8 pt-4 border-t border-gray-100 bg-gradient-to-r from-blue-50/40 to-white p-3 rounded-lg flex items-center justify-between" id="categories-banner">
           <div>
             <span className="text-xs font-bold text-lucky-magenta">Lowest Price Promise</span>
             <p className="text-[9px] text-gray-500 mt-0.5">Top-rated items directly from manufacturers.</p>

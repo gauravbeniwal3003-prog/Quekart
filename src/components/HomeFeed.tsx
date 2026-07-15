@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { ArrowUpDown, ChevronDown, SlidersHorizontal, Heart, Sparkles, CheckCircle2, Loader2, Search, ShoppingBag, Tag } from 'lucide-react';
-import { Product } from '../types';
+import { Product, Banner } from '../types';
 
 interface HomeFeedProps {
   products: Product[];
+  banners: Banner[];
   onSelectProduct: (product: Product) => void;
   wishlist: string[];
   onToggleWishlist: (productId: string) => void;
@@ -14,6 +15,7 @@ interface HomeFeedProps {
 
 export default function HomeFeed({
   products,
+  banners,
   onSelectProduct,
   wishlist,
   onToggleWishlist,
@@ -126,10 +128,10 @@ export default function HomeFeed({
   // Category circles data matching Screenshot 4
   const categoryBubbles = [
     { label: 'All Categories', value: 'All', bg: 'bg-blue-100', img: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150' },
-    { label: 'Kurtis & Dress', value: 'Kurti, Saree & Lehenga', bg: 'bg-pink-100', img: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150' },
+    { label: 'Kurtis & Dress', value: 'Kurti, Saree & Lehenga', bg: 'bg-blue-100', img: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150' },
     { label: 'Kids', value: 'Kids & Toys', bg: 'bg-yellow-100', img: 'https://images.unsplash.com/photo-1519457431-44ccd64a579b?auto=format&fit=crop&q=80&w=150' },
     { label: 'Home', value: 'Home & Kitchen', bg: 'bg-orange-100', img: 'https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&q=80&w=150' },
-    { label: 'Saree', value: 'Kurti, Saree & Lehenga', bg: 'bg-purple-100', img: 'https://images.unsplash.com/photo-1610030469668-93535c17b6b3?auto=format&fit=crop&q=80&w=150' },
+    { label: 'Saree', value: 'Kurti, Saree & Lehenga', bg: 'bg-blue-100', img: 'https://images.unsplash.com/photo-1610030469668-93535c17b6b3?auto=format&fit=crop&q=80&w=150' },
     { label: 'Western Wear', value: 'Women Western', bg: 'bg-green-100', img: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&q=80&w=150' },
   ];
 
@@ -147,7 +149,7 @@ export default function HomeFeed({
               id={`bubble-${index}`}
             >
               <div className={`w-14 h-14 rounded-full overflow-hidden flex items-center justify-center relative transition-all border-2 ${
-                isActive ? 'border-lucky-magenta scale-105 shadow-md' : 'border-gray-100 group-hover:border-pink-300'
+                isActive ? 'border-lucky-magenta scale-105 shadow-md' : 'border-gray-100 group-hover:border-blue-300'
               } ${item.bg}`}>
                 <img
                   src={item.img}
@@ -166,6 +168,32 @@ export default function HomeFeed({
         })}
       </div>
 
+      {/* Dynamic Banners Section */}
+      {banners && banners.length > 0 && (
+        <div className="w-full bg-gray-50 py-3 md:py-4 px-3 md:px-4">
+          <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-3 pb-2 -mb-2">
+            {banners.map((banner) => (
+              <div 
+                key={banner.id} 
+                className="relative snap-center shrink-0 w-full md:w-[85%] lg:w-[60%] rounded-xl overflow-hidden shadow-sm border border-gray-200 group cursor-pointer"
+              >
+                <div className="aspect-[2.5/1] sm:aspect-[3/1] md:aspect-[4/1] w-full">
+                  <img 
+                    src={banner.imageUrl} 
+                    alt={banner.type} 
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded">
+                    {banner.type === 'promotional' ? 'Promo' : 'News'}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Sorting / Filter Bar */}
       <div className="bg-white border-b border-gray-100 px-3 py-2 flex items-center justify-between gap-1 relative z-20" id="filters-bar">
         {/* Sort Button */}
@@ -176,7 +204,7 @@ export default function HomeFeed({
               setShowGenderDropdown(false);
             }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition-colors ${
-              sortBy !== 'popular' ? 'border-lucky-magenta text-lucky-magenta bg-pink-50' : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+              sortBy !== 'popular' ? 'border-lucky-magenta text-lucky-magenta bg-blue-50' : 'border-gray-200 text-gray-700 hover:bg-gray-50'
             }`}
             id="sort-btn"
           >
@@ -189,31 +217,31 @@ export default function HomeFeed({
             <div className="absolute left-0 mt-1.5 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-30 py-1" id="sort-dropdown">
               <button
                 onClick={() => { setSortBy('popular'); setShowSortDropdown(false); }}
-                className={`w-full text-left px-4 py-2 text-xs hover:bg-pink-50 cursor-pointer ${sortBy === 'popular' ? 'text-lucky-magenta font-semibold' : 'text-gray-700'}`}
+                className={`w-full text-left px-4 py-2 text-xs hover:bg-blue-50 cursor-pointer ${sortBy === 'popular' ? 'text-lucky-magenta font-semibold' : 'text-gray-700'}`}
               >
                 Relevance / Popular
               </button>
               <button
                 onClick={() => { setSortBy('price-asc'); setShowSortDropdown(false); }}
-                className={`w-full text-left px-4 py-2 text-xs hover:bg-pink-50 cursor-pointer ${sortBy === 'price-asc' ? 'text-lucky-magenta font-semibold' : 'text-gray-700'}`}
+                className={`w-full text-left px-4 py-2 text-xs hover:bg-blue-50 cursor-pointer ${sortBy === 'price-asc' ? 'text-lucky-magenta font-semibold' : 'text-gray-700'}`}
               >
                 Price: Low to High
               </button>
               <button
                 onClick={() => { setSortBy('price-desc'); setShowSortDropdown(false); }}
-                className={`w-full text-left px-4 py-2 text-xs hover:bg-pink-50 cursor-pointer ${sortBy === 'price-desc' ? 'text-lucky-magenta font-semibold' : 'text-gray-700'}`}
+                className={`w-full text-left px-4 py-2 text-xs hover:bg-blue-50 cursor-pointer ${sortBy === 'price-desc' ? 'text-lucky-magenta font-semibold' : 'text-gray-700'}`}
               >
                 Price: High to Low
               </button>
               <button
                 onClick={() => { setSortBy('discount'); setShowSortDropdown(false); }}
-                className={`w-full text-left px-4 py-2 text-xs hover:bg-pink-50 cursor-pointer ${sortBy === 'discount' ? 'text-lucky-magenta font-semibold' : 'text-gray-700'}`}
+                className={`w-full text-left px-4 py-2 text-xs hover:bg-blue-50 cursor-pointer ${sortBy === 'discount' ? 'text-lucky-magenta font-semibold' : 'text-gray-700'}`}
               >
                 Highest Discount
               </button>
               <button
                 onClick={() => { setSortBy('rating'); setShowSortDropdown(false); }}
-                className={`w-full text-left px-4 py-2 text-xs hover:bg-pink-50 cursor-pointer ${sortBy === 'rating' ? 'text-lucky-magenta font-semibold' : 'text-gray-700'}`}
+                className={`w-full text-left px-4 py-2 text-xs hover:bg-blue-50 cursor-pointer ${sortBy === 'rating' ? 'text-lucky-magenta font-semibold' : 'text-gray-700'}`}
               >
                 Customer Rating
               </button>
@@ -229,7 +257,7 @@ export default function HomeFeed({
               setShowSortDropdown(false);
             }}
             className={`flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition-colors ${
-              selectedGender !== 'All' ? 'border-lucky-magenta text-lucky-magenta bg-pink-50' : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+              selectedGender !== 'All' ? 'border-lucky-magenta text-lucky-magenta bg-blue-50' : 'border-gray-200 text-gray-700 hover:bg-gray-50'
             }`}
             id="gender-filter-btn"
           >
@@ -243,7 +271,7 @@ export default function HomeFeed({
                 <button
                   key={g}
                   onClick={() => { setSelectedGender(g); setShowGenderDropdown(false); }}
-                  className={`w-full text-left px-4 py-2 text-xs hover:bg-pink-50 cursor-pointer ${selectedGender === g ? 'text-lucky-magenta font-semibold bg-pink-50/50' : 'text-gray-700'}`}
+                  className={`w-full text-left px-4 py-2 text-xs hover:bg-blue-50 cursor-pointer ${selectedGender === g ? 'text-lucky-magenta font-semibold bg-blue-50/50' : 'text-gray-700'}`}
                 >
                   {g}
                 </button>
@@ -259,7 +287,7 @@ export default function HomeFeed({
               onSelectCategory('All');
               setSelectedGender('All');
             }}
-            className="text-[10px] text-pink-600 font-bold hover:underline cursor-pointer"
+            className="text-[10px] text-blue-600 font-bold hover:underline cursor-pointer"
             id="clear-filters-btn"
           >
             Clear All
@@ -275,9 +303,9 @@ export default function HomeFeed({
 
       {/* active filters info */}
       {(selectedCategory !== 'All' || selectedGender !== 'All') && (
-        <div className="bg-pink-50/40 px-4 py-1.5 text-[11px] text-gray-500 font-medium flex items-center gap-2 border-b border-gray-100" id="active-filters-info">
+        <div className="bg-blue-50/40 px-4 py-1.5 text-[11px] text-gray-500 font-medium flex items-center gap-2 border-b border-gray-100" id="active-filters-info">
           <span>Active filter:</span>
-          {selectedCategory !== 'All' && <span className="bg-pink-100 text-pink-800 px-2 py-0.5 rounded-sm">{selectedCategory}</span>}
+          {selectedCategory !== 'All' && <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-sm">{selectedCategory}</span>}
           {selectedGender !== 'All' && <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-sm">Gender: {selectedGender}</span>}
         </div>
       )}
@@ -294,17 +322,17 @@ export default function HomeFeed({
           ) : smartResult ? (
             <div className="max-w-4xl mx-auto space-y-8">
               {/* AI Recommendation Message Card */}
-              <div className="bg-gradient-to-r from-pink-50/50 via-purple-50/30 to-pink-50/20 border border-pink-100 rounded-2xl p-5 md:p-6 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-pink-100/30 rounded-full blur-2xl -z-10"></div>
-                <div className="absolute bottom-0 left-10 w-24 h-24 bg-purple-100/30 rounded-full blur-xl -z-10"></div>
+              <div className="bg-gradient-to-r from-blue-50/50 via-blue-50/30 to-blue-50/20 border border-blue-100 rounded-2xl p-5 md:p-6 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-100/30 rounded-full blur-2xl -z-10"></div>
+                <div className="absolute bottom-0 left-10 w-24 h-24 bg-blue-100/30 rounded-full blur-xl -z-10"></div>
                 
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center flex-shrink-0 border border-pink-200">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 border border-blue-200">
                     <Sparkles className="w-5 h-5 text-lucky-magenta animate-pulse" />
                   </div>
                   <div className="space-y-2 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-black uppercase tracking-wider text-lucky-magenta bg-pink-50 px-2 py-0.5 rounded-sm border border-pink-100">
+                      <span className="text-xs font-black uppercase tracking-wider text-lucky-magenta bg-blue-50 px-2 py-0.5 rounded-sm border border-blue-100">
                         QueKart AI Assistant
                       </span>
                       <span className="text-[10px] text-gray-400 font-bold">Smart Shopping Guidance</span>
@@ -334,7 +362,7 @@ export default function HomeFeed({
                           }
                           onSelectCategory('All');
                         }}
-                        className="text-xs px-2.5 py-1 rounded-full bg-white border border-gray-150 text-gray-600 hover:text-lucky-magenta hover:border-pink-200 hover:bg-pink-50/50 cursor-pointer transition-colors"
+                        className="text-xs px-2.5 py-1 rounded-full bg-white border border-gray-150 text-gray-600 hover:text-lucky-magenta hover:border-blue-200 hover:bg-blue-50/50 cursor-pointer transition-colors"
                       >
                         {term}
                       </button>
@@ -413,7 +441,7 @@ export default function HomeFeed({
                       <div
                         key={item.id}
                         onClick={() => onSelectProduct(mappedProduct)}
-                        className="bg-white border border-gray-150 rounded-xl overflow-hidden shadow-xs hover:shadow-md hover:border-pink-200 transition-all cursor-pointer flex flex-col relative group"
+                        className="bg-white border border-gray-150 rounded-xl overflow-hidden shadow-xs hover:shadow-md hover:border-blue-200 transition-all cursor-pointer flex flex-col relative group"
                         id={`online-item-${item.id}`}
                       >
                         <div className="absolute top-2 left-2 z-10 bg-lucky-magenta/90 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-xs tracking-wider shadow-xs">
@@ -456,7 +484,7 @@ export default function HomeFeed({
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-16 px-4 text-center bg-white border border-gray-100 rounded-xl shadow-xs max-w-md mx-auto" id="fallback-empty-card">
-              <Sparkles className="w-12 h-12 text-pink-300 mb-3 animate-spin" />
+              <Sparkles className="w-12 h-12 text-blue-300 mb-3 animate-spin" />
               <p className="text-gray-600 font-bold text-sm">No items match your active filters.</p>
               <button
                 onClick={() => { onSelectCategory('All'); setSelectedGender('All'); }}
@@ -529,7 +557,7 @@ export default function HomeFeed({
                     </h3>
 
                     {/* Vendor Name Display */}
-                    <div className="text-[10px] font-extrabold text-[#e91e63] mb-1.5 flex items-center gap-1 truncate">
+                    <div className="text-[10px] font-extrabold text-[#C49B48] mb-1.5 flex items-center gap-1 truncate">
                       <span>🏪</span>
                       <span className="truncate">{product.soldBy || 'Jaipur Wholesale'}</span>
                     </div>

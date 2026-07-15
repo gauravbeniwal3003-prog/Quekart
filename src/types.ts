@@ -105,6 +105,13 @@ export interface Category {
   }[];
 }
 
+export interface Banner {
+  id: string;
+  imageUrl: string;
+  linkUrl?: string;
+  type: 'promotional' | 'news';
+}
+
 export interface Coupon {
   code: string;
   discountType: 'flat' | 'percentage';

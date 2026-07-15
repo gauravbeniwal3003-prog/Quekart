@@ -1,0 +1,141 @@
+   580	              {activeTab === 'orders' && (
+   581	                <OrdersView
+   582	                  orders={orders}
+   583	                  onSelectProduct={(id) => navigateTo('/product/' + id)}
+   584	                  onSelectTab={(tab) => navigateTo('/' + tab)}
+   585	                />
+   586	                </div>
+   587	              )}
+   588	                 {activeTab === 'wishlist' && (
+   589	                <div className="p-4" id="wishlist-page">
+   590	                  <div className="flex flex-col gap-3 mb-5 border-b border-gray-100 pb-3">
+   591	                    <div className="flex items-center gap-3">
+   592	                      <button onClick={() => navigateTo('/home')} className="p-1 hover:bg-gray-100 rounded-full">
+   593	                        <ArrowLeft className="w-5 h-5 text-gray-800" />
+   594	                      </button>
+   595	                      <h1 className="text-sm font-black text-gray-800 tracking-wider">MY WISHLIST</h1>
+   596	            
+   597	                    {/* Local Search for Wishlist */}
+   598	                    <div className="relative flex-1 w-full">
+   599	                      <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+   600	                      <input
+   601	                        type="text"
+   602	                        placeholder="Search wishlist..."
+   603	                        value={searchQuery}
+   604	                        onChange={(e) => setSearchQuery(e.target.value)}
+   605	                        className="w-full bg-white border border-gray-200 rounded-lg py-2 pl-9 pr-4 text-xs font-medium focus:outline-hidden focus:border-lucky-magenta"
+   606	                        id="wishlist-search-input"
+   607	                      />
+   608	            
+   609	          
+   610	
+   611	                  {wishlist.length === 0 ? (
+   612	                    <div className="text-center py-16" id="empty-wishlist-view">
+   613	                      <Heart className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+   614	                      <p className="text-xs text-gray-400 font-bold">Your wishlist is currently empty.</p>
+   615	                      <button
+   616	                        onClick={() => navigateTo('/home')}
+   617	                        className="mt-4 bg-lucky-magenta text-white font-extrabold text-xs py-2 px-6 rounded-full"
+   618	                      >
+   619	                        Browse Products
+   620	                      </button>
+   621	            
+   622	                  ) : (
+   623	                    <div className="grid grid-cols-2 gap-3" id="wishlist-grid">
+   624	                      {products
+   625	                        .filter((p) => wishlist.includes(p.id) && p.title.toLowerCase().includes(searchQuery.toLowerCase()))
+   626	                        .map((p) => (
+   627	                          <div
+   628	                            key={p.id}
+   629	                            onClick={() => navigateTo('/product/' + p.id)}
+   630	                            className="bg-white rounded-lg overflow-hidden border border-gray-200/60 p-2.5 relative cursor-pointer hover:shadow-xs transition-shadow"
+   631	                          >
+   632	                            <img src={p.images[0]} alt={p.title} className="w-full aspect-square object-cover rounded-md" />
+   633	                            <h3 className="text-xs font-bold text-gray-700 truncate mt-2">{p.title}</h3>
+   634	                            <p className="text-xs font-black text-gray-950 mt-1">₹{p.price}</p>
+   635	                            <button
+   636	                              onClick={(e) => {
+   637	                                e.stopPropagation();
+   638	                                handleToggleWishlist(p.id);
+   639	                              }}
+   640	                              className="absolute top-4 right-4 bg-white/90 p-1.5 rounded-full text-red-500 shadow-xs"
+   641	                            >
+   642	                              <Heart className="w-4 h-4 fill-current" />
+   643	                            </button>
+   644	                  
+   645	                          </div>
+   646	                        ))}
+   647	            
+   648	                    </div>
+   649	                    </div>
+   650	              )}
+   651	
+   652	        
+   653	                </div>
+   654	              )}
+   655	
+   656	 
+   657	              {activeTab === 'profile' && (
+   658	                <ProfileView
+   659	                  onBack={() => navigateTo('/home')}
+   660	                  onOpenCart={() => navigateTo('/cart')}
+   661	                  cartCount={cart.reduce((acc, item) => acc + item.quantity, 0)}
+   662	                  onSelectTab={(tab) => navigateTo('/' + tab)}
+   663	                  wishlistCount={wishlist.length}
+   664	                  ordersCount={orders.length}
+   665	                  activeSubPage={activeProfileSubPage}
+   666	                  setActiveSubPage={(sub) => navigateTo(sub ? `/profile/${sub}` : '/profile')}
+   667	                />
+   668	                </div>
+   669	              )}
+   670	
+   671	
+   672	              {activeTab === 'cart' && (
+   673	                <CartView
+   674	                  isOpen={true}
+   675	                  onClose={() => navigateTo('/home')}
+   676	                  cart={cart}
+   677	                  onUpdateQuantity={handleUpdateQuantity}
+   678	                  onRemoveItem={handleRemoveItem}
+   679	                  onPlaceOrder={handlePlaceOrder}
+   680	                  coupons={coupons}
+   681	                />
+   682	                </div>
+   683	              )}
+   684	
+   685	
+   686	              {activeTab === 'admin' && (
+   687	                <AdminDashboard
+   688	                  products={products}
+   689	                  orders={orders}
+   690	                  coupons={coupons}
+   691	                  onAddProduct={handleAddProduct}
+   692	                  onEditProduct={handleEditProduct}
+   693	                  onDeleteProduct={handleDeleteProduct}
+   694	                  onUpdateOrderStatus={handleUpdateOrderStatus}
+   695	                  onDeleteOrder={handleDeleteOrder}
+   696	                  onAddCoupon={handleAddCoupon}
+   697	                  onDeleteCoupon={handleDeleteCoupon}
+   698	                  onClose={() => navigateTo('/profile')}
+   699	                />
+   700	                </div>
+   701	              )}
+   702	
+   703	
+   704	              {activeTab === 'vendor' && (
+   705	                <VendorDashboard
+   706	                  products={products}
+   707	                  orders={orders}
+   708	                  onAddProduct={handleVendorAddProduct}
+   709	                  onEditProduct={handleVendorEditProduct}
+   710	                  onDeleteProduct={handleVendorDeleteProduct}
+   711	                  onClose={() => navigateTo('/profile')}
+   712	                />
+   713	                </div>
+   714	              )}
+   715	
+   716	            </>
+   717	          )}
+   718	        </div>
+   719	        
+   720	        {/* Global Bottom Navigation shown except on detailed product checkout screens */}

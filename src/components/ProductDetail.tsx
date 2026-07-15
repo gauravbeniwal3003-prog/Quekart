@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'motion/react';
 
 interface ProductDetailProps {
   product: Product;
+  suggestedProducts: Product[];
+  onSelectProduct: (id: string) => void;
   onBack: () => void;
   onAddToCart: (product: Product, size: string, variantIndex: number) => void;
   onDirectBuy: (product: Product, size: string, variantIndex: number) => void;
@@ -14,6 +16,8 @@ interface ProductDetailProps {
 
 export default function ProductDetail({
   product,
+  suggestedProducts,
+  onSelectProduct,
   onBack,
   onAddToCart,
   onDirectBuy,
@@ -235,10 +239,37 @@ export default function ProductDetail({
             </div>
           </div>
 
+          {/* Color / Variant Swatches */}
+          <div className="bg-white p-4 border-b md:border border-gray-200 md:rounded-xl md:shadow-3xs" id="variants-swatches-section">
+            <span className="text-xs font-bold text-gray-500 tracking-wide uppercase">Select Variant</span>
+            <div className="flex gap-2.5 mt-2 overflow-x-auto py-1 scrollbar-hide" id="variants-swatches-row">
+              {product.variants.map((v, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleVariantSelect(idx)}
+                  className={`w-[60px] flex-shrink-0 aspect-[3/4] rounded-md overflow-hidden border-2 transition-all p-0.5 bg-white shadow-xs cursor-pointer ${
+                    selectedVariantIndex === idx ? 'border-lucky-magenta scale-105 shadow-md' : 'border-transparent opacity-80 hover:opacity-100'
+                  }`}
+                  id={`variant-swatch-${idx}`}
+                >
+                  <img
+                    src={v.imageUrl}
+                    alt={v.colorName}
+                    className="w-full h-full object-cover rounded-sm"
+                    referrerPolicy="no-referrer"
+                  />
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-gray-400 mt-1.5">
+              Selected: <span className="font-bold text-gray-700">{currentVariant.colorName}</span>
+            </p>
+          </div>
+
           {/* Trust Badges - Lucky Quality Indicators */}
           <div className="grid grid-cols-3 bg-white border-y border-gray-100/80 md:border md:rounded-xl p-4 text-center" id="trust-indicators-grid">
             <div className="flex flex-col items-center justify-center py-1">
-              <div className="w-12 h-12 rounded-full bg-[#fdf2f8] text-[#db2777] flex items-center justify-center mb-2 shadow-2xs hover:scale-105 transition-transform">
+              <div className="w-12 h-12 rounded-full bg-[#E8F0F8] text-[#17436B] flex items-center justify-center mb-2 shadow-2xs hover:scale-105 transition-transform">
                 <span className="font-black text-base font-sans">7</span>
               </div>
               <span className="text-[11px] md:text-xs font-extrabold text-[#1e293b] leading-tight mb-0.5">7 Days Return</span>
@@ -312,13 +343,13 @@ export default function ProductDetail({
 
             {/* UPI Offer banner */}
             {product.hasUpiOffer && (
-              <div className="bg-gradient-to-r from-pink-50 to-pink-50/20 border border-pink-200/60 rounded-lg p-2.5 mt-3 flex items-center justify-between shadow-3xs" id="upi-banner">
+              <div className="bg-gradient-to-r from-blue-50 to-blue-50/20 border border-blue-200/60 rounded-lg p-2.5 mt-3 flex items-center justify-between shadow-3xs" id="upi-banner">
                 <div className="flex items-center gap-2.5">
                   <div className="flex items-center">
                     <span className="bg-emerald-500 text-white font-black text-[10px] w-5 h-5 rounded-xs flex items-center justify-center rotate-12 shadow-3xs">▲</span>
                     <span className="bg-yellow-500 text-white font-black text-[10px] w-5 h-5 rounded-xs flex items-center justify-center -translate-x-1.5 -rotate-12 shadow-3xs">▶</span>
                   </div>
-                  <span className="text-xs text-pink-950 font-extrabold tracking-tight">
+                  <span className="text-xs text-blue-950 font-extrabold tracking-tight">
                     UPI Offer applied for you! Extra discount at checkout
                   </span>
                 </div>
@@ -358,7 +389,7 @@ export default function ProductDetail({
                   onClick={() => setSelectedSize(sz)}
                   className={`px-4 py-2 rounded-full border text-xs font-bold transition-all cursor-pointer ${
                     selectedSize === sz
-                      ? 'border-lucky-magenta text-lucky-magenta bg-pink-50 scale-105 shadow-2xs font-extrabold'
+                      ? 'border-lucky-magenta text-lucky-magenta bg-blue-50 scale-105 shadow-2xs font-extrabold'
                       : 'border-gray-200 text-gray-600 hover:bg-gray-50'
                   }`}
                   id={`size-pill-${sz}`}
@@ -374,7 +405,7 @@ export default function ProductDetail({
             {/* Add to Cart Outline */}
             <button
               onClick={handleAddToCartClick}
-              className="flex-1 border-2 border-lucky-magenta bg-white hover:bg-pink-50/20 text-lucky-magenta font-black py-3 px-4 rounded-md text-sm text-center flex items-center justify-center gap-2 cursor-pointer transition-colors active:scale-98 shadow-xs"
+              className="flex-1 border-2 border-lucky-magenta bg-white hover:bg-blue-50/20 text-lucky-magenta font-black py-3 px-4 rounded-md text-sm text-center flex items-center justify-center gap-2 cursor-pointer transition-colors active:scale-98 shadow-xs"
               id="add-to-cart-desktop-btn"
             >
               <ShoppingCart className="w-4.5 h-4.5 stroke-[2.5]" />
@@ -458,32 +489,42 @@ export default function ProductDetail({
             )}
           </div>
 
-          {/* Swatches / Similar Products Swatches list */}
-          <div className="bg-white p-4 border-b md:border border-gray-200 md:rounded-xl md:shadow-3xs" id="variants-swatches-section">
-            <span className="text-xs font-bold text-gray-500 tracking-wide uppercase">Suggested Products</span>
-            <div className="flex gap-2.5 mt-2 overflow-x-auto py-1 scrollbar-hide" id="variants-swatches-row">
-              {product.variants.map((v, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleVariantSelect(idx)}
-                  className={`w-[60px] flex-shrink-0 aspect-[3/4] rounded-md overflow-hidden border-2 transition-all p-0.5 bg-white shadow-xs cursor-pointer ${
-                    selectedVariantIndex === idx ? 'border-lucky-magenta scale-105 shadow-md' : 'border-transparent opacity-80 hover:opacity-100'
-                  }`}
-                  id={`variant-swatch-${idx}`}
-                >
-                  <img
-                    src={v.imageUrl}
-                    alt={v.colorName}
-                    className="w-full h-full object-cover rounded-sm"
-                    referrerPolicy="no-referrer"
-                  />
-                </button>
-              ))}
+          {/* Suggested Products */}
+          {suggestedProducts.length > 0 && (
+            <div className="bg-white p-4 border-b md:border border-gray-200 md:rounded-xl md:shadow-3xs" id="suggested-products-section">
+              <span className="text-xs font-bold text-gray-800 tracking-wide uppercase">Suggested Products</span>
+              <div className="flex gap-3 mt-3 overflow-x-auto pb-2 scrollbar-hide">
+                {suggestedProducts.map((p) => (
+                  <div 
+                    key={p.id} 
+                    onClick={() => onSelectProduct(p.id)}
+                    className="w-[120px] flex-shrink-0 cursor-pointer group"
+                  >
+                    <div className="w-full aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 mb-2 border border-gray-100 relative">
+                      <img 
+                        src={p.images[0]} 
+                        alt={p.title} 
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        referrerPolicy="no-referrer"
+                      />
+                      {p.discountPercent > 0 && (
+                        <div className="absolute bottom-0 left-0 bg-white/90 px-1.5 py-0.5 text-[9px] font-bold text-lucky-magenta border-tr-lg">
+                          {p.discountPercent}% OFF
+                        </div>
+                      )}
+                    </div>
+                    <h4 className="text-[10px] font-bold text-gray-800 line-clamp-2 leading-tight group-hover:text-lucky-magenta transition-colors">
+                      {p.title}
+                    </h4>
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="text-xs font-black text-gray-900">₹{p.price}</span>
+                      <span className="text-[9px] text-gray-400 line-through">₹{p.originalPrice}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <p className="text-[11px] text-gray-400 mt-1.5">
-              Selected: <span className="font-bold text-gray-700">{currentVariant.colorName}</span>
-            </p>
-          </div>
+          )}
 
           {/* Customer Ratings & Reviews Card Section (Screenshot 1 & 2) */}
           <div className="bg-white p-4 border-b md:border border-gray-200 md:rounded-xl md:shadow-3xs" id="ratings-reviews-card">
@@ -620,12 +661,12 @@ export default function ProductDetail({
                             onClick={() => toggleHelpful(rev.id)}
                             className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border transition-all cursor-pointer ${
                               isHelped
-                                ? 'bg-pink-50 border-lucky-magenta text-lucky-magenta scale-105'
+                                ? 'bg-blue-50 border-lucky-magenta text-lucky-magenta scale-105'
                                 : 'border-gray-200 text-gray-500 hover:bg-gray-50'
                             }`}
                             id={`help-btn-${rev.id}`}
                           >
-                            <ThumbsUp className={`w-3.5 h-3.5 ${isHelped ? 'fill-pink-500' : ''}`} />
+                            <ThumbsUp className={`w-3.5 h-3.5 ${isHelped ? 'fill-blue-500' : ''}`} />
                             <span>Helpful ({rev.helpfulCount + (isHelped ? 1 : 0)})</span>
                           </button>
                         </div>
@@ -646,7 +687,7 @@ export default function ProductDetail({
         {/* Add to Cart Outline */}
         <button
           onClick={handleAddToCartClick}
-          className="flex-1 border border-lucky-magenta bg-white text-lucky-magenta font-black py-3 px-4 rounded-md text-sm text-center flex items-center justify-center gap-2 cursor-pointer hover:bg-pink-50/30 transition-colors active:scale-98"
+          className="flex-1 border border-lucky-magenta bg-white text-lucky-magenta font-black py-3 px-4 rounded-md text-sm text-center flex items-center justify-center gap-2 cursor-pointer hover:bg-blue-50/30 transition-colors active:scale-98"
           id="add-to-cart-sticky-btn"
         >
           <ShoppingCart className="w-4.5 h-4.5 stroke-[2.5]" />
