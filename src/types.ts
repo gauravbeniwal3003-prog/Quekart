@@ -55,6 +55,7 @@ export interface Product {
   vendorId?: string;
   approvalStatus?: 'approved' | 'pending' | 'rejected';
   rejectionReason?: string;
+  createdAt?: string;
 }
 
 export interface Vendor {
@@ -68,6 +69,8 @@ export interface Vendor {
   rating: number;
   status: 'active' | 'suspended';
   createdAt: string;
+  state?: string;
+  city?: string;
 }
 
 export interface CartItem {

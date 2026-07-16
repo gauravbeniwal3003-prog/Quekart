@@ -316,7 +316,7 @@ export default function HomeFeed({
           {smartSearchLoading ? (
             <div className="flex flex-col items-center justify-center py-20 text-center bg-white border border-gray-100 rounded-xl shadow-xs max-w-2xl mx-auto">
               <Loader2 className="w-10 h-10 text-lucky-magenta animate-spin mb-4" />
-              <p className="text-gray-700 font-bold text-sm">Consulting QueKart Smart AI Assistant...</p>
+              <p className="text-gray-700 font-bold text-sm">Consulting <span style={{ color: '#143C6B' }}>Que</span><span style={{ color: '#C89D1F' }}>Kart</span> Smart AI Assistant...</p>
               <p className="text-xs text-gray-400 mt-1">Finding the best online recommendations and alternatives for you.</p>
             </div>
           ) : smartResult ? (
@@ -332,8 +332,10 @@ export default function HomeFeed({
                   </div>
                   <div className="space-y-2 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-black uppercase tracking-wider text-lucky-magenta bg-blue-50 px-2 py-0.5 rounded-sm border border-blue-100">
-                        QueKart AI Assistant
+                      <span className="text-xs font-black uppercase tracking-wider bg-blue-50 px-2 py-0.5 rounded-sm border border-blue-100 flex items-center">
+                        <span style={{ color: '#143C6B' }}>Que</span>
+                        <span style={{ color: '#C89D1F' }}>Kart</span>
+                        <span className="text-lucky-magenta ml-1">AI Assistant</span>
                       </span>
                       <span className="text-[10px] text-gray-400 font-bold">Smart Shopping Guidance</span>
                     </div>

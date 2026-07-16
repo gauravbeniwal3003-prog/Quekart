@@ -89,7 +89,7 @@ export default function ProfileView({
   const [avatarHair, setAvatarHair] = React.useState("#1e1e1e");
 
   // 3. Wallet & Refer / Earn states
-  const [luckyBalance, setLuckyBalance] = React.useState(250);
+  const [quekartBalance, setQuekartBalance] = React.useState(250);
   const [referralCode] = React.useState("LUCKY777GAURAV");
   const [copiedCode, setCopiedCode] = React.useState(false);
   const [scratchCards, setScratchCards] = React.useState([
@@ -158,7 +158,7 @@ export default function ProfileView({
   const [quickCheckout, setQuickCheckout] = React.useState(true);
   const [simulatedTwilightTheme, setSimulatedTwilightTheme] = React.useState(false);
 
-  // 11. Rate Lucky Feedback Form State
+  // 11. Rate Quekart Feedback Form State
   const [reviewStars, setReviewStars] = React.useState(0);
   const [reviewComment, setReviewComment] = React.useState("");
   const [selectedTags, setSelectedTags] = React.useState<string[]>([]);
@@ -226,7 +226,7 @@ export default function ProfileView({
       return c;
     }));
     if (cardAmount > 0) {
-      setLuckyBalance(prev => prev + cardAmount);
+      setQuekartBalance(prev => prev + cardAmount);
       triggerToast(`🎉 You won ₹${cardAmount} from referring ${friend}! Added to your wallet.`);
     }
   };
@@ -533,11 +533,11 @@ export default function ProfileView({
           <div className={`mt-2.5 border-y ${simulatedTwilightTheme ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'}`} id="profile-others-section">
             <h3 className="px-4 pt-3 pb-1 text-[13px] font-extrabold tracking-tight text-gray-400 uppercase">Others</h3>
             <div className="divide-y divide-gray-100/10">
-              {/* Lucky Balance */}
+              {/* Quekart Balance */}
               <div 
-                onClick={() => setActiveSubPage('lucky-balance')}
+                onClick={() => setActiveSubPage('quekart-balance')}
                 className="px-4 py-3.5 flex items-center justify-between cursor-pointer hover:bg-opacity-5 transition-colors"
-                id="row-lucky-balance"
+                id="row-quekart-balance"
               >
                 <div className="flex items-center gap-3.5">
                   <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shadow-3xs">
@@ -551,7 +551,7 @@ export default function ProfileView({
                 <div className="flex items-center gap-2">
                   <span className="bg-[#e6fffa] text-[#00a389] border border-[#b2f5ea] text-xs font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1">
                     <Coins className="w-3 h-3" />
-                    ₹{luckyBalance}
+                    ₹{quekartBalance}
                   </span>
                   <ChevronRight className="w-4 h-4 text-gray-400" />
                 </div>
@@ -624,9 +624,9 @@ export default function ProfileView({
                 <ChevronRight className="w-4 h-4 text-gray-400" />
               </div>
 
-              {/* Rate Lucky */}
+              {/* Rate Quekart */}
               <div 
-                onClick={() => setActiveSubPage('rate-lucky')}
+                onClick={() => setActiveSubPage('rate-quekart')}
                 className="px-4 py-3.5 flex items-center justify-between cursor-pointer hover:bg-opacity-5 transition-colors"
                 id="row-rate"
               >
@@ -944,7 +944,11 @@ export default function ProfileView({
                 💬
               </div>
               <div>
-                <h4 className="text-xs font-black">QueKart Live Support</h4>
+                <h4 className="text-xs font-black flex items-center">
+                  <span style={{ color: '#ffffff' }}>Que</span>
+                  <span style={{ color: '#C89D1F' }}>Kart</span>
+                  <span className="ml-1 text-white">Live Support</span>
+                </h4>
                 <p className="text-[9px] text-blue-100 font-bold">● Active Customer Assistant</p>
               </div>
             </div>
@@ -1003,7 +1007,7 @@ export default function ProfileView({
             {/* Quick Balance badge */}
             <div className="bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-full flex items-center gap-1.5">
               <Coins className="w-3.5 h-3.5 text-lucky-magenta fill-blue-100" />
-              <span className="text-xs font-black text-lucky-magenta">₹{luckyBalance}</span>
+              <span className="text-xs font-black text-lucky-magenta">₹{quekartBalance}</span>
             </div>
           </div>
 
@@ -1020,7 +1024,7 @@ export default function ProfileView({
               <div className="border-r border-white/15 pr-1">
                 <span className="text-[10px] text-blue-200 block uppercase font-extrabold tracking-wider">Total Earned</span>
                 <span className="text-lg font-black mt-0.5 block flex items-center justify-center gap-0.5">
-                  <span className="text-amber-300 font-bold">₹</span>{luckyBalance}
+                  <span className="text-amber-300 font-bold">₹</span>{quekartBalance}
                 </span>
               </div>
               
@@ -1165,7 +1169,11 @@ export default function ProfileView({
               <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-3xs">
                 <div className="flex justify-between items-center mb-3">
                   <h4 className="text-xs font-black text-gray-800 uppercase tracking-wider flex items-center gap-1">
-                    <span>🏆 QueKart Leaderboard</span>
+                    <span className="flex items-center">
+                      🏆 <span style={{ color: '#143C6B' }} className="ml-1">Que</span>
+                      <span style={{ color: '#C89D1F' }}>Kart</span>
+                      <span className="ml-1">Leaderboard</span>
+                    </span>
                     <span className="bg-emerald-50 text-emerald-600 font-extrabold text-[8px] px-1 py-0.2 rounded-xs">Live Weekly</span>
                   </h4>
                   <span className="text-[9px] text-gray-400 font-bold">Top Referrers of Bharat</span>
@@ -1801,14 +1809,18 @@ export default function ProfileView({
         </div>
       )}
 
-      {/* 9. Lucky Balance Sub-Page */}
-      {activeSubPage === 'lucky-balance' && (
-        <div className="animate-slideIn px-4 py-4 max-w-md mx-auto" id="lucky-balance-subpage">
+      {/* 9. Quekart Balance Sub-Page */}
+      {activeSubPage === 'quekart-balance' && (
+        <div className="animate-slideIn px-4 py-4 max-w-md mx-auto" id="quekart-balance-subpage">
           <div className="flex items-center gap-3 mb-5">
             <button onClick={() => setActiveSubPage(null)} className="p-1 hover:bg-gray-100 rounded-full cursor-pointer">
               <ChevronLeft className="w-6 h-6 stroke-[2]" />
             </button>
-            <h2 className="text-base font-extrabold tracking-wide uppercase">QueKart Wallet</h2>
+            <h2 className="text-base font-bold tracking-wide uppercase flex items-center">
+              <span style={{ color: '#143C6B' }}>Que</span>
+              <span style={{ color: '#C89D1F' }}>Kart</span>
+              <span className="ml-1 text-gray-800">Wallet</span>
+            </h2>
           </div>
 
           <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-3xs mb-5 text-center flex flex-col items-center relative overflow-hidden">
@@ -1821,7 +1833,7 @@ export default function ProfileView({
             </div>
             <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest">Available Balance</span>
             <h3 className="text-3xl font-black text-gray-900 mt-1 flex items-center gap-1.5">
-              <span className="text-blue-600">₹</span>{luckyBalance}
+              <span className="text-blue-600">₹</span>{quekartBalance}
             </h3>
             <p className="text-[10px] text-emerald-600 font-extrabold bg-emerald-50 px-2 py-0.5 rounded-full mt-2 border border-emerald-100">100% Usable on Checkout</p>
           </div>
@@ -2072,14 +2084,18 @@ export default function ProfileView({
         </div>
       )}
 
-      {/* 12. Rate Lucky Stars and Review Sub-Page */}
-      {activeSubPage === 'rate-lucky' && (
-        <div className="animate-slideIn px-4 py-4 max-w-md mx-auto" id="rate-lucky-subpage">
+      {/* 12. Rate Quekart Stars and Review Sub-Page */}
+      {activeSubPage === 'rate-quekart' && (
+        <div className="animate-slideIn px-4 py-4 max-w-md mx-auto" id="rate-quekart-subpage">
           <div className="flex items-center gap-3 mb-5">
             <button onClick={() => setActiveSubPage(null)} className="p-1 hover:bg-gray-100 rounded-full cursor-pointer">
               <ChevronLeft className="w-6 h-6 stroke-[2]" />
             </button>
-            <h2 className="text-base font-extrabold tracking-wide uppercase">Rate QueKart</h2>
+            <h2 className="text-base font-bold tracking-wide uppercase flex items-center">
+              <span className="text-gray-800 mr-1">Rate</span>
+              <span style={{ color: '#143C6B' }}>Que</span>
+              <span style={{ color: '#C89D1F' }}>Kart</span>
+            </h2>
           </div>
 
           <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-3xs space-y-5 text-center flex flex-col items-center">

@@ -125,8 +125,8 @@ async function testAndSeedSupabase() {
   if (!useSupabase || !supabase) return;
 
   try {
-    // 1. Verify products table
-    const { data: pData, error: pError } = await supabase.from('products').select('id').limit(1);
+    // 1. Verify and seed products table
+    const { data: pCountData, error: pError } = await supabase.from('products').select('id');
     if (pError) {
       console.error('❌ Supabase products table check failed with error:', pError);
       console.log('⚠️ "products" table not found or inaccessible in Supabase. Falling back to local memory for products.');
@@ -135,40 +135,70 @@ async function testAndSeedSupabase() {
       return;
     }
 
-    // Always upsert all existing demo products to make sure the database is fully seeded and synchronized!
-    console.log('🌱 Seeding & Upserting existing demo products into Supabase "products" table...');
+    const existingProductIds = new Set((pCountData || []).map((row: any) => row.id));
+    console.log(`📊 Products in Supabase: ${existingProductIds.size}. Seeding missing demo products...`);
     for (const p of localProducts) {
-      const { error: upsertErr } = await supabase.from('products').upsert({ id: p.id, data: p }, { onConflict: 'id' });
-      if (upsertErr) {
-        console.error(`⚠️ Error upserting product ${p.id}:`, upsertErr);
+      if (!existingProductIds.has(p.id)) {
+        console.log(`🌱 Seeding missing product: ${p.id}`);
+        const { error: insertErr } = await supabase.from('products').insert({ id: p.id, data: p });
+        if (insertErr) {
+          console.error(`⚠️ Error seeding product ${p.id}:`, insertErr);
+        }
       }
     }
 
-    // 2. Verify coupons table and upsert default coupons
-    const { error: cError } = await supabase.from('coupons').select('code').limit(1);
+    // 2. Verify and seed coupons table
+    const { data: cCountData, error: cError } = await supabase.from('coupons').select('code');
     if (!cError) {
-      console.log('🌱 Seeding & Upserting default coupons into Supabase...');
+      const existingCouponCodes = new Set((cCountData || []).map((row: any) => row.code));
+      console.log(`📊 Coupons in Supabase: ${existingCouponCodes.size}. Seeding missing coupons...`);
       for (const c of localCoupons) {
-        await supabase.from('coupons').upsert({ code: c.code, data: c }, { onConflict: 'code' });
+        if (!existingCouponCodes.has(c.code)) {
+          console.log(`🌱 Seeding missing coupon: ${c.code}`);
+          const { error: insertErr } = await supabase.from('coupons').insert({ code: c.code, data: c });
+          if (insertErr) {
+            console.error(`⚠️ Error seeding coupon ${c.code}:`, insertErr);
+          }
+        }
       }
+    } else {
+      console.error('❌ Coupons table check failed:', cError);
     }
 
-    // 3. Verify orders table and upsert initial logs
-    const { error: oError } = await supabase.from('orders').select('id').limit(1);
+    // 3. Verify and seed orders table
+    const { data: oCountData, error: oError } = await supabase.from('orders').select('id');
     if (!oError) {
-      console.log('🌱 Seeding & Upserting default orders into Supabase...');
+      const existingOrderIds = new Set((oCountData || []).map((row: any) => row.id));
+      console.log(`📊 Orders in Supabase: ${existingOrderIds.size}. Seeding missing orders...`);
       for (const o of localOrders) {
-        await supabase.from('orders').upsert({ id: o.id, data: o }, { onConflict: 'id' });
+        if (!existingOrderIds.has(o.id)) {
+          console.log(`🌱 Seeding missing order: ${o.id}`);
+          const { error: insertErr } = await supabase.from('orders').insert({ id: o.id, data: o });
+          if (insertErr) {
+            console.error(`⚠️ Error seeding order ${o.id}:`, insertErr);
+          }
+        }
       }
+    } else {
+      console.error('❌ Orders table check failed:', oError);
     }
 
-    // 4. Verify vendors table and upsert initial vendors
-    const { error: vError } = await supabase.from('vendors').select('id').limit(1);
+    // 4. Verify and seed vendors table
+    const { data: vCountData, error: vError } = await supabase.from('vendors').select('id');
     if (!vError) {
-      console.log('🌱 Seeding & Upserting default vendors into Supabase...');
+      const existingVendorIds = new Set((vCountData || []).map((row: any) => row.id));
+      console.log(`📊 Vendors in Supabase: ${existingVendorIds.size}. Seeding missing vendors...`);
       for (const v of localVendors) {
-        await supabase.from('vendors').upsert({ id: v.id, data: v }, { onConflict: 'id' });
+        if (!existingVendorIds.has(v.id)) {
+          console.log(`🌱 Seeding missing vendor: ${v.id}`);
+          const { error: insertErr } = await supabase.from('vendors').insert({ id: v.id, data: v });
+          if (insertErr) {
+            console.error(`⚠️ Error seeding vendor ${v.id}:`, insertErr);
+          }
+        }
       }
+    } else {
+      console.error('❌ Vendors table check failed:', vError);
     }
 
     console.log('✨ Supabase database synchronized perfectly. Operating in LIVE DATABASE MODE.');

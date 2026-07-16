@@ -319,9 +319,13 @@ export default function VendorDashboard({
             <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
           </button>
           <div>
-            <h1 className="text-sm font-black text-lucky-magenta uppercase tracking-wider flex items-center gap-1.5">
-              <Building2 className="w-4 h-4" />
-              <span>QueKart Seller Portal</span>
+            <h1 className="text-sm font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <Building2 className="w-4 h-4 text-lucky-magenta" />
+              <span className="flex items-center">
+                <span style={{ color: '#143C6B' }}>Que</span>
+                <span style={{ color: '#C89D1F' }}>Kart</span>
+                <span className="ml-1 text-lucky-magenta">Seller Portal</span>
+              </span>
             </h1>
             <p className="text-[10px] text-gray-400 font-bold tracking-wide">Bharat's Commission-Free Wholesale Hub</p>
           </div>
@@ -329,7 +333,7 @@ export default function VendorDashboard({
 
         {currentVendor && (
           <div className="flex items-center gap-2">
-            <span className="hidden sm:inline bg-blue-50 text-lucky-magenta text-[9px] font-black uppercase px-2 py-1 rounded-sm border border-blue-100">
+            <span className="hidden sm:inline bg-lucky-magenta-light text-lucky-magenta text-[9px] font-black uppercase px-2 py-1 rounded-sm border border-lucky-magenta-light">
               {currentVendor.vendorType === 'big' ? '👑 Premium Partner' : '🌱 Emerging Seller'}
             </span>
             <button 
@@ -496,7 +500,7 @@ export default function VendorDashboard({
 
                 <button
                   type="submit"
-                  className="w-full bg-lucky-magenta hover:bg-blue-700 text-white font-extrabold text-xs py-3 px-4 rounded-lg cursor-pointer transition-all uppercase tracking-wider shadow-2xs mt-2"
+                  className="w-full bg-lucky-magenta hover:bg-lucky-magenta-hover text-white font-extrabold text-xs py-3 px-4 rounded-lg cursor-pointer transition-all uppercase tracking-wider shadow-2xs mt-2"
                 >
                   Create commissions-free shop
                 </button>
@@ -508,7 +512,7 @@ export default function VendorDashboard({
           <div className="space-y-6">
             
             {/* Business Card Banner */}
-            <div className="bg-gradient-to-r from-blue-950 to-blue-900 text-white rounded-2xl p-5 shadow-xs relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="bg-gradient-to-r from-lucky-magenta to-lucky-magenta-hover text-white rounded-2xl p-5 shadow-xs relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="absolute -right-16 -top-16 w-48 h-48 bg-white/5 rounded-full blur-2xl"></div>
               
               <div>
@@ -516,7 +520,7 @@ export default function VendorDashboard({
                   <span className="text-xl">🏪</span>
                   <h2 className="text-base font-black uppercase tracking-wide">{currentVendor.name}</h2>
                 </div>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-blue-100/80 font-bold mt-1.5">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-white/80 font-bold mt-1.5">
                   <span>Category: <strong>{currentVendor.businessCategory}</strong></span>
                   <span>•</span>
                   <span>GSTIN: <strong>{currentVendor.gstin || 'GST-EXEMPT'}</strong></span>
@@ -527,12 +531,12 @@ export default function VendorDashboard({
 
               <div className="flex items-center gap-3 bg-white/10 p-3 rounded-xl border border-white/10 backdrop-blur-xs flex-shrink-0 self-start sm:self-auto">
                 <div className="text-center px-2">
-                  <p className="text-[9px] text-blue-200 uppercase font-black tracking-wider">Rating</p>
+                  <p className="text-[9px] text-lucky-gold uppercase font-black tracking-wider">Rating</p>
                   <p className="text-sm font-black text-amber-400 mt-0.5">★ {currentVendor.rating}</p>
                 </div>
                 <div className="w-px h-8 bg-white/20"></div>
                 <div className="text-center px-2">
-                  <p className="text-[9px] text-blue-200 uppercase font-black tracking-wider">Tier</p>
+                  <p className="text-[9px] text-lucky-gold uppercase font-black tracking-wider">Tier</p>
                   <p className="text-xs font-black text-white mt-0.5 uppercase tracking-wide">
                     {currentVendor.vendorType === 'big' ? '💎 Big Seller' : '🌱 Small Seller'}
                   </p>
@@ -553,7 +557,7 @@ export default function VendorDashboard({
               </div>
 
               <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-3xs flex items-center gap-3">
-                <div className="bg-blue-50 text-blue-600 p-2.5 rounded-lg">
+                <div className="bg-lucky-magenta-light text-lucky-magenta p-2.5 rounded-lg">
                   <Package className="w-5 h-5" />
                 </div>
                 <div>
@@ -575,7 +579,7 @@ export default function VendorDashboard({
               </div>
 
               <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-3xs flex items-center gap-3">
-                <div className="bg-blue-50 text-lucky-magenta p-2.5 rounded-lg">
+                <div className="bg-lucky-magenta-light text-lucky-magenta p-2.5 rounded-lg">
                   <ShoppingBag className="w-5 h-5" />
                 </div>
                 <div>
@@ -617,7 +621,7 @@ export default function VendorDashboard({
                     <div className="flex justify-between items-center pb-2 border-b border-gray-100">
                       <h3 className="text-xs font-black text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
                         <span>📦 Recent Orders Needing Shipment</span>
-                        <span className="bg-blue-50 text-lucky-magenta text-[8px] font-black px-1.5 py-0.2 rounded-xs">{vendorOrders.length} Total</span>
+                        <span className="bg-lucky-magenta-light text-lucky-magenta text-[8px] font-black px-1.5 py-0.2 rounded-xs">{vendorOrders.length} Total</span>
                       </h3>
                       <button onClick={() => setActiveSubTab('orders')} className="text-[10px] text-lucky-magenta font-extrabold hover:underline">View All Orders</button>
                     </div>
@@ -646,7 +650,7 @@ export default function VendorDashboard({
                                   <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${
                                     order.status === 'Cancelled' ? 'bg-red-50 text-red-500' :
                                     order.status === 'Delivered Early' ? 'bg-emerald-50 text-emerald-500' :
-                                    'bg-blue-50 text-blue-500'
+                                    'bg-lucky-magenta-light text-lucky-magenta'
                                   }`}>
                                     {order.status}
                                   </span>
@@ -667,7 +671,7 @@ export default function VendorDashboard({
 
                     <button 
                       onClick={() => handleOpenListingModal(null)}
-                      className="w-full bg-lucky-magenta hover:bg-blue-700 text-white font-extrabold text-xs py-3 px-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-3xs transition-all"
+                      className="w-full bg-lucky-magenta hover:bg-lucky-magenta-hover text-white font-extrabold text-xs py-3 px-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-3xs transition-all"
                     >
                       <Plus className="w-4.5 h-4.5 stroke-[2.5]" />
                       <span>List New Wholesale Item</span>
@@ -845,13 +849,13 @@ export default function VendorDashboard({
                           <div key={order.id} className="pt-4 first:pt-0 flex flex-col md:flex-row gap-4 justify-between items-start">
                             <div className="space-y-2 flex-1">
                               <div className="flex flex-wrap gap-2 items-center">
-                                <span className="bg-blue-50 text-lucky-magenta text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                <span className="bg-lucky-magenta-light text-lucky-magenta text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                                   ID: {order.id.slice(0, 12).toUpperCase()}
                                 </span>
                                 <span className="text-[10px] text-gray-400 font-semibold">{order.orderDate}</span>
                               </div>
 
-                              <div className="space-y-1.5 pl-1.5 border-l-2 border-blue-100">
+                              <div className="space-y-1.5 pl-1.5 border-l-2 border-lucky-magenta-light">
                                 {vendorItems.map(item => (
                                   <div key={item.id} className="flex gap-3 items-center">
                                     <img 
@@ -914,7 +918,7 @@ export default function VendorDashboard({
                   className="bg-white rounded-xl border border-gray-100 p-5 shadow-3xs max-w-xl mx-auto w-full"
                 >
                   <div className="pb-3 border-b border-gray-100 mb-4 text-center">
-                    <div className="bg-blue-50 text-lucky-magenta w-14 h-14 rounded-full flex items-center justify-center text-xl mx-auto mb-2 font-black">
+                    <div className="bg-lucky-magenta-light text-lucky-magenta w-14 h-14 rounded-full flex items-center justify-center text-xl mx-auto mb-2 font-black">
                       🏪
                     </div>
                     <h3 className="text-sm font-black text-gray-800 uppercase tracking-wider">{currentVendor.name}</h3>
@@ -948,12 +952,12 @@ export default function VendorDashboard({
                     </div>
                   </div>
 
-                  <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100/60 mt-5 space-y-2">
-                    <h4 className="text-[11px] font-black text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
-                      <Award className="w-4 h-4 text-blue-600" />
+                  <div className="bg-lucky-magenta-light/40 rounded-xl p-4 border border-lucky-magenta-light mt-5 space-y-2">
+                    <h4 className="text-[11px] font-black text-lucky-magenta uppercase tracking-wider flex items-center gap-1.5">
+                      <Award className="w-4 h-4 text-lucky-magenta" />
                       <span>QueKart Commission-Free Pledge</span>
                     </h4>
-                    <p className="text-[10px] text-blue-800 leading-relaxed font-semibold">
+                    <p className="text-[10px] text-lucky-magenta/90 leading-relaxed font-semibold">
                       QueKart charges absolutely **0% commissions** on all listed products. 100% of the listed catalog cost is disbursed instantly into your supplier bank account after verified shipping delivery. Safe, honest, and truly Indian.
                     </p>
                   </div>
@@ -1166,7 +1170,7 @@ export default function VendorDashboard({
                   </button>
                   <button
                     type="submit"
-                    className="bg-lucky-magenta hover:bg-blue-700 text-white font-extrabold text-xs py-2 px-5 rounded-lg cursor-pointer shadow-3xs transition-all uppercase tracking-wider"
+                    className="bg-lucky-magenta hover:bg-lucky-magenta-hover text-white font-extrabold text-xs py-2 px-5 rounded-lg cursor-pointer shadow-3xs transition-all uppercase tracking-wider"
                   >
                     {editingProduct ? 'Update Listing' : 'Publish Catalog'}
                   </button>

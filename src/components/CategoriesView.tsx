@@ -62,7 +62,7 @@ export default function CategoriesView({
         <div className="mb-4">
           <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Popular</span>
           <h2 className="text-sm md:text-base font-extrabold text-gray-800 tracking-tight" id="active-category-title">
-            Featured On QueKart
+            Featured On <span style={{ color: '#143C6B' }}>Que</span><span style={{ color: '#C89D1F' }}>Kart</span>
           </h2>
         </div>
 

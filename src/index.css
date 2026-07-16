@@ -5,13 +5,13 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Outfit", sans-serif;
   
-  --color-lucky-magenta: #17436B;
+  --color-lucky-magenta: #143C6B;
   --color-lucky-magenta-light: #E8F0F8;
-  --color-lucky-magenta-hover: #0F2F4F;
+  --color-lucky-magenta-hover: #0D2C4E;
   --color-lucky-green: #03a685;
   --color-lucky-green-light: #ecfdf5;
   --color-lucky-green-hover: #028a6f;
-  --color-lucky-gold: #C49B48;
+  --color-lucky-gold: #C89D1F;
 }
 
 /* Scrollbar hiding utilities */
@@ -37,8 +37,8 @@
 
 .badge-gradient-magenta {
   background: linear-gradient(135deg, #E8F0F8 0%, #F1F5F9 100%);
-  color: #17436B;
-  border: 1px solid rgba(23, 67, 107, 0.15);
+  color: #143C6B;
+  border: 1px solid rgba(20, 60, 107, 0.15);
 }
 
 .badge-gradient-green {
@@ -49,8 +49,8 @@
 
 .badge-gradient-gold {
   background: linear-gradient(135deg, #FBF8F1 0%, #FFFFFF 100%);
-  color: #C49B48;
-  border: 1px solid rgba(196, 155, 72, 0.2);
+  color: #C89D1F;
+  border: 1px solid rgba(200, 157, 31, 0.2);
 }
 
 /* Scale entrance animations for interactive triggers */

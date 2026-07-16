@@ -148,8 +148,11 @@ export default function Header({
 
             {/* Logo */}
             <div className="flex items-center gap-1.5 sm:gap-2 justify-center md:justify-start cursor-pointer flex-shrink min-w-0 overflow-hidden" onClick={() => onSelectTab('home')}>
-              <Logo className="h-7 w-7 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-11 lg:w-11 flex-shrink-0 transition-transform duration-200 hover:scale-105 active:scale-95" animated={true} width="100%" height="100%" />
-              <span className="font-display font-black text-lucky-magenta text-lg sm:text-xl md:text-2xl tracking-tight truncate">QueKart</span>
+              <Logo className="h-9 w-9 sm:h-10 sm:w-10 md:h-11 md:w-11 lg:h-12 lg:w-12 flex-shrink-0 transition-transform duration-200 hover:scale-105 active:scale-95" animated={true} />
+              <span className="font-display font-semibold text-lg sm:text-xl md:text-2xl tracking-normal truncate flex items-center">
+                <span style={{ color: '#143C6B' }}>Que</span>
+                <span style={{ color: '#C89D1F' }}>Kart</span>
+              </span>
             </div>
 
             {/* Action icons - Mobile Only */}
