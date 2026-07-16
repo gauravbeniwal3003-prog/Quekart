@@ -5,7 +5,6 @@ import {
   ShoppingBag, 
   Ticket, 
   ArrowLeft, 
-  TrendingUp, 
   Users, 
   Coins, 
   Plus, 
@@ -15,7 +14,6 @@ import {
   Trash2, 
   Check, 
   X, 
-  AlertTriangle, 
   Eye, 
   CheckCircle2, 
   Clock, 
@@ -307,10 +305,16 @@ export default function AdminDashboard({
   const [selectedCustomerForInspection, setSelectedCustomerForInspection] = useState<any | null>(null);
   
   // Modals & Form States
+  const [adminSubView, setAdminSubView] = useState<'list' | 'add-product' | 'edit-product' | 'add-coupon' | 'add-banner' | 'inspect-vendor' | 'inspect-customer'>('list');
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
   const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
+
+  // Synchronize sub-view when tab changes
+  React.useEffect(() => {
+    setAdminSubView('list');
+  }, [activeTab]);
 
   // New Banner Form Fields
   const [bType, setBType] = useState<'promotional' | 'news'>('promotional');
@@ -692,10 +696,13 @@ export default function AdminDashboard({
 
     if (editingProduct) {
       onEditProduct(productPayload);
+      setLiveProducts(prev => prev.map(p => p.id === productPayload.id ? productPayload : p));
     } else {
       onAddProduct(productPayload);
+      setLiveProducts(prev => [productPayload, ...prev]);
     }
-    setIsProductModalOpen(false);
+    setAdminSubView('list');
+    setEditingProduct(null);
   };
 
   // Submit Banner Form
@@ -713,7 +720,7 @@ export default function AdminDashboard({
     setBImageUrl('');
     setBLinkUrl('');
     setBType('promotional');
-    setIsBannerModalOpen(false);
+    setAdminSubView('list');
   };
 
   // Submit Coupon Form
@@ -730,7 +737,7 @@ export default function AdminDashboard({
     };
 
     onAddCoupon(newCoupon);
-    setIsCouponModalOpen(false);
+    setAdminSubView('list');
     // Reset coupon fields
     setCCode('');
     setCValue(50);
@@ -1001,6 +1008,871 @@ export default function AdminDashboard({
     }
   };
 
+  const renderFullPageProductForm = (isEdit: boolean) => {
+    return (
+      <div className="bg-white rounded-xl border border-slate-200/80 shadow-3xs overflow-hidden" id="full-page-product-form">
+        <div className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button 
+              type="button"
+              onClick={() => {
+                setAdminSubView('list');
+                setEditingProduct(null);
+              }}
+              className="p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 cursor-pointer transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <div>
+              <h3 className="text-sm font-black text-slate-900">{isEdit ? 'Modify Active SKU' : 'Add New SKU to Catalog'}</h3>
+              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Jaipur Warehouse Hub</p>
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleProductSubmit} className="p-6 space-y-4 max-w-3xl">
+          {/* Form row */}
+          <div>
+            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Product Title / Name *</label>
+            <input
+              type="text"
+              required
+              value={pTitle}
+              onChange={(e) => setPTitle(e.target.value)}
+              placeholder="e.g. Premium Silk Solid Traditional Kurti Set"
+              className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+            />
+          </div>
+
+          {/* Categories Row */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Primary Category *</label>
+              <select
+                value={pCategory}
+                onChange={(e) => setPCategory(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 cursor-pointer focus:outline-hidden focus:border-lucky-magenta"
+              >
+                <option value="Kurtis & Suits">Kurtis & Suits</option>
+                <option value="Watches">Watches</option>
+                <option value="Sarees">Sarees</option>
+                <option value="Jewellery">Jewellery</option>
+                <option value="Footwear">Footwear</option>
+                <option value="Bags & Purses">Bags & Purses</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Sub-Category *</label>
+              <input
+                type="text"
+                required
+                value={pSubCategory}
+                onChange={(e) => setPSubCategory(e.target.value)}
+                placeholder="e.g. Anarkali Suit"
+                className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+              />
+            </div>
+          </div>
+
+          {/* Price and Original Price Row */}
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Discount Price (₹) *</label>
+              <input
+                type="number"
+                required
+                min={1}
+                value={pPrice}
+                onChange={(e) => setPPrice(Number(e.target.value))}
+                className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-bold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Original MRP (₹) *</label>
+              <input
+                type="number"
+                required
+                min={1}
+                value={pOriginalPrice}
+                onChange={(e) => setPOriginalPrice(Number(e.target.value))}
+                className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-bold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">COD Margin Fee (₹)</label>
+              <input
+                type="number"
+                min={0}
+                value={pCodPrice}
+                onChange={(e) => setPCodPrice(Number(e.target.value))}
+                className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-bold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+              />
+            </div>
+          </div>
+
+          {/* Banner / Badge overlay tags */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Promotional Overlay Badge</label>
+              <input
+                type="text"
+                value={pTag}
+                onChange={(e) => setPTag(e.target.value)}
+                placeholder="e.g. Top Rated, Lowest Price, 50% OFF"
+                className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 pt-6">
+              <input
+                type="checkbox"
+                id="has-upi-offer"
+                checked={pHasUpiOffer}
+                onChange={(e) => setPHasUpiOffer(e.target.checked)}
+                className="w-4.5 h-4.5 text-lucky-magenta border-gray-300 rounded-sm focus:ring-lucky-magenta cursor-pointer"
+              />
+              <label htmlFor="has-upi-offer" className="text-xs font-extrabold text-slate-700 cursor-pointer">
+                Enable Extra ₹12 UPI Discount Offer
+              </label>
+            </div>
+          </div>
+
+          {/* Size options */}
+          <div>
+            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Available Size Options</label>
+            <div className="flex flex-wrap gap-2">
+              {['S', 'M', 'L', 'XL', 'XXL', 'Free Size'].map(size => {
+                const isSelected = pSizeOptions.includes(size);
+                return (
+                  <button
+                    type="button"
+                    key={size}
+                    onClick={() => {
+                      if (isSelected) {
+                        setPSizeOptions(pSizeOptions.filter(s => s !== size));
+                      } else {
+                        setPSizeOptions([...pSizeOptions, size]);
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-md border text-xs font-black cursor-pointer transition-all ${
+                      isSelected
+                        ? 'bg-lucky-magenta text-white border-lucky-magenta shadow-3xs'
+                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    {size}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Visual Image Manager */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide">
+                Product Images Gallery (Previews Only) *
+              </label>
+              <span className="text-[10px] text-slate-400 font-bold">
+                {pImages.filter(Boolean).length} Active Images
+              </span>
+            </div>
+
+            {/* Previews Grid */}
+            {pImages.filter(Boolean).length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {pImages.filter(Boolean).map((img, idx) => (
+                  <div key={idx} className="group relative aspect-square bg-slate-50 rounded-xl overflow-hidden border border-slate-200/60 shadow-3xs hover:border-lucky-magenta/50 transition-colors">
+                    <img
+                      src={img}
+                      alt={`Preview ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute top-1 right-1 flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPImages(pImages.filter(url => url !== img));
+                        }}
+                        className="bg-slate-900/80 text-white hover:bg-red-600 p-1.5 rounded-lg shadow-sm transition-colors cursor-pointer"
+                        title="Delete Image"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-0 bg-slate-900/50 backdrop-blur-xs text-[9px] text-white font-bold text-center py-1 truncate">
+                      Image {idx + 1}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="border border-dashed border-slate-200 rounded-xl p-6 text-center text-slate-400 text-xs">
+                <ImageIcon className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+                <p className="font-bold">No images uploaded yet</p>
+                <p className="text-[10px] text-slate-400 mt-1">Upload files or snap a photo live below to configure visuals.</p>
+              </div>
+            )}
+
+            {/* Live Camera Interface inside the form */}
+            {isCameraOpen && (
+              <div className="bg-slate-950 rounded-xl p-4 border border-slate-800 space-y-3 shadow-inner">
+                <div className="flex items-center justify-between text-white text-xs font-bold">
+                  <span className="flex items-center gap-1.5 text-emerald-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                    Live Camera Viewport
+                  </span>
+                  
+                  {cameraDevices.length > 1 && (
+                    <select
+                      value={selectedCameraId}
+                      onChange={(e) => switchCamera(e.target.value)}
+                      className="bg-slate-800 border border-slate-700 rounded-md text-[10px] px-2 py-1 text-slate-200 outline-hidden font-bold"
+                    >
+                      {cameraDevices.map(device => (
+                        <option key={device.deviceId} value={device.deviceId}>
+                          {device.label || `Camera ${device.deviceId.slice(0, 5)}`}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                <div className="relative aspect-video max-w-md mx-auto rounded-lg overflow-hidden bg-black border border-slate-800 shadow-md">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                <div className="flex justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={capturePhoto}
+                    disabled={imageUploadLoading}
+                    className="px-4 py-2 rounded-lg text-xs font-black bg-emerald-600 hover:bg-emerald-50 text-white flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                  >
+                    {imageUploadLoading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Camera className="w-3.5 h-3.5" />
+                    )}
+                    <span>Take & Host Photo</span>
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={stopCamera}
+                    className="px-4 py-2 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Upload Action Panel */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <label className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors text-xs font-black text-slate-700">
+                <Upload className="w-4 h-4 text-slate-500" />
+                <span>Upload Local Photo</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  disabled={imageUploadLoading || isCameraOpen}
+                  className="hidden"
+                />
+              </label>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (isCameraOpen) {
+                    stopCamera();
+                  } else {
+                    startCamera();
+                  }
+                }}
+                disabled={imageUploadLoading}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors text-xs font-black text-slate-700 disabled:opacity-50"
+              >
+                <Camera className="w-4 h-4 text-slate-500" />
+                <span>{isCameraOpen ? 'Stop Camera Stream' : 'Snap Photo Live'}</span>
+              </button>
+            </div>
+
+            {imageUploadLoading && (
+              <div className="flex items-center justify-center gap-2 text-xs font-extrabold text-lucky-magenta bg-lucky-magenta-light/50 border border-lucky-magenta-light p-2.5 rounded-lg">
+                <Loader2 className="w-4 h-4 animate-spin text-lucky-magenta" />
+                <span>Compressing & Hosting to ImgBB Storage Node...</span>
+              </div>
+            )}
+          </div>
+
+          {/* Description Textarea */}
+          <div>
+            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Full Product Description</label>
+            <textarea
+              rows={3}
+              value={pDescription}
+              onChange={(e) => setPDescription(e.target.value)}
+              placeholder="Provide details of fabric, print style, embroidery details..."
+              className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+            />
+          </div>
+
+          {/* Form Footer */}
+          <div className="border-t border-slate-100 pt-4 flex gap-2 justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                setAdminSubView('list');
+                setEditingProduct(null);
+              }}
+              className="bg-slate-100 text-slate-700 hover:bg-slate-200 font-extrabold text-xs px-4 py-2.5 rounded-lg cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="bg-lucky-magenta text-white hover:bg-opacity-90 font-extrabold text-xs px-5 py-2.5 rounded-lg cursor-pointer shadow-md"
+            >
+              {isEdit ? 'Save Modifications' : 'Publish Product'}
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  };
+
+  const renderFullPageCouponForm = () => {
+    return (
+      <div className="bg-white rounded-xl border border-slate-200/80 shadow-3xs overflow-hidden" id="full-page-coupon-form">
+        <div className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button 
+              type="button"
+              onClick={() => setAdminSubView('list')}
+              className="p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 cursor-pointer transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <div>
+              <h3 className="text-sm font-black text-slate-900">Generate Interactive Coupon</h3>
+              <p className="text-[10px] text-slate-400">Direct-to-Consumer Discount Rules</p>
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleCouponSubmit} className="p-6 space-y-4 max-w-xl">
+          <div>
+            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Coupon Promo Code *</label>
+            <input
+              type="text"
+              required
+              value={cCode}
+              onChange={(e) => setCCode(e.target.value.toUpperCase())}
+              placeholder="e.g. WELCOME100, MEESHO20"
+              className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-bold tracking-wider focus:outline-hidden focus:border-lucky-magenta uppercase placeholder:normal-case placeholder:tracking-normal placeholder:font-normal text-slate-800"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Discount Type *</label>
+              <select
+                value={cType}
+                onChange={(e) => setCType(e.target.value as 'flat' | 'percentage')}
+                className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 cursor-pointer focus:outline-hidden focus:border-lucky-magenta"
+              >
+                <option value="flat">Flat Discount (₹)</option>
+                <option value="percentage">Percentage OFF (%)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Discount Value *</label>
+              <input
+                type="number"
+                required
+                min={1}
+                value={cValue}
+                onChange={(e) => setCValue(Number(e.target.value))}
+                className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-bold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Minimum Purchase Requirement (₹) *</label>
+            <input
+              type="number"
+              required
+              min={0}
+              value={cMinPurchase}
+              onChange={(e) => setCMinPurchase(Number(e.target.value))}
+              className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-bold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Helpful User Tagline / Description *</label>
+            <input
+              type="text"
+              required
+              value={cDescription}
+              onChange={(e) => setCDescription(e.target.value)}
+              placeholder="e.g. Flat ₹100 OFF on orders above ₹499"
+              className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+            />
+          </div>
+
+          <div className="bg-lucky-magenta-light/50 border border-lucky-magenta-light rounded-lg p-3 text-[11px] text-lucky-magenta font-semibold leading-relaxed flex items-start gap-2">
+            <Sparkles className="w-4 h-4 text-lucky-magenta flex-shrink-0 mt-0.5" />
+            <span>
+              New coupons will immediately appear in the user's available coupon tray in the cart drawer.
+            </span>
+          </div>
+
+          <div className="border-t border-slate-100 pt-4 flex gap-2 justify-end">
+            <button
+              type="button"
+              onClick={() => setAdminSubView('list')}
+              className="bg-slate-100 text-slate-700 hover:bg-slate-200 font-extrabold text-xs px-4 py-2.5 rounded-lg cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="bg-lucky-magenta text-white hover:bg-opacity-90 font-extrabold text-xs px-5 py-2.5 rounded-lg cursor-pointer shadow-md"
+            >
+              Generate Code
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  };
+
+  const renderFullPageBannerForm = () => {
+    return (
+      <div className="bg-white rounded-xl border border-slate-200/80 shadow-3xs overflow-hidden" id="full-page-banner-form">
+        <div className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button 
+              type="button"
+              onClick={() => setAdminSubView('list')}
+              className="p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 cursor-pointer transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <div>
+              <h3 className="text-sm font-black text-slate-900">Add New Banner</h3>
+              <p className="text-[10px] text-slate-300 font-semibold uppercase tracking-wider mt-0.5">Home Page Banner Slot</p>
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleBannerSubmit} className="p-6 space-y-4 max-w-xl">
+          <div>
+            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Banner Type *</label>
+            <select
+              value={bType}
+              onChange={(e) => setBType(e.target.value as any)}
+              className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2.5 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+            >
+              <option value="promotional">Promotional Offer</option>
+              <option value="news">Latest News / Announcement</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Image URL *</label>
+            <input
+              type="url"
+              required
+              value={bImageUrl}
+              onChange={(e) => setBImageUrl(e.target.value)}
+              placeholder="https://example.com/image.jpg"
+              className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+            />
+            {bImageUrl && (
+              <div className="mt-3 aspect-[3/1] bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
+                <img src={bImageUrl} alt="Preview" className="w-full h-full object-cover" />
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Link URL (Optional)</label>
+            <input
+              type="url"
+              value={bLinkUrl}
+              onChange={(e) => setBLinkUrl(e.target.value)}
+              placeholder="https://quekart.com/category"
+              className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+            />
+          </div>
+
+          <div className="pt-4 flex justify-end gap-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setAdminSubView('list')}
+              className="bg-slate-100 text-slate-700 hover:bg-slate-200 font-extrabold text-xs px-4 py-2.5 rounded-lg cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="bg-lucky-magenta text-white hover:bg-opacity-90 font-extrabold text-xs px-5 py-2.5 rounded-lg cursor-pointer shadow-md"
+            >
+              Add Banner
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  };
+
+  const renderFullPageVendorInspection = () => {
+    if (!selectedVendorForInspection) return null;
+    return (
+      <div className="bg-white rounded-xl border border-slate-200/80 shadow-3xs overflow-hidden" id="full-page-vendor-inspection">
+        <div className="bg-[#143C6B] text-white px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button 
+              type="button"
+              onClick={() => {
+                setAdminSubView('list');
+                setSelectedVendorForInspection(null);
+              }}
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <div className="flex items-center gap-2.5">
+              <span className="text-2xl">🏪</span>
+              <div>
+                <h3 className="text-sm font-black flex items-center gap-2">
+                  <span>{selectedVendorForInspection.name}</span>
+                  <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase ${
+                    selectedVendorForInspection.status === 'suspended' ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'
+                  }`}>
+                    {selectedVendorForInspection.status}
+                  </span>
+                </h3>
+                <p className="text-[10px] text-slate-300">Supplier Profile & SKU Catalog Inspection Panel</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-slate-50 rounded-lg p-3 border border-slate-200/60">
+              <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide block">Total Sales Revenue</span>
+              <strong className="text-base text-emerald-600 font-black block mt-0.5">
+                ₹{getVendorSalesStats(selectedVendorForInspection.id, selectedVendorForInspection.name).totalSales.toLocaleString('en-IN')}
+              </strong>
+            </div>
+            <div className="bg-slate-50 rounded-lg p-3 border border-slate-200/60">
+              <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide block">Total Units Dispatched</span>
+              <strong className="text-base text-slate-800 font-black block mt-0.5">
+                {getVendorSalesStats(selectedVendorForInspection.id, selectedVendorForInspection.name).itemsSold} units
+              </strong>
+            </div>
+            <div className="bg-slate-50 rounded-lg p-3 border border-slate-200/60">
+              <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide block">Seller Rating</span>
+              <strong className="text-base text-amber-500 font-black block mt-0.5">
+                ★ {selectedVendorForInspection.rating || '4.5'} / 5.0
+              </strong>
+            </div>
+            <div className="bg-slate-50 rounded-lg p-3 border border-slate-200/60">
+              <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide block">Catalog Listings</span>
+              <strong className="text-base text-blue-600 font-black block mt-0.5">
+                {products.filter(p => p.vendorId === selectedVendorForInspection.id || p.soldBy === selectedVendorForInspection.name).length} SKUs
+              </strong>
+            </div>
+          </div>
+
+          <div className="bg-[#143C6B]/5 border border-[#143C6B]/10 rounded-xl p-4 space-y-3">
+            <h4 className="text-xs font-black text-[#143C6B] uppercase tracking-wider">🏢 Supplier Contact & Legal Verification</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2.5 gap-x-4 text-xs">
+              <div>
+                <span className="text-slate-400 font-medium block">Registered Email Address</span>
+                <strong className="text-slate-800">{selectedVendorForInspection.email}</strong>
+              </div>
+              <div>
+                <span className="text-slate-400 font-medium block">Authorized Contact Phone</span>
+                <strong className="text-slate-800 font-mono">{selectedVendorForInspection.phone}</strong>
+              </div>
+              <div>
+                <span className="text-slate-400 font-medium block">GSTIN / Tax Registration Code</span>
+                <strong className="text-slate-800 uppercase font-mono">{selectedVendorForInspection.gstin || 'GST_EXEMPT_UNDER_SCHEME'}</strong>
+              </div>
+              <div>
+                <span className="text-slate-400 font-medium block">Onboarding Timestamp</span>
+                <strong className="text-slate-800">
+                  {selectedVendorForInspection.createdAt ? new Date(selectedVendorForInspection.createdAt).toLocaleString('en-IN', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  }) : 'N/A'}
+                </strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">📦 Live catalog upload list ({products.filter(p => p.vendorId === selectedVendorForInspection.id || p.soldBy === selectedVendorForInspection.name).length} SKUs)</h4>
+            
+            {products.filter(p => p.vendorId === selectedVendorForInspection.id || p.soldBy === selectedVendorForInspection.name).length === 0 ? (
+              <p className="text-xs text-slate-400 font-medium italic">This supplier has not uploaded any product catalog files yet.</p>
+            ) : (
+              <div className="border border-slate-200 rounded-xl divide-y divide-slate-100 overflow-hidden bg-white">
+                {products.filter(p => p.vendorId === selectedVendorForInspection.id || p.soldBy === selectedVendorForInspection.name).map(sku => (
+                  <div key={sku.id} className="p-3 hover:bg-slate-50/50 flex items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-slate-50 border border-slate-150 overflow-hidden shrink-0">
+                        <img src={sku.images?.[0] || ''} alt="" className="w-full h-full object-cover" />
+                      </div>
+                      <div>
+                        <h5 className="font-black text-slate-900">{sku.title}</h5>
+                        <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400 font-semibold">
+                          <span className="bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded uppercase">{sku.category}</span>
+                          <span>•</span>
+                          <span>SKU Price: <strong className="text-slate-700">₹{sku.price}</strong></span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[9px] px-2 py-0.5 rounded font-black uppercase ${
+                        sku.approvalStatus === 'approved' 
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' 
+                          : sku.approvalStatus === 'rejected' 
+                            ? 'bg-red-50 text-red-700 border border-red-100' 
+                            : 'bg-amber-50 text-amber-700 border border-amber-100'
+                      }`}>
+                        {sku.approvalStatus || 'pending'}
+                      </span>
+                      
+                      {sku.approvalStatus !== 'approved' && (
+                        <button
+                          onClick={() => handleApproveProduct(sku.id)}
+                          className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-md border border-emerald-100 transition-colors cursor-pointer"
+                          title="Approve SKU"
+                        >
+                          <Check className="w-4 h-4 stroke-[3]" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <details className="group border border-slate-200 rounded-xl bg-slate-50 overflow-hidden">
+            <summary className="p-4 flex items-center justify-between cursor-pointer font-black text-xs text-slate-700 select-none hover:bg-slate-100/50">
+              <div className="flex items-center gap-2">
+                <Database className="w-4 h-4 text-slate-400" />
+                <span>🔍 RAW SUPPLIER DATABASE OBJECT INSPECTOR</span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-extrabold group-open:rotate-180 transition-transform">▼</span>
+            </summary>
+            <div className="p-4 border-t border-slate-200 bg-slate-950 text-emerald-400 font-mono text-[10px] overflow-x-auto leading-relaxed max-h-56">
+              <pre>{JSON.stringify(selectedVendorForInspection, null, 2)}</pre>
+            </div>
+          </details>
+        </div>
+
+        <div className="bg-slate-50 border-t border-slate-200 p-4 flex justify-end shrink-0">
+          <button
+            onClick={() => {
+              setAdminSubView('list');
+              setSelectedVendorForInspection(null);
+            }}
+            className="bg-slate-900 text-white hover:bg-slate-850 font-extrabold text-xs px-5 py-2.5 rounded-lg cursor-pointer transition-colors shadow-sm"
+          >
+            Close Inspection Profile
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderFullPageCustomerInspection = () => {
+    if (!selectedCustomerForInspection) return null;
+    return (
+      <div className="bg-white rounded-xl border border-slate-200/80 shadow-3xs overflow-hidden" id="full-page-customer-inspection">
+        <div className="bg-[#143C6B] text-white px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button 
+              type="button"
+              onClick={() => {
+                setAdminSubView('list');
+                setSelectedCustomerForInspection(null);
+              }}
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-full bg-white/10 text-white font-black flex items-center justify-center text-sm">
+                {selectedCustomerForInspection.name.substring(0, 2).toUpperCase()}
+              </div>
+              <div>
+                <h3 className="text-sm font-black flex items-center gap-2">
+                  <span>{selectedCustomerForInspection.name}</span>
+                  <span className="bg-emerald-500/20 text-emerald-300 text-[8.5px] font-black px-1.5 py-0.5 rounded-full border border-emerald-500/30 uppercase tracking-wide">
+                    Verified Customer
+                  </span>
+                </h3>
+                <p className="text-[10px] text-slate-300">Customer Shipping Profile & Lifetime Order Log Analysis</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="bg-slate-50 rounded-lg p-3 border border-slate-200/60">
+              <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide block">Total Purchase Volume</span>
+              <strong className="text-lg text-emerald-600 font-black block mt-0.5">
+                ₹{selectedCustomerForInspection.totalSpent.toLocaleString('en-IN')}
+              </strong>
+            </div>
+            <div className="bg-slate-50 rounded-lg p-3 border border-slate-200/60">
+              <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide block">Total Orders Placed</span>
+              <strong className="text-lg text-slate-800 font-black block mt-0.5">
+                {selectedCustomerForInspection.ordersCount} transactions
+              </strong>
+            </div>
+            <div className="bg-slate-50 rounded-lg p-3 border border-slate-200/60">
+              <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide block">Average Ticket Size (AOV)</span>
+              <strong className="text-lg text-[#143C6B] font-black block mt-0.5">
+                ₹{Math.round(selectedCustomerForInspection.totalSpent / selectedCustomerForInspection.ordersCount).toLocaleString('en-IN')}
+              </strong>
+            </div>
+          </div>
+
+          <div className="bg-blue-50/50 border border-blue-200/60 rounded-xl p-4 space-y-3">
+            <h4 className="text-xs font-black text-blue-800 uppercase tracking-wider">📍 DEFAULT SHIPPING ADDRESS & CONTACTS</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2.5 gap-x-4 text-xs">
+              <div>
+                <span className="text-slate-400 font-medium block">Recipient Customer Name</span>
+                <strong className="text-slate-800">{selectedCustomerForInspection.name}</strong>
+              </div>
+              <div>
+                <span className="text-slate-400 font-medium block">Recipient Phone Number</span>
+                <strong className="text-slate-800 font-mono">{selectedCustomerForInspection.phone}</strong>
+              </div>
+              <div className="md:col-span-2">
+                <span className="text-slate-400 font-medium block">Delivery Street / Locality Address</span>
+                <strong className="text-slate-800">{selectedCustomerForInspection.addressLine || 'N/A'}</strong>
+              </div>
+              <div>
+                <span className="text-slate-400 font-medium block">City & State</span>
+                <strong className="text-slate-800">{selectedCustomerForInspection.city}, {selectedCustomerForInspection.state}</strong>
+              </div>
+              <div>
+                <span className="text-slate-400 font-medium block">Pincode / Postal Area Code</span>
+                <strong className="text-slate-800 font-mono">{selectedCustomerForInspection.pincode}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">🛒 COMPLETE LIFETIME ORDER LOGS</h4>
+            
+            <div className="space-y-4">
+              {selectedCustomerForInspection.orders.map((order: Order) => (
+                <div key={order.id} className="border border-slate-200 rounded-xl overflow-hidden bg-white text-xs shadow-3xs">
+                  <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 font-bold text-slate-600">
+                    <div>
+                      Order ID: <span className="text-slate-900 font-mono">{order.id}</span>
+                    </div>
+                    <div className="flex items-center gap-2.5 text-[11px]">
+                      <span>{order.orderDate ? new Date(order.orderDate).toLocaleDateString('en-IN') : 'N/A'}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                        order.status === 'Cancelled' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+                      }`}>
+                        {order.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 divide-y divide-slate-100">
+                    {order.items.map((item, idx) => (
+                      <div key={idx} className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-3 text-xs font-semibold">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-md bg-slate-50 border border-slate-100 overflow-hidden shrink-0">
+                            <img src={item.product.images?.[0] || ''} alt="" className="w-full h-full object-cover" />
+                          </div>
+                          <div>
+                            <h5 className="font-black text-slate-800">{item.product.title}</h5>
+                            <p className="text-[10px] text-slate-400">
+                              Size: <strong>{item.selectedSize}</strong> • Sold by: <span className="underline">{item.product.soldBy}</span>
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-slate-900 font-extrabold">₹{item.product.price}</div>
+                          <div className="text-[10px] text-slate-400 font-bold">Qty: {item.quantity || 1}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="bg-slate-50/50 px-4 py-2.5 border-t border-slate-150 flex items-center justify-between text-xs">
+                    <span className="text-slate-500 font-bold">Total Paid Invoiced:</span>
+                    <strong className="text-[#143C6B] font-black text-sm">₹{order.totalPrice.toLocaleString('en-IN')}</strong>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <details className="group border border-slate-200 rounded-xl bg-slate-50 overflow-hidden">
+            <summary className="p-4 flex items-center justify-between cursor-pointer font-black text-xs text-slate-700 select-none hover:bg-slate-100/50">
+              <div className="flex items-center gap-2">
+                <Database className="w-4 h-4 text-slate-400" />
+                <span>🔍 RAW CUSTOMER DATABASE OBJECT INSPECTOR</span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-extrabold group-open:rotate-180 transition-transform">▼</span>
+            </summary>
+            <div className="p-4 border-t border-slate-200 bg-slate-950 text-emerald-400 font-mono text-[10px] overflow-x-auto leading-relaxed max-h-56">
+              <pre>{JSON.stringify(selectedCustomerForInspection, null, 2)}</pre>
+            </div>
+          </details>
+        </div>
+
+        <div className="bg-slate-50 border-t border-slate-200 p-4 flex justify-end shrink-0">
+          <button
+            onClick={() => {
+              setAdminSubView('list');
+              setSelectedCustomerForInspection(null);
+            }}
+            className="bg-slate-900 text-white hover:bg-slate-850 font-extrabold text-xs px-5 py-2.5 rounded-lg cursor-pointer transition-colors shadow-sm"
+          >
+            Close Inspection Profile
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 text-slate-800 font-sans flex flex-col" id="admin-dashboard-container">
       
@@ -1098,6 +1970,17 @@ export default function AdminDashboard({
 
       {/* 2. MAIN CONTENT AREA */}
       <div className="flex-1 overflow-y-auto bg-gray-50 flex flex-col">
+        {adminSubView !== 'list' ? (
+          <div className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto space-y-6">
+            {adminSubView === 'add-product' && renderFullPageProductForm(false)}
+            {adminSubView === 'edit-product' && renderFullPageProductForm(true)}
+            {adminSubView === 'add-coupon' && renderFullPageCouponForm()}
+            {adminSubView === 'add-banner' && renderFullPageBannerForm()}
+            {adminSubView === 'inspect-vendor' && renderFullPageVendorInspection()}
+            {adminSubView === 'inspect-customer' && renderFullPageCustomerInspection()}
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col">
 
         {/* Combined Main & Admin View Content container */}
         <div id="admin-view-content" className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
@@ -1287,115 +2170,7 @@ export default function AdminDashboard({
                 </div>
               </div>
 
-              {/* Graphic charts + trends */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                {/* Custom modern SVG area chart */}
-                <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200/80 p-5 shadow-3xs">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-sm font-black text-slate-900">E-Commerce Sales Insights</h3>
-                      <p className="text-[11px] text-slate-400 font-medium">Daily order sales & dispatch metrics</p>
-                    </div>
-                    <span className="flex items-center gap-1 text-xs text-slate-500 font-bold bg-slate-50 px-2.5 py-1 rounded-md">
-                      <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-                      Weekly Avg: ₹{orders.length > 0 ? Math.round(totalRevenue / 7) : 0}
-                    </span>
-                  </div>
 
-                  {/* SVG Chart Frame */}
-                  <div className="w-full h-56 relative bg-slate-50/50 rounded-lg p-2 overflow-hidden flex flex-col justify-end">
-                    {/* SVG Curve */}
-                    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 500 200" preserveAspectRatio="none">
-                      <defs>
-                        <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#17436B" stopOpacity="0.18" />
-                          <stop offset="100%" stopColor="#17436B" stopOpacity="0.00" />
-                        </linearGradient>
-                      </defs>
-                      {/* Area beneath */}
-                      <path 
-                        d="M 0 160 Q 100 120 200 140 T 400 60 T 500 40 L 500 200 L 0 200 Z" 
-                        fill="url(#chartGradient)"
-                      />
-                      {/* Stroke line */}
-                      <path 
-                        d="M 0 160 Q 100 120 200 140 T 400 60 T 500 40" 
-                        fill="none" 
-                        stroke="#17436B" 
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
-                      />
-                      {/* Scatter Data Dots */}
-                      <circle cx="100" cy="125" r="5" fill="#17436B" stroke="#ffffff" strokeWidth="2" />
-                      <circle cx="200" cy="140" r="5" fill="#17436B" stroke="#ffffff" strokeWidth="2" />
-                      <circle cx="350" cy="72" r="5" fill="#17436B" stroke="#ffffff" strokeWidth="2" />
-                      <circle cx="500" cy="40" r="5" fill="#17436B" stroke="#ffffff" strokeWidth="2" />
-                    </svg>
-
-                    {/* Chart Labels Overlay */}
-                    <div className="relative flex justify-between text-[10px] text-slate-400 px-2 pt-2 border-t border-slate-100 font-mono">
-                      <span>Mon</span>
-                      <span>Tue</span>
-                      <span>Wed</span>
-                      <span>Thu</span>
-                      <span>Fri</span>
-                      <span>Sat</span>
-                      <span>Sun (Today)</span>
-                    </div>
-                  </div>
-
-                  {/* Summary Footer */}
-                  <div className="grid grid-cols-3 gap-2 border-t border-slate-100 pt-4 mt-4 text-center">
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-bold block">Avg Order Value (AOV)</span>
-                      <span className="text-base font-black text-slate-800">₹{averageOrderValue}</span>
-                    </div>
-                    <div className="border-x border-slate-100">
-                      <span className="text-[10px] text-slate-400 font-bold block">Sales Target</span>
-                      <span className="text-base font-black text-emerald-600">84% Met</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-bold block">Conversion Rate</span>
-                      <span className="text-base font-black text-blue-600">4.12%</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Popular categories & Low Stock Warning Panel */}
-                <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-3xs flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center gap-1.5 text-amber-600 font-extrabold text-sm mb-3">
-                      <AlertTriangle className="w-4 h-4" />
-                      <h3>Inventory & Operations Warning</h3>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="p-3 bg-amber-50/50 border border-amber-100 rounded-lg">
-                        <h4 className="text-[11px] font-black text-amber-800 uppercase tracking-wide">Out-of-Stock Alert</h4>
-                        <p className="text-[11px] text-slate-600 mt-0.5">"Royal Cotton Traditional Saree" size XL is currently low in warehouse (Only 2 left).</p>
-                      </div>
-
-                      <div className="p-3 bg-red-50 border border-red-100 rounded-lg">
-                        <h4 className="text-[11px] font-black text-red-800 uppercase tracking-wide">Dispatched Backlog</h4>
-                        <p className="text-[11px] text-slate-600 mt-0.5">3 orders require dispatch labels immediately to stay within SLA dispatch.</p>
-                      </div>
-
-                      <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg">
-                        <h4 className="text-[11px] font-black text-emerald-800 uppercase tracking-wide">Refund SLA Met</h4>
-                        <p className="text-[11px] text-slate-600 mt-0.5">All customer return claims are processed. 0 refunds pending.</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-4 border-t border-slate-100">
-                    <div className="flex justify-between items-center text-xs text-slate-500 font-bold">
-                      <span>Warehouse Location:</span>
-                      <span className="text-slate-800 font-extrabold">Jaipur Center, RJ</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
               {/* Recent Orders log overview list */}
               <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-3xs">
@@ -1509,7 +2284,7 @@ export default function AdminDashboard({
                 <button
                   onClick={() => {
                     resetProductForm();
-                    setIsProductModalOpen(true);
+                    setAdminSubView('add-product');
                   }}
                   className="bg-lucky-magenta text-white hover:bg-opacity-95 font-extrabold text-xs px-4 py-2.5 rounded-lg flex items-center justify-center gap-1.5 shadow-xs transition-transform hover:scale-[1.02] cursor-pointer"
                   id="admin-add-product-btn"
@@ -1578,7 +2353,7 @@ export default function AdminDashboard({
                               <button
                                 onClick={() => {
                                   resetProductForm(product);
-                                  setIsProductModalOpen(true);
+                                  setAdminSubView('edit-product');
                                 }}
                                 className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
                                 title="Edit Product"
@@ -1589,6 +2364,7 @@ export default function AdminDashboard({
                                 onClick={() => {
                                   if (confirm(`Are you sure you want to delete ${product.title}?`)) {
                                     onDeleteProduct(product.id);
+                                    setLiveProducts(prev => prev.filter(p => p.id !== product.id));
                                   }
                                 }}
                                 className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
@@ -1646,7 +2422,7 @@ export default function AdminDashboard({
                             <button
                               onClick={() => {
                                 resetProductForm(product);
-                                setIsProductModalOpen(true);
+                                setAdminSubView('edit-product');
                               }}
                               className="p-1.5 rounded-md text-blue-600 hover:bg-blue-50 cursor-pointer"
                             >
@@ -1656,6 +2432,7 @@ export default function AdminDashboard({
                               onClick={() => {
                                 if (confirm(`Are you sure you want to delete ${product.title}?`)) {
                                   onDeleteProduct(product.id);
+                                  setLiveProducts(prev => prev.filter(p => p.id !== product.id));
                                 }
                               }}
                               className="p-1.5 rounded-md text-red-600 hover:bg-red-50 cursor-pointer"
@@ -1904,7 +2681,7 @@ export default function AdminDashboard({
                 </div>
 
                 <button
-                  onClick={() => setIsCouponModalOpen(true)}
+                  onClick={() => setAdminSubView('add-coupon')}
                   className="bg-lucky-magenta text-white hover:bg-opacity-95 font-extrabold text-xs px-4 py-2.5 rounded-lg flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                   id="admin-create-coupon-btn"
                 >
@@ -2283,7 +3060,10 @@ export default function AdminDashboard({
                               </td>
                               <td className="p-4 text-right space-x-1.5 whitespace-nowrap">
                                 <button
-                                  onClick={() => setSelectedVendorForInspection(v)}
+                                  onClick={() => {
+                                    setSelectedVendorForInspection(v);
+                                    setAdminSubView('inspect-vendor');
+                                  }}
                                   className="text-[10px] font-black uppercase py-1.5 px-3 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#143C6B] border border-blue-100 transition-colors cursor-pointer inline-flex items-center gap-1"
                                   title="Individually Inspect Supplier Records"
                                 >
@@ -2507,7 +3287,10 @@ export default function AdminDashboard({
                             </td>
                             <td className="p-4 text-right">
                               <button
-                                onClick={() => setSelectedCustomerForInspection(u)}
+                                onClick={() => {
+                                  setSelectedCustomerForInspection(u);
+                                  setAdminSubView('inspect-customer');
+                                }}
                                 className="text-[10px] font-black uppercase py-1.5 px-3 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#143C6B] border border-blue-100 transition-colors cursor-pointer inline-flex items-center gap-1.5"
                               >
                                 <Eye className="w-3.5 h-3.5" />
@@ -2538,7 +3321,7 @@ export default function AdminDashboard({
               <p className="text-[11px] text-slate-400 font-medium mt-1">Manage promotional banners and latest news images shown on the home page.</p>
             </div>
             <button
-              onClick={() => setIsBannerModalOpen(true)}
+              onClick={() => setAdminSubView('add-banner')}
               className="bg-slate-900 text-white px-5 py-2.5 rounded-lg text-xs font-extrabold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow-md cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
@@ -3595,6 +4378,8 @@ export default function AdminDashboard({
         )}
       </AnimatePresence>
 
+          </div>
+        )}
       </div>
     </div>
   );

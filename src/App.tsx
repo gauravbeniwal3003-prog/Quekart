@@ -111,45 +111,31 @@ export default function App() {
 
   const { tab: activeTab, productId, subPage: activeSubPage } = parseCurrentPath();
 
-  // Dynamic persistent products state
-  const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('lucky_products');
-    return saved ? JSON.parse(saved) : mockProducts;
-  });
+  // Database-driven products state
+  const [products, setProducts] = useState<Product[]>([]);
 
-  // Dynamic persistent orders state
-  const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('lucky_orders');
-    return saved ? JSON.parse(saved) : initialOrders;
-  });
+  // Database-driven orders state
+  const [orders, setOrders] = useState<Order[]>([]);
 
-  // Dynamic persistent coupons state
-  const [coupons, setCoupons] = useState<Coupon[]>(() => {
-    const saved = localStorage.getItem('lucky_coupons');
-    return saved ? JSON.parse(saved) : initialCoupons;
-  });
+  // Database-driven coupons state
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
 
   // Dynamic persistent banners state
-  const [banners, setBanners] = useState<Banner[]>(() => {
-    const saved = localStorage.getItem('lucky_banners');
-    return saved ? JSON.parse(saved) : initialBanners;
-  });
+  const [banners, setBanners] = useState<Banner[]>(initialBanners);
 
-  // Fetch initial data from server-side secure intermediate proxy
+  // Fetch initial data from server-side secure database intermediate proxy
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
         const [productsRes, ordersRes, couponsRes] = await Promise.all([
-          fetch('/api/products'),
+          fetch('/api/products?all=true'),
           fetch('/api/orders'),
           fetch('/api/coupons')
         ]);
         
         if (productsRes.ok) {
           const productsData = await productsRes.json();
-          if (productsData && productsData.length > 0) {
-            setProducts(productsData);
-          }
+          setProducts(productsData);
         }
         if (ordersRes.ok) {
           const ordersData = await ordersRes.json();
@@ -160,25 +146,12 @@ export default function App() {
           setCoupons(couponsData);
         }
       } catch (err) {
-        console.warn('⚠️ Server offline or loading failed. Operating in local storage/offline fallback mode.', err);
+        console.warn('⚠️ Server offline or loading failed. Operating in local fallback mode.', err);
       }
     };
     
     fetchInitialData();
   }, []);
-
-  // Local storage synchronization as a local offline-cache fallback
-  useEffect(() => {
-    localStorage.setItem('lucky_products', JSON.stringify(products));
-  }, [products]);
-
-  useEffect(() => {
-    localStorage.setItem('lucky_orders', JSON.stringify(orders));
-  }, [orders]);
-
-  useEffect(() => {
-    localStorage.setItem('lucky_coupons', JSON.stringify(coupons));
-  }, [coupons]);
 
   const selectedProduct = productId ? products.find((p) => p.id === productId) || null : null;
   
@@ -539,8 +512,11 @@ export default function App() {
     });
   };
 
-  // Filtered products for Search query
-  const searchedProducts = products.filter((p) => {
+  // Buyer view filtered products (only approved or default legacy products)
+  const approvedProducts = products.filter((p) => p.approvalStatus === 'approved' || !p.approvalStatus);
+
+  // Filtered products for Search query based only on approved ones
+  const searchedProducts = approvedProducts.filter((p) => {
     const titleMatch = p.title.toLowerCase().includes(searchQuery.toLowerCase());
     const catMatch = p.category.toLowerCase().includes(searchQuery.toLowerCase());
     const subMatch = p.subCategory.toLowerCase().includes(searchQuery.toLowerCase());
@@ -559,7 +535,7 @@ export default function App() {
             /* PRODUCT DETAILS VIEW */
             <ProductDetail
               product={selectedProduct}
-              suggestedProducts={products.filter(p => p.category === selectedProduct.category && p.id !== selectedProduct.id).slice(0, 10)}
+              suggestedProducts={approvedProducts.filter(p => p.category === selectedProduct.category && p.id !== selectedProduct.id).slice(0, 10)}
               onSelectProduct={(id) => navigateTo('/product/' + id)}
               onBack={() => navigateTo('/' + activeTab)}
               onAddToCart={handleAddToCart}
@@ -578,7 +554,7 @@ export default function App() {
                   searchQuery={searchQuery}
                   onSelectTab={(tab) => navigateTo('/' + tab)}
                   activeTab={activeTab}
-                  products={products}
+                  products={approvedProducts}
                 />
               )}
 

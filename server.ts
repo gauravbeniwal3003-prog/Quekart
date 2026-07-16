@@ -136,30 +136,34 @@ async function testAndSeedSupabase() {
     }
 
     const existingProductIds = new Set((pCountData || []).map((row: any) => row.id));
-    console.log(`📊 Products in Supabase: ${existingProductIds.size}. Seeding missing demo products...`);
-    for (const p of localProducts) {
-      if (!existingProductIds.has(p.id)) {
-        console.log(`🌱 Seeding missing product: ${p.id}`);
+    if (existingProductIds.size === 0) {
+      console.log('🌱 Products table is empty. Seeding default catalog...');
+      for (const p of localProducts) {
+        console.log(`🌱 Seeding default product: ${p.id}`);
         const { error: insertErr } = await supabase.from('products').insert({ id: p.id, data: p });
         if (insertErr) {
           console.error(`⚠️ Error seeding product ${p.id}:`, insertErr);
         }
       }
+    } else {
+      console.log(`📊 Products in Supabase: ${existingProductIds.size}. Skipping seeding to preserve admin changes.`);
     }
 
     // 2. Verify and seed coupons table
     const { data: cCountData, error: cError } = await supabase.from('coupons').select('code');
     if (!cError) {
       const existingCouponCodes = new Set((cCountData || []).map((row: any) => row.code));
-      console.log(`📊 Coupons in Supabase: ${existingCouponCodes.size}. Seeding missing coupons...`);
-      for (const c of localCoupons) {
-        if (!existingCouponCodes.has(c.code)) {
-          console.log(`🌱 Seeding missing coupon: ${c.code}`);
+      if (existingCouponCodes.size === 0) {
+        console.log('🌱 Coupons table is empty. Seeding default coupons...');
+        for (const c of localCoupons) {
+          console.log(`🌱 Seeding default coupon: ${c.code}`);
           const { error: insertErr } = await supabase.from('coupons').insert({ code: c.code, data: c });
           if (insertErr) {
             console.error(`⚠️ Error seeding coupon ${c.code}:`, insertErr);
           }
         }
+      } else {
+        console.log(`📊 Coupons in Supabase: ${existingCouponCodes.size}. Skipping seeding to preserve admin changes.`);
       }
     } else {
       console.error('❌ Coupons table check failed:', cError);
@@ -169,15 +173,17 @@ async function testAndSeedSupabase() {
     const { data: oCountData, error: oError } = await supabase.from('orders').select('id');
     if (!oError) {
       const existingOrderIds = new Set((oCountData || []).map((row: any) => row.id));
-      console.log(`📊 Orders in Supabase: ${existingOrderIds.size}. Seeding missing orders...`);
-      for (const o of localOrders) {
-        if (!existingOrderIds.has(o.id)) {
-          console.log(`🌱 Seeding missing order: ${o.id}`);
+      if (existingOrderIds.size === 0) {
+        console.log('🌱 Orders table is empty. Seeding default orders...');
+        for (const o of localOrders) {
+          console.log(`🌱 Seeding default order: ${o.id}`);
           const { error: insertErr } = await supabase.from('orders').insert({ id: o.id, data: o });
           if (insertErr) {
             console.error(`⚠️ Error seeding order ${o.id}:`, insertErr);
           }
         }
+      } else {
+        console.log(`📊 Orders in Supabase: ${existingOrderIds.size}. Skipping seeding to preserve admin changes.`);
       }
     } else {
       console.error('❌ Orders table check failed:', oError);
@@ -187,15 +193,17 @@ async function testAndSeedSupabase() {
     const { data: vCountData, error: vError } = await supabase.from('vendors').select('id');
     if (!vError) {
       const existingVendorIds = new Set((vCountData || []).map((row: any) => row.id));
-      console.log(`📊 Vendors in Supabase: ${existingVendorIds.size}. Seeding missing vendors...`);
-      for (const v of localVendors) {
-        if (!existingVendorIds.has(v.id)) {
-          console.log(`🌱 Seeding missing vendor: ${v.id}`);
+      if (existingVendorIds.size === 0) {
+        console.log('🌱 Vendors table is empty. Seeding default vendors...');
+        for (const v of localVendors) {
+          console.log(`🌱 Seeding default vendor: ${v.id}`);
           const { error: insertErr } = await supabase.from('vendors').insert({ id: v.id, data: v });
           if (insertErr) {
             console.error(`⚠️ Error seeding vendor ${v.id}:`, insertErr);
           }
         }
+      } else {
+        console.log(`📊 Vendors in Supabase: ${existingVendorIds.size}. Skipping seeding to preserve admin changes.`);
       }
     } else {
       console.error('❌ Vendors table check failed:', vError);

@@ -233,7 +233,7 @@ async def get_products():
     if use_supabase and supabase:
         try:
             res = supabase.table("products").select("*").execute()
-            if res.data:
+            if res.data is not None:
                 return [row["data"] for row in res.data]
         except Exception as e:
             print(f"Supabase products read warning: {e}")
@@ -296,7 +296,7 @@ async def get_coupons():
     if use_supabase and supabase:
         try:
             res = supabase.table("coupons").select("*").execute()
-            if res.data:
+            if res.data is not None:
                 return [row["data"] for row in res.data]
         except Exception as e:
             print(f"Supabase coupons warning: {e}")
@@ -340,7 +340,7 @@ async def get_orders():
     if use_supabase and supabase:
         try:
             res = supabase.table("orders").select("*").execute()
-            if res.data:
+            if res.data is not None:
                 return [row["data"] for row in res.data]
         except Exception as e:
             print(f"Supabase orders warning: {e}")
