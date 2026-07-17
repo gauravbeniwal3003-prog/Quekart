@@ -1,4 +1,5 @@
 import { Home, Grid2X2, Heart, ShoppingCart, Package } from 'lucide-react';
+import Logo from './Logo';
 
 interface BottomNavProps {
   activeTab: string;
@@ -31,7 +32,9 @@ export default function BottomNav({ activeTab, onSelectTab, cartCount = 0, isCar
             }`}
             id={`nav-item-${item.id}`}
           >
-            {item.id === 'cart' && cartCount > 0 ? (
+            {item.id === 'home' ? (
+              <Logo className="w-5 h-5 flex-shrink-0" animated={isActive} />
+            ) : item.id === 'cart' && cartCount > 0 ? (
               <div className="relative">
                 <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5px] fill-blue-50' : 'stroke-[1.8px]'}`} />
                 <span className="absolute -top-1.5 -right-2 bg-lucky-magenta text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">

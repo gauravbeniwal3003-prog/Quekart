@@ -1,19 +1,23 @@
 import { useState } from 'react';
 import { Sparkles, ShoppingBag } from 'lucide-react';
 import { mockCategories } from '../data';
+import { Category } from '../types';
 
 interface CategoriesViewProps {
+  categories?: Category[];
   onSelectCategory: (category: string) => void;
   onSelectTab: (tab: string) => void;
 }
 
 export default function CategoriesView({
+  categories,
   onSelectCategory,
   onSelectTab
 }: CategoriesViewProps) {
-  const [activeCategoryId, setActiveCategoryId] = useState(mockCategories[0].id);
+  const cats = categories && categories.length > 0 ? categories : mockCategories;
+  const [activeCategoryId, setActiveCategoryId] = useState(cats[0]?.id || '');
 
-  const activeCategory = mockCategories.find((c) => c.id === activeCategoryId) || mockCategories[0];
+  const activeCategory = cats.find((c) => c.id === activeCategoryId) || cats[0];
 
   const handleSubCategoryClick = (subName: string) => {
     // When a subcategory circle is clicked, we filter the products by that subCategory name
@@ -26,7 +30,7 @@ export default function CategoriesView({
     <div className="flex bg-gray-50 h-[calc(100vh-130px)] pb-12 overflow-hidden max-w-7xl mx-auto w-full md:px-4" id="categories-view-container">
       {/* Left Column Sidebar */}
       <div className="w-[100px] md:w-[240px] bg-gray-100 border-r border-gray-200 overflow-y-auto flex-shrink-0 h-full" id="categories-sidebar">
-        {mockCategories.map((cat) => {
+        {cats.map((cat) => {
           const isActive = cat.id === activeCategoryId;
           return (
             <button
@@ -68,7 +72,7 @@ export default function CategoriesView({
 
         {/* Subcategory circular bubbles list */}
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-y-5 gap-x-3" id="subcategories-grid">
-          {activeCategory.subCategories.map((sub, index) => (
+          {activeCategory && activeCategory.subCategories && activeCategory.subCategories.map((sub, index) => (
             <button
               key={index}
               onClick={() => handleSubCategoryClick(sub.name)}

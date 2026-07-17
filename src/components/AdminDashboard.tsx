@@ -41,7 +41,7 @@ import {
   MapPin
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Product, Order, Coupon, CartItem, Vendor, Banner } from '../types';
+import { Product, Order, Coupon, CartItem, Vendor, Banner, Category } from '../types';
 import Logo from './Logo';
 
 interface AdminDashboardProps {
@@ -49,6 +49,8 @@ interface AdminDashboardProps {
   orders: Order[];
   coupons: Coupon[];
   banners?: Banner[];
+  categories?: Category[];
+  onSetCategories?: (categories: Category[]) => void;
   onAddProduct: (product: Product) => void;
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (id: string) => void;
@@ -68,6 +70,8 @@ export default function AdminDashboard({
   orders,
   coupons,
   banners = [],
+  categories = [],
+  onSetCategories = () => {},
   onAddProduct,
   onEditProduct,
   onDeleteProduct,
@@ -86,6 +90,18 @@ export default function AdminDashboard({
   const handlePasscodeChange = (newPass: string) => {
     setAdminPasscode(newPass);
     localStorage.setItem('lucky_admin_secret', newPass);
+  };
+
+  // Custom dialog confirmation state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title?: string;
+    message: string;
+    confirmText?: string;
+    onConfirm: () => void;
+  } | null>(null);
+
+  const triggerConfirm = (message: string, onConfirm: () => void, title = 'Confirm Action', confirmText = 'Confirm') => {
+    setConfirmDialog({ message, onConfirm, title, confirmText });
   };
 
   // Database Synchronization States
@@ -133,13 +149,14 @@ export default function AdminDashboard({
 
   // TailAdmin Interface States
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [dashboardSubTab, setDashboardSubTab] = useState<'ecommerce' | 'analytics' | 'visitor-traffic'>('ecommerce');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Real-time local admin directories for vendors & approvals
-  const [liveProducts, setLiveProducts] = useState<Product[]>([]);
+  const [liveProducts, setLiveProducts] = useState<Product[]>(products);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [isLoadingAdminData, setIsLoadingAdminData] = useState(false);
   const [rejectionReasonInput, setRejectionReasonInput] = useState<{ [productId: string]: string }>({});
@@ -153,22 +170,22 @@ export default function AdminDashboard({
     localCounts: { products: number; orders: number; vendors: number; coupons: number };
   } | null>(null);
 
-  // Load and refresh vendors and products
+  // Synchronize liveProducts state whenever the products prop from the parent component changes
+  React.useEffect(() => {
+    setLiveProducts(products);
+  }, [products]);
+
+  // Load and refresh vendors and system status
   const loadAdminData = async () => {
     setIsLoadingAdminData(true);
     try {
-      const [vendorsRes, productsRes, statusRes] = await Promise.all([
+      const [vendorsRes, statusRes] = await Promise.all([
         fetch('/api/vendors'),
-        fetch('/api/products?all=true'),
         fetch('/api/system-status').catch(() => null)
       ]);
       if (vendorsRes.ok) {
         const vendorsData = await vendorsRes.json();
         setVendors(vendorsData);
-      }
-      if (productsRes.ok) {
-        const productsData = await productsRes.json();
-        setLiveProducts(productsData);
       }
       if (statusRes && statusRes.ok) {
         const statusData = await statusRes.json();
@@ -183,7 +200,7 @@ export default function AdminDashboard({
 
   React.useEffect(() => {
     loadAdminData();
-  }, [products]);
+  }, []);
 
   // Product Approval Operations
   const handleApproveProduct = async (productId: string) => {
@@ -199,8 +216,12 @@ export default function AdminDashboard({
       });
 
       if (res.ok) {
-        setLiveProducts(prev => prev.map(p => p.id === productId ? { ...p, approvalStatus: 'approved', rejectionReason: undefined } : p));
-        // Also refresh list to be absolutely sure
+        // Propagate update to parent component
+        const targetProduct = products.find(p => p.id === productId);
+        if (targetProduct) {
+          const updated = { ...targetProduct, approvalStatus: 'approved' as const, rejectionReason: undefined };
+          onEditProduct(updated);
+        }
         setTimeout(loadAdminData, 500);
       } else {
         const err = await res.json();
@@ -208,7 +229,11 @@ export default function AdminDashboard({
       }
     } catch (err) {
       // Offline local emulation
-      setLiveProducts(prev => prev.map(p => p.id === productId ? { ...p, approvalStatus: 'approved' } : p));
+      const targetProduct = products.find(p => p.id === productId);
+      if (targetProduct) {
+        const updated = { ...targetProduct, approvalStatus: 'approved' as const };
+        onEditProduct(updated);
+      }
     }
   };
 
@@ -226,7 +251,12 @@ export default function AdminDashboard({
       });
 
       if (res.ok) {
-        setLiveProducts(prev => prev.map(p => p.id === productId ? { ...p, approvalStatus: 'rejected', rejectionReason: reason } : p));
+        // Propagate update to parent component
+        const targetProduct = products.find(p => p.id === productId);
+        if (targetProduct) {
+          const updated = { ...targetProduct, approvalStatus: 'rejected' as const, rejectionReason: reason };
+          onEditProduct(updated);
+        }
         setShowRejectionForm(null);
         setTimeout(loadAdminData, 500);
       } else {
@@ -234,7 +264,11 @@ export default function AdminDashboard({
         alert(`Rejection failed: ${err.error}`);
       }
     } catch (err) {
-      setLiveProducts(prev => prev.map(p => p.id === productId ? { ...p, approvalStatus: 'rejected', rejectionReason: reason } : p));
+      const targetProduct = products.find(p => p.id === productId);
+      if (targetProduct) {
+        const updated = { ...targetProduct, approvalStatus: 'rejected' as const, rejectionReason: reason };
+        onEditProduct(updated);
+      }
       setShowRejectionForm(null);
     }
   };
@@ -311,10 +345,267 @@ export default function AdminDashboard({
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
   const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
 
-  // Synchronize sub-view when tab changes
+  // Categories management states
+  const [categoryFormMode, setCategoryFormMode] = useState<'add' | 'edit' | null>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [categoryName, setCategoryName] = useState('');
+  const [categoryIcon, setCategoryIcon] = useState('shopping-bag');
+  const [categorySubCats, setCategorySubCats] = useState<Array<{ name: string; image: string }>>([]);
+  const [isSavingCategory, setIsSavingCategory] = useState(false);
+  const [categoryError, setCategoryError] = useState<string | null>(null);
+
+  // Sponsorship state variables
+  const [sponsorSearchId, setSponsorSearchId] = useState('');
+  const [sponsorDuration, setSponsorDuration] = useState('1day');
+  const [isSponsoringSubmitting, setIsSponsoringSubmitting] = useState(false);
+
+  // Find searched sponsor product
+  const sponsorProduct = sponsorSearchId
+    ? products.find((p) => p.numericId === Number(sponsorSearchId))
+    : null;
+
+  // Active sponsored products
+  const activeSponsoredProducts = products.filter(
+    (p) => p.sponsoredUntil && new Date(p.sponsoredUntil) > new Date()
+  );
+
+  const formatSponsorshipRemaining = (isoString: string) => {
+    try {
+      const diffMs = new Date(isoString).getTime() - new Date().getTime();
+      if (diffMs <= 0) return 'Expired';
+      const hours = Math.floor(diffMs / (1000 * 60 * 60));
+      const days = Math.floor(hours / 24);
+      if (days > 0) {
+        return `${days}d ${hours % 24}h remaining`;
+      }
+      const mins = Math.floor((diffMs / (1000 * 60)) % 60);
+      return `${hours}h ${mins}m remaining`;
+    } catch {
+      return 'Active';
+    }
+  };
+
+  const handleActivateSponsorship = async () => {
+    if (!sponsorProduct) return;
+    setIsSponsoringSubmitting(true);
+    try {
+      const adminSecret = localStorage.getItem('lucky_admin_secret') || adminPasscode || 'lucky-secret-admin-pass-123';
+      const response = await fetch('/api/products/sponsor', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Secret': adminSecret,
+        },
+        body: JSON.stringify({
+          numericId: sponsorProduct.numericId,
+          duration: sponsorDuration,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to sponsor product');
+      }
+
+      if (data.product) {
+        onEditProduct(data.product);
+      }
+      
+      alert(data.message || `Successfully sponsored ${sponsorProduct.title}!`);
+      setSponsorSearchId('');
+    } catch (err: any) {
+      alert(`Sponsorship failed: ${err.message}`);
+    } finally {
+      setIsSponsoringSubmitting(false);
+    }
+  };
+
+  // Helper functions for category management
+  const handleCategoryDelete = async (catId: string) => {
+    try {
+      const res = await fetch(`/api/categories/${catId}`, {
+        method: 'DELETE',
+        headers: {
+          'x-admin-secret': adminPasscode
+        }
+      });
+      if (res.ok) {
+        onSetCategories(categories.filter(c => c.id !== catId));
+      } else {
+        const err = await res.json();
+        alert(err.detail || 'Failed to delete category');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error deleting category');
+    }
+  };
+
+  const handleCategoryMoveUp = async (index: number) => {
+    if (index === 0) return;
+    const newCats = [...categories];
+    const temp = newCats[index];
+    newCats[index] = newCats[index - 1];
+    newCats[index - 1] = temp;
+    
+    // Optimistic UI update
+    onSetCategories(newCats);
+
+    try {
+      const res = await fetch('/api/categories/reorder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-secret': adminPasscode
+        },
+        body: JSON.stringify({ ids: newCats.map(c => c.id) })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        console.error('Failed to persist reordering:', err);
+      }
+    } catch (err) {
+      console.error('Network error during category reordering:', err);
+    }
+  };
+
+  const handleCategoryMoveDown = async (index: number) => {
+    if (index === categories.length - 1) return;
+    const newCats = [...categories];
+    const temp = newCats[index];
+    newCats[index] = newCats[index + 1];
+    newCats[index + 1] = temp;
+
+    // Optimistic UI update
+    onSetCategories(newCats);
+
+    try {
+      const res = await fetch('/api/categories/reorder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-secret': adminPasscode
+        },
+        body: JSON.stringify({ ids: newCats.map(c => c.id) })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        console.error('Failed to persist reordering:', err);
+      }
+    } catch (err) {
+      console.error('Network error during category reordering:', err);
+    }
+  };
+
+  const handleCategorySave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!categoryName.trim()) {
+      setCategoryError('Category Name is required');
+      return;
+    }
+    if (categorySubCats.length === 0) {
+      setCategoryError('At least one subcategory is required');
+      return;
+    }
+    
+    // Check if subcategories are named
+    for (let s of categorySubCats) {
+      if (!s.name.trim()) {
+        setCategoryError('All subcategories must have a name');
+        return;
+      }
+    }
+
+    setIsSavingCategory(true);
+    setCategoryError(null);
+
+    const generatedId = editingCategory?.id || 'cat-' + categoryName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const payload: Category = {
+      id: generatedId,
+      name: categoryName,
+      icon: categoryIcon,
+      subCategories: categorySubCats
+    };
+
+    try {
+      const url = categoryFormMode === 'edit' ? `/api/categories/${editingCategory?.id}` : '/api/categories';
+      const method = categoryFormMode === 'edit' ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-secret': adminPasscode
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        const savedData = await res.json();
+        if (categoryFormMode === 'edit') {
+          onSetCategories(categories.map(c => c.id === editingCategory?.id ? savedData : c));
+        } else {
+          onSetCategories([...categories, savedData]);
+        }
+        // Reset and close form
+        setCategoryFormMode(null);
+        setEditingCategory(null);
+        setCategoryName('');
+        setCategoryIcon('shopping-bag');
+        setCategorySubCats([]);
+      } else {
+        const err = await res.json();
+        setCategoryError(err.detail || 'Failed to save category');
+      }
+    } catch (err) {
+      console.error(err);
+      setCategoryError('Network error saving category');
+    } finally {
+      setIsSavingCategory(false);
+    }
+  };
+
+  const triggerAddCategory = () => {
+    setCategoryFormMode('add');
+    setEditingCategory(null);
+    setCategoryName('');
+    setCategoryIcon('shopping-bag');
+    setCategorySubCats([{ name: '', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=200&h=200&fit=crop' }]);
+    setCategoryError(null);
+  };
+
+  const triggerEditCategory = (cat: Category) => {
+    setCategoryFormMode('edit');
+    setEditingCategory(cat);
+    setCategoryName(cat.name);
+    setCategoryIcon(cat.icon || 'shopping-bag');
+    setCategorySubCats(cat.subCategories || []);
+    setCategoryError(null);
+  };
+
+  // Synchronize sub-view when tab changes or deep URL route parameters are hit
   React.useEffect(() => {
-    setAdminSubView('list');
-  }, [activeTab]);
+    if (activeTab && activeTab.startsWith('edit-product/')) {
+      const prodId = activeTab.replace('edit-product/', '');
+      const foundProduct = products.find(p => p.id === prodId);
+      if (foundProduct) {
+        resetProductForm(foundProduct);
+        setAdminSubView('edit-product');
+      } else {
+        setAdminSubView('list');
+      }
+    } else if (activeTab === 'add-product') {
+      resetProductForm();
+      setAdminSubView('add-product');
+    } else if (activeTab === 'add-coupon') {
+      setAdminSubView('add-coupon');
+    } else if (activeTab === 'add-banner') {
+      setAdminSubView('add-banner');
+    } else {
+      setAdminSubView('list');
+    }
+    setCategoryFormMode(null);
+  }, [activeTab, products]);
 
   // New Banner Form Fields
   const [bType, setBType] = useState<'promotional' | 'news'>('promotional');
@@ -333,6 +624,23 @@ export default function AdminDashboard({
   const [pTag, setPTag] = useState('');
   const [pCodPrice, setPCodPrice] = useState(45);
   const [pHasUpiOffer, setPHasUpiOffer] = useState(true);
+
+  // Extra fields to let admin edit absolutely everything
+  const [pSoldBy, setPSoldBy] = useState('Gaurav Garments');
+  const [pSoldByRating, setPSoldByRating] = useState(4.8);
+  const [pRating, setPRating] = useState(4.5);
+  const [pRatingCount, setPRatingCount] = useState(124);
+  const [pReviewCount, setPReviewCount] = useState(48);
+  const [pHighlights, setPHighlights] = useState<Array<{ label: string; value: string }>>([
+    { label: 'Fabric', value: 'Cotton Blend' },
+    { label: 'Stitch Type', value: 'Fully Stitched' },
+    { label: 'Occasion', value: 'Festive & Casual' }
+  ]);
+  const [pAdditionalDetails, setPAdditionalDetails] = useState<Array<{ label: string; value: string }>>([
+    { label: 'Manufacturer', value: 'Gaurav Garments Private Limited' },
+    { label: 'Country of Origin', value: 'India' }
+  ]);
+  const [pVariants, setPVariants] = useState<Array<{ colorName: string; imageUrl: string; price: number; originalPrice: number }>>([]);
 
   // --- CAMERA AND FILE UPLOAD STATES & REFS ---
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -629,12 +937,27 @@ export default function AdminDashboard({
       setPTag(product.tag || '');
       setPCodPrice(product.codPrice || 45);
       setPHasUpiOffer(product.hasUpiOffer || false);
+      setPSoldBy(product.soldBy || 'Gaurav Garments');
+      setPSoldByRating(product.soldByRating || 4.8);
+      setPRating(product.rating || 4.5);
+      setPRatingCount(product.ratingCount || 124);
+      setPReviewCount(product.reviewCount || 48);
+      setPHighlights(product.productHighlights && product.productHighlights.length > 0 ? product.productHighlights : [
+        { label: 'Fabric', value: 'Cotton Blend' },
+        { label: 'Stitch Type', value: 'Fully Stitched' },
+        { label: 'Occasion', value: 'Festive & Casual' }
+      ]);
+      setPAdditionalDetails(product.additionalDetails && product.additionalDetails.length > 0 ? product.additionalDetails : [
+        { label: 'Manufacturer', value: 'Gaurav Garments Private Limited' },
+        { label: 'Country of Origin', value: 'India' }
+      ]);
+      setPVariants(product.variants && product.variants.length > 0 ? product.variants : []);
     } else {
       setEditingProduct(null);
       setPTitle('');
       setPPrice(299);
       setPOriginalPrice(599);
-      setPCategory('Kurtis & Suits');
+      setPCategory(categories && categories.length > 0 ? categories[0].name : 'Kurtis & Suits');
       setPSubCategory('Anarkali Sets');
       setPDescription('');
       setPImages(['']);
@@ -642,6 +965,21 @@ export default function AdminDashboard({
       setPTag('');
       setPCodPrice(45);
       setPHasUpiOffer(true);
+      setPSoldBy('Gaurav Garments');
+      setPSoldByRating(4.8);
+      setPRating(4.5);
+      setPRatingCount(124);
+      setPReviewCount(48);
+      setPHighlights([
+        { label: 'Fabric', value: 'Cotton Blend' },
+        { label: 'Stitch Type', value: 'Fully Stitched' },
+        { label: 'Occasion', value: 'Festive & Casual' }
+      ]);
+      setPAdditionalDetails([
+        { label: 'Manufacturer', value: 'Gaurav Garments Private Limited' },
+        { label: 'Country of Origin', value: 'India' }
+      ]);
+      setPVariants([]);
     }
   };
 
@@ -666,11 +1004,11 @@ export default function AdminDashboard({
       discountPercent: discountPercent > 0 ? discountPercent : 0,
       codPrice: pCodPrice,
       hasUpiOffer: pHasUpiOffer,
-      rating: editingProduct ? editingProduct.rating : 4.5,
-      ratingCount: editingProduct ? editingProduct.ratingCount : 124,
-      reviewCount: editingProduct ? editingProduct.reviewCount : 48,
+      rating: pRating,
+      ratingCount: pRatingCount,
+      reviewCount: pReviewCount,
       images: cleanImages,
-      variants: editingProduct ? editingProduct.variants : [
+      variants: pVariants.length > 0 ? pVariants : [
         {
           colorName: 'Standard',
           imageUrl: cleanImages[0],
@@ -678,17 +1016,10 @@ export default function AdminDashboard({
           originalPrice: pOriginalPrice
         }
       ],
-      soldBy: editingProduct ? editingProduct.soldBy : 'Gaurav Garments',
-      soldByRating: editingProduct ? editingProduct.soldByRating : 4.8,
-      productHighlights: editingProduct ? editingProduct.productHighlights : [
-        { label: 'Fabric', value: 'Cotton Blend' },
-        { label: 'Stitch Type', value: 'Fully Stitched' },
-        { label: 'Occasion', value: 'Festive & Casual' }
-      ],
-      additionalDetails: editingProduct ? editingProduct.additionalDetails : [
-        { label: 'Manufacturer', value: 'Gaurav Garments Private Limited' },
-        { label: 'Country of Origin', value: 'India' }
-      ],
+      soldBy: pSoldBy,
+      soldByRating: pSoldByRating,
+      productHighlights: pHighlights.filter(h => h.label.trim() && h.value.trim()),
+      additionalDetails: pAdditionalDetails.filter(d => d.label.trim() && d.value.trim()),
       sizeOptions: pSizeOptions.filter(Boolean),
       tag: pTag || undefined,
       reviews: editingProduct ? editingProduct.reviews : []
@@ -703,6 +1034,7 @@ export default function AdminDashboard({
     }
     setAdminSubView('list');
     setEditingProduct(null);
+    setActiveTab('products');
   };
 
   // Submit Banner Form
@@ -1011,6 +1343,66 @@ export default function AdminDashboard({
   const renderFullPageProductForm = (isEdit: boolean) => {
     return (
       <div className="bg-white rounded-xl border border-slate-200/80 shadow-3xs overflow-hidden" id="full-page-product-form">
+        {isEdit && (
+          <div className="bg-slate-100 border-b border-slate-200 px-4 py-2.5 flex flex-col gap-2">
+            {/* Browser Tabs */}
+            <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600">
+              <div className="bg-white px-3 py-1.5 rounded-t-lg border-t border-x border-slate-200 flex items-center gap-2 max-w-[240px] shadow-3xs">
+                <span className="text-emerald-500 text-xs shrink-0">🔒</span>
+                <span className="truncate">Edit SKU: {pTitle || 'Loading...'}</span>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setAdminSubView('list');
+                    setEditingProduct(null);
+                    setActiveTab('products');
+                  }}
+                  className="text-slate-400 hover:text-slate-600 font-normal ml-1"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="px-3 py-1.5 text-slate-400 hover:text-slate-600 cursor-pointer text-[10px]">
+                + New Tab
+              </div>
+            </div>
+
+            {/* Address Bar */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1 text-slate-400 shrink-0">
+                <button type="button" onClick={() => { setAdminSubView('list'); setEditingProduct(null); setActiveTab('products'); }} className="p-1 hover:bg-slate-200 rounded-md font-mono">◀</button>
+                <button type="button" disabled className="p-1 text-slate-300 font-mono">▶</button>
+                <button type="button" onClick={() => alert('Refreshing simulated session... Layout persisted successfully.')} className="p-1 hover:bg-slate-200 rounded-md font-mono">🔄</button>
+              </div>
+
+              <div className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-[11px] font-semibold text-slate-700 flex items-center justify-between shadow-3xs min-w-0">
+                <div className="flex items-center gap-1.5 overflow-hidden min-w-0">
+                  <span className="text-emerald-600 text-xs shrink-0">🔒</span>
+                  <span className="text-slate-400 shrink-0 select-none hidden sm:inline">https://quekart.com/admin/temp-edit-product/</span>
+                  <span className="text-slate-400 shrink-0 select-none sm:hidden">https://.../</span>
+                  <span className="text-slate-900 font-mono font-bold truncate select-all">{editingProduct?.id || 'prod-temp-xyz'}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const tempUrl = `https://quekart.com/admin/temp-edit-product/${editingProduct?.id || 'prod-temp-xyz'}`;
+                    navigator.clipboard.writeText(tempUrl);
+                    alert(`Copied temporary edit URL to clipboard:\n${tempUrl}`);
+                  }}
+                  className="text-[9.5px] font-extrabold text-lucky-magenta bg-lucky-magenta/5 hover:bg-lucky-magenta/10 px-2 py-0.5 rounded-sm transition-all shrink-0 ml-2"
+                  title="Copy temporary URL"
+                >
+                  Copy URL
+                </button>
+              </div>
+
+              <div className="hidden md:block bg-emerald-500 text-white font-extrabold text-[9px] px-2.5 py-1 rounded-sm uppercase tracking-wider animate-pulse shadow-3xs shrink-0">
+                SUPER POWERED LIVE SESSION
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button 
@@ -1018,6 +1410,7 @@ export default function AdminDashboard({
               onClick={() => {
                 setAdminSubView('list');
                 setEditingProduct(null);
+                setActiveTab('products');
               }}
               className="p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 cursor-pointer transition-colors"
             >
@@ -1053,12 +1446,20 @@ export default function AdminDashboard({
                 onChange={(e) => setPCategory(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 cursor-pointer focus:outline-hidden focus:border-lucky-magenta"
               >
-                <option value="Kurtis & Suits">Kurtis & Suits</option>
-                <option value="Watches">Watches</option>
-                <option value="Sarees">Sarees</option>
-                <option value="Jewellery">Jewellery</option>
-                <option value="Footwear">Footwear</option>
-                <option value="Bags & Purses">Bags & Purses</option>
+                {categories && categories.length > 0 ? (
+                  categories.map(c => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))
+                ) : (
+                  <>
+                    <option value="Kurtis & Suits">Kurtis & Suits</option>
+                    <option value="Watches">Watches</option>
+                    <option value="Sarees">Sarees</option>
+                    <option value="Jewellery">Jewellery</option>
+                    <option value="Footwear">Footwear</option>
+                    <option value="Bags & Purses">Bags & Purses</option>
+                  </>
+                )}
               </select>
             </div>
 
@@ -1317,6 +1718,280 @@ export default function AdminDashboard({
             )}
           </div>
 
+          {/* SUPER ADMIN ADVANCED CONTROLS SECTION */}
+          <div className="border-t border-slate-100 pt-5 mt-5 space-y-6">
+            <h4 className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-100 pb-2">
+              <span className="w-2 h-2 rounded-full bg-lucky-magenta animate-pulse"></span>
+              Super Admin Control Center: Advanced Product Specifications
+            </h4>
+
+            {/* Vendor & Popularity Metrics */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="col-span-2">
+                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Sold By / Vendor Name</label>
+                <input
+                  type="text"
+                  value={pSoldBy}
+                  onChange={(e) => setPSoldBy(e.target.value)}
+                  placeholder="e.g. Gaurav Garments"
+                  className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Vendor Rating</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="1"
+                  max="5"
+                  value={pSoldByRating}
+                  onChange={(e) => setPSoldByRating(Number(e.target.value))}
+                  className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-bold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Popularity Star Rating</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="1"
+                  max="5"
+                  value={pRating}
+                  onChange={(e) => setPRating(Number(e.target.value))}
+                  className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-bold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Rating Count</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={pRatingCount}
+                  onChange={(e) => setPRatingCount(Number(e.target.value))}
+                  className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-bold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+                />
+              </div>
+            </div>
+
+            {/* Highlights (Key-Value Specs) */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide">Key Product Highlights (e.g. Fabric, Stitch Type)</label>
+                <button
+                  type="button"
+                  onClick={() => setPHighlights([...pHighlights, { label: '', value: '' }])}
+                  className="text-[10px] font-black text-lucky-magenta hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" /> Add Highlight Spec
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {pHighlights.map((high, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={high.label}
+                      onChange={(e) => {
+                        const updated = [...pHighlights];
+                        updated[idx].label = e.target.value;
+                        setPHighlights(updated);
+                      }}
+                      placeholder="e.g. Fabric"
+                      className="w-1/3 bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800"
+                    />
+                    <input
+                      type="text"
+                      value={high.value}
+                      onChange={(e) => {
+                        const updated = [...pHighlights];
+                        updated[idx].value = e.target.value;
+                        setPHighlights(updated);
+                      }}
+                      placeholder="e.g. Premium Slub Cotton"
+                      className="flex-1 bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-800"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setPHighlights(pHighlights.filter((_, i) => i !== idx))}
+                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                {pHighlights.length === 0 && (
+                  <p className="text-[10px] text-slate-400 font-semibold italic">No custom highlights specified.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Additional Details (Manufacturer, Country etc.) */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide">Additional System Metadata (e.g. Manufacturer, Country of Origin)</label>
+                <button
+                  type="button"
+                  onClick={() => setPAdditionalDetails([...pAdditionalDetails, { label: '', value: '' }])}
+                  className="text-[10px] font-black text-lucky-magenta hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" /> Add System Metadata Row
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {pAdditionalDetails.map((detail, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={detail.label}
+                      onChange={(e) => {
+                        const updated = [...pAdditionalDetails];
+                        updated[idx].label = e.target.value;
+                        setPAdditionalDetails(updated);
+                      }}
+                      placeholder="e.g. Manufacturer"
+                      className="w-1/3 bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800"
+                    />
+                    <input
+                      type="text"
+                      value={detail.value}
+                      onChange={(e) => {
+                        const updated = [...pAdditionalDetails];
+                        updated[idx].value = e.target.value;
+                        setPAdditionalDetails(updated);
+                      }}
+                      placeholder="e.g. Traditional Textiles Pvt Ltd"
+                      className="flex-1 bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-800"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setPAdditionalDetails(pAdditionalDetails.filter((_, i) => i !== idx))}
+                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                {pAdditionalDetails.length === 0 && (
+                  <p className="text-[10px] text-slate-400 font-semibold italic">No additional system metadata specified.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Custom Variants Section */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide">Multi-Color Swatches & SKUs Variants</label>
+                  <p className="text-[10px] text-slate-400 font-bold">Provide custom image and override pricing per color swatch variant if desired</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPVariants([...pVariants, { colorName: '', imageUrl: pImages[0] || '', price: pPrice, originalPrice: pOriginalPrice }])}
+                  className="text-[10px] font-black text-lucky-magenta hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" /> Add Swatch Variant
+                </button>
+              </div>
+
+              <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
+                {pVariants.map((v, idx) => (
+                  <div key={idx} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-white p-3 rounded-lg border border-slate-100 shadow-3xs relative">
+                    <div className="w-12 h-12 rounded-md overflow-hidden border border-slate-200 bg-slate-100 flex-shrink-0">
+                      {v.imageUrl ? (
+                        <img src={v.imageUrl} alt={v.colorName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-slate-300">NO IMG</div>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 flex-1">
+                      <div>
+                        <label className="block text-[9px] font-black text-slate-400 uppercase">Color Swatch Name</label>
+                        <input
+                          type="text"
+                          required
+                          value={v.colorName}
+                          onChange={(e) => {
+                            const updated = [...pVariants];
+                            updated[idx].colorName = e.target.value;
+                            setPVariants(updated);
+                          }}
+                          placeholder="e.g. Royal Blue"
+                          className="w-full bg-slate-50 border border-slate-200/80 rounded-md px-2 py-1 text-xs font-semibold"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-[9px] font-black text-slate-400 uppercase">Image URL (Hosted)</label>
+                        <input
+                          type="text"
+                          required
+                          value={v.imageUrl}
+                          onChange={(e) => {
+                            const updated = [...pVariants];
+                            updated[idx].imageUrl = e.target.value;
+                            setPVariants(updated);
+                          }}
+                          placeholder="Image URL"
+                          className="w-full bg-slate-50 border border-slate-200/80 rounded-md px-2 py-1 text-xs font-semibold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[9px] font-black text-slate-400 uppercase">Price (₹)</label>
+                        <input
+                          type="number"
+                          required
+                          value={v.price}
+                          onChange={(e) => {
+                            const updated = [...pVariants];
+                            updated[idx].price = Number(e.target.value);
+                            setPVariants(updated);
+                          }}
+                          className="w-full bg-slate-50 border border-slate-200/80 rounded-md px-2 py-1 text-xs font-bold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[9px] font-black text-slate-400 uppercase">MRP (₹)</label>
+                        <input
+                          type="number"
+                          required
+                          value={v.originalPrice}
+                          onChange={(e) => {
+                            const updated = [...pVariants];
+                            updated[idx].originalPrice = Number(e.target.value);
+                            setPVariants(updated);
+                          }}
+                          className="w-full bg-slate-50 border border-slate-200/80 rounded-md px-2 py-1 text-xs font-bold"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setPVariants(pVariants.filter((_, i) => i !== idx))}
+                      className="absolute -top-2 -right-2 bg-red-100 hover:bg-red-200 text-red-600 p-1 rounded-full shadow-sm cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+
+                {pVariants.length === 0 && (
+                  <p className="text-[11px] text-slate-400 font-bold text-center py-2">
+                    No custom variants specified. The standard catalog details will represent the primary variant.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Description Textarea */}
           <div>
             <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Full Product Description</label>
@@ -1336,6 +2011,7 @@ export default function AdminDashboard({
               onClick={() => {
                 setAdminSubView('list');
                 setEditingProduct(null);
+                setActiveTab('products');
               }}
               className="bg-slate-100 text-slate-700 hover:bg-slate-200 font-extrabold text-xs px-4 py-2.5 rounded-lg cursor-pointer"
             >
@@ -1873,104 +2549,312 @@ export default function AdminDashboard({
     );
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 text-slate-800 font-sans flex flex-col" id="admin-dashboard-container">
-      
-      {/* Top Header styled to match the User Panel */}
-      <header className="sticky top-0 z-40 bg-white border-b border-gray-200/80 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
-        {/* Brand Logo & Title on the Left */}
-        <div className="flex items-center gap-1.5 sm:gap-2 cursor-pointer flex-shrink-0" onClick={onClose} id="admin-brand-logo-container">
-          <Logo className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0 transition-transform duration-200 hover:scale-105 active:scale-95" animated={true} />
-          <span className="font-display font-semibold text-lg sm:text-xl md:text-2xl tracking-normal flex items-center">
-            <span style={{ color: '#143C6B' }}>Que</span>
-            <span style={{ color: '#C89D1F' }}>Kart</span>
-            <span className="text-xs bg-red-100 text-red-600 font-black px-1.5 py-0.5 rounded-sm tracking-wider ml-2">ADMIN</span>
-          </span>
-        </div>
+  const handleMenuClick = (id: string) => {
+    if (id === 'banners') {
+      setActiveSubPage?.('banners');
+    } else {
+      setActiveTab(id);
+    }
+    setIsMobileMenuOpen(false);
+  };
 
-        {/* Search bar inside header */}
-        <div className="relative w-full max-w-md">
-          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
-            <Search className="w-4 h-4" />
-          </span>
-          <input 
-            type="text" 
-            placeholder="Search products or commands... ⌘K"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-10 pr-4 py-2 text-xs font-semibold focus:outline-hidden focus:bg-white focus:border-lucky-magenta transition-all"
-          />
-        </div>
+  const renderSidebarContent = (isCollapsed: boolean, isMobile: boolean) => {
+    const menuItems = [
+      { id: 'overview', label: 'Dashboard', icon: LayoutDashboard, section: 'MAIN' },
+      { id: 'products', label: 'Products', icon: Package, count: products.length, section: 'INVENTORY' },
+      { id: 'categories', label: 'Categories', icon: Layers, count: categories.length, section: 'INVENTORY' },
+      { id: 'approvals', label: 'Approvals', icon: Clock, count: liveProducts.filter(p => p.approvalStatus === 'pending').length, section: 'INVENTORY', highlight: true },
+      { id: 'vendors', label: 'Sellers', icon: Users, count: vendors.length, section: 'RELATIONS' },
+      { id: 'customers', label: 'Customers', icon: Users, count: uniqueUsers.length, section: 'RELATIONS' },
+      { id: 'orders', label: 'Orders', icon: ShoppingBag, count: orders.length, section: 'RELATIONS' },
+      { id: 'coupons', label: 'Coupons', icon: Ticket, count: coupons.length, section: 'MARKETING' },
+      { id: 'banners', label: 'Banners', icon: ImageIcon, count: banners.length, section: 'MARKETING' },
+      { id: 'sponsorships', label: 'Sponsorships', icon: Sparkles, count: products.filter(p => p.sponsoredUntil && new Date(p.sponsoredUntil) > new Date()).length, section: 'MARKETING' },
+    ];
 
-        {/* Right menu tools */}
-        <div className="flex items-center gap-4 flex-shrink-0">
-          {/* Secure Passcode control inside a clean button */}
-          <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5">
-            <Lock className="w-3.5 h-3.5 text-slate-400" />
-            <input 
-              type="password"
-              value={adminPasscode}
-              onChange={(e) => handlePasscodeChange(e.target.value)}
-              placeholder="Passcode"
-              className="bg-transparent border-none text-[11px] font-mono text-slate-700 focus:outline-hidden w-24 text-center"
-              title="Enter database authorization secret passcode"
-            />
-          </div>
+    const sections = ['MAIN', 'INVENTORY', 'RELATIONS', 'MARKETING'];
 
-          {/* Notification bell with orange badge */}
-          <div className="relative cursor-pointer hover:bg-slate-50 p-2 rounded-full transition-all">
-            <Bell className="w-5 h-5 text-slate-500" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-500 rounded-full border border-white"></span>
-          </div>
-
-          {/* User Profile dropdown */}
-          <div className="relative">
-            <button 
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center gap-2.5 cursor-pointer focus:outline-hidden"
+    return (
+      <div className="flex flex-col h-full bg-white text-slate-700">
+        {/* Sidebar Header */}
+        <div className="p-4 border-b border-slate-100 flex items-center justify-between h-[73px]">
+          {!isCollapsed ? (
+            <div className="flex items-center gap-2 cursor-pointer select-none" onClick={onClose}>
+              <Logo className="h-8 w-8 flex-shrink-0" animated={true} />
+              <span className="font-display font-semibold text-lg tracking-normal flex items-center">
+                <span className="text-[#143C6B] font-black">Que</span>
+                <span className="text-[#C89D1F] font-black">Kart</span>
+                <span className="text-[9px] bg-red-100 text-red-600 font-extrabold px-1.5 py-0.5 rounded-sm ml-1.5">ADMIN</span>
+              </span>
+            </div>
+          ) : (
+            <div className="mx-auto cursor-pointer" onClick={onClose} title="Back to Store">
+              <Logo className="h-8 w-8" animated={false} />
+            </div>
+          )}
+          
+          {isMobile && (
+            <button
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 cursor-pointer"
             >
-              <div className="text-right hidden md:block">
-                <span className="block text-xs font-black text-slate-800 leading-tight">Musharof</span>
-                <span className="block text-[10px] text-slate-400 font-bold leading-tight">Gaurav Garments</span>
+              <X className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+
+        {/* Sidebar Navigation */}
+        <div className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
+          {sections.map((sec) => {
+            const secItems = menuItems.filter(item => item.section === sec);
+            if (secItems.length === 0) return null;
+            return (
+              <div key={sec} className="space-y-1">
+                {!isCollapsed && (
+                  <h4 className="text-[10px] font-black text-slate-400 tracking-wider uppercase px-3 mb-2 select-none">
+                    {sec}
+                  </h4>
+                )}
+                {secItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+                  const showCount = item.count !== undefined && item.count >= 0;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleMenuClick(item.id)}
+                      className={`w-full flex items-center gap-3 py-2 px-3 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer relative group ${
+                        isActive
+                          ? 'bg-lucky-magenta/10 text-lucky-magenta border-l-3 border-lucky-magenta'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                      }`}
+                      title={isCollapsed ? item.label : undefined}
+                    >
+                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-lucky-magenta' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                      {!isCollapsed && (
+                        <span className="flex-1 text-left truncate">{item.label}</span>
+                      )}
+                      {showCount && !isCollapsed && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+                          item.highlight && item.count && item.count > 0
+                            ? 'bg-red-100 text-red-600 animate-pulse'
+                            : 'bg-slate-100 text-slate-500'
+                        }`}>
+                          {item.count}
+                        </span>
+                      )}
+                      
+                      {isCollapsed && (
+                        <div className="absolute left-full ml-2 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-md">
+                          {item.label} {showCount ? `(${item.count})` : ''}
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
+            );
+          })}
+        </div>
+
+        {/* Sidebar Footer */}
+        <div className="p-4 border-t border-slate-100">
+          {!isCollapsed ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                <img 
+                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=120&auto=format&fit=crop" 
+                  alt="Musharof" 
+                  className="w-9 h-9 rounded-full object-cover border border-slate-200"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-black text-slate-800 truncate">Musharof</p>
+                  <p className="text-[10px] text-slate-400 font-bold truncate">Master Admin</p>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="w-full flex items-center justify-center gap-2 py-2 px-4 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-bold rounded-xl transition-all cursor-pointer shadow-3xs"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Back to Store</span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-4">
               <img 
                 src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=120&auto=format&fit=crop" 
                 alt="Musharof" 
-                className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-2xs"
+                className="w-8 h-8 rounded-full object-cover border border-slate-200 cursor-pointer"
+                title="Musharof - Master Admin"
               />
-              <ChevronDown className="w-4 h-4 text-slate-500" />
+              <button
+                onClick={onClose}
+                className="p-2 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-800 rounded-xl transition-all cursor-pointer shadow-3xs"
+                title="Back to Store"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 text-slate-800 font-sans flex" id="admin-dashboard-container">
+      
+      {/* 1. MOBILE SLIDING DRAWER BACKDROP & PANEL */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden" id="mobile-menu-drawer">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs cursor-pointer"
+            />
+
+            {/* Sliding Panel */}
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+              className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-white h-full flex flex-col shadow-2xl z-50"
+            >
+              {renderSidebarContent(false, true)}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 2. DESKTOP SIDEBAR */}
+      <aside className={`bg-white border-r border-slate-200/80 sticky top-0 h-screen shrink-0 z-30 lg:flex hidden flex-col transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-20'}`}>
+        {renderSidebarContent(!isSidebarOpen, false)}
+      </aside>
+
+      {/* 3. MAIN WORKSPACE CONTENT */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-hidden">
+        
+        {/* Modernized Top Header */}
+        <header className="sticky top-0 z-40 bg-white border-b border-gray-200/80 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
+          {/* Left Side: Toggles and Responsive Brand Logo */}
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            {/* Mobile Burger Menu Trigger */}
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="lg:hidden p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 cursor-pointer transition-colors"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            
+            {/* Desktop Sidebar Width Toggle */}
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="hidden lg:block p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 cursor-pointer transition-colors"
+              title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+            >
+              <Menu className="w-4 h-4" />
             </button>
 
-            {isDropdownOpen && (
-              <div className="absolute right-0 mt-3.5 w-48 bg-white border border-slate-200 rounded-xl shadow-lg p-1 text-xs text-slate-700 font-semibold space-y-0.5 z-50">
-                <button 
-                  onClick={() => { setIsDropdownOpen(false); alert('Connected to Gaurav Garments admin portal.'); }}
-                  className="w-full text-left px-3 py-2 hover:bg-slate-50 rounded-lg cursor-pointer"
-                >
-                  User Profile
-                </button>
-                <button 
-                  onClick={() => { setIsDropdownOpen(false); alert('Database Connection is Live'); }}
-                  className="w-full text-left px-3 py-2 hover:bg-slate-50 rounded-lg cursor-pointer"
-                >
-                  Account Settings
-                </button>
-                <hr className="border-slate-100 my-1" />
-                <button 
-                  onClick={onClose}
-                  className="w-full text-left px-3 py-2 hover:bg-red-50 text-red-600 rounded-lg cursor-pointer"
-                >
-                  Back to Store
-                </button>
-              </div>
-            )}
+            {/* Logo on Mobile Only */}
+            <div className="flex items-center gap-1.5 cursor-pointer lg:hidden" onClick={onClose}>
+              <Logo className="h-8 w-8 flex-shrink-0" animated={true} />
+              <span className="font-display font-semibold text-base sm:text-lg tracking-normal flex items-center">
+                <span className="text-[#143C6B]">Que</span>
+                <span className="text-[#C89D1F]">Kart</span>
+                <span className="text-[9px] bg-red-100 text-red-600 font-black px-1 py-0.5 rounded-sm ml-1.5">ADMIN</span>
+              </span>
+            </div>
           </div>
-        </div>
-      </header>
 
-      {/* 2. MAIN CONTENT AREA */}
-      <div className="flex-1 overflow-y-auto bg-gray-50 flex flex-col">
-        {adminSubView !== 'list' ? (
+          {/* Search bar inside header */}
+          <div className="relative w-full max-w-md">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+              <Search className="w-4 h-4" />
+            </span>
+            <input 
+              type="text" 
+              placeholder="Search products or commands... ⌘K"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-10 pr-4 py-2 text-xs font-semibold focus:outline-hidden focus:bg-white focus:border-lucky-magenta transition-all"
+            />
+          </div>
+
+          {/* Right menu tools */}
+          <div className="flex items-center gap-4 flex-shrink-0">
+            {/* Secure Passcode control inside a clean button */}
+            <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5">
+              <Lock className="w-3.5 h-3.5 text-slate-400" />
+              <input 
+                type="password" 
+                value={adminPasscode}
+                onChange={(e) => handlePasscodeChange(e.target.value)}
+                placeholder="Passcode"
+                className="bg-transparent border-none text-[11px] font-mono text-slate-700 focus:outline-hidden w-24 text-center"
+                title="Enter database authorization secret passcode"
+              />
+            </div>
+
+            {/* Notification bell with orange badge */}
+            <div className="relative cursor-pointer hover:bg-slate-50 p-2 rounded-full transition-all">
+              <Bell className="w-5 h-5 text-slate-500" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-500 rounded-full border border-white"></span>
+            </div>
+
+            {/* User Profile dropdown */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex items-center gap-2.5 cursor-pointer focus:outline-hidden"
+              >
+                <div className="text-right hidden md:block">
+                  <span className="block text-xs font-black text-slate-800 leading-tight">Musharof</span>
+                  <span className="block text-[10px] text-slate-400 font-bold leading-tight">Gaurav Garments</span>
+                </div>
+                <img 
+                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=120&auto=format&fit=crop" 
+                  alt="Musharof" 
+                  className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-2xs"
+                />
+                <ChevronDown className="w-4 h-4 text-slate-500" />
+              </button>
+
+              {isDropdownOpen && (
+                <div className="absolute right-0 mt-3.5 w-48 bg-white border border-slate-200 rounded-xl shadow-lg p-1 text-xs text-slate-700 font-semibold space-y-0.5 z-50">
+                  <button 
+                    onClick={() => { setIsDropdownOpen(false); alert('Connected to Gaurav Garments admin portal.'); }}
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 rounded-lg cursor-pointer"
+                  >
+                    User Profile
+                  </button>
+                  <button 
+                    onClick={() => { setIsDropdownOpen(false); alert('Database Connection is Live'); }}
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 rounded-lg cursor-pointer"
+                  >
+                    Account Settings
+                  </button>
+                  <hr className="border-slate-100 my-1" />
+                  <button 
+                    onClick={onClose}
+                    className="w-full text-left px-3 py-2 hover:bg-red-50 text-red-600 rounded-lg cursor-pointer"
+                  >
+                    Back to Store
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* Scrollable Work Area */}
+        <div className="flex-1 overflow-y-auto bg-gray-50 flex flex-col">
+          {adminSubView !== 'list' ? (
           <div className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto space-y-6">
             {adminSubView === 'add-product' && renderFullPageProductForm(false)}
             {adminSubView === 'edit-product' && renderFullPageProductForm(true)}
@@ -1991,20 +2875,24 @@ export default function AdminDashboard({
               <h2 className="text-2xl font-black text-slate-800 tracking-tight">
                 {activeTab === 'overview' && 'eCommerce Dashboard'}
                 {activeTab === 'products' && 'Products Catalog'}
+                {activeTab === 'categories' && 'Categories Management'}
                 {activeTab === 'orders' && 'Orders Invoices'}
                 {activeTab === 'coupons' && 'Promo Coupons'}
                 {activeTab === 'banners' && 'Marketing Banners'}
                 {activeTab === 'approvals' && 'Vendor Approvals'}
                 {activeTab === 'vendors' && 'Sellers Roster'}
+                {activeTab === 'sponsorships' && 'Product Sponsorships'}
               </h2>
               <p className="text-xs text-slate-400 font-medium mt-1">
                 {activeTab === 'overview' && 'Real-time performance indicators and business diagnostic values'}
                 {activeTab === 'products' && 'Manage listing specs, image uploads, category targets'}
+                {activeTab === 'categories' && 'View, add, edit, delete, and reorder product categories and subcategories'}
                 {activeTab === 'orders' && 'Review order payment dispatches, custom delivery logistics'}
                 {activeTab === 'coupons' && 'Configure dynamic discounts, promo vouchers, cart validation specs'}
                 {activeTab === 'banners' && 'Optimize visual banners and advertising placements'}
                 {activeTab === 'approvals' && 'Approve or reject vendor listings from regional tailors'}
                 {activeTab === 'vendors' && 'Audit active vendors, track sales, suspend or activate partners'}
+                {activeTab === 'sponsorships' && 'Boost and rank products to the top of category searches and listings'}
               </p>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-slate-400 font-bold bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-3xs">
@@ -2016,107 +2904,7 @@ export default function AdminDashboard({
             </div>
           </div>
 
-        {/* Responsive Horizontal Tabs / Navigation Menu */}
-        <div className="bg-white rounded-xl border border-slate-200/80 p-1.5 flex flex-wrap gap-1.5 mb-6 shadow-3xs" id="admin-tabs">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`flex-1 min-w-[110px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
-              activeTab === 'overview'
-                ? 'bg-lucky-magenta text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <LayoutDashboard className="w-4 h-4" />
-            <span>Dashboard</span>
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('products')}
-            className={`flex-1 min-w-[110px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
-              activeTab === 'products'
-                ? 'bg-lucky-magenta text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <Package className="w-4 h-4" />
-            <span>Products</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('approvals')}
-            className={`flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
-              activeTab === 'approvals'
-                ? 'bg-lucky-magenta text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <Clock className="w-4 h-4" />
-            <span>Approvals ({liveProducts.filter(p => p.approvalStatus === 'pending').length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('vendors')}
-            className={`flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
-              activeTab === 'vendors'
-                ? 'bg-lucky-magenta text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Sellers ({vendors.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('customers')}
-            className={`flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
-              activeTab === 'customers'
-                ? 'bg-lucky-magenta text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Customers ({uniqueUsers.length})</span>
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('orders')}
-            className={`flex-1 min-w-[110px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
-              activeTab === 'orders'
-                ? 'bg-lucky-magenta text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <ShoppingBag className="w-4 h-4" />
-            <span>Orders ({orders.length})</span>
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('coupons')}
-            className={`flex-1 min-w-[110px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
-              activeTab === 'coupons'
-                ? 'bg-lucky-magenta text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <Ticket className="w-4 h-4" />
-            <span>Coupons ({coupons.length})</span>
-          </button>
-          
-          <button
-            onClick={() => setActiveSubPage?.('banners')}
-            className={`flex-1 min-w-[110px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-black transition-all cursor-pointer ${
-              activeTab === 'banners'
-                ? 'bg-lucky-magenta text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <ImageIcon className="w-4 h-4" />
-            <span>Banners ({banners.length})</span>
-          </button>
-        </div>
-
         {/* --- VIEW CONTENT --- */}
-        <div id="admin-view-content">
           
           {/* 1. OVERVIEW / ANALYTICS TAB */}
           {activeTab === 'overview' && (
@@ -2284,7 +3072,7 @@ export default function AdminDashboard({
                 <button
                   onClick={() => {
                     resetProductForm();
-                    setAdminSubView('add-product');
+                    setActiveTab('add-product');
                   }}
                   className="bg-lucky-magenta text-white hover:bg-opacity-95 font-extrabold text-xs px-4 py-2.5 rounded-lg flex items-center justify-center gap-1.5 shadow-xs transition-transform hover:scale-[1.02] cursor-pointer"
                   id="admin-add-product-btn"
@@ -2353,7 +3141,7 @@ export default function AdminDashboard({
                               <button
                                 onClick={() => {
                                   resetProductForm(product);
-                                  setAdminSubView('edit-product');
+                                  setActiveTab('edit-product/' + product.id);
                                 }}
                                 className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
                                 title="Edit Product"
@@ -2362,10 +3150,15 @@ export default function AdminDashboard({
                               </button>
                               <button
                                 onClick={() => {
-                                  if (confirm(`Are you sure you want to delete ${product.title}?`)) {
-                                    onDeleteProduct(product.id);
-                                    setLiveProducts(prev => prev.filter(p => p.id !== product.id));
-                                  }
+                                  triggerConfirm(
+                                    `Are you sure you want to delete ${product.title}?`,
+                                    () => {
+                                      onDeleteProduct(product.id);
+                                      setLiveProducts(prev => prev.filter(p => p.id !== product.id));
+                                    },
+                                    'Delete Product',
+                                    'Delete'
+                                  );
                                 }}
                                 className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                                 title="Delete Product"
@@ -2422,7 +3215,7 @@ export default function AdminDashboard({
                             <button
                               onClick={() => {
                                 resetProductForm(product);
-                                setAdminSubView('edit-product');
+                                setActiveTab('edit-product/' + product.id);
                               }}
                               className="p-1.5 rounded-md text-blue-600 hover:bg-blue-50 cursor-pointer"
                             >
@@ -2430,10 +3223,15 @@ export default function AdminDashboard({
                             </button>
                             <button
                               onClick={() => {
-                                if (confirm(`Are you sure you want to delete ${product.title}?`)) {
-                                  onDeleteProduct(product.id);
-                                  setLiveProducts(prev => prev.filter(p => p.id !== product.id));
-                                }
+                                triggerConfirm(
+                                  `Are you sure you want to delete ${product.title}?`,
+                                  () => {
+                                    onDeleteProduct(product.id);
+                                    setLiveProducts(prev => prev.filter(p => p.id !== product.id));
+                                  },
+                                  'Delete Product',
+                                  'Delete'
+                                );
                               }}
                               className="p-1.5 rounded-md text-red-600 hover:bg-red-50 cursor-pointer"
                             >
@@ -2452,6 +3250,324 @@ export default function AdminDashboard({
                 </div>
 
               </div>
+            </div>
+          )}
+
+          {/* 2.1. CATEGORIES MANAGER TAB */}
+          {activeTab === 'categories' && (
+            <div className="space-y-6 animate-fadeIn" id="categories-manager-container">
+              
+              {categoryFormMode ? (
+                /* --- ADD / EDIT CATEGORY FORM --- */
+                <form onSubmit={handleCategorySave} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6 max-w-2xl mx-auto" id="category-edit-form">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                    <div>
+                      <h3 className="text-base font-extrabold text-slate-800" id="category-form-title">
+                        {categoryFormMode === 'edit' ? 'Edit Category Specifications' : 'Propose New Product Category'}
+                      </h3>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Specify category visual tokens, metadata, and children subcategories</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCategoryFormMode(null)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 cursor-pointer"
+                      id="close-category-form-btn"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {categoryError && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 font-bold" id="category-form-error">
+                      {categoryError}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Category Name */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">Category Name</label>
+                      <input
+                        type="text"
+                        value={categoryName}
+                        onChange={(e) => setCategoryName(e.target.value)}
+                        placeholder="e.g. Women Westernwear"
+                        className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-lucky-magenta/20 focus:border-lucky-magenta outline-hidden font-semibold transition-all"
+                        id="category-name-input"
+                      />
+                    </div>
+
+                    {/* Category Icon Selector */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">Visual Icon Token</label>
+                      <select
+                        value={categoryIcon}
+                        onChange={(e) => setCategoryIcon(e.target.value)}
+                        className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-lucky-magenta/20 focus:border-lucky-magenta outline-hidden font-semibold transition-all"
+                        id="category-icon-select"
+                      >
+                        <option value="shopping-bag">Shopping Bag (Default)</option>
+                        <option value="sparkles">Sparkles (Westernwear)</option>
+                        <option value="shirt">Shirt (Kurti/Clothing)</option>
+                        <option value="heart">Heart (Lingerie)</option>
+                        <option value="smile">Smile (Men)</option>
+                        <option value="baby">Baby (Kids & Toys)</option>
+                        <option value="home">Home (Kitchen & Living)</option>
+                        <option value="star">Star (Popular)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Subcategories Subsection */}
+                  <div className="space-y-4 border-t border-slate-100 pt-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider">Subcategories List ({categorySubCats.length})</h4>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Every category requires at least one leaf subcategory</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setCategorySubCats([...categorySubCats, { name: '', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=200&h=200&fit=crop' }])}
+                        className="flex items-center gap-1.5 text-[10px] font-black text-lucky-magenta bg-lucky-magenta/5 hover:bg-lucky-magenta/10 px-3 py-1.5 rounded-lg cursor-pointer transition-colors"
+                        id="add-subcategory-btn"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Add Subcategory
+                      </button>
+                    </div>
+
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1" id="subcategories-form-list">
+                      {categorySubCats.map((sub, idx) => (
+                        <div key={idx} className="flex gap-3 items-start bg-slate-50/50 border border-slate-200/60 p-3 rounded-xl relative group/sub" id={`subcategory-row-${idx}`}>
+                          
+                          {/* Circle Preview */}
+                          <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border border-slate-200 bg-white shadow-2xs">
+                            <img
+                              src={sub.image || 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=200&h=200&fit=crop'}
+                              alt="Sub preview"
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          </div>
+
+                          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase">Subcategory Title</span>
+                              <input
+                                type="text"
+                                value={sub.name}
+                                onChange={(e) => {
+                                  const updated = [...categorySubCats];
+                                  updated[idx].name = e.target.value;
+                                  setCategorySubCats(updated);
+                                }}
+                                placeholder="e.g. Designer Kurtas"
+                                className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-hidden font-semibold"
+                                id={`subcategory-name-input-${idx}`}
+                              />
+                            </div>
+
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase">Image URL</span>
+                              <input
+                                type="text"
+                                value={sub.image}
+                                onChange={(e) => {
+                                  const updated = [...categorySubCats];
+                                  updated[idx].image = e.target.value;
+                                  setCategorySubCats(updated);
+                                }}
+                                placeholder="https://unsplash..."
+                                className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-hidden font-semibold"
+                                id={`subcategory-image-input-${idx}`}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Delete inline subcategory button */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = categorySubCats.filter((_, i) => i !== idx);
+                              setCategorySubCats(updated);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50/50 cursor-pointer self-center"
+                            title="Remove subcategory"
+                            id={`remove-subcategory-btn-${idx}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Form Submission Actions */}
+                  <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setCategoryFormMode(null)}
+                      className="px-4 py-2 text-xs text-slate-500 font-bold border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer"
+                      id="cancel-category-save-btn"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSavingCategory}
+                      className="flex items-center gap-1.5 px-5 py-2 text-xs bg-lucky-magenta text-white hover:bg-lucky-magenta-dark font-bold rounded-xl shadow-md cursor-pointer transition-colors"
+                      id="save-category-submit-btn"
+                    >
+                      {isSavingCategory ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        'Save Specifications'
+                      )}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                /* --- CATEGORIES LIST MODE --- */
+                <div className="space-y-4">
+                  {/* Category Filter and Creator Actions bar */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs" id="category-actions-bar">
+                    <div className="flex items-center gap-2">
+                      <Layers className="w-5 h-5 text-lucky-magenta shrink-0" />
+                      <div>
+                        <span className="text-[10px] font-black text-lucky-magenta uppercase tracking-wider block">Position Registry</span>
+                        <h3 className="text-xs font-extrabold text-slate-700">Display Layout & Category Ordering</h3>
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={triggerAddCategory}
+                      className="flex items-center justify-center gap-1.5 px-4 py-2 text-xs bg-lucky-magenta hover:bg-lucky-magenta-dark text-white font-bold rounded-xl shadow-xs cursor-pointer transition-colors"
+                      id="create-category-btn"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Propose Category
+                    </button>
+                  </div>
+
+                  {/* Categories Cards layout Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="categories-cards-grid">
+                    {categories.map((cat, idx) => {
+                      return (
+                        <div
+                          key={cat.id}
+                          className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between space-y-4 relative group"
+                          id={`category-card-${cat.id}`}
+                        >
+                          {/* Top row */}
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              {/* Icon background */}
+                              <div className="w-10 h-10 rounded-xl bg-blue-50/50 border border-blue-100 flex items-center justify-center text-lucky-magenta shadow-2xs">
+                                <Layers className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <h4 className="text-xs font-black text-slate-800 tracking-tight">{cat.name}</h4>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{cat.id}</span>
+                              </div>
+                            </div>
+
+                            {/* Position Controls */}
+                            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200/80 rounded-lg p-0.5" id={`position-adjusters-${cat.id}`}>
+                              <button
+                                onClick={() => handleCategoryMoveUp(idx)}
+                                disabled={idx === 0}
+                                className={`p-1 rounded-sm text-xs cursor-pointer transition-colors ${
+                                  idx === 0 ? 'text-slate-300' : 'text-slate-600 hover:bg-white hover:text-slate-900 shadow-2xs'
+                                }`}
+                                title="Move Up (Increase Display Rank)"
+                              >
+                                ▲
+                              </button>
+                              <span className="text-[9px] font-black px-1 text-slate-400 select-none">
+                                {idx + 1}
+                              </span>
+                              <button
+                                onClick={() => handleCategoryMoveDown(idx)}
+                                disabled={idx === categories.length - 1}
+                                className={`p-1 rounded-sm text-xs cursor-pointer transition-colors ${
+                                  idx === categories.length - 1 ? 'text-slate-300' : 'text-slate-600 hover:bg-white hover:text-slate-900 shadow-2xs'
+                                }`}
+                                title="Move Down (Decrease Display Rank)"
+                              >
+                                ▼
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Subcategory pills */}
+                          <div className="space-y-2">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Subcategories ({cat.subCategories?.length || 0})</span>
+                            <div className="flex flex-wrap gap-1.5 max-h-[85px] overflow-y-auto scrollbar-thin">
+                              {cat.subCategories && cat.subCategories.map((sub, sidx) => (
+                                <span
+                                  key={sidx}
+                                  className="text-[9px] bg-slate-100 hover:bg-slate-200/70 border border-slate-200/50 text-slate-600 font-extrabold px-2 py-0.5 rounded-md transition-colors"
+                                >
+                                  {sub.name}
+                                </span>
+                              ))}
+                              {(!cat.subCategories || cat.subCategories.length === 0) && (
+                                <span className="text-[10px] text-red-500 font-bold">No Subcategories Defined!</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Quick Stats / Footer info */}
+                          <div className="border-t border-slate-100/80 pt-3.5 flex items-center justify-between">
+                            <span className="text-[9px] text-slate-400 font-bold">Token: <span className="text-slate-600 font-black">{cat.icon || 'shopping-bag'}</span></span>
+                            
+                            {/* Actions CRUD buttons */}
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => triggerEditCategory(cat)}
+                                className="flex items-center gap-1 text-[10px] font-black text-lucky-magenta bg-lucky-magenta/5 hover:bg-lucky-magenta/10 px-2.5 py-1 rounded-md cursor-pointer transition-all"
+                                id={`edit-category-btn-${cat.id}`}
+                              >
+                                <Edit2 className="w-3 h-3" />
+                                Edit
+                              </button>
+                              
+                              <button
+                                onClick={() => {
+                                  triggerConfirm(
+                                    `Are you sure you want to permanently delete the category "${cat.name}"? All product placements for this category may be affected.`,
+                                    () => handleCategoryDelete(cat.id),
+                                    "Confirm Category Deletion"
+                                  );
+                                }}
+                                className="flex items-center gap-1 text-[10px] font-black text-red-600 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-md cursor-pointer transition-all"
+                                id={`delete-category-btn-${cat.id}`}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {categories.length === 0 && (
+                    <div className="py-16 text-center bg-white border border-slate-200 rounded-2xl" id="empty-categories-state">
+                      <Layers className="w-12 h-12 text-slate-300 mx-auto mb-2 animate-bounce" />
+                      <h4 className="text-sm font-extrabold text-slate-700">No Custom Categories Provisioned</h4>
+                      <p className="text-xs text-slate-400 mt-1 max-w-[280px] mx-auto">Database category tables are currently empty. Press "Propose Category" to begin.</p>
+                    </div>
+                  )}
+
+                </div>
+              )}
+
             </div>
           )}
 
@@ -2596,9 +3712,14 @@ export default function AdminDashboard({
 
                         <button
                           onClick={() => {
-                            if (confirm(`Are you sure you want to delete or archive Order ${order.id}?`)) {
-                              onDeleteOrder(order.id);
-                            }
+                            triggerConfirm(
+                              `Are you sure you want to delete or archive Order ${order.id}?`,
+                              () => {
+                                onDeleteOrder(order.id);
+                              },
+                              'Delete Order',
+                              'Delete'
+                            );
                           }}
                           className="p-1.5 rounded-md text-red-600 hover:bg-red-50 cursor-pointer"
                           title="Delete Order Log"
@@ -2708,9 +3829,14 @@ export default function AdminDashboard({
                         </span>
                         <button
                           onClick={() => {
-                            if (confirm(`Deactivate promo code ${coupon.code}?`)) {
-                              onDeleteCoupon(coupon.code);
-                            }
+                            triggerConfirm(
+                              `Are you sure you want to deactivate promo code ${coupon.code}?`,
+                              () => {
+                                onDeleteCoupon(coupon.code);
+                              },
+                              'Deactivate Coupon',
+                              'Deactivate'
+                            );
                           }}
                           className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors cursor-pointer"
                           title="Revoke Coupon"
@@ -3005,7 +4131,7 @@ export default function AdminDashboard({
                           <th className="p-4">Onboarding Date</th>
                           <th className="p-4">Total Sales (₹)</th>
                           <th className="p-4">Items Sold</th>
-                          <th className="p-4">Supplier Tier</th>
+                          <th className="p-4">Verification Status</th>
                           <th className="p-4">Status</th>
                           <th className="p-4 text-right">Actions</th>
                         </tr>
@@ -3043,12 +4169,12 @@ export default function AdminDashboard({
                                   onClick={() => handleToggleVendorTier(v)}
                                   className={`px-2.5 py-1 rounded-md font-black text-[9.5px] uppercase tracking-wide cursor-pointer transition-colors ${
                                     v.vendorType === 'big' 
-                                      ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-200' 
-                                      : 'bg-blue-50 text-blue-800 hover:bg-blue-100 border border-blue-200'
+                                      ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200' 
+                                      : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
                                   }`}
-                                  title="Toggle supplier tier classification"
+                                  title="Toggle supplier verification (Verified / Unverified)"
                                 >
-                                  {v.vendorType === 'big' ? '👑 Big Scale' : '🌱 Small Scale'}
+                                  {v.vendorType === 'big' ? '👑 Verified Seller' : '🌱 Unverified Seller'}
                                 </button>
                               </td>
                               <td className="p-4">
@@ -3307,8 +4433,225 @@ export default function AdminDashboard({
             </div>
           )}
 
+          {/* 11. SPONSORSHIPS TAB */}
+          {activeTab === 'sponsorships' && (
+            <div className="space-y-6 animate-fadeIn">
+              {/* Form and Preview Card */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                {/* Find & Promote Product Form */}
+                <div className="lg:col-span-5 bg-white rounded-xl border border-slate-200/80 p-5 shadow-3xs space-y-4">
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900 flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-amber-500 fill-amber-500" />
+                      <span>Promote Product Listing</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-400 font-medium">Search products by ID and boost them to the top of results</p>
+                  </div>
+
+                  <div className="space-y-3.5">
+                    {/* Search input for ID */}
+                    <div>
+                      <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Enter Numeric Product ID *</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          placeholder="e.g. 1, 15, 42..."
+                          value={sponsorSearchId}
+                          onChange={(e) => setSponsorSearchId(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2 text-xs font-bold outline-hidden focus:border-lucky-magenta/50 focus:bg-white transition-all pl-9"
+                        />
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      </div>
+                    </div>
+
+                    {/* Searched product preview */}
+                    {sponsorProduct ? (
+                      <div className="bg-slate-50/50 border border-slate-100 rounded-xl p-3.5 flex gap-3.5 items-center">
+                        <img
+                          src={sponsorProduct.images[0]}
+                          alt={sponsorProduct.title}
+                          className="w-14 h-14 object-cover rounded-lg border border-slate-200/60"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <span className="text-[9px] text-lucky-magenta font-extrabold uppercase tracking-wider">{sponsorProduct.category}</span>
+                          <h4 className="text-xs font-black text-gray-800 truncate">{sponsorProduct.title}</h4>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[11px] font-black text-gray-800">₹{sponsorProduct.price}</span>
+                            {sponsorProduct.sponsoredUntil && new Date(sponsorProduct.sponsoredUntil) > new Date() ? (
+                              <span className="text-[9px] text-amber-600 bg-amber-50 border border-amber-100 font-black px-1.5 py-0.2 rounded-sm uppercase tracking-wide">
+                                Active Sponsor
+                              </span>
+                            ) : (
+                              <span className="text-[9px] text-slate-400 bg-slate-100 font-bold px-1.5 py-0.2 rounded-sm">
+                                Standard List
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      sponsorSearchId && (
+                        <div className="bg-red-50/40 border border-red-100 text-[11px] text-red-600 font-bold p-3 rounded-lg flex items-center gap-2">
+                          <span>⚠️ No active product matches Numeric ID "{sponsorSearchId}"</span>
+                        </div>
+                      )
+                    )}
+
+                    {/* Duration Select */}
+                    <div>
+                      <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Sponsorship Duration *</label>
+                      <select
+                        value={sponsorDuration}
+                        onChange={(e) => setSponsorDuration(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold outline-hidden focus:border-lucky-magenta/50 focus:bg-white transition-all cursor-pointer"
+                      >
+                        <option value="1day">1 Day (24 Hours Boost)</option>
+                        <option value="1week">1 Week (7 Days Boost)</option>
+                        <option value="1month">1 Month (30 Days Boost)</option>
+                      </select>
+                    </div>
+
+                    {/* Action Button */}
+                    <button
+                      onClick={handleActivateSponsorship}
+                      disabled={!sponsorProduct || isSponsoringSubmitting}
+                      className="w-full bg-lucky-magenta disabled:opacity-40 text-white font-extrabold text-xs py-3 rounded-xl shadow-md transition-all cursor-pointer hover:bg-opacity-95 flex items-center justify-center gap-2"
+                    >
+                      {isSponsoringSubmitting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Activating Sponsorship...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          <span>Activate Sponsored Boost</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Info and guidelines Column */}
+                <div className="lg:col-span-7 bg-[#1E293B] text-white rounded-xl p-5 flex flex-col justify-between shadow-sm relative overflow-hidden">
+                  <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none">
+                    <Sparkles className="w-64 h-64 text-amber-400" />
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <span className="text-[9px] badge-gradient-magenta font-black px-2 py-0.5 rounded-sm">EXCLUSIVE ADMIN ACCELERATOR</span>
+                      <h3 className="text-base font-black text-white mt-1.5">Sponsored Products Advantage</h3>
+                      <p className="text-[11px] text-slate-300 leading-relaxed font-medium">
+                        Sponsored items bypass normal catalog order and default feeds. They are automatically injected at the very top of searching, filtering, and category browsers for the requested duration.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 pt-2">
+                      <div className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50">
+                        <span className="text-[9.5px] font-black text-amber-400 uppercase tracking-wide">Category Dominance</span>
+                        <p className="text-[10px] text-slate-300 mt-1 leading-snug">First row visibility inside category queries and filters.</p>
+                      </div>
+                      <div className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50">
+                        <span className="text-[9.5px] font-black text-emerald-400 uppercase tracking-wide">Boost Conversion</span>
+                        <p className="text-[10px] text-slate-300 mt-1 leading-snug">Auto-badge indicator "⭐ Sponsored" signals trusted and boosted items.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 border-t border-slate-700/40 pt-4 flex items-center gap-3">
+                    <span className="text-2xl">⚡</span>
+                    <p className="text-[10px] text-slate-300 leading-snug font-medium">
+                      Ensure target product has high-quality images and adequate inventory prior to activating marketing credits.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Active Sponsorships table */}
+              <div className="bg-white rounded-xl border border-slate-200/80 shadow-3xs overflow-hidden">
+                <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900">Active Sponsored Products Catalog ({activeSponsoredProducts.length})</h3>
+                    <p className="text-[11px] text-slate-400 font-medium">Verify current promotional statuses and end-dates</p>
+                  </div>
+                </div>
+
+                {activeSponsoredProducts.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <Sparkles className="w-8 h-8 text-slate-300 mx-auto mb-3" />
+                    <p className="text-xs font-bold text-slate-500">No products are currently sponsored.</p>
+                    <p className="text-[10.5px] text-slate-400 mt-1">Use the Promote panel above to sponsor your first product.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                          <th className="p-4 w-16 text-center">ID</th>
+                          <th className="p-4">Product Details</th>
+                          <th className="p-4">Seller Info</th>
+                          <th className="p-4">Sponsorship Expiration</th>
+                          <th className="p-4 text-center">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-xs font-bold text-slate-600">
+                        {activeSponsoredProducts.map((p) => {
+                          const isExpired = p.sponsoredUntil ? new Date(p.sponsoredUntil) <= new Date() : true;
+                          return (
+                            <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                              <td className="p-4 font-mono font-black text-center text-slate-400 text-[11px]">#{p.numericId}</td>
+                              <td className="p-4">
+                                <div className="flex items-center gap-3">
+                                  <img
+                                    src={p.images[0]}
+                                    alt={p.title}
+                                    className="w-10 h-10 object-cover rounded-md border border-slate-200/50 flex-shrink-0"
+                                    referrerPolicy="no-referrer"
+                                  />
+                                  <div className="min-w-0">
+                                    <h4 className="text-xs font-black text-slate-800 truncate max-w-[280px]" title={p.title}>{p.title}</h4>
+                                    <p className="text-[10px] text-slate-400 font-semibold uppercase">{p.category} • {p.subCategory}</p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="p-4">
+                                <div className="flex flex-col">
+                                  <span className="text-xs font-black text-slate-700">{p.soldBy || 'Jaipur Wholesale'}</span>
+                                  <span className="text-[9.5px] text-slate-400 font-medium">Vendor ID: {p.vendorId || 'N/A'}</span>
+                                </div>
+                              </td>
+                              <td className="p-4">
+                                <div className="flex flex-col">
+                                  <span className="text-xs font-black text-slate-800">{p.sponsoredUntil ? new Date(p.sponsoredUntil).toLocaleString() : 'N/A'}</span>
+                                  <span className="text-[10px] text-lucky-magenta font-semibold mt-0.5">
+                                    {p.sponsoredUntil ? formatSponsorshipRemaining(p.sponsoredUntil) : ''}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="p-4 text-center">
+                                <span className={`inline-flex items-center gap-1 text-[9.5px] font-black uppercase px-2.5 py-1 rounded-md border shadow-3xs ${
+                                  isExpired
+                                    ? 'bg-red-50 text-red-500 border-red-100'
+                                    : 'bg-emerald-50 text-emerald-600 border-emerald-100 animate-pulse'
+                                }`}>
+                                  {isExpired ? 'Expired' : 'Active Boost'}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
         </div>
-      </div>
       {/* 7. BANNERS TAB */}
       {activeTab === 'banners' && (
         <div className="space-y-4 animate-fadeIn p-4 md:p-6">
@@ -3351,9 +4694,14 @@ export default function AdminDashboard({
                     </div>
                     <button
                       onClick={() => {
-                        if (confirm('Delete this banner?')) {
-                          onDeleteBanner?.(b.id);
-                        }
+                        triggerConfirm(
+                          'Are you sure you want to delete this banner?',
+                          () => {
+                            onDeleteBanner?.(b.id);
+                          },
+                          'Delete Banner',
+                          'Delete'
+                        );
                       }}
                       className="w-7 h-7 flex items-center justify-center rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors shrink-0 cursor-pointer"
                     >
@@ -3413,12 +4761,20 @@ export default function AdminDashboard({
                       onChange={(e) => setPCategory(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 cursor-pointer focus:outline-hidden focus:border-lucky-magenta"
                     >
-                      <option value="Kurtis & Suits">Kurtis & Suits</option>
-                      <option value="Watches">Watches</option>
-                      <option value="Sarees">Sarees</option>
-                      <option value="Jewellery">Jewellery</option>
-                      <option value="Footwear">Footwear</option>
-                      <option value="Bags & Purses">Bags & Purses</option>
+                      {categories && categories.length > 0 ? (
+                        categories.map(c => (
+                          <option key={c.id} value={c.name}>{c.name}</option>
+                        ))
+                      ) : (
+                        <>
+                          <option value="Kurtis & Suits">Kurtis & Suits</option>
+                          <option value="Watches">Watches</option>
+                          <option value="Sarees">Sarees</option>
+                          <option value="Jewellery">Jewellery</option>
+                          <option value="Footwear">Footwear</option>
+                          <option value="Bags & Purses">Bags & Purses</option>
+                        </>
+                      )}
                     </select>
                   </div>
 
@@ -4378,9 +5734,79 @@ export default function AdminDashboard({
         )}
       </AnimatePresence>
 
+      {/* Custom Confirmation Dialog */}
+      <AnimatePresence>
+        {confirmDialog && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100"
+            >
+              <h3 className="text-sm font-extrabold text-slate-900 mb-2">{confirmDialog.title || 'Confirm Action'}</h3>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed mb-6">{confirmDialog.message}</p>
+              <div className="flex justify-end gap-2.5">
+                <button
+                  onClick={() => setConfirmDialog(null)}
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    confirmDialog.onConfirm();
+                    setConfirmDialog(null);
+                  }}
+                  className="px-4 py-2 text-xs font-black text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-xs cursor-pointer"
+                >
+                  {confirmDialog.confirmText || 'Confirm'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
           </div>
         )}
       </div>
+
+      {/* Custom Confirmation Dialog */}
+      <AnimatePresence>
+        {confirmDialog && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100"
+            >
+              <h3 className="text-sm font-extrabold text-slate-900 mb-2">{confirmDialog.title || 'Confirm Action'}</h3>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed mb-6">{confirmDialog.message}</p>
+              <div className="flex justify-end gap-2.5">
+                <button
+                  onClick={() => setConfirmDialog(null)}
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    confirmDialog.onConfirm();
+                    setConfirmDialog(null);
+                  }}
+                  className="px-4 py-2 text-xs font-black text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-xs cursor-pointer"
+                >
+                  {confirmDialog.confirmText || 'Confirm'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
+  </div>
   );
 }

@@ -56,6 +56,8 @@ export interface Product {
   approvalStatus?: 'approved' | 'pending' | 'rejected';
   rejectionReason?: string;
   createdAt?: string;
+  numericId?: number; // Sequential simple unique ID starting from 1
+  sponsoredUntil?: string; // Timestamp until which product is sponsored
 }
 
 export interface Vendor {
@@ -71,6 +73,8 @@ export interface Vendor {
   createdAt: string;
   state?: string;
   city?: string;
+  avatar?: string;
+  description?: string;
 }
 
 export interface CartItem {

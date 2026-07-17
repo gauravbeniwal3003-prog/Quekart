@@ -115,6 +115,30 @@ VALUES
 ('vendor-small-craft', '{"id": "vendor-small-craft", "name": "Jaipur Handcrafted Decors", "email": "jaipur.crafts@quekart.com", "phone": "9123456789", "vendorType": "small", "businessCategory": "Home & Kitchen", "gstin": "08BBBBB2222B2Z2", "rating": 4.2, "status": "active", "createdAt": "2026-07-14T00:00:00Z"}')
 ON CONFLICT (id) DO NOTHING;
 
+-- ----------------------------------------------------------------------
+-- 5. CATEGORIES TABLE
+-- ----------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS categories (
+    id TEXT PRIMARY KEY,
+    data JSONB NOT NULL,
+    position INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE categories DISABLE ROW LEVEL SECURITY;
+
+-- Seed Default Categories Data
+INSERT INTO categories (id, data, position)
+VALUES
+('cat-popular', '{"id": "cat-popular", "name": "Popular", "icon": "star", "subCategories": [{"name": "Top Brands", "image": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=200&h=200&fit=crop"}, {"name": "Premium Collection", "image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=200&h=200&fit=crop"}]}', 0),
+('cat-kurti-saree', '{"id": "cat-kurti-saree", "name": "Kurti, Saree & Lehenga", "icon": "shirt", "subCategories": [{"name": "Kurtis & Dress", "image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=200&h=200&fit=crop"}, {"name": "Sarees", "image": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=200&h=200&fit=crop"}]}', 1),
+('cat-women-western', '{"id": "cat-women-western", "name": "Women Western", "icon": "sparkles", "subCategories": [{"name": "Westernwear", "image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=200&h=200&fit=crop"}, {"name": "Dresses", "image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=200&h=200&fit=crop"}]}', 2),
+('cat-lingerie', '{"id": "cat-lingerie", "name": "Lingerie", "icon": "heart", "subCategories": [{"name": "Bras & Panties", "image": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=200&h=200&fit=crop"}]}', 3),
+('cat-men', '{"id": "cat-men", "name": "Men", "icon": "smile", "subCategories": [{"name": "Men Fashion", "image": "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=200&h=200&fit=crop"}]}', 4),
+('cat-kids', '{"id": "cat-kids", "name": "Kids & Toys", "icon": "baby", "subCategories": [{"name": "Kids", "image": "https://images.unsplash.com/photo-1519689680058-324335c77ebe?w=200&h=200&fit=crop"}]}', 5),
+('cat-home', '{"id": "cat-home", "name": "Home & Kitchen", "icon": "home", "subCategories": [{"name": "Cookware", "image": "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=200&h=200&fit=crop"}]}', 6)
+ON CONFLICT (id) DO NOTHING;
+
 -- ======================================================================
 -- SUCCESS: Your database tables are now created, optimized, and seeded!
 -- ======================================================================

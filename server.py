@@ -138,6 +138,19 @@ class Coupon(BaseModel):
     minPurchase: float
     description: str
 
+class SubCategory(BaseModel):
+    name: str
+    image: str
+
+class Category(BaseModel):
+    id: str
+    name: str
+    icon: str
+    subCategories: List[SubCategory]
+
+class CategoryReorder(BaseModel):
+    ids: List[str]
+
 class OrderStatusUpdate(BaseModel):
     status: str
 
@@ -174,6 +187,68 @@ local_coupons: List[Dict[str, Any]] = [
         "value": 20.0,
         "minPurchase": 0.0,
         "description": "Flat 20% OFF on all products"
+    }
+]
+
+local_categories: List[Dict[str, Any]] = [
+    {
+        "id": "cat-popular",
+        "name": "Popular",
+        "icon": "star",
+        "subCategories": [
+            {"name": "Top Brands", "image": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=200&h=200&fit=crop"},
+            {"name": "Premium Collection", "image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=200&h=200&fit=crop"}
+        ]
+    },
+    {
+        "id": "cat-kurti-saree",
+        "name": "Kurti, Saree & Lehenga",
+        "icon": "shirt",
+        "subCategories": [
+            {"name": "Kurtis & Dress", "image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=200&h=200&fit=crop"},
+            {"name": "Sarees", "image": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=200&h=200&fit=crop"}
+        ]
+    },
+    {
+        "id": "cat-women-western",
+        "name": "Women Western",
+        "icon": "sparkles",
+        "subCategories": [
+            {"name": "Westernwear", "image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=200&h=200&fit=crop"},
+            {"name": "Dresses", "image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=200&h=200&fit=crop"}
+        ]
+    },
+    {
+        "id": "cat-lingerie",
+        "name": "Lingerie",
+        "icon": "heart",
+        "subCategories": [
+            {"name": "Bras & Panties", "image": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=200&h=200&fit=crop"}
+        ]
+    },
+    {
+        "id": "cat-men",
+        "name": "Men",
+        "icon": "smile",
+        "subCategories": [
+            {"name": "Men Fashion", "image": "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=200&h=200&fit=crop"}
+        ]
+    },
+    {
+        "id": "cat-kids",
+        "name": "Kids & Toys",
+        "icon": "baby",
+        "subCategories": [
+            {"name": "Kids", "image": "https://images.unsplash.com/photo-1519689680058-324335c77ebe?w=200&h=200&fit=crop"}
+        ]
+    },
+    {
+        "id": "cat-home",
+        "name": "Home & Kitchen",
+        "icon": "home",
+        "subCategories": [
+            {"name": "Cookware", "image": "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=200&h=200&fit=crop"}
+        ]
     }
 ]
 
@@ -331,6 +406,99 @@ async def delete_coupon(code: str, x_admin_secret: Optional[str] = Header(None))
     global local_coupons
     local_coupons = [c for c in local_coupons if c["code"] != code]
     return {"success": True, "message": "Coupon deleted"}
+
+
+# --- CATEGORIES ENDPOINTS ---
+
+@app.get("/api/categories")
+async def get_categories():
+    if use_supabase and supabase:
+        try:
+            res = supabase.table("categories").select("*").order("position").execute()
+            if res.data is not None:
+                return [row["data"] for row in res.data]
+        except Exception as e:
+            print(f"Supabase categories warning: {e}")
+    return local_categories
+
+@app.post("/api/categories", status_code=201)
+async def create_category(category: Category, x_admin_secret: Optional[str] = Header(None)):
+    verify_admin_header(x_admin_secret)
+    cat_dict = category.dict()
+    
+    if use_supabase and supabase:
+        try:
+            # Determine position
+            count_res = supabase.table("categories").select("id").execute()
+            position = len(count_res.data) if count_res.data else 0
+            supabase.table("categories").insert({"id": category.id, "data": cat_dict, "position": position}).execute()
+            local_categories.append(cat_dict)
+            return cat_dict
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+            
+    local_categories.append(cat_dict)
+    return cat_dict
+
+@app.put("/api/categories/{id}")
+async def update_category(id: str, category: Category, x_admin_secret: Optional[str] = Header(None)):
+    verify_admin_header(x_admin_secret)
+    cat_dict = category.dict()
+    
+    if use_supabase and supabase:
+        try:
+            supabase.table("categories").update({"data": cat_dict}).eq("id", id).execute()
+            
+            global local_categories
+            local_categories = [cat_dict if c["id"] == id else c for c in local_categories]
+            return cat_dict
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+            
+    local_categories = [cat_dict if c["id"] == id else c for c in local_categories]
+    return cat_dict
+
+@app.delete("/api/categories/{id}")
+async def delete_category(id: str, x_admin_secret: Optional[str] = Header(None)):
+    verify_admin_header(x_admin_secret)
+    
+    if use_supabase and supabase:
+        try:
+            supabase.table("categories").delete().eq("id", id).execute()
+            
+            global local_categories
+            local_categories = [c for c in local_categories if c["id"] != id]
+            return {"success": True, "message": "Category deleted successfully"}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+            
+    local_categories = [c for c in local_categories if c["id"] != id]
+    return {"success": True, "message": "Category deleted"}
+
+@app.post("/api/categories/reorder")
+async def reorder_categories(reorder_data: CategoryReorder, x_admin_secret: Optional[str] = Header(None)):
+    verify_admin_header(x_admin_secret)
+    ids = reorder_data.ids
+    
+    if use_supabase and supabase:
+        try:
+            for i, cid in enumerate(ids):
+                supabase.table("categories").update({"position": i}).eq("id", cid).execute()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+            
+    global local_categories
+    ordered = []
+    for cid in ids:
+        found = next((c for c in local_categories if c["id"] == cid), None)
+        if found:
+            ordered.append(found)
+    for c in local_categories:
+        if c["id"] not in ids:
+            ordered.append(c)
+    local_categories = ordered
+    
+    return {"success": True, "message": "Categories reordered successfully"}
 
 
 # --- ORDERS (WITH TOTAL SERVER-SIDE CALCULATION & VERIFICATION) ---

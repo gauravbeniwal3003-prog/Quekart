@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Sparkles, Heart, HelpCircle, ArrowLeft, Smile, Search } from 'lucide-react';
-import { mockProducts, initialOrders, initialBanners } from './data';
-import { Product, CartItem, Order, Coupon, Banner } from './types';
+import { mockProducts, initialOrders, initialBanners, mockCategories } from './data';
+import { Product, CartItem, Order, Coupon, Banner, Category } from './types';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
 import HomeFeed from './components/HomeFeed';
@@ -93,12 +93,12 @@ export default function App() {
     } else if (parts[0] === 'admin') {
       tab = 'admin';
       if (parts[1]) {
-        subPage = parts[1];
+        subPage = parts.slice(1).join('/');
       }
     } else if (parts[0] === 'vendor') {
       tab = 'vendor';
       if (parts[1]) {
-        subPage = parts[1];
+        subPage = parts.slice(1).join('/');
       }
     } else if (['home', 'categories', 'orders', 'wishlist', 'cart', 'logo'].includes(parts[0])) {
       tab = parts[0];
@@ -120,6 +120,9 @@ export default function App() {
   // Database-driven coupons state
   const [coupons, setCoupons] = useState<Coupon[]>([]);
 
+  // Database-driven categories state
+  const [categories, setCategories] = useState<Category[]>(mockCategories);
+
   // Dynamic persistent banners state
   const [banners, setBanners] = useState<Banner[]>(initialBanners);
 
@@ -127,10 +130,11 @@ export default function App() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const [productsRes, ordersRes, couponsRes] = await Promise.all([
+        const [productsRes, ordersRes, couponsRes, categoriesRes] = await Promise.all([
           fetch('/api/products?all=true'),
           fetch('/api/orders'),
-          fetch('/api/coupons')
+          fetch('/api/coupons'),
+          fetch('/api/categories')
         ]);
         
         if (productsRes.ok) {
@@ -144,6 +148,10 @@ export default function App() {
         if (couponsRes.ok) {
           const couponsData = await couponsRes.json();
           setCoupons(couponsData);
+        }
+        if (categoriesRes.ok) {
+          const categoriesData = await categoriesRes.json();
+          setCategories(categoriesData);
         }
       } catch (err) {
         console.warn('⚠️ Server offline or loading failed. Operating in local fallback mode.', err);
@@ -562,6 +570,7 @@ export default function App() {
               {/* Tab Switcher */}
               {activeTab === 'home' && (
                 <HomeFeed
+                  categories={categories}
                   products={searchedProducts}
                   banners={banners}
                   onSelectProduct={(p) => navigateTo('/product/' + p.id)}
@@ -576,6 +585,7 @@ export default function App() {
  
               {activeTab === 'categories' && (
                 <CategoriesView
+                  categories={categories}
                   onSelectCategory={setSelectedCategory}
                   onSelectTab={(tab) => navigateTo('/' + tab)}
                 />
@@ -690,6 +700,8 @@ export default function App() {
                   orders={orders}
                   coupons={coupons}
                   banners={banners}
+                  categories={categories}
+                  onSetCategories={setCategories}
                   onAddProduct={handleAddProduct}
                   onEditProduct={handleEditProduct}
                   onDeleteProduct={handleDeleteProduct}

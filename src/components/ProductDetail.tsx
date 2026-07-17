@@ -321,6 +321,18 @@ export default function ProductDetail({
           
           {/* Product Information Card */}
           <div className="bg-white p-4 border-b md:border border-gray-200 md:rounded-xl md:shadow-3xs overflow-hidden" id="pricing-info-card">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              {product.numericId && (
+                <span className="bg-slate-100 text-slate-700 border border-slate-200/80 font-mono font-black text-[10px] px-2.5 py-0.5 rounded-md">
+                  Product ID: #{product.numericId}
+                </span>
+              )}
+              {product.sponsoredUntil && new Date(product.sponsoredUntil) > new Date() && (
+                <span className="bg-amber-50 text-amber-700 border border-amber-200 font-black text-[10px] px-2.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1">
+                  ⭐ Sponsored
+                </span>
+              )}
+            </div>
             <h1 className="text-sm md:text-base font-semibold text-gray-700 leading-snug break-words overflow-hidden" id="detail-title">
               {product.title}
             </h1>

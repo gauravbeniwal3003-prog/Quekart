@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { ArrowUpDown, ChevronDown, SlidersHorizontal, Heart, Sparkles, CheckCircle2, Loader2, Search, ShoppingBag, Tag } from 'lucide-react';
-import { Product, Banner } from '../types';
+import { Product, Banner, Category } from '../types';
 
 interface HomeFeedProps {
+  categories?: Category[];
   products: Product[];
   banners: Banner[];
   onSelectProduct: (product: Product) => void;
@@ -14,6 +15,7 @@ interface HomeFeedProps {
 }
 
 export default function HomeFeed({
+  categories,
   products,
   banners,
   onSelectProduct,
@@ -125,27 +127,36 @@ export default function HomeFeed({
     }
   }, [searchQuery, filteredProducts.length]);
 
-  // Category circles data matching Screenshot 4
+  // Dynamic Category bubbles loaded from categories prop
+  const dynamicCategories = categories && categories.length > 0 ? categories : [];
   const categoryBubbles = [
     { label: 'All Categories', value: 'All', bg: 'bg-blue-100', img: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150' },
-    { label: 'Kurtis & Dress', value: 'Kurti, Saree & Lehenga', bg: 'bg-blue-100', img: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150' },
-    { label: 'Kids', value: 'Kids & Toys', bg: 'bg-yellow-100', img: 'https://images.unsplash.com/photo-1519457431-44ccd64a579b?auto=format&fit=crop&q=80&w=150' },
-    { label: 'Home', value: 'Home & Kitchen', bg: 'bg-orange-100', img: 'https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&q=80&w=150' },
-    { label: 'Saree', value: 'Kurti, Saree & Lehenga', bg: 'bg-blue-100', img: 'https://images.unsplash.com/photo-1610030469668-93535c17b6b3?auto=format&fit=crop&q=80&w=150' },
-    { label: 'Western Wear', value: 'Women Western', bg: 'bg-green-100', img: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&q=80&w=150' },
+    ...dynamicCategories.map((cat, index) => {
+      const colors = ['bg-pink-50', 'bg-blue-50', 'bg-yellow-50', 'bg-orange-50', 'bg-green-50', 'bg-purple-50', 'bg-teal-50'];
+      const bg = colors[index % colors.length];
+      const img = cat.subCategories && cat.subCategories.length > 0 
+        ? cat.subCategories[0].image 
+        : 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150';
+      return {
+        label: cat.name,
+        value: cat.name,
+        bg,
+        img
+      };
+    })
   ];
 
   return (
     <div className="pb-20 max-w-7xl mx-auto w-full px-0 md:px-4" id="home-feed-container">
-      {/* Horizontal Categories Slider */}
-      <div className="bg-white py-4 border-b border-gray-100 overflow-x-auto scrollbar-hide flex items-center gap-4 px-4 shadow-2xs" id="category-bubbles-slider">
+      {/* Categories Grid (4 in a line on mobile, wrapping gracefully) */}
+      <div className="bg-white py-5 px-3 border-b border-gray-100 grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-y-5 gap-x-2 justify-items-center shadow-3xs" id="category-bubbles-slider">
         {categoryBubbles.map((item, index) => {
           const isActive = selectedCategory === item.value;
           return (
             <button
               key={index}
               onClick={() => onSelectCategory(item.value)}
-              className="flex flex-col items-center flex-shrink-0 cursor-pointer group"
+              className="flex flex-col items-center cursor-pointer group w-full max-w-[80px]"
               id={`bubble-${index}`}
             >
               <div className={`w-14 h-14 rounded-full overflow-hidden flex items-center justify-center relative transition-all border-2 ${
@@ -158,8 +169,8 @@ export default function HomeFeed({
                   referrerPolicy="no-referrer"
                 />
               </div>
-              <span className={`text-[10px] mt-1 text-center font-medium max-w-[70px] truncate tracking-tight text-gray-700 ${
-                isActive ? 'text-lucky-magenta font-bold' : ''
+              <span className={`text-[10px] mt-1 text-center font-medium w-full truncate tracking-tight text-gray-700 px-0.5 ${
+                isActive ? 'text-lucky-magenta font-black' : 'font-semibold'
               }`}>
                 {item.label}
               </span>
@@ -553,6 +564,20 @@ export default function HomeFeed({
                 {/* Details Section */}
                 <div className="p-2.5 flex-1 flex flex-col justify-between overflow-hidden">
                   <div>
+                    {/* ID and Sponsored Indicators */}
+                    <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                      {product.numericId && (
+                        <span className="bg-slate-100 text-slate-700 font-mono font-black text-[9px] px-1.5 py-0.2 rounded-sm border border-slate-200/55">
+                          ID: {product.numericId}
+                        </span>
+                      )}
+                      {product.sponsoredUntil && new Date(product.sponsoredUntil) > new Date() && (
+                        <span className="bg-amber-50 text-amber-700 font-black text-[9px] px-1.5 py-0.2 rounded-sm border border-amber-200/55 uppercase tracking-wide">
+                          ⭐ Sponsored
+                        </span>
+                      )}
+                    </div>
+
                     {/* Title */}
                     <h3 className="text-xs font-medium text-gray-500 line-clamp-1 leading-tight tracking-tight mb-1 break-words overflow-hidden" title={product.title}>
                       {product.title}

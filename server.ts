@@ -4,8 +4,105 @@ import { createServer as createViteServer } from 'vite';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from '@google/genai';
-import { mockProducts, initialOrders } from './src/data.js';
-import { Product, Order, Coupon, CartItem, Vendor } from './src/types.js';
+import { mockProducts, initialOrders, mockCategories } from './src/data.js';
+import { Product, Order, Coupon, CartItem, Vendor, Category } from './src/types.js';
+import fs from 'fs';
+
+// Product Numeric ID Generator
+let lastProductNumericId = 10;
+try {
+  if (fs.existsSync('./product_counter.txt')) {
+    const saved = fs.readFileSync('./product_counter.txt', 'utf8');
+    const val = parseInt(saved, 10);
+    if (!isNaN(val)) {
+      lastProductNumericId = val;
+    }
+  } else {
+    fs.writeFileSync('./product_counter.txt', String(lastProductNumericId), 'utf8');
+  }
+} catch (e) {
+  console.warn('Error reading/writing product_counter.txt:', e);
+}
+
+function getNextProductNumericId(): number {
+  lastProductNumericId += 1;
+  try {
+    fs.writeFileSync('./product_counter.txt', String(lastProductNumericId), 'utf8');
+  } catch (e) {
+    console.warn('Error saving product_counter.txt:', e);
+  }
+  return lastProductNumericId;
+}
+
+async function ensureAllProductsHaveNumericIds() {
+  let productsList: Product[] = [];
+  try {
+    if (useSupabase && supabase) {
+      const { data, error } = await supabase.from('products').select('*');
+      if (!error && data) {
+        productsList = data.map((row: any) => row.data);
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to query Supabase products for numeric ID sync:', err);
+  }
+
+  if (productsList.length === 0) {
+    productsList = localProducts;
+  }
+
+  let maxId = 0;
+  for (const p of productsList) {
+    if (p.numericId && p.numericId > maxId) {
+      maxId = p.numericId;
+    }
+  }
+
+  // Ensure maxId is at least the initial count
+  if (maxId < mockProducts.length) {
+    maxId = mockProducts.length;
+  }
+
+  let updatedCount = 0;
+  for (const p of productsList) {
+    if (!p.numericId) {
+      maxId += 1;
+      p.numericId = maxId;
+      updatedCount++;
+      // Save it back to DB if Supabase is enabled
+      if (useSupabase && supabase) {
+        try {
+          await supabase.from('products').update({ data: p }).eq('id', p.id);
+        } catch (dbErr) {
+          console.error(`Failed to update numericId for product ${p.id} in DB:`, dbErr);
+        }
+      }
+    }
+  }
+
+  // Ensure all local products have numeric IDs in memory
+  for (const p of localProducts) {
+    if (!p.numericId) {
+      const match = productsList.find(pl => pl.id === p.id);
+      if (match && match.numericId) {
+        p.numericId = match.numericId;
+      } else {
+        maxId += 1;
+        p.numericId = maxId;
+      }
+    }
+  }
+
+  // Save the highest counter value
+  lastProductNumericId = Math.max(lastProductNumericId, maxId);
+  try {
+    fs.writeFileSync('./product_counter.txt', String(lastProductNumericId), 'utf8');
+  } catch (e) {
+    console.warn('Error saving final product_counter.txt:', e);
+  }
+
+  console.log(`🤖 Verified Product Sequential IDs: Max allotted ID is ${lastProductNumericId}. Assured unique non-recycled sequence.`);
+}
 
 // Load environment variables
 dotenv.config();
@@ -117,6 +214,7 @@ let localProducts: Product[] = mockProducts.map(p => ({
 let localOrders: Order[] = [...initialOrders];
 let localCoupons: Coupon[] = [...initialCouponsList];
 let localVendors: Vendor[] = [...initialVendors];
+let localCategories: Category[] = [...mockCategories];
 
 // -------------------------------------------------------------
 // HELPER: TEST SUPABASE TABLES & AUTO-SEED
@@ -209,6 +307,27 @@ async function testAndSeedSupabase() {
       console.error('❌ Vendors table check failed:', vError);
     }
 
+    // 5. Verify and seed categories table
+    const { data: catCountData, error: catError } = await supabase.from('categories').select('id');
+    if (!catError) {
+      const existingCategoryIds = new Set((catCountData || []).map((row: any) => row.id));
+      if (existingCategoryIds.size === 0) {
+        console.log('🌱 Categories table is empty. Seeding default categories...');
+        for (let i = 0; i < localCategories.length; i++) {
+          const c = localCategories[i];
+          console.log(`🌱 Seeding default category: ${c.id}`);
+          const { error: insertErr } = await supabase.from('categories').insert({ id: c.id, data: c, position: i });
+          if (insertErr) {
+            console.error(`⚠️ Error seeding category ${c.id}:`, insertErr);
+          }
+        }
+      } else {
+        console.log(`📊 Categories in Supabase: ${existingCategoryIds.size}. Skipping seeding to preserve admin changes.`);
+      }
+    } else {
+      console.error('❌ Categories table check failed:', catError);
+    }
+
     console.log('✨ Supabase database synchronized perfectly. Operating in LIVE DATABASE MODE.');
     useSupabase = true;
   } catch (err) {
@@ -218,7 +337,9 @@ async function testAndSeedSupabase() {
 }
 
 // Run connection tests
-testAndSeedSupabase();
+testAndSeedSupabase().then(() => {
+  ensureAllProductsHaveNumericIds();
+});
 
 // -------------------------------------------------------------
 // SECURITY MIDDLEWARES
@@ -400,6 +521,16 @@ app.get('/api/products', async (req, res) => {
       productsList = productsList.filter(p => p.approvalStatus === 'approved' || !p.approvalStatus);
     }
 
+    // Boost sponsored products to the top
+    const nowISO = new Date().toISOString();
+    productsList.sort((a, b) => {
+      const aSponsored = a.sponsoredUntil && a.sponsoredUntil > nowISO;
+      const bSponsored = b.sponsoredUntil && b.sponsoredUntil > nowISO;
+      if (aSponsored && !bSponsored) return -1;
+      if (!aSponsored && bSponsored) return 1;
+      return 0;
+    });
+
     res.json(productsList);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch products' });
@@ -451,12 +582,20 @@ app.post('/api/products', async (req, res) => {
       newProduct.vendorId = finalVendorId;
       newProduct.soldBy = finalVendorName;
       newProduct.soldByRating = vendor.rating || 4.2;
+
+      // Prevent vendor from manually adding tags or promo-flags
+      newProduct.tag = undefined;
+      newProduct.isAd = undefined;
+      newProduct.sponsoredUntil = undefined;
     }
   }
 
   if (!isAuthorized) {
     return res.status(403).json({ error: 'Unauthorized. Product submission rejected.' });
   }
+
+  // Assign sequential numericId
+  newProduct.numericId = getNextProductNumericId();
 
   try {
     if (useSupabase && supabase) {
@@ -473,6 +612,68 @@ app.post('/api/products', async (req, res) => {
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to create product' });
   }
+});
+
+app.post('/api/products/sponsor', async (req, res) => {
+  const adminSecret = req.headers['x-admin-secret'];
+  if (!adminSecret || adminSecret !== ADMIN_SECRET) {
+    return res.status(403).json({ error: 'Unauthorized. Only admins can sponsor products.' });
+  }
+
+  const { numericId, duration } = req.body;
+  if (!numericId || !duration) {
+    return res.status(400).json({ error: 'Missing numericId or duration' });
+  }
+
+  // Find product across both Supabase and memory
+  let productsList: Product[] = [];
+  if (useSupabase && supabase) {
+    const { data, error } = await supabase.from('products').select('*');
+    if (!error && data) {
+      productsList = data.map((row: any) => row.data);
+    }
+  } else {
+    productsList = localProducts;
+  }
+
+  const product = productsList.find(p => p.numericId === Number(numericId));
+  if (!product) {
+    return res.status(404).json({ error: `Product with ID "${numericId}" not found` });
+  }
+
+  // Calculate sponsoredUntil timestamp
+  const now = new Date();
+  if (duration === '1day') {
+    now.setDate(now.getDate() + 1);
+  } else if (duration === '1week') {
+    now.setDate(now.getDate() + 7);
+  } else if (duration === '1month') {
+    now.setMonth(now.getMonth() + 1);
+  } else {
+    return res.status(400).json({ error: 'Invalid duration. Choose "1day", "1week", or "1month".' });
+  }
+
+  product.sponsoredUntil = now.toISOString();
+
+  // Save back
+  if (useSupabase && supabase) {
+    const { error } = await supabase.from('products').update({ data: product }).eq('id', product.id);
+    if (error) {
+      return res.status(500).json({ error: 'Failed to update product in database' });
+    }
+  }
+
+  // Update memory list to be in sync
+  const localMatch = localProducts.find(p => p.id === product.id);
+  if (localMatch) {
+    localMatch.sponsoredUntil = product.sponsoredUntil;
+  }
+
+  res.json({
+    success: true,
+    message: `Product "${product.title}" (ID: ${product.numericId}) is now sponsored until ${now.toLocaleString()}`,
+    product
+  });
 });
 
 app.put('/api/products', async (req, res) => {
@@ -519,6 +720,12 @@ app.put('/api/products', async (req, res) => {
       if (vendor) {
         updatedProduct.approvalStatus = vendor.vendorType === 'big' ? 'approved' : 'pending';
       }
+
+      // Explicitly protect administrative or automatic tags & stats from vendor overwrite
+      updatedProduct.tag = existingProduct.tag;
+      updatedProduct.numericId = existingProduct.numericId;
+      updatedProduct.sponsoredUntil = existingProduct.sponsoredUntil;
+      updatedProduct.isAd = existingProduct.isAd;
     }
   }
 
@@ -753,6 +960,120 @@ app.delete('/api/coupons/:code', authenticateAdmin, async (req, res) => {
     res.json({ success: true, message: 'Coupon deleted' });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to delete coupon' });
+  }
+});
+
+
+// --- CATEGORIES ---
+app.get('/api/categories', async (req, res) => {
+  try {
+    if (useSupabase && supabase) {
+      const { data, error } = await supabase.from('categories').select('*').order('position', { ascending: true });
+      if (!error && data) {
+        return res.json(data.map((row: any) => row.data));
+      }
+    }
+    res.json(localCategories);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch categories' });
+  }
+});
+
+app.post('/api/categories', authenticateAdmin, async (req, res) => {
+  const newCategory: Category = req.body;
+  if (!newCategory || !newCategory.id) {
+    return res.status(400).json({ error: 'Invalid category data' });
+  }
+
+  try {
+    if (useSupabase && supabase) {
+      const { data: countData } = await supabase.from('categories').select('id');
+      const position = countData ? countData.length : 0;
+      const { error } = await supabase.from('categories').insert([{ id: newCategory.id, data: newCategory, position }]);
+      if (!error) {
+        localCategories.push(newCategory);
+        return res.status(201).json(newCategory);
+      }
+      throw error;
+    }
+
+    localCategories.push(newCategory);
+    res.status(201).json(newCategory);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to create category' });
+  }
+});
+
+app.put('/api/categories/:id', authenticateAdmin, async (req, res) => {
+  const { id } = req.params;
+  const updatedCategory: Category = req.body;
+  if (!updatedCategory) {
+    return res.status(400).json({ error: 'Invalid category data' });
+  }
+
+  try {
+    if (useSupabase && supabase) {
+      const { error } = await supabase.from('categories').update({ data: updatedCategory }).eq('id', id);
+      if (!error) {
+        localCategories = localCategories.map(c => c.id === id ? updatedCategory : c);
+        return res.json(updatedCategory);
+      }
+      throw error;
+    }
+
+    localCategories = localCategories.map(c => c.id === id ? updatedCategory : c);
+    res.json(updatedCategory);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to update category' });
+  }
+});
+
+app.delete('/api/categories/:id', authenticateAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (useSupabase && supabase) {
+      const { error } = await supabase.from('categories').delete().eq('id', id);
+      if (!error) {
+        localCategories = localCategories.filter(c => c.id !== id);
+        return res.json({ success: true, message: 'Category deleted successfully' });
+      }
+      throw error;
+    }
+
+    localCategories = localCategories.filter(c => c.id !== id);
+    res.json({ success: true, message: 'Category deleted' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to delete category' });
+  }
+});
+
+app.post('/api/categories/reorder', authenticateAdmin, async (req, res) => {
+  const { ids } = req.body;
+  if (!ids || !Array.isArray(ids)) {
+    return res.status(400).json({ error: 'Invalid ids array' });
+  }
+
+  try {
+    if (useSupabase && supabase) {
+      for (let i = 0; i < ids.length; i++) {
+        const { error } = await supabase.from('categories').update({ position: i }).eq('id', ids[i]);
+        if (error) throw error;
+      }
+    }
+
+    const ordered: Category[] = [];
+    for (const cid of ids) {
+      const found = localCategories.find(c => c.id === cid);
+      if (found) ordered.push(found);
+    }
+    for (const c of localCategories) {
+      if (!ids.includes(c.id)) ordered.push(c);
+    }
+    localCategories = ordered;
+
+    res.json({ success: true, message: 'Categories reordered successfully' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to reorder categories' });
   }
 });
 

@@ -20,7 +20,7 @@ const USER_WATCH_1 = 'https://images.unsplash.com/photo-1547996160-81dfa63595aa?
 const USER_WATCH_2 = 'https://images.unsplash.com/photo-1434056886845-dac89ffee9b5?auto=format&fit=crop&q=80&w=150';
 const USER_WATCH_3 = 'https://images.unsplash.com/photo-1509048191080-d2984bad6ae5?auto=format&fit=crop&q=80&w=150';
 
-export const mockProducts: Product[] = [
+const rawProducts: Product[] = [
   {
     id: 'prod-watch-lr05',
     title: 'New Stylish LR 05 Black Dial Black PU Strap Watch For Men',
@@ -401,6 +401,11 @@ export const mockProducts: Product[] = [
     reviews: []
   }
 ];
+
+export const mockProducts: Product[] = rawProducts.map((p, idx) => ({
+  ...p,
+  numericId: idx + 1
+}));
 
 export const mockCategories: Category[] = [
   {
