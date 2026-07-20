@@ -7,6 +7,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { mockProducts, initialOrders, mockCategories } from './src/data.js';
 import { Product, Order, Coupon, CartItem, Vendor, Category } from './src/types.js';
 import fs from 'fs';
+import crypto from 'crypto';
 
 // Product Numeric ID Generator
 let lastProductNumericId = 10;
@@ -120,6 +121,77 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'lucky-secret-admin-pass-123';
+const JWT_SECRET = process.env.JWT_SECRET || 'quekart-secure-jwt-secret-987654321';
+
+// --- SECURE JWT UTILITIES (Using native crypto for perfect reliability) ---
+function signToken(payload: any, expiryHours = 24): string {
+  const header = { alg: 'HS256', typ: 'JWT' };
+  const exp = Math.floor(Date.now() / 1000) + (expiryHours * 60 * 60);
+  const fullPayload = { ...payload, exp };
+
+  const base64UrlEncode = (str: string) => 
+    Buffer.from(str).toString('base64url');
+
+  const encodedHeader = base64UrlEncode(JSON.stringify(header));
+  const encodedPayload = base64UrlEncode(JSON.stringify(fullPayload));
+
+  const signature = crypto
+    .createHmac('sha256', JWT_SECRET)
+    .update(`${encodedHeader}.${encodedPayload}`)
+    .digest('base64url');
+
+  return `${encodedHeader}.${encodedPayload}.${signature}`;
+}
+
+function verifyToken(token: string): any | null {
+  try {
+    const [headerB64, payloadB64, signature] = token.split('.');
+    if (!headerB64 || !payloadB64 || !signature) return null;
+
+    const expectedSignature = crypto
+      .createHmac('sha256', JWT_SECRET)
+      .update(`${headerB64}.${payloadB64}`)
+      .digest('base64url');
+
+    if (signature !== expectedSignature) return null;
+
+    const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+      return null; // Expired token
+    }
+    return payload;
+  } catch (e) {
+    return null;
+  }
+}
+
+// --- SECURE CONCURRENCY MUTEX FOR TRANSACTIONAL INTEGRITY ---
+class SimpleMutex {
+  private queue: (() => void)[] = [];
+  private locked = false;
+
+  async acquire(): Promise<() => void> {
+    return new Promise<() => void>((resolve) => {
+      const release = () => {
+        if (this.queue.length > 0) {
+          const next = this.queue.shift();
+          next?.();
+        } else {
+          this.locked = false;
+        }
+      };
+
+      if (this.locked) {
+        this.queue.push(() => resolve(release));
+      } else {
+        this.locked = true;
+        resolve(release);
+      }
+    });
+  }
+}
+
+const orderMutex = new SimpleMutex();
 
 // Setup Supabase Client if credentials are provided
 let supabase: any = null;
@@ -216,6 +288,19 @@ let localCoupons: Coupon[] = [...initialCouponsList];
 let localVendors: Vendor[] = [...initialVendors];
 let localCategories: Category[] = [...mockCategories];
 
+interface AppUser {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  createdAt: string;
+}
+
+let localUsers: AppUser[] = [
+  { id: 'user-gaurav', name: 'Gaurav Beniwal', email: 'gauravbeniwal30003@gmail.com', phone: '9999999999', address: 'Jaipur, Rajasthan', createdAt: '2026-07-18T00:00:00Z' }
+];
+
 // -------------------------------------------------------------
 // HELPER: TEST SUPABASE TABLES & AUTO-SEED
 // -------------------------------------------------------------
@@ -307,6 +392,26 @@ async function testAndSeedSupabase() {
       console.error('❌ Vendors table check failed:', vError);
     }
 
+    // 4.6. Verify and seed users table
+    const { data: uCountData, error: uError } = await supabase.from('users').select('id');
+    if (!uError) {
+      const existingUserIds = new Set((uCountData || []).map((row: any) => row.id));
+      if (existingUserIds.size === 0) {
+        console.log('🌱 Users table is empty. Seeding default users...');
+        for (const u of localUsers) {
+          console.log(`🌱 Seeding default user: ${u.id}`);
+          const { error: insertErr } = await supabase.from('users').insert({ id: u.id, data: u });
+          if (insertErr) {
+            console.error(`⚠️ Error seeding user ${u.id}:`, insertErr);
+          }
+        }
+      } else {
+        console.log(`📊 Users in Supabase: ${existingUserIds.size}. Skipping seeding.`);
+      }
+    } else {
+      console.error('❌ Users table check failed:', uError);
+    }
+
     // 5. Verify and seed categories table
     const { data: catCountData, error: catError } = await supabase.from('categories').select('id');
     if (!catError) {
@@ -371,15 +476,297 @@ app.use((req, res, next) => {
 
 // 2. Admin Authentication Middleware (Prevents unauthorized modification)
 const authenticateAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const r = req as any;
   const secretHeader = req.headers['x-admin-secret'];
-  if (!secretHeader || secretHeader !== ADMIN_SECRET) {
-    console.warn(`🔒 Unauthorized admin access attempt from IP: ${req.ip}`);
-    return res.status(403).json({
-      error: 'Unauthorized Access. Invalid Admin secret key. Request manipulation blocked.'
-    });
+  
+  // 1. Try JWT
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    const decoded = verifyToken(token);
+    if (decoded && decoded.role === 'admin') {
+      r.isAdmin = true;
+      return next();
+    }
   }
-  next();
+
+  // 2. Try raw header
+  if (secretHeader && secretHeader === ADMIN_SECRET) {
+    r.isAdmin = true;
+    return next();
+  }
+
+  console.warn(`🔒 Unauthorized admin access attempt from IP: ${req.ip}`);
+  return res.status(403).json({
+    error: 'Unauthorized Access. Invalid Admin secret key or session token. Request manipulation blocked.'
+  });
 };
+
+// --- SERVER-SIDE SESSION PROTECTION & AUTHENTICATION ENDPOINTS ---
+
+// 1. Vendor Login (Strictly restricted to Vendors)
+app.post('/api/auth/vendor-login', async (req, res) => {
+  const { phone } = req.body;
+  if (!phone) {
+    return res.status(400).json({ error: 'Mobile phone number is required.' });
+  }
+  const cleanPhone = phone.trim().replace(/\s+/g, '');
+  try {
+    let vendor: Vendor | undefined;
+    if (useSupabase && supabase) {
+      const { data, error } = await supabase.from('vendors').select('*');
+      if (!error && data) {
+        vendor = data.map((row: any) => row.data).find((v: Vendor) => {
+          const cleanedDbPhone = v.phone.replace(/[^0-9]/g, '');
+          const cleanedInputPhone = cleanPhone.replace(/[^0-9]/g, '');
+          return cleanedDbPhone === cleanedInputPhone ||
+                 (cleanedDbPhone.length >= 10 && cleanedInputPhone.length >= 10 &&
+                  cleanedDbPhone.slice(-10) === cleanedInputPhone.slice(-10));
+        });
+      }
+    }
+    if (!vendor) {
+      vendor = localVendors.find(v => {
+        const cleanedDbPhone = v.phone.replace(/[^0-9]/g, '');
+        const cleanedInputPhone = cleanPhone.replace(/[^0-9]/g, '');
+        return cleanedDbPhone === cleanedInputPhone ||
+               (cleanedDbPhone.length >= 10 && cleanedInputPhone.length >= 10 &&
+                cleanedDbPhone.slice(-10) === cleanedInputPhone.slice(-10));
+      });
+    }
+
+    if (!vendor) {
+      return res.status(404).json({ error: 'No registered vendor found with this mobile number.' });
+    }
+
+    if (vendor.status === 'suspended') {
+      return res.status(403).json({ error: 'Your seller account has been suspended. Login blocked.' });
+    }
+
+    // Sign and issue production JWT session token
+    const token = signToken({ vendorId: vendor.id, role: 'vendor', phone: vendor.phone });
+    res.json({ success: true, token, vendor });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Vendor authentication failed.' });
+  }
+});
+
+// Backward-compatible alias for existing vendor login
+app.post('/api/auth/login', async (req, res) => {
+  const { phone } = req.body;
+  const cleanPhone = (phone || '').trim().replace(/\s+/g, '');
+  // Route to vendor login
+  req.url = '/api/auth/vendor-login';
+  return app._router.handle(req, res);
+});
+
+// 2. Vendor Registration (Signup)
+app.post('/api/auth/vendor-register', async (req, res) => {
+  const { name, email, phone, businessCategory, city, state, gstin, description } = req.body;
+  if (!name || !email || !phone) {
+    return res.status(400).json({ error: 'Business name, email, and mobile phone are required.' });
+  }
+
+  const cleanPhone = phone.trim().replace(/\s+/g, '');
+
+  try {
+    // Check if vendor already exists
+    let existingVendor: Vendor | undefined;
+    if (useSupabase && supabase) {
+      const { data, error } = await supabase.from('vendors').select('*');
+      if (!error && data) {
+        existingVendor = data.map((row: any) => row.data).find((v: Vendor) => {
+          return v.phone.replace(/[^0-9]/g, '') === cleanPhone.replace(/[^0-9]/g, '');
+        });
+      }
+    }
+    if (!existingVendor) {
+      existingVendor = localVendors.find(v => v.phone.replace(/[^0-9]/g, '') === cleanPhone.replace(/[^0-9]/g, ''));
+    }
+
+    if (existingVendor) {
+      return res.status(400).json({ error: 'A supplier is already registered with this mobile number.' });
+    }
+
+    const newVendor: Vendor = {
+      id: `vendor-${Date.now()}`,
+      name: name.trim(),
+      email: email.trim(),
+      phone: cleanPhone,
+      vendorType: 'small',
+      businessCategory: businessCategory || 'Apparel & Sarees',
+      gstin: gstin ? gstin.trim() : '',
+      city: city ? city.trim() : '',
+      state: state ? state.trim() : '',
+      description: description ? description.trim() : '',
+      rating: 5.0,
+      status: 'active',
+      createdAt: new Date().toISOString()
+    };
+
+    // Save vendor
+    localVendors.push(newVendor);
+    if (useSupabase && supabase) {
+      await supabase.from('vendors').insert({ id: newVendor.id, data: newVendor });
+    }
+
+    const token = signToken({ vendorId: newVendor.id, role: 'vendor', phone: newVendor.phone });
+    res.json({ success: true, token, vendor: newVendor });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Vendor registration failed.' });
+  }
+});
+
+// 3. User Login (Strictly restricted to Normal Customers)
+app.post('/api/auth/user-login', async (req, res) => {
+  const { phone } = req.body;
+  if (!phone) {
+    return res.status(400).json({ error: 'Mobile phone number is required.' });
+  }
+  const cleanPhone = phone.trim().replace(/\s+/g, '');
+  try {
+    let user: AppUser | undefined;
+    if (useSupabase && supabase) {
+      const { data, error } = await supabase.from('users').select('*');
+      if (!error && data) {
+        user = data.map((row: any) => row.data).find((u: AppUser) => {
+          const cleanedDbPhone = u.phone.replace(/[^0-9]/g, '');
+          const cleanedInputPhone = cleanPhone.replace(/[^0-9]/g, '');
+          return cleanedDbPhone === cleanedInputPhone ||
+                 (cleanedDbPhone.length >= 10 && cleanedInputPhone.length >= 10 &&
+                  cleanedDbPhone.slice(-10) === cleanedInputPhone.slice(-10));
+        });
+      }
+    }
+    if (!user) {
+      user = localUsers.find(u => {
+        const cleanedDbPhone = u.phone.replace(/[^0-9]/g, '');
+        const cleanedInputPhone = cleanPhone.replace(/[^0-9]/g, '');
+        return cleanedDbPhone === cleanedInputPhone ||
+               (cleanedDbPhone.length >= 10 && cleanedInputPhone.length >= 10 &&
+                cleanedDbPhone.slice(-10) === cleanedInputPhone.slice(-10));
+      });
+    }
+
+    if (!user) {
+      return res.status(404).json({ error: 'No customer account found with this mobile number.' });
+    }
+
+    // Sign and issue customer JWT session token
+    const token = signToken({ userId: user.id, role: 'user', phone: user.phone });
+    res.json({ success: true, token, user });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Customer login failed.' });
+  }
+});
+
+// 4. User Registration (Signup)
+app.post('/api/auth/user-register', async (req, res) => {
+  const { name, email, phone, address } = req.body;
+  if (!name || !email || !phone) {
+    return res.status(400).json({ error: 'Full name, email address, and mobile phone are required.' });
+  }
+
+  const cleanPhone = phone.trim().replace(/\s+/g, '');
+
+  try {
+    // Check if user already exists
+    let existingUser: AppUser | undefined;
+    if (useSupabase && supabase) {
+      const { data, error } = await supabase.from('users').select('*');
+      if (!error && data) {
+        existingUser = data.map((row: any) => row.data).find((u: AppUser) => {
+          return u.phone.replace(/[^0-9]/g, '') === cleanPhone.replace(/[^0-9]/g, '');
+        });
+      }
+    }
+    if (!existingUser) {
+      existingUser = localUsers.find(u => u.phone.replace(/[^0-9]/g, '') === cleanPhone.replace(/[^0-9]/g, ''));
+    }
+
+    if (existingUser) {
+      return res.status(400).json({ error: 'A customer account with this mobile number is already registered.' });
+    }
+
+    const newUser: AppUser = {
+      id: `user-${Date.now()}`,
+      name: name.trim(),
+      email: email.trim(),
+      phone: cleanPhone,
+      address: address ? address.trim() : '',
+      createdAt: new Date().toISOString()
+    };
+
+    // Save user
+    localUsers.push(newUser);
+    if (useSupabase && supabase) {
+      await supabase.from('users').insert({ id: newUser.id, data: newUser });
+    }
+
+    const token = signToken({ userId: newUser.id, role: 'user', phone: newUser.phone });
+    res.json({ success: true, token, user: newUser });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Customer registration failed.' });
+  }
+});
+
+// Admin JWT Authentication Endpoint
+app.post('/api/auth/admin-login', (req, res) => {
+  const { secret } = req.body;
+  if (!secret || secret !== ADMIN_SECRET) {
+    return res.status(401).json({ error: 'Invalid admin credentials.' });
+  }
+  const token = signToken({ role: 'admin' });
+  res.json({ success: true, token });
+});
+
+// Session State Verification Endpoint
+app.get('/api/auth/session', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'No active session token.' });
+  }
+  const token = authHeader.split(' ')[1];
+  const decoded = verifyToken(token);
+  if (!decoded) {
+    return res.status(401).json({ error: 'Invalid or expired session token.' });
+  }
+
+  if (decoded.role === 'admin') {
+    return res.json({ role: 'admin' });
+  } else if (decoded.role === 'vendor') {
+    let vendor: Vendor | undefined;
+    if (useSupabase && supabase) {
+      const { data, error } = await supabase.from('vendors').select('*').eq('id', decoded.vendorId).single();
+      if (!error && data) {
+        vendor = data.data;
+      }
+    }
+    if (!vendor) {
+      vendor = localVendors.find(v => v.id === decoded.vendorId);
+    }
+    if (!vendor) {
+      return res.status(404).json({ error: 'Vendor profile not found.' });
+    }
+    return res.json({ role: 'vendor', vendor });
+  } else if (decoded.role === 'user') {
+    let user: AppUser | undefined;
+    if (useSupabase && supabase) {
+      const { data, error } = await supabase.from('users').select('*').eq('id', decoded.userId).single();
+      if (!error && data) {
+        user = data.data;
+      }
+    }
+    if (!user) {
+      user = localUsers.find(u => u.id === decoded.userId);
+    }
+    if (!user) {
+      return res.status(404).json({ error: 'Customer profile not found.' });
+    }
+    return res.json({ role: 'user', user });
+  }
+  res.status(401).json({ error: 'Unknown session role.' });
+});
 
 // --- SECURE IMAGE UPLOAD TO IMGBB (PROXIED TO PROTECT SECRETS) ---
 app.post('/api/upload-image', authenticateAdmin, async (req, res) => {
@@ -1175,8 +1562,8 @@ app.get('/api/orders', async (req, res) => {
 
 /**
  * SECURE ORDER SUBMISSION
- * Re-calculates and validates item prices on the server.
- * Completely neutralizes Burp Suite / client-side price modification tricks.
+ * Re-calculates and validates item prices on the server, verifies and atomically decrements variant stock levels under mutex control.
+ * Completely neutralizes Burp Suite / client-side price modification and concurrency race conditions.
  */
 app.post('/api/orders', async (req, res) => {
   const { items, appliedCouponCode, isUpiPayment, shippingAddress } = req.body;
@@ -1184,6 +1571,9 @@ app.post('/api/orders', async (req, res) => {
   if (!items || !Array.isArray(items) || items.length === 0 || !shippingAddress) {
     return res.status(400).json({ error: 'Invalid order structure' });
   }
+
+  // Acquire concurrency mutex lock
+  const release = await orderMutex.acquire();
 
   try {
     // 1. Fetch verified products catalog from DB
@@ -1198,7 +1588,7 @@ app.post('/api/orders', async (req, res) => {
       currentCatalog = localProducts;
     }
 
-    // 2. Validate and re-calculate pricing based ONLY on verified DB catalog
+    // 2. Validate pricing, existence, and variant-level inventory stock
     let verifiedOriginalItemsPrice = 0;
     let verifiedTotalDiscount = 0;
     let verifiedItemsPriceAfterSupplierDiscount = 0;
@@ -1217,9 +1607,18 @@ app.post('/api/orders', async (req, res) => {
         return res.status(400).json({ error: `Invalid variant for product ID ${verifiedProduct.id}` });
       }
 
+      // Check current variant inventory (Default to 100 if undefined)
+      const currentStock = typeof dbVariant.stock === 'number' ? dbVariant.stock : 100;
+      const quantity = Math.max(1, Math.floor(Number(clientItem.quantity || 1)));
+
+      if (currentStock < quantity) {
+        return res.status(400).json({
+          error: `Insufficient stock for product "${verifiedProduct.title}" (Variant: ${dbVariant.colorName || 'Default'}). Only ${currentStock} units available.`
+        });
+      }
+
       const verifiedItemOriginalPrice = dbVariant.originalPrice;
       const verifiedItemPrice = dbVariant.price;
-      const quantity = Math.max(1, Math.floor(Number(clientItem.quantity || 1)));
 
       // Add to running totals
       verifiedOriginalItemsPrice += verifiedItemOriginalPrice * quantity;
@@ -1234,6 +1633,28 @@ app.post('/api/orders', async (req, res) => {
         selectedSize: clientItem.selectedSize,
         quantity: quantity
       });
+    }
+
+    // 2.5 Atomically decrement stock levels in memory and database
+    for (const clientItem of items) {
+      const verifiedProduct = currentCatalog.find(p => p.id === clientItem.product.id)!;
+      const variantIndex = clientItem.selectedVariantIndex;
+      const dbVariant = verifiedProduct.variants[variantIndex] || verifiedProduct.variants[0];
+      const quantity = Math.max(1, Math.floor(Number(clientItem.quantity || 1)));
+
+      const currentStock = typeof dbVariant.stock === 'number' ? dbVariant.stock : 100;
+      dbVariant.stock = currentStock - quantity;
+
+      // Update in memory array
+      const localProductIdx = localProducts.findIndex(lp => lp.id === verifiedProduct.id);
+      if (localProductIdx !== -1) {
+        localProducts[localProductIdx] = { ...verifiedProduct };
+      }
+
+      // If Supabase is active, update product in DB
+      if (useSupabase && supabase) {
+        await supabase.from('products').update({ data: verifiedProduct }).eq('id', verifiedProduct.id);
+      }
     }
 
     // 3. Handle Coupon code verification server-side
@@ -1312,6 +1733,9 @@ app.post('/api/orders', async (req, res) => {
   } catch (err: any) {
     console.error('❌ Secure Order placement failure:', err);
     res.status(500).json({ error: err.message || 'Secure order validation failed.' });
+  } finally {
+    // Release the concurrency lock
+    release();
   }
 });
 

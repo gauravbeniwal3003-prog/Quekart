@@ -116,6 +116,23 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- ----------------------------------------------------------------------
+-- 4.5. USERS TABLE
+-- ----------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    data JSONB NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+
+-- Seed Default User Data
+INSERT INTO users (id, data)
+VALUES
+('user-gaurav', '{"id": "user-gaurav", "name": "Gaurav Beniwal", "email": "gauravbeniwal30003@gmail.com", "phone": "9999999999", "address": "Jaipur, Rajasthan", "createdAt": "2026-07-18T00:00:00Z"}')
+ON CONFLICT (id) DO NOTHING;
+
+-- ----------------------------------------------------------------------
 -- 5. CATEGORIES TABLE
 -- ----------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS categories (
@@ -138,6 +155,33 @@ VALUES
 ('cat-kids', '{"id": "cat-kids", "name": "Kids & Toys", "icon": "baby", "subCategories": [{"name": "Kids", "image": "https://images.unsplash.com/photo-1519689680058-324335c77ebe?w=200&h=200&fit=crop"}]}', 5),
 ('cat-home', '{"id": "cat-home", "name": "Home & Kitchen", "icon": "home", "subCategories": [{"name": "Cookware", "image": "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=200&h=200&fit=crop"}]}', 6)
 ON CONFLICT (id) DO NOTHING;
+
+-- ----------------------------------------------------------------------
+-- 6. HIGH-PERFORMANCE EXPRESSION INDEXES (FOR PRODUCTION LOGS & QUERIES)
+-- ----------------------------------------------------------------------
+CREATE INDEX IF NOT EXISTS idx_products_vendor_id ON products ((data->>'vendorId'));
+CREATE INDEX IF NOT EXISTS idx_products_approval_status ON products ((data->>'approvalStatus'));
+CREATE INDEX IF NOT EXISTS idx_products_category ON products ((data->>'category'));
+CREATE INDEX IF NOT EXISTS idx_vendors_phone ON vendors ((data->>'phone'));
+CREATE INDEX IF NOT EXISTS idx_users_phone ON users ((data->>'phone'));
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders ((data->>'status'));
+
+-- ----------------------------------------------------------------------
+-- 7. VIRTUAL EXTRACTED COLUMNS (FOR EASY DASHBOARD VISUALS & METRICS)
+-- ----------------------------------------------------------------------
+ALTER TABLE products ADD COLUMN IF NOT EXISTS title TEXT GENERATED ALWAYS AS (data->>'title') STORED;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS vendor_id TEXT GENERATED ALWAYS AS (data->>'vendorId') STORED;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS approval_status TEXT GENERATED ALWAYS AS (data->>'approvalStatus') STORED;
+
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS status TEXT GENERATED ALWAYS AS (data->>'status') STORED;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS total_price NUMERIC GENERATED ALWAYS AS ((data->>'totalPrice')::numeric) STORED;
+
+ALTER TABLE vendors ADD COLUMN IF NOT EXISTS name TEXT GENERATED ALWAYS AS (data->>'name') STORED;
+ALTER TABLE vendors ADD COLUMN IF NOT EXISTS phone TEXT GENERATED ALWAYS AS (data->>'phone') STORED;
+ALTER TABLE vendors ADD COLUMN IF NOT EXISTS status TEXT GENERATED ALWAYS AS (data->>'status') STORED;
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT GENERATED ALWAYS AS (data->>'name') STORED;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT GENERATED ALWAYS AS (data->>'phone') STORED;
 
 -- ======================================================================
 -- SUCCESS: Your database tables are now created, optimized, and seeded!

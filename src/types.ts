@@ -25,6 +25,7 @@ export interface VariantSwatch {
   imageUrl: string;
   price: number;
   originalPrice: number;
+  stock?: number;
 }
 
 export interface Product {
