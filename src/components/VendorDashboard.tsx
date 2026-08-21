@@ -47,7 +47,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, Order, Vendor } from '../types';
-import Logo from './Logo';
+import Logo, { BrandLogo, QueKartLogoText } from './Logo';
 import VendorAuthView from './VendorAuthView';
 import VendorExportReports from './VendorExportReports';
 import { MASTER_CATEGORIES, MasterCategory, getSubcategoriesForCategory } from '../data/categoriesData';
@@ -591,14 +591,10 @@ export default function VendorDashboard({
             onClick={() => goToVendorRoute('dashboard')}
             id="vendor-header-logo"
           >
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#143C6B] flex items-center justify-center p-1.5 text-white shadow-xs">
-              <Logo className="w-full h-full text-white" />
-            </div>
+            <BrandLogo size="md" showText={false} animated={true} />
             <div className="flex flex-col">
               <div className="flex items-center gap-1.5">
-                <span className="font-display font-extrabold text-base sm:text-lg tracking-tight text-[#143C6B]">
-                  QUEKART
-                </span>
+                <QueKartLogoText sizeClassName="text-base sm:text-lg" />
                 <span className="text-[9px] uppercase font-black tracking-wider bg-pink-50 text-lucky-magenta border border-pink-200 px-1.5 py-0.5 rounded-md">
                   Seller Hub
                 </span>

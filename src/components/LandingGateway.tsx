@@ -17,7 +17,7 @@ import {
   Clock,
   Sparkles
 } from 'lucide-react';
-import Logo from './Logo';
+import Logo, { BrandLogo } from './Logo';
 
 interface LandingGatewayProps {
   onNavigate: (path: string) => void;
@@ -106,27 +106,18 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
         {/* 1. Header pinned always on top - Minimal QueKart logo and name only */}
         <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50 px-4 sm:px-8 py-3.5 shadow-xs">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
-            <div 
-              className="flex items-center gap-2.5 cursor-pointer select-none" 
-              onClick={() => onNavigate('/')}
-              id="landing-logo-brand"
-            >
-              <Logo className="h-9 w-9 sm:h-10 sm:w-10 transition-transform duration-200 hover:scale-105 active:scale-95 flex-shrink-0" animated={true} />
-              <div className="flex items-center gap-1.5">
-                <span className="text-2xl sm:text-3xl font-black tracking-tight flex items-center leading-none">
-                  <span style={{ color: '#143C6B' }}>Que</span>
-                  <span style={{ color: '#C89D1F' }}>Kart</span>
-                </span>
-              </div>
-            </div>
+            <BrandLogo size="md" onClick={() => onNavigate('/')} id="landing-logo-brand" />
           </div>
         </header>
 
         {/* 2. Headline Section */}
-        <div className="pt-8 sm:pt-12 pb-4 text-center max-w-4xl mx-auto px-4">
+        <div className="pt-6 sm:pt-10 pb-3 text-center max-w-4xl mx-auto px-4">
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-slate-900 leading-tight font-display">
-            India's Next Generation <span style={{ color: '#143C6B' }}>E-Commerce</span> & <span style={{ color: '#C89D1F' }}>Wholesale Store</span>
+            A New Era of <span style={{ color: '#143C6B' }}>Shopping</span>
           </h1>
+          <p className="text-base sm:text-2xl font-bold text-[#C89D1F] tracking-wide mt-2 font-display">
+            Shop. Enjoy. Get Surprised.
+          </p>
         </div>
 
         {/* 3. 8-ROW CLOTHING ANIMATION WITH TRANSLUCENT BOTTOM ROWS & OVERLAY ACTION BUTTONS */}

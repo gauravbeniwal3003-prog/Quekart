@@ -42,7 +42,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, Order, Coupon, CartItem, Vendor, Banner, Category } from '../types';
-import Logo from './Logo';
+import Logo, { BrandLogo, QueKartLogoText } from './Logo';
 
 interface AdminDashboardProps {
   products: Product[];
@@ -2585,12 +2585,11 @@ export default function AdminDashboard({
         <div className="p-4 border-b border-slate-100 flex items-center justify-between h-[73px]">
           {!isCollapsed ? (
             <div className="flex items-center gap-2 cursor-pointer select-none" onClick={() => handleMenuClick('overview')}>
-              <Logo className="h-8 w-8 flex-shrink-0" animated={true} />
-              <span className="font-display font-semibold text-lg tracking-normal flex items-center">
-                <span className="text-[#143C6B] font-black">Que</span>
-                <span className="text-[#C89D1F] font-black">Kart</span>
+              <BrandLogo size="sm" showText={false} animated={true} />
+              <div className="flex items-center">
+                <QueKartLogoText sizeClassName="text-lg" />
                 <span className="text-[9px] bg-red-100 text-red-600 font-extrabold px-1.5 py-0.5 rounded-sm ml-1.5">ADMIN</span>
-              </span>
+              </div>
             </div>
           ) : (
             <div className="mx-auto cursor-pointer" onClick={() => handleMenuClick('overview')} title="Admin Overview">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Check, Sparkles, Zap, ShieldCheck } from 'lucide-react';
-import Logo from './Logo';
+import Logo, { BrandLogo } from './Logo';
 
 interface UserAuthViewProps {
   onLoginSuccess: (user: any, token: string) => void;
@@ -387,7 +387,7 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
             
             {/* QueKart Logo starting at 50% height */}
             <div className="flex flex-col items-center text-center space-y-1.5">
-              <Logo className="h-14 w-14 select-none flex-shrink-0 drop-shadow-xs" animated={true} />
+              <BrandLogo size="md" animated={true} />
 
               <div className="space-y-0.5">
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-display">

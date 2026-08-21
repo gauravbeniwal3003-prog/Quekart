@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Heart, ShoppingCart, Mic, Camera, Gift, Sparkles, TrendingUp, Tag, ArrowRight, User, LogOut, LogIn, ChevronDown, Package, ShieldCheck, Store } from 'lucide-react';
 import { CartItem, Product } from '../types';
-import Logo from './Logo';
+import Logo, { BrandLogo } from './Logo';
 
 interface HeaderProps {
   cart: CartItem[];
@@ -157,13 +157,7 @@ export default function Header({
             </div>
 
             {/* Logo */}
-            <div className="flex items-center gap-1.5 sm:gap-2 justify-center md:justify-start cursor-pointer flex-shrink min-w-0 overflow-hidden" onClick={() => onSelectTab('home')}>
-              <Logo className="h-9 w-9 sm:h-10 sm:w-10 md:h-11 md:w-11 lg:h-12 lg:w-12 flex-shrink-0 transition-transform duration-200 hover:scale-105 active:scale-95" animated={true} />
-              <span className="font-display font-semibold text-lg sm:text-xl md:text-2xl tracking-normal truncate flex items-center">
-                <span style={{ color: '#143C6B' }}>Que</span>
-                <span style={{ color: '#C89D1F' }}>Kart</span>
-              </span>
-            </div>
+            <BrandLogo size="md" onClick={() => onSelectTab('home')} />
 
             {/* Action icons - Mobile Only */}
             <div className="flex items-center gap-3 md:hidden flex-shrink-0">
