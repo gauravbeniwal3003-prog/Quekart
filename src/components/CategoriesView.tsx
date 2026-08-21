@@ -20,16 +20,14 @@ export default function CategoriesView({
   const activeCategory = cats.find((c) => c.id === activeCategoryId) || cats[0];
 
   const handleSubCategoryClick = (subName: string) => {
-    // When a subcategory circle is clicked, we filter the products by that subCategory name
-    // and route back to the 'home' tab
+    // When a subcategory circle is clicked, navigate to the specific categories list page
     onSelectCategory(subName);
-    onSelectTab('home');
   };
 
   return (
-    <div className="flex bg-gray-50 h-[calc(100vh-130px)] pb-12 overflow-hidden max-w-7xl mx-auto w-full md:px-4" id="categories-view-container">
+    <div className="flex bg-white h-full overflow-hidden max-w-7xl mx-auto w-full" id="categories-view-container">
       {/* Left Column Sidebar */}
-      <div className="w-[100px] md:w-[240px] bg-gray-100 border-r border-gray-200 overflow-y-auto flex-shrink-0 h-full" id="categories-sidebar">
+      <div className="w-[100px] md:w-[240px] bg-gray-100 border-r border-gray-200/80 overflow-y-auto flex-shrink-0 h-full pb-10" id="categories-sidebar">
         {cats.map((cat) => {
           const isActive = cat.id === activeCategoryId;
           return (
@@ -62,7 +60,7 @@ export default function CategoriesView({
       </div>
 
       {/* Right Column Content Panel */}
-      <div className="flex-1 bg-white overflow-y-auto h-full p-4 md:p-6" id="categories-content-panel">
+      <div className="flex-1 bg-white overflow-y-auto h-full p-4 md:p-6 pb-10" id="categories-content-panel">
         <div className="mb-4">
           <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Popular</span>
           <h2 className="text-sm md:text-base font-extrabold text-gray-800 tracking-tight" id="active-category-title">
@@ -97,19 +95,7 @@ export default function CategoriesView({
           ))}
         </div>
 
-        {/* All Popular Banner / Info Box */}
-        <div className="mt-8 pt-4 border-t border-gray-100 bg-gradient-to-r from-blue-50/40 to-white p-3 rounded-lg flex items-center justify-between" id="categories-banner">
-          <div>
-            <span className="text-xs font-bold text-lucky-magenta">Lowest Price Promise</span>
-            <p className="text-[9px] text-gray-500 mt-0.5">Top-rated items directly from manufacturers.</p>
-          </div>
-          <button
-            onClick={() => handleSubCategoryClick('All')}
-            className="text-[10px] bg-lucky-magenta text-white px-2.5 py-1 rounded-full font-bold cursor-pointer"
-          >
-            Shop All
-          </button>
-        </div>
+
       </div>
     </div>
   );

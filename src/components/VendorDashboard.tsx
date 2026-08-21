@@ -1,37 +1,56 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Building2, 
   Package, 
   ShoppingBag, 
   Plus, 
-  TrendingUp, 
   Coins, 
   CheckCircle, 
   Clock, 
   AlertCircle, 
   Search, 
-  Filter, 
   Trash2, 
   Edit3, 
-  PlusCircle, 
-  Check, 
-  Eye, 
-  ChevronRight, 
   LogOut, 
   ArrowLeft, 
-  FileSpreadsheet, 
+  Award, 
+  Phone, 
+  Edit2, 
+  Zap, 
+  ShieldCheck, 
+  Printer, 
+  Layers, 
+  BarChart3, 
+  CreditCard, 
+  FileText,
+  Home,
+  CheckCircle2,
+  ExternalLink,
+  ChevronRight,
+  Filter,
   Sparkles,
-  Award,
-  ChevronLeft,
-  Truck,
-  User,
-  Camera,
-  Phone,
+  TrendingUp,
   MapPin,
-  Edit2
+  Mail,
+  UserCheck,
+  Camera,
+  Upload,
+  Image as ImageIcon,
+  Lock,
+  FileSpreadsheet,
+  Download,
+  X,
+  RefreshCw,
+  Info,
+  Check,
+  Tag
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, Order, Vendor } from '../types';
+import Logo from './Logo';
+import VendorAuthView from './VendorAuthView';
+import VendorExportReports from './VendorExportReports';
+import { MASTER_CATEGORIES, MasterCategory, getSubcategoriesForCategory } from '../data/categoriesData';
 
 interface VendorDashboardProps {
   products: Product[];
@@ -39,9 +58,12 @@ interface VendorDashboardProps {
   onAddProduct: (product: Product) => Promise<void>;
   onEditProduct: (product: Product) => Promise<void>;
   onDeleteProduct: (productId: string) => Promise<void>;
-  onClose: () => void;
+  onUpdateOrderStatus?: (orderId: string, status: Order['status']) => void;
+  onClose?: () => void;
   activeSubPage?: string | null;
   setActiveSubPage?: (page: string) => void;
+  navigateTo?: (path: string) => void;
+  currentPath?: string;
 }
 
 export default function VendorDashboard({
@@ -50,9 +72,12 @@ export default function VendorDashboard({
   onAddProduct,
   onEditProduct,
   onDeleteProduct,
-  onClose,
+  onUpdateOrderStatus,
+  onClose: _onClose,
   activeSubPage,
-  setActiveSubPage
+  setActiveSubPage,
+  navigateTo = (p) => window.history.pushState(null, '', p),
+  currentPath = window.location.pathname + window.location.search
 }: VendorDashboardProps) {
   // Current logged in vendor state
   const [currentVendor, setCurrentVendor] = useState<Vendor | null>(() => {
@@ -76,24 +101,72 @@ export default function VendorDashboard({
   const [systemVendors, setSystemVendors] = useState<Vendor[]>([]);
   const [isLoadingVendors, setIsLoadingVendors] = useState(false);
 
-  // Tab State
-  const activeSubTab = activeSubPage || 'dashboard';
-  const setActiveSubTab = setActiveSubPage || (() => {});
+  // File input refs for Direct Photo Capture & Gallery Upload
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
-  // GST Validation State
+  // Parse active subroute and query parameter (e.g. ?id=xyz)
+  const currentUrl = currentPath || (window.location.pathname + window.location.search);
+  const [_pathnameOnly, searchParamsString] = currentUrl.split('?');
+  const queryParams = new URLSearchParams(searchParamsString || '');
+  const queryId = queryParams.get('id') || queryParams.get('orderId') || '';
+
+  // Determine current vendor active tab/task
+  let activeTabKey = 'dashboard';
+  if (activeSubPage) {
+    if (activeSubPage.startsWith('products/add') || activeSubPage === 'add-product') {
+      activeTabKey = 'add-product';
+    } else if (activeSubPage.startsWith('products/edit') || activeSubPage === 'edit-product') {
+      activeTabKey = 'edit-product';
+    } else if (activeSubPage.startsWith('products')) {
+      activeTabKey = 'products';
+    } else if (activeSubPage.startsWith('orders/details') || activeSubPage.startsWith('orders/view') || activeSubPage === 'order-details') {
+      activeTabKey = 'order-details';
+    } else if (activeSubPage.startsWith('orders')) {
+      activeTabKey = 'orders';
+    } else if (activeSubPage.startsWith('export') || activeSubPage.startsWith('reports') || activeSubPage === 'export-reports') {
+      activeTabKey = 'export';
+    } else if (activeSubPage.startsWith('profile/edit') || activeSubPage === 'edit-profile') {
+      activeTabKey = 'edit-profile';
+    } else if (activeSubPage.startsWith('profile')) {
+      activeTabKey = 'profile';
+    } else if (activeSubPage.startsWith('analytics')) {
+      activeTabKey = 'analytics';
+    } else if (activeSubPage.startsWith('payouts')) {
+      activeTabKey = 'payouts';
+    } else {
+      activeTabKey = activeSubPage;
+    }
+  }
+
+  // Navigation within Vendor Portal ONLY
+  const goToVendorRoute = (subRoute: string, queryParamStr = '') => {
+    const full = subRoute ? `/vendor/${subRoute}${queryParamStr ? `?${queryParamStr}` : ''}` : '/vendor';
+    if (setActiveSubPage) {
+      setActiveSubPage(subRoute);
+    }
+    navigateTo(full);
+  };
+
+  // GST Validation State for post-signup upgrade
   const [isGstVerifying, setIsGstVerifying] = useState(false);
   const [gstVerifyStatus, setGstVerifyStatus] = useState<'idle' | 'verifying' | 'success' | 'failed'>('idle');
   const [gstVerifyMessage, setGstVerifyMessage] = useState('');
-  const [isGstVerified, setIsGstVerified] = useState(false);
-
-  // Profile-level GSTIN updates
   const [profileGstin, setProfileGstin] = useState('');
-  const [profileGstError, setProfileGstError] = useState('');
-  const [profileGstSuccess, setProfileGstSuccess] = useState('');
+
+  // Determine if vendor profile is permanently locked
+  const isGstLocked = useMemo(() => {
+    if (!currentVendor) return false;
+    return currentVendor.vendorType === 'big' || 
+           currentVendor.isVerified === true || 
+           currentVendor.gstinVerified === true || 
+           (!!currentVendor.gstin && currentVendor.gstin.trim().length === 15);
+  }, [currentVendor]);
 
   // Function to simulate government GST portal validation
   const simulateGstVerification = async (gstNumber: string, businessName: string): Promise<boolean> => {
-    if (!gstNumber || gstNumber.trim().length !== 15) {
+    const clean = (gstNumber || '').trim().toUpperCase();
+    if (!clean || clean.length !== 15) {
       setGstVerifyStatus('failed');
       setGstVerifyMessage('Invalid GSTIN: Must be exactly 15 alphanumeric characters.');
       return false;
@@ -103,67 +176,93 @@ export default function VendorDashboard({
     setGstVerifyStatus('verifying');
     setGstVerifyMessage('Validating GSTIN structure & state prefix...');
     
-    await new Promise(resolve => setTimeout(resolve, 650));
+    await new Promise(resolve => setTimeout(resolve, 500));
     setGstVerifyMessage('Connecting to GST Common Portal (GSTN)...');
     
-    await new Promise(resolve => setTimeout(resolve, 750));
+    await new Promise(resolve => setTimeout(resolve, 500));
     setGstVerifyMessage('Retrieving corporate credentials & tax ledger records...');
     
-    await new Promise(resolve => setTimeout(resolve, 800));
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     setIsGstVerifying(false);
     setGstVerifyStatus('success');
     setGstVerifyMessage(`GSTIN verified successfully for "${businessName || 'Your Business'}"! Registered in State GST Common Registry.`);
-    setIsGstVerified(true);
     return true;
   };
 
-  // Form States for Registering Vendor
-  const [regName, setRegName] = useState('');
-  const [regEmail, setRegEmail] = useState('');
-  const [regPhone, setRegPhone] = useState('');
-  const [regType, setRegType] = useState<'small' | 'big'>('small');
-  const [regCategory, setRegCategory] = useState('Apparel & Sarees');
-  const [regGstin, setRegGstin] = useState('');
-  const [registrationError, setRegistrationError] = useState('');
-  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  // Handle Post-Signup GST Upgrade
+  const handleUpgradeGstin = async () => {
+    if (!currentVendor || !profileGstin.trim()) return;
+    const cleanGst = profileGstin.trim().toUpperCase();
+    const ok = await simulateGstVerification(cleanGst, currentVendor.name);
+    
+    if (ok) {
+      const upgraded: Vendor = {
+        ...currentVendor,
+        gstin: cleanGst,
+        gstinVerified: true,
+        isVerified: true,
+        vendorType: 'big'
+      };
 
-  // Secure Phone Lock-in Login States
-  const [loginPhone, setLoginPhone] = useState('');
-  const [loginError, setLoginError] = useState('');
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [isRegTab, setIsRegTab] = useState(false);
+      try {
+        const res = await fetch(`/api/vendors/${currentVendor.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(upgraded)
+        });
+        if (res.ok) {
+          setCurrentVendor(upgraded);
+          localStorage.setItem('quekart_current_vendor', JSON.stringify(upgraded));
+          setProfileGstin('');
+          alert('Congratulations! Your GST number is verified. Your seller account is now upgraded to "Verified GST Store" and your legal business profile has been permanently locked for GST compliance.');
+        }
+      } catch (err) {
+        console.error('Failed to sync upgraded vendor status with server:', err);
+        // Still update locally
+        setCurrentVendor(upgraded);
+        localStorage.setItem('quekart_current_vendor', JSON.stringify(upgraded));
+      }
+    }
+  };
 
-  // Interactive Editable Profile States
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  // Interactive Editable Profile States (for non-verified vendors)
   const [profileName, setProfileName] = useState('');
   const [profileEmail, setProfileEmail] = useState('');
   const [profilePhone, setProfilePhone] = useState('');
-  const [profileCategory, setProfileCategory] = useState('Apparel & Sarees');
+  const [profileCategory, setProfileCategory] = useState('Women Ethnic Wear');
   const [profileCity, setProfileCity] = useState('');
   const [profileState, setProfileState] = useState('');
   const [profileDescText, setProfileDescText] = useState('');
-  const [profileAvatar, setProfileAvatar] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
-  // Form States for Product Listing
-  const [isListingModalOpen, setIsListingModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  // Form States for Product Listing / Editing
+  const [editingProductId, setEditingProductId] = useState<string>(queryId);
   const [pTitle, setPTitle] = useState('');
   const [pDesc, setPDesc] = useState('');
-  const [pCategory, setPCategory] = useState('Women Apparel');
-  const [pSubCategory, setPSubCategory] = useState('Sarees');
+  const [pCategory, setPCategory] = useState('Women Ethnic Wear');
+  const [pSubCategory, setPSubCategory] = useState('Banarasi Sarees');
   const [pPrice, setPPrice] = useState<number>(299);
   const [pOrigPrice, setPOrigPrice] = useState<number>(599);
   const [pSizeOptions, setPSizeOptions] = useState<string[]>(['Free Size']);
-  const [pSelectedImage, setPSelectedImage] = useState('');
+  
+  // Product Photos state: NO auto-selected images on new listing!
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [customImageUrl, setCustomImageUrl] = useState('');
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
+  const [photoError, setPhotoError] = useState('');
 
-  // Search and Filter for Vendor Products
+  // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending' | 'rejected'>('all');
+  const [orderStatusFilter, setOrderStatusFilter] = useState<string>('all');
 
-  // Load registered vendors from the backend
+  // Available subcategories for the selected category
+  const availableSubcategories = useMemo(() => {
+    return getSubcategoriesForCategory(pCategory);
+  }, [pCategory]);
+
+  // Fetch registered vendors from database
   const fetchVendors = async () => {
     setIsLoadingVendors(true);
     try {
@@ -171,9 +270,16 @@ export default function VendorDashboard({
       if (res.ok) {
         const data = await res.json();
         setSystemVendors(data);
+        if (currentVendor) {
+          const matched = data.find((v: Vendor) => v.id === currentVendor.id || v.phone === currentVendor.phone);
+          if (matched) {
+            setCurrentVendor(matched);
+            localStorage.setItem('quekart_current_vendor', JSON.stringify(matched));
+          }
+        }
       }
     } catch (err) {
-      console.warn('Failed to load vendors from API, offline fallback.', err);
+      console.warn('Unable to load vendors directory. Using fallback.');
     } finally {
       setIsLoadingVendors(false);
     }
@@ -183,93 +289,130 @@ export default function VendorDashboard({
     fetchVendors();
   }, []);
 
-  // Sync current vendor to local storage when changed
+  // Vendor selection handler
   const handleSelectVendor = (vendor: Vendor) => {
     setCurrentVendor(vendor);
     localStorage.setItem('quekart_current_vendor', JSON.stringify(vendor));
-    setActiveSubTab('dashboard');
+    goToVendorRoute('dashboard');
   };
 
+  // Vendor logout handler -> stays strictly on /vendor
   const handleLogoutVendor = () => {
     setCurrentVendor(null);
     localStorage.removeItem('quekart_current_vendor');
-    setIsEditingProfile(false);
+    localStorage.removeItem('quekart_vendor_token');
+    goToVendorRoute('');
   };
 
-  const handleLoginVendor = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError('');
-    const cleanedLoginInput = loginPhone.trim().replace(/\s+/g, '');
-    if (!cleanedLoginInput) {
-      setLoginError('Please enter your registered mobile number.');
-      return;
-    }
-    
-    setIsLoggingIn(true);
-    try {
-      const res = await fetch('/api/auth/vendor-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: cleanedLoginInput })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.token) {
-          localStorage.setItem('quekart_vendor_token', data.token);
-        }
-        handleSelectVendor(data.vendor);
-      } else {
-        const err = await res.json();
-        setLoginError(err.error || 'Invalid mobile number. Please register below if you are a new vendor.');
-      }
-    } catch (err) {
-      setLoginError('Authentication service failed. Please try again.');
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
-
+  // Sync profile editing fields when vendor changes
   useEffect(() => {
     if (currentVendor) {
       setProfileName(currentVendor.name || '');
       setProfileEmail(currentVendor.email || '');
       setProfilePhone(currentVendor.phone || '');
-      setProfileCategory(currentVendor.businessCategory || 'Apparel & Sarees');
-      setProfileCity(currentVendor.city || '');
-      setProfileState(currentVendor.state || '');
+      setProfileCategory(currentVendor.businessCategory || 'Women Ethnic Wear');
+      setProfileCity(currentVendor.city || 'Jaipur');
+      setProfileState(currentVendor.state || 'Rajasthan');
       setProfileDescText(currentVendor.description || '');
-      setProfileAvatar(currentVendor.avatar || '');
     }
-  }, [currentVendor, activeSubTab]);
+  }, [currentVendor]);
 
-  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Validate file size is small enough (e.g. < 2.5MB) for easy base64 serialization
-      if (file.size > 2.5 * 1024 * 1024) {
-        alert('Please choose an image file under 2.5MB.');
-        return;
+  // Sync product fields when editing or resetting on add
+  useEffect(() => {
+    if (activeTabKey === 'edit-product' && queryId) {
+      const target = products.find(p => p.id === queryId);
+      if (target) {
+        setEditingProductId(target.id);
+        setPTitle(target.title);
+        setPDesc(target.description);
+        setPCategory(target.category);
+        setPSubCategory(target.subCategory || 'General');
+        setPPrice(target.price);
+        setPOrigPrice(target.originalPrice);
+        setPSizeOptions(target.sizeOptions || ['Free Size']);
+        setUploadedImages(target.images || []);
+        setCustomImageUrl('');
+        setPhotoError('');
       }
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setProfileAvatar(event.target.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
+    } else if (activeTabKey === 'add-product') {
+      // CLEAR ALL FIELDS COMPLETELY - NO AUTO SELECTED PHOTOS!
+      setEditingProductId('');
+      setPTitle('');
+      setPDesc('');
+      setPCategory('Women Ethnic Wear');
+      setPSubCategory('Banarasi Sarees');
+      setPPrice(299);
+      setPOrigPrice(599);
+      setPSizeOptions(['Free Size']);
+      setUploadedImages([]); // Empty images array
+      setCustomImageUrl('');
+      setPhotoError('');
     }
+  }, [activeTabKey, queryId, products]);
+
+  // Photo handlers: Camera Click, Gallery Pick, URL Add, Remove
+  const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoError('');
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      setUploadedImages(prev => [...prev, base64]);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
+  const handleGalleryUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setPhotoError('');
+
+    Array.from(files).forEach((file: File) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        setUploadedImages(prev => {
+          if (!prev.includes(base64)) {
+            return [...prev, base64];
+          }
+          return prev;
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
+
+  const handleAddImageUrl = () => {
+    if (!customImageUrl.trim()) return;
+    setPhotoError('');
+    const cleanUrl = customImageUrl.trim();
+    if (!uploadedImages.includes(cleanUrl)) {
+      setUploadedImages(prev => [...prev, cleanUrl]);
+    }
+    setCustomImageUrl('');
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    setUploadedImages(prev => prev.filter((_, idx) => idx !== index));
+  };
+
+  // Save profile changes (only for non-GST verified vendors)
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profileName.trim() || !profileEmail.trim() || !profilePhone.trim()) {
-      alert('Business name, email, and mobile contact phone are required.');
+    if (!currentVendor) return;
+
+    if (isGstLocked) {
+      alert('Your profile is permanently locked because you are a GST Verified seller. Business details cannot be edited directly.');
       return;
     }
 
     setIsSavingProfile(true);
-    const updatedVendor: Vendor = {
+
+    const updated: Vendor = {
       ...currentVendor,
       name: profileName.trim(),
       email: profileEmail.trim(),
@@ -277,115 +420,122 @@ export default function VendorDashboard({
       businessCategory: profileCategory,
       city: profileCity.trim(),
       state: profileState.trim(),
-      description: profileDescText.trim(),
-      avatar: profileAvatar.trim()
+      description: profileDescText.trim()
     };
 
     try {
       const res = await fetch(`/api/vendors/${currentVendor.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(updatedVendor)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated)
       });
-
       if (res.ok) {
-        setCurrentVendor(updatedVendor);
-        localStorage.setItem('quekart_current_vendor', JSON.stringify(updatedVendor));
-        setIsEditingProfile(false);
-        alert('Supplier profile updated successfully!');
-        fetchVendors();
+        setCurrentVendor(updated);
+        localStorage.setItem('quekart_current_vendor', JSON.stringify(updated));
+        goToVendorRoute('profile');
+        alert('Store profile updated successfully.');
       } else {
-        const err = await res.json();
-        alert(`Failed to save profile changes: ${err.error || 'Server rejected changes'}`);
+        throw new Error('Server returned error');
       }
     } catch (err) {
-      console.warn('Network offline, saving changes locally.', err);
-      setCurrentVendor(updatedVendor);
-      localStorage.setItem('quekart_current_vendor', JSON.stringify(updatedVendor));
-      setIsEditingProfile(false);
-      alert('Supplier profile updated locally! (Running in Offline Mode)');
+      alert('Failed to save profile changes.');
     } finally {
       setIsSavingProfile(false);
     }
   };
 
-  // Registering a new vendor
-  const handleRegisterVendor = async (e: React.FormEvent) => {
+  // Product save handler (Enforces immutable Title & Photos on edit)
+  const handleSaveProductForm = async (e: React.FormEvent) => {
     e.preventDefault();
-    setRegistrationError('');
-    if (!regName.trim() || !regEmail.trim() || !regPhone.trim()) {
-      setRegistrationError('Please fill out all required fields.');
+
+    const isEditMode = activeTabKey === 'edit-product' && !!editingProductId;
+    const existingProduct = products.find(p => p.id === editingProductId);
+
+    if (!isEditMode && uploadedImages.length === 0) {
+      setPhotoError('Please capture or upload at least 1 product photo.');
       return;
     }
 
-    let finalVendorType: 'small' | 'big' = 'small';
-    const finalGstin = regGstin.trim().toUpperCase();
-
-    if (finalGstin) {
-      if (!isGstVerified) {
-        const ok = await simulateGstVerification(finalGstin, regName.trim());
-        if (!ok) {
-          setRegistrationError('GSTIN verification failed. Please provide a valid 15-character GSTIN or leave it blank to register as an Unverified Seller.');
-          return;
-        }
-      }
-      finalVendorType = 'big';
-    } else {
-      finalVendorType = 'small';
+    if (!pTitle.trim()) {
+      alert('Please fill in product title.');
+      return;
     }
 
-    const registrationPayload = {
-      name: regName.trim(),
-      email: regEmail.trim(),
-      phone: regPhone.trim(),
-      businessCategory: regCategory,
-      gstin: finalGstin || undefined,
-      city: 'Jaipur', // default city
-      state: 'Rajasthan', // default state
-      description: 'Verified Supplier on QueKart'
+    if (!pDesc.trim()) {
+      alert('Please fill in product description.');
+      return;
+    }
+
+    if (pPrice <= 0 || pOrigPrice <= 0) {
+      alert('Please provide valid pricing (minimum ₹1).');
+      return;
+    }
+
+    setIsSavingProduct(true);
+    const discount = pOrigPrice > pPrice ? Math.round(((pOrigPrice - pPrice) / pOrigPrice) * 100) : 0;
+
+    // IMMUTABILITY ENFORCEMENT:
+    // If editing existing product: title and images MUST NEVER CHANGE.
+    const finalTitle = isEditMode && existingProduct ? existingProduct.title : pTitle.trim();
+    const finalImages = isEditMode && existingProduct ? existingProduct.images : uploadedImages;
+
+    const productPayload: Product = {
+      id: existingProduct ? existingProduct.id : 'prod-' + Math.random().toString(36).substring(2, 9),
+      title: finalTitle,
+      description: pDesc.trim(),
+      category: pCategory,
+      subCategory: pSubCategory.trim() || 'General',
+      price: pPrice,
+      originalPrice: pOrigPrice,
+      discountPercent: discount,
+      codPrice: pPrice + 39,
+      hasUpiOffer: true,
+      rating: existingProduct ? existingProduct.rating : 4.8,
+      ratingCount: existingProduct ? existingProduct.ratingCount : 12,
+      reviewCount: existingProduct ? existingProduct.reviewCount : 8,
+      images: finalImages,
+      variants: [],
+      soldBy: currentVendor?.name || 'QueKart Verified Wholesale',
+      soldByRating: currentVendor?.rating || 4.8,
+      productHighlights: [
+        { label: 'Fabric / Material', value: '100% Premium Grade' },
+        { label: 'Direct Manufacturer', value: currentVendor?.name || 'QueKart Partner' },
+        { label: 'GST Invoice', value: currentVendor?.gstin ? 'Available' : 'Standard Bill' }
+      ],
+      additionalDetails: [
+        { label: 'Country of Origin', value: 'India' },
+        { label: 'Dispatch Location', value: `${currentVendor?.city || 'Surat'}, ${currentVendor?.state || 'Gujarat'}` }
+      ],
+      sizeOptions: pSizeOptions.length ? pSizeOptions : ['Free Size'],
+      reviews: existingProduct ? existingProduct.reviews : [],
+      vendorId: currentVendor?.id,
+      approvalStatus: currentVendor?.vendorType === 'big' ? 'approved' : 'pending',
+      tag: existingProduct ? existingProduct.tag : undefined,
+      numericId: existingProduct ? existingProduct.numericId : undefined,
+      createdAt: existingProduct ? existingProduct.createdAt : new Date().toISOString()
     };
 
     try {
-      const res = await fetch('/api/auth/vendor-register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(registrationPayload)
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.token) {
-          localStorage.setItem('quekart_vendor_token', data.token);
-        }
-        setRegistrationSuccess(true);
-        setSystemVendors(prev => [...prev, data.vendor]);
-        setTimeout(() => {
-          handleSelectVendor(data.vendor);
-          // Reset fields
-          setRegName('');
-          setRegEmail('');
-          setRegPhone('');
-          setRegGstin('');
-          setIsGstVerified(false);
-          setGstVerifyStatus('idle');
-          setGstVerifyMessage('');
-          setRegistrationSuccess(false);
-        }, 1500);
+      if (isEditMode) {
+        await onEditProduct(productPayload);
       } else {
-        const err = await res.json();
-        setRegistrationError(err.error || 'Failed to complete registration.');
+        await onAddProduct(productPayload);
       }
-    } catch (err) {
-      console.warn('Network issue during registration, using fallback.');
-      setRegistrationError('Failed to connect to authentication server. Please try again.');
+      goToVendorRoute('products');
+    } catch (err: any) {
+      alert(`Operation failed: ${err.message || 'Check connection'}`);
+    } finally {
+      setIsSavingProduct(false);
     }
   };
 
-  // Vendor product filtering (products listed by this specific vendor)
+  const handleToggleSize = (size: string) => {
+    setPSizeOptions(prev => 
+      prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]
+    );
+  };
+
+  // Filter vendor items & orders
   const vendorProducts = products.filter(p => p.vendorId === currentVendor?.id);
   const filteredProducts = vendorProducts.filter(p => {
     const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -397,612 +547,577 @@ export default function VendorDashboard({
     return matchesSearch && matchStatus;
   });
 
-  // Vendor orders (orders containing products from this vendor)
   const vendorOrders = orders.filter(o => 
-    o.items.some(item => item.product.vendorId === currentVendor?.id)
+    o.items && o.items.some(item => item.product?.vendorId === currentVendor?.id)
   );
 
-  // Calculates total revenue from successfully delivered/completed items
+  const filteredOrders = vendorOrders.filter(o => {
+    const matchStatus = orderStatusFilter === 'all' || o.status.toLowerCase() === orderStatusFilter.toLowerCase();
+    const matchSearch = o.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        (o.shippingAddress?.city || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        (o.shippingAddress?.name || '').toLowerCase().includes(searchQuery.toLowerCase());
+    return matchStatus && matchSearch;
+  });
+
+  const selectedOrderForDetail = queryId ? orders.find(o => o.id === queryId) : null;
+
   const totalRevenue = vendorOrders.reduce((sum, order) => {
-    const vendorItemsPrice = order.items
-      .filter(item => item.product.vendorId === currentVendor?.id)
-      .reduce((s, item) => s + (item.product.price * item.quantity), 0);
+    const vendorItemsPrice = (order.items || [])
+      .filter(item => item.product?.vendorId === currentVendor?.id)
+      .reduce((s, item) => s + ((item.product?.price || 0) * item.quantity), 0);
     return sum + (order.status !== 'Cancelled' ? vendorItemsPrice : 0);
   }, 0);
 
-  // Preset images matching Meesho style
-  const imagePresets = [
-    { label: 'Royal Banarasi Saree (Pink)', url: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=600' },
-    { label: 'Embroidered Salwar Suit (Yellow)', url: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=600' },
-    { label: 'Designer Chanderi Saree (Green)', url: 'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=600' },
-    { label: 'Golden Wedding Lehenga', url: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&q=80&w=600' },
-    { label: 'Men\'s Silk Kurta Set', url: 'https://images.unsplash.com/photo-1583391265517-35bbadd01209?auto=format&fit=crop&q=80&w=600' },
-    { label: 'Handcrafted Wooden Clock', url: 'https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?auto=format&fit=crop&q=80&w=600' },
-    { label: 'Premium Lip Gloss Kit', url: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&q=80&w=600' },
-    { label: 'Traditional Brass Diya Set', url: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&q=80&w=600' }
+  // Bottom Navigation Tabs for Mobile
+  const navTabs = [
+    { id: 'dashboard', label: 'Home', icon: Home, path: 'dashboard' },
+    { id: 'products', label: 'Catalog', icon: Package, path: 'products', badge: vendorProducts.length },
+    { id: 'add-product', label: 'Add Item', icon: Plus, path: 'products/add', isAction: true },
+    { id: 'orders', label: 'Orders', icon: ShoppingBag, path: 'orders', badge: vendorOrders.filter(o => o.status === 'Ordered' || o.status === 'Shipped').length },
+    { id: 'export', label: 'Export', icon: FileSpreadsheet, path: 'export' },
+    { id: 'profile', label: 'Profile', icon: Building2, path: 'profile' }
   ];
 
-  const handleOpenListingModal = (productToEdit: Product | null = null) => {
-    if (productToEdit) {
-      setEditingProduct(productToEdit);
-      setPTitle(productToEdit.title);
-      setPDesc(productToEdit.description);
-      setPCategory(productToEdit.category);
-      setPSubCategory(productToEdit.subCategory);
-      setPPrice(productToEdit.price);
-      setPOrigPrice(productToEdit.originalPrice);
-      setPSizeOptions(productToEdit.sizeOptions);
-      setPSelectedImage(productToEdit.images[0] || '');
-      setCustomImageUrl('');
-    } else {
-      setEditingProduct(null);
-      setPTitle('');
-      setPDesc('');
-      setPCategory('Women Apparel');
-      setPSubCategory('Sarees');
-      setPPrice(299);
-      setPOrigPrice(599);
-      setPSizeOptions(['Free Size']);
-      setPSelectedImage(imagePresets[0].url);
-      setCustomImageUrl('');
-    }
-    setIsListingModalOpen(true);
-  };
-
-  const handleSaveProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!pTitle.trim() || !pDesc.trim()) {
-      alert('Product title and description are required.');
-      return;
-    }
-
-    const finalImage = customImageUrl.trim() ? customImageUrl.trim() : pSelectedImage;
-    const discount = Math.round(((pOrigPrice - pPrice) / pOrigPrice) * 100);
-
-    const productPayload: Product = {
-      id: editingProduct ? editingProduct.id : `prod-vendor-${Date.now()}`,
-      title: pTitle.trim(),
-      description: pDesc.trim(),
-      category: pCategory,
-      subCategory: pSubCategory,
-      price: Number(pPrice),
-      originalPrice: Number(pOrigPrice),
-      discountPercent: discount > 0 ? discount : 0,
-      codPrice: Number(pPrice) + 15, // standard small COD processing premium
-      hasUpiOffer: true,
-      rating: editingProduct ? editingProduct.rating : 5.0,
-      ratingCount: editingProduct ? editingProduct.ratingCount : 1,
-      reviewCount: editingProduct ? editingProduct.reviewCount : 0,
-      images: [finalImage],
-      variants: editingProduct ? editingProduct.variants : [
-        { colorName: 'Default', imageUrl: finalImage, price: Number(pPrice), originalPrice: Number(pOrigPrice) }
-      ],
-      soldBy: currentVendor?.name || 'Verified Supplier',
-      soldByRating: currentVendor?.rating || 4.2,
-      productHighlights: [
-        { label: 'Category', value: pCategory },
-        { label: 'Fabric / Material', value: pSubCategory }
-      ],
-      additionalDetails: [
-        { label: 'Delivery Time', value: '3-4 Days' },
-        { label: 'Return Policy', value: '7-day Easy Return & Refund Guarantee' }
-      ],
-      sizeOptions: pSizeOptions,
-      reviews: editingProduct ? editingProduct.reviews : [],
-      vendorId: currentVendor?.id,
-      // If Big Vendor, directly 'approved', otherwise 'pending'
-      approvalStatus: currentVendor?.vendorType === 'big' ? 'approved' : 'pending',
-      // Explicitly lock-out and preserve administrative / automatic tags
-      tag: editingProduct ? editingProduct.tag : undefined,
-      numericId: editingProduct ? editingProduct.numericId : undefined,
-      sponsoredUntil: editingProduct ? editingProduct.sponsoredUntil : undefined,
-      createdAt: editingProduct ? editingProduct.createdAt : new Date().toISOString(),
-      isAd: editingProduct ? editingProduct.isAd : undefined
-    };
-
-    try {
-      if (editingProduct) {
-        await onEditProduct(productPayload);
-      } else {
-        await onAddProduct(productPayload);
-      }
-      setIsListingModalOpen(false);
-    } catch (err: any) {
-      alert(`Operation failed: ${err.message || 'Check connection'}`);
-    }
-  };
-
-  const handleToggleSize = (size: string) => {
-    setPSizeOptions(prev => 
-      prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]
-    );
-  };
-
   return (
-    <div className="bg-slate-50 min-h-screen text-slate-800 flex flex-col font-sans" id="vendor-panel-root">
-      {/* Upper Navigation Header */}
-      <header className="bg-white border-b border-gray-100 shadow-3xs sticky top-0 z-40 px-4 py-3.5 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={onClose} 
-            className="p-1.5 hover:bg-slate-100 rounded-full text-slate-600 transition-colors cursor-pointer"
-            id="vendor-back-btn"
+    <div className="bg-slate-50 min-h-screen text-slate-900 flex flex-col font-sans selection:bg-[#143C6B]/10 selection:text-[#143C6B]" id="vendor-portal-root">
+      
+      {/* 1. TOP HEADER (Identical Clean Style as Shop Header) */}
+      <header className="sticky top-0 z-40 bg-white border-b border-slate-200/80 shadow-xs px-3 sm:px-6 py-2.5 sm:py-3" id="vendor-top-header">
+        <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-3">
+          
+          {/* Logo & Brand matching Shop */}
+          <div 
+            className="flex items-center gap-2 cursor-pointer select-none" 
+            onClick={() => goToVendorRoute('dashboard')}
+            id="vendor-header-logo"
           >
-            <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
-          </button>
-          <div>
-            <h1 className="text-sm font-bold uppercase tracking-wider flex items-center gap-1.5">
-              <Building2 className="w-4 h-4 text-lucky-magenta" />
-              <span className="flex items-center">
-                <span style={{ color: '#143C6B' }}>Que</span>
-                <span style={{ color: '#C89D1F' }}>Kart</span>
-                <span className="ml-1 text-lucky-magenta">Seller Portal</span>
-              </span>
-            </h1>
-            <p className="text-[10px] text-gray-400 font-bold tracking-wide">Bharat's Commission-Free Wholesale Hub</p>
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#143C6B] flex items-center justify-center p-1.5 text-white shadow-xs">
+              <Logo className="w-full h-full text-white" />
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1.5">
+                <span className="font-display font-extrabold text-base sm:text-lg tracking-tight text-[#143C6B]">
+                  QUEKART
+                </span>
+                <span className="text-[9px] uppercase font-black tracking-wider bg-pink-50 text-lucky-magenta border border-pink-200 px-1.5 py-0.5 rounded-md">
+                  Seller Hub
+                </span>
+              </div>
+              <p className="text-[9.5px] text-slate-500 font-medium hidden xs:block">
+                0% Commission Wholesale Portal
+              </p>
+            </div>
           </div>
-        </div>
 
-        {currentVendor && (
-          <div className="flex items-center gap-2">
-            <span className={`hidden sm:inline text-[9.5px] font-black uppercase px-2.5 py-1.5 rounded-md border ${
-              currentVendor.vendorType === 'big' 
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                : 'bg-amber-50 text-amber-700 border-amber-200'
-            }`}>
-              {currentVendor.vendorType === 'big' ? '👑 Verified Seller (GST)' : '🌱 Unverified Seller'}
-            </span>
-            <button 
-              onClick={handleLogoutVendor} 
-              className="text-xs text-red-500 font-extrabold flex items-center gap-1.5 py-1 px-2.5 rounded-md hover:bg-red-50 cursor-pointer"
-              id="vendor-logout-btn"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline">Exit Portal</span>
-            </button>
-          </div>
-        )}
+          {/* User / Vendor Quick Bar */}
+          {currentVendor ? (
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Verified Badge */}
+              <div className={`hidden sm:flex items-center gap-1 text-[10px] font-black uppercase px-2.5 py-1 rounded-full border ${
+                isGstLocked 
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                  : 'bg-amber-50 text-amber-700 border-amber-200'
+              }`}>
+                {isGstLocked ? (
+                  <>
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Verified GST Store</span>
+                  </>
+                ) : (
+                  <>
+                    <Clock className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Small Business</span>
+                  </>
+                )}
+              </div>
+
+              {/* Vendor Store Name */}
+              <div 
+                onClick={() => goToVendorRoute('profile')}
+                className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200/80 px-2.5 py-1.5 rounded-xl cursor-pointer transition-colors max-w-[140px] sm:max-w-[200px]"
+              >
+                <div className="w-6 h-6 rounded-lg bg-[#143C6B] text-white flex items-center justify-center text-xs font-black shrink-0">
+                  {currentVendor.name.charAt(0)}
+                </div>
+                <span className="text-xs font-bold text-slate-800 truncate">{currentVendor.name}</span>
+              </div>
+
+              {/* Sign Out Button */}
+              <button 
+                onClick={handleLogoutVendor} 
+                className="text-xs text-red-600 font-bold p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl hover:bg-red-50 cursor-pointer transition-colors border border-transparent hover:border-red-100 flex items-center gap-1"
+                id="vendor-logout-btn"
+                title="Sign out of seller portal"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden md:inline text-[11px]">Logout</span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-[#143C6B] bg-blue-50 border border-blue-200 px-3 py-1 rounded-full">
+                Supplier Registration
+              </span>
+            </div>
+          )}
+
+        </div>
       </header>
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-6xl w-full mx-auto p-4 flex flex-col">
+      {/* 2. DESKTOP SUB-NAV TABS (Hidden on Mobile) */}
+      {currentVendor && (
+        <nav className="hidden md:block bg-white border-b border-slate-200/80 sticky top-[57px] z-30 px-6 py-2 shadow-3xs" id="vendor-desktop-nav">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-1.5 overflow-x-auto">
+              {[
+                { id: 'dashboard', label: 'Overview', icon: Home, path: 'dashboard' },
+                { id: 'products', label: 'Catalog', icon: Package, path: 'products', count: vendorProducts.length },
+                { id: 'add-product', label: '+ Add Product', icon: Plus, path: 'products/add' },
+                { id: 'orders', label: 'Orders & Dispatch', icon: ShoppingBag, path: 'orders', count: vendorOrders.length },
+                { id: 'export', label: 'Export & Reports', icon: FileSpreadsheet, path: 'export' },
+                { id: 'analytics', label: 'Sales & Analytics', icon: BarChart3, path: 'analytics' },
+                { id: 'payouts', label: 'Settlement (₹0)', icon: Coins, path: 'payouts' },
+                { id: 'profile', label: 'Store Profile', icon: Building2, path: 'profile' }
+              ].map(tab => {
+                const Icon = tab.icon;
+                const isActive = activeTabKey === tab.id || 
+                  (tab.id === 'products' && activeTabKey === 'edit-product') ||
+                  (tab.id === 'orders' && activeTabKey === 'order-details') ||
+                  (tab.id === 'profile' && activeTabKey === 'edit-profile');
+
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => goToVendorRoute(tab.path)}
+                    className={`flex items-center gap-2 py-1.5 px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      isActive 
+                        ? 'bg-[#143C6B] text-white shadow-xs' 
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                    <span>{tab.label}</span>
+                    {tab.count !== undefined && (
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live Wholesale Node
+              </span>
+            </div>
+          </div>
+        </nav>
+      )}
+
+      {/* 3. MAIN CONTENT BODY */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-3.5 sm:p-6 pb-24 md:pb-10 flex flex-col">
         {!currentVendor ? (
-          /* UNIFIED SUPPLIER AUTH PANEL WITH REGISTER / LOGIN TABS */
-          <div className="flex-1 flex items-center justify-center py-8 px-2 animate-fadeIn" id="vendor-auth-root">
-            <div className="w-full max-w-md bg-white rounded-2xl border border-gray-200/80 shadow-md overflow-hidden" id="vendor-auth-card">
+          /* SUPPLIER AUTHENTICATION SCREEN */
+          <VendorAuthView onLoginSuccess={handleSelectVendor} systemVendors={systemVendors} />
+        ) : (
+          /* AUTHENTICATED VENDOR VIEWS */
+          <div className="space-y-4 sm:space-y-6" id="vendor-dashboard-content">
+            
+            {/* DYNAMIC SUBPAGE ROUTING */}
+            <AnimatePresence mode="wait">
               
-              {/* Premium Header Banner */}
-              <div className="bg-gradient-to-r from-[#143C6B] via-[#113158] to-lucky-magenta px-6 py-8 text-white relative overflow-hidden" id="vendor-auth-header">
-                <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-4 opacity-10">
-                  <Building2 className="w-48 h-48" />
-                </div>
-                <div className="relative z-10 flex flex-col items-center text-center">
-                  <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-md mb-3 border border-white/10">
-                    <Building2 className="w-8 h-8 text-white" />
-                  </div>
-                  <h1 className="text-xl font-black tracking-wider uppercase">QueKart Seller Hub</h1>
-                  <p className="text-xs text-white/85 font-medium mt-1">Bharat's Commission-Free Wholesale Platform</p>
-                </div>
-              </div>
-
-              {/* Tab Switch Navigation */}
-              <div className="flex border-b border-gray-100" id="vendor-auth-tab-bar">
-                <button
-                  type="button"
-                  onClick={() => { setIsRegTab(false); setLoginError(''); setRegistrationError(''); }}
-                  className={`flex-1 py-3.5 text-xs font-black uppercase tracking-wider text-center border-b-2 transition-all cursor-pointer ${!isRegTab ? 'border-[#143C6B] text-[#143C6B] bg-white font-black' : 'border-transparent text-gray-400 bg-gray-50/50 hover:bg-gray-50 font-bold'}`}
-                  id="tab-vendor-signin"
+              {/* 1. DASHBOARD OVERVIEW */}
+              {activeTabKey === 'dashboard' && (
+                <motion.div
+                  key="vendor-dashboard-tab"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="space-y-4 sm:space-y-6"
                 >
-                  Sign In
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setIsRegTab(true); setLoginError(''); setRegistrationError(''); }}
-                  className={`flex-1 py-3.5 text-xs font-black uppercase tracking-wider text-center border-b-2 transition-all cursor-pointer ${isRegTab ? 'border-[#143C6B] text-[#143C6B] bg-white font-black' : 'border-transparent text-gray-400 bg-gray-50/50 hover:bg-gray-50 font-bold'}`}
-                  id="tab-vendor-signup"
-                >
-                  Register Shop
-                </button>
-              </div>
-
-              <div className="p-6" id="vendor-auth-forms-container">
-                {!isRegTab ? (
-                  /* SIGN IN TAB */
-                  <div className="space-y-5" id="vendor-login-panel">
-                    <div className="text-center">
-                      <h2 className="text-xs font-black text-gray-700 uppercase tracking-widest flex items-center justify-center gap-1.5">
-                        <Phone className="w-4 h-4 text-lucky-magenta" />
-                        <span>Supplier Mobile Sign In</span>
-                      </h2>
-                      <p className="text-[10.5px] text-gray-400 font-semibold mt-1">Enter your registered mobile number to securely access your vendor dashboard.</p>
+                  {/* Top Welcome Banner */}
+                  <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-[#143C6B] text-white flex items-center justify-center font-black text-lg shadow-xs">
+                        {currentVendor.name.charAt(0)}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-sm sm:text-base font-black text-slate-900">{currentVendor.name}</h2>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                            isGstLocked
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-amber-50 text-amber-700 border-amber-200'
+                          }`}>
+                            {isGstLocked ? '👑 GST Verified Store' : '🌱 Small Business'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 font-medium">
+                          {currentVendor.city || 'Jaipur'}, {currentVendor.state || 'Rajasthan'} • {currentVendor.businessCategory || 'General Wholesale'}
+                        </p>
+                      </div>
                     </div>
 
-                    {loginError && (
-                      <div className="bg-red-50 border border-red-100 text-red-600 text-[10.5px] font-bold p-3 rounded-lg flex items-center gap-2" id="login-error-alert">
-                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                        <span>{loginError}</span>
-                      </div>
-                    )}
-
-                    <form onSubmit={handleLoginVendor} className="space-y-3.5">
-                      <div>
-                        <label className="text-[9px] text-gray-400 font-extrabold uppercase tracking-widest block mb-1">Registered Mobile Number *</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-extrabold">+91</span>
-                          <input
-                            type="tel"
-                            required
-                            placeholder="e.g. 9876543210"
-                            value={loginPhone}
-                            onChange={e => {
-                              setLoginPhone(e.target.value);
-                              setLoginError('');
-                            }}
-                            className="w-full text-xs font-semibold border border-gray-200 rounded-lg py-2.5 pl-11 pr-4 bg-slate-50/50 focus:outline-hidden focus:bg-white focus:border-[#143C6B] transition-all"
-                            id="vendor-login-phone-input"
-                          />
-                        </div>
-                      </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <button
+                        onClick={() => goToVendorRoute('export')}
+                        className="flex-1 sm:flex-none bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold py-2.5 px-3.5 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <FileSpreadsheet className="w-4 h-4 text-[#143C6B]" />
+                        <span>Export Data</span>
+                      </button>
 
                       <button
-                        type="submit"
-                        disabled={isLoggingIn}
-                        className="w-full bg-[#143C6B] hover:bg-[#0f2d52] disabled:opacity-50 text-white font-extrabold text-xs py-2.5 rounded-lg transition-all uppercase tracking-wider cursor-pointer shadow-3xs flex items-center justify-center gap-1.5"
-                        id="vendor-login-submit"
+                        onClick={() => goToVendorRoute('products/add')}
+                        className="flex-1 sm:flex-none bg-[#143C6B] hover:bg-[#0D2C4E] text-white text-xs font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                       >
-                        <span>{isLoggingIn ? 'Verifying Account...' : 'Secure Sign-In'}</span>
-                        <ChevronRight className="w-3.5 h-3.5" />
+                        <Plus className="w-4 h-4" />
+                        <span>+ List New Product</span>
                       </button>
-                    </form>
+                    </div>
+                  </div>
 
-                    {/* Quick demo selection */}
-                    <div className="pt-4 border-t border-gray-100" id="vendor-demo-accounts-panel">
-                      <h3 className="text-[9px] font-extrabold text-gray-400 uppercase tracking-widest mb-3 text-center">Registered Demo Suppliers</h3>
-                      
-                      {isLoadingVendors ? (
-                        <p className="text-xs text-gray-500 font-medium py-2 text-center">Loading active directory...</p>
-                      ) : systemVendors.length === 0 ? (
-                        <p className="text-xs text-gray-400 py-2 text-center">No active vendors registered.</p>
+                  {/* KPI Metric Cards */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4" id="vendor-kpi-grid">
+                    <div className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 shadow-xs flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#143C6B] shrink-0">
+                        <Coins className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Net Sales</span>
+                        <p className="text-base sm:text-lg font-black text-slate-900">₹{totalRevenue.toLocaleString()}</p>
+                      </div>
+                    </div>
+
+                    <div 
+                      onClick={() => goToVendorRoute('products')}
+                      className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 shadow-xs flex items-center gap-3 cursor-pointer hover:border-[#143C6B] transition-colors"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-700 shrink-0">
+                        <Package className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Catalog Items</span>
+                        <p className="text-base sm:text-lg font-black text-slate-900">{vendorProducts.length}</p>
+                      </div>
+                    </div>
+
+                    <div 
+                      onClick={() => goToVendorRoute('orders')}
+                      className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 shadow-xs flex items-center gap-3 cursor-pointer hover:border-pink-500 transition-colors"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-pink-50 border border-pink-100 flex items-center justify-center text-lucky-magenta shrink-0">
+                        <ShoppingBag className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Client Orders</span>
+                        <p className="text-base sm:text-lg font-black text-lucky-magenta">{vendorOrders.length}</p>
+                      </div>
+                    </div>
+
+                    <div 
+                      onClick={() => goToVendorRoute('export')}
+                      className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 shadow-xs flex items-center gap-3 cursor-pointer hover:border-emerald-500 transition-colors"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
+                        <FileSpreadsheet className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Customer Export</span>
+                        <p className="text-xs sm:text-sm font-black text-emerald-700">Indexed Ledger</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Main Grid: Orders & Fast Actions */}
+                  <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
+                    
+                    {/* Left 2 Cols: Recent Orders */}
+                    <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs space-y-4">
+                      <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                        <div className="flex items-center gap-2">
+                          <ShoppingBag className="w-4 h-4 text-[#143C6B]" />
+                          <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">Recent Dispatch Orders</h3>
+                          <span className="text-[10px] bg-blue-50 text-[#143C6B] font-bold px-2 py-0.5 rounded-full">
+                            {vendorOrders.length}
+                          </span>
+                        </div>
+
+                        <button 
+                          onClick={() => goToVendorRoute('orders')}
+                          className="text-xs font-bold text-[#143C6B] hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>View All</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {vendorOrders.length === 0 ? (
+                        <div className="py-12 text-center space-y-2">
+                          <ShoppingBag className="w-8 h-8 text-slate-300 mx-auto" />
+                          <p className="text-xs text-slate-500 font-medium">No customer orders yet. List attractive products to start receiving dispatch requests!</p>
+                        </div>
                       ) : (
-                        <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
-                          {systemVendors.map(vendor => (
-                            <div
-                              key={vendor.id}
-                              className="p-2.5 bg-slate-50/50 rounded-xl border border-gray-200/60 flex justify-between items-center gap-2 hover:border-[#143C6B]/50 transition-all cursor-pointer"
-                              onClick={() => {
-                                setLoginPhone(vendor.phone);
-                                setLoginError('');
-                                setTimeout(() => {
-                                  const match = systemVendors.find(v => v.id === vendor.id);
-                                  if (match) handleSelectVendor(match);
-                                }, 50);
-                              }}
-                              id={`vendor-demo-user-${vendor.id}`}
+                        <div className="divide-y divide-slate-100">
+                          {vendorOrders.slice(0, 4).map(order => (
+                            <div 
+                              key={order.id} 
+                              onClick={() => goToVendorRoute('orders/details', `id=${order.id}`)}
+                              className="py-3 flex items-center justify-between gap-3 hover:bg-slate-50/80 -mx-2 px-2 rounded-xl cursor-pointer transition-colors"
                             >
-                              <div className="min-w-0 flex-1">
-                                <h4 className="text-xs font-black text-gray-800 truncate">{vendor.name}</h4>
-                                <p className="text-[9.5px] text-gray-400 font-bold mt-0.5">Mob: {vendor.phone} • {vendor.businessCategory}</p>
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-black text-slate-900">#{order.id.slice(0, 8)}</span>
+                                  <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                                    order.status === 'Delivered Early'
+                                      ? 'bg-emerald-50 text-emerald-700'
+                                      : order.status === 'Shipped' || order.status === 'Out for Delivery'
+                                      ? 'bg-blue-50 text-blue-700'
+                                      : 'bg-amber-50 text-amber-700'
+                                  }`}>
+                                    {order.status}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-slate-500">
+                                  Customer: <strong>{order.shippingAddress?.name || 'Buyer'}</strong> • {order.shippingAddress?.city || 'India'}
+                                </p>
                               </div>
-                              <span className="text-[9px] bg-[#143C6B]/10 text-[#143C6B] font-black px-2 py-1 rounded-full uppercase tracking-wider flex-shrink-0">
-                                Auto Sign-In
-                              </span>
+
+                              <div className="text-right">
+                                <span className="text-xs font-black text-slate-900 block">
+                                  ₹{order.totalPrice}
+                                </span>
+                                <span className="text-[10px] text-emerald-600 font-bold">100% Payout</span>
+                              </div>
                             </div>
                           ))}
                         </div>
                       )}
-
-                      <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-3">
-                        <div className="p-2.5 bg-emerald-50/50 border border-emerald-100/50 rounded-xl text-center">
-                          <span className="text-xs block">👑</span>
-                          <span className="text-[9px] font-extrabold text-emerald-800 uppercase block mt-1">Verified Sellers</span>
-                          <span className="text-[8.5px] text-emerald-600 font-semibold block mt-0.5">Instant listings with verified GSTIN</span>
-                        </div>
-                        <div className="p-2.5 bg-amber-50/50 border border-amber-100/50 rounded-xl text-center">
-                          <span className="text-xs block">🌱</span>
-                          <span className="text-[9px] font-extrabold text-amber-800 uppercase block mt-1">New Sellers</span>
-                          <span className="text-[8.5px] text-amber-600 font-semibold block mt-0.5">Listing live after swift admin review</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  /* SIGN UP / REGISTRATION TAB */
-                  <div className="space-y-4" id="vendor-signup-panel">
-                    <div className="text-center">
-                      <h2 className="text-xs font-black text-gray-700 uppercase tracking-widest flex items-center justify-center gap-1.5">
-                        <PlusCircle className="w-4 h-4 text-lucky-magenta" />
-                        <span>Register Wholesale Business</span>
-                      </h2>
-                      <p className="text-[10.5px] text-gray-400 font-semibold mt-1">Join Bharat's commission-free wholesale market & unlock instant client base.</p>
                     </div>
 
-                    {registrationError && (
-                      <div className="bg-red-50 border border-red-100 text-red-600 text-[10.5px] font-bold p-3 rounded-lg flex items-center gap-2" id="signup-error-alert">
-                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                        <span>{registrationError}</span>
-                      </div>
-                    )}
-
-                    {registrationSuccess && (
-                      <div className="bg-green-50 border border-green-100 text-green-600 text-[10.5px] font-bold p-3 rounded-lg flex items-center gap-2" id="signup-success-alert">
-                        <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                        <span>Business account created successfully! Logging you in...</span>
-                      </div>
-                    )}
-
-                    <form onSubmit={handleRegisterVendor} className="space-y-3">
-                      <div>
-                        <label className="text-[9px] text-gray-400 font-extrabold uppercase tracking-widest block mb-1">Wholesale Business Name *</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="e.g. Mahavir Textiles Jaipur"
-                          value={regName}
-                          onChange={e => setRegName(e.target.value)}
-                          className="w-full text-xs font-semibold border border-gray-200 rounded-lg py-2 px-3 bg-slate-50/50 focus:outline-hidden focus:bg-white focus:border-[#143C6B] transition-all"
-                          id="vendor-reg-name"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[9px] text-gray-400 font-extrabold uppercase tracking-widest block mb-1">Business Email Address *</label>
-                        <input
-                          type="email"
-                          required
-                          placeholder="e.g. info@mahavirtextiles.com"
-                          value={regEmail}
-                          onChange={e => setRegEmail(e.target.value)}
-                          className="w-full text-xs font-semibold border border-gray-200 rounded-lg py-2 px-3 bg-slate-50/50 focus:outline-hidden focus:bg-white focus:border-[#143C6B] transition-all"
-                          id="vendor-reg-email"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[9px] text-gray-400 font-extrabold uppercase tracking-widest block mb-1">Mobile Contact Phone *</label>
-                        <input
-                          type="tel"
-                          required
-                          placeholder="e.g. 9999988888"
-                          value={regPhone}
-                          onChange={e => setRegPhone(e.target.value)}
-                          className="w-full text-xs font-semibold border border-gray-200 rounded-lg py-2 px-3 bg-slate-50/50 focus:outline-hidden focus:bg-white focus:border-[#143C6B] transition-all"
-                          id="vendor-reg-phone"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-[9px] text-gray-400 font-extrabold uppercase tracking-widest block mb-1">Business Category</label>
-                          <select
-                            value={regCategory}
-                            onChange={e => setRegCategory(e.target.value)}
-                            className="w-full text-xs font-semibold border border-gray-200 rounded-lg py-2 px-3 bg-slate-50/50 focus:outline-hidden focus:bg-white focus:border-[#143C6B] transition-all"
-                            id="vendor-reg-category"
-                          >
-                            <option value="Apparel & Sarees">Apparel & Sarees</option>
-                            <option value="Home & Kitchen">Home & Kitchen</option>
-                            <option value="Cosmetics & Beauty">Cosmetics & Beauty</option>
-                            <option value="Footwear & Bags">Footwear & Bags</option>
-                            <option value="Consumer Electronics">Consumer Electronics</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="text-[9px] text-gray-400 font-extrabold uppercase tracking-widest block mb-1">Trust Designation</label>
-                          <div className={`p-2 rounded-lg border text-[9.5px] font-bold flex items-center gap-1.5 h-[34px] transition-all ${
-                            isGstVerified 
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-150' 
-                              : 'bg-amber-50 text-amber-800 border-amber-150'
-                          }`}>
-                            <span>{isGstVerified ? '👑 Verified' : '🌱 New'}</span>
+                    {/* Right 1 Col: Store Health & Quick Actions */}
+                    <div className="space-y-4">
+                      {/* GST Status Card */}
+                      <div className={`rounded-2xl border p-4 sm:p-5 shadow-xs space-y-3 ${
+                        isGstLocked 
+                          ? 'bg-emerald-50/50 border-emerald-200' 
+                          : 'bg-amber-50/50 border-amber-200'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <ShieldCheck className={`w-5 h-5 ${isGstLocked ? 'text-emerald-600' : 'text-amber-600'}`} />
+                            <h4 className="text-xs font-black text-slate-900 uppercase">GST Status</h4>
                           </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="text-[9px] text-gray-400 font-extrabold uppercase tracking-widest block mb-1">GSTIN Number (Optional)</label>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            placeholder="e.g. 08AAAAA1111A1Z1"
-                            value={regGstin}
-                            disabled={isGstVerified}
-                            onChange={e => {
-                              setRegGstin(e.target.value);
-                              setIsGstVerified(false);
-                              setGstVerifyStatus('idle');
-                              setGstVerifyMessage('');
-                            }}
-                            className="flex-1 text-xs font-semibold border border-gray-200 rounded-lg py-2 px-3 bg-slate-50/50 focus:outline-hidden focus:bg-white focus:border-[#143C6B] transition-all uppercase placeholder:normal-case disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-200"
-                            id="vendor-reg-gstin"
-                          />
-                          <button
-                            type="button"
-                            disabled={isGstVerifying || isGstVerified || !regGstin.trim()}
-                            onClick={() => simulateGstVerification(regGstin, regName || 'your company')}
-                            className="px-3 bg-lucky-magenta text-white font-extrabold text-[10px] rounded-lg hover:bg-lucky-magenta-hover transition-all disabled:bg-slate-150 disabled:text-gray-400 cursor-pointer uppercase tracking-wider"
-                          >
-                            {isGstVerified ? '✓ Verified' : isGstVerifying ? 'Verifying...' : 'Verify GST'}
-                          </button>
-                        </div>
-
-                        {/* GST verification indicator */}
-                        {gstVerifyStatus !== 'idle' && (
-                          <div className={`mt-2 p-2 rounded-lg border text-[9.5px] font-bold ${
-                            gstVerifyStatus === 'verifying' ? 'bg-blue-50 text-blue-700 border-blue-100 animate-pulse' :
-                            gstVerifyStatus === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                            'bg-red-50 text-red-700 border-red-100'
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                            isGstLocked ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
                           }`}>
-                            <div className="flex items-center gap-1.5">
-                              {gstVerifyStatus === 'verifying' && <div className="w-2.5 h-2.5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />}
-                              {gstVerifyStatus === 'success' && <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
-                              {gstVerifyStatus === 'failed' && <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0" />}
-                              <span>{gstVerifyMessage}</span>
-                            </div>
+                            {isGstLocked ? 'Verified' : 'Pending'}
+                          </span>
+                        </div>
+
+                        {isGstLocked ? (
+                          <div className="space-y-1.5">
+                            <p className="text-xs text-slate-700 font-medium">
+                              Your account is operating under verified GSTIN <strong>{currentVendor.gstin}</strong>.
+                            </p>
+                            <p className="text-[10.5px] text-emerald-700 font-bold flex items-center gap-1">
+                              <Lock className="w-3 h-3" /> Profile details permanently locked (GST compliant).
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <p className="text-xs text-slate-700 font-medium">
+                              You are operating as a Small Business. Verify your GST number anytime to unlock instant automatic catalog approval!
+                            </p>
+                            <button
+                              onClick={() => goToVendorRoute('profile')}
+                              className="w-full bg-[#143C6B] text-white text-xs font-bold py-2 rounded-xl cursor-pointer"
+                            >
+                              Verify GSTIN Now
+                            </button>
                           </div>
                         )}
                       </div>
 
-                      <button
-                        type="submit"
-                        className="w-full bg-[#143C6B] hover:bg-[#0f2d52] text-white font-extrabold text-xs py-2.5 rounded-lg cursor-pointer transition-all uppercase tracking-wider shadow-2xs mt-2"
-                        id="vendor-reg-submit"
-                      >
-                        Create Commission-Free Shop
-                      </button>
-                    </form>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* ACTIVE LOGGED-IN VENDOR WORKSPACE */
-          <div className="space-y-6">
-            
-            {/* Business Card Banner */}
-            <div className="bg-gradient-to-r from-lucky-magenta to-lucky-magenta-hover text-white rounded-2xl p-5 shadow-xs relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="absolute -right-16 -top-16 w-48 h-48 bg-white/5 rounded-full blur-2xl"></div>
-              
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">🏪</span>
-                  <h2 className="text-base font-black uppercase tracking-wide">{currentVendor.name}</h2>
-                </div>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-white/80 font-bold mt-1.5">
-                  <span>Category: <strong>{currentVendor.businessCategory}</strong></span>
-                  <span>•</span>
-                  <span>GSTIN Status: <strong className={currentVendor.vendorType === 'big' ? 'text-emerald-300' : 'text-amber-300'}>{currentVendor.vendorType === 'big' ? `${currentVendor.gstin} (Verified)` : 'Not Verified'}</strong></span>
-                  <span>•</span>
-                  <span>Contact: <strong>{currentVendor.phone}</strong></span>
-                </div>
-              </div>
+                      {/* Quick Links Card */}
+                      <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs space-y-3">
+                        <h4 className="text-xs font-black text-slate-900 uppercase">Merchant Tools</h4>
+                        <div className="space-y-1.5">
+                          <button
+                            onClick={() => goToVendorRoute('export')}
+                            className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 text-xs font-bold text-slate-700 border border-slate-100 cursor-pointer"
+                          >
+                            <span className="flex items-center gap-2">
+                              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                              <span>Download Customer Orders</span>
+                            </span>
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                          </button>
 
-              <div className="flex items-center gap-3 bg-white/10 p-3 rounded-xl border border-white/10 backdrop-blur-xs flex-shrink-0 self-start sm:self-auto">
-                <div className="text-center px-2">
-                  <p className="text-[9px] text-lucky-gold uppercase font-black tracking-wider">Rating</p>
-                  <p className="text-sm font-black text-amber-400 mt-0.5">★ {currentVendor.rating}</p>
-                </div>
-                <div className="w-px h-8 bg-white/20"></div>
-                <div className="text-center px-2">
-                  <p className="text-[9px] text-lucky-gold uppercase font-black tracking-wider">Verification</p>
-                  <p className={`text-xs font-black mt-0.5 uppercase tracking-wide ${currentVendor.vendorType === 'big' ? 'text-emerald-300' : 'text-amber-300'}`}>
-                    {currentVendor.vendorType === 'big' ? '👑 Verified' : '🌱 Unverified'}
-                  </p>
-                </div>
-              </div>
-            </div>
+                          <button
+                            onClick={() => goToVendorRoute('products/add')}
+                            className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 text-xs font-bold text-slate-700 border border-slate-100 cursor-pointer"
+                          >
+                            <span className="flex items-center gap-2">
+                              <Plus className="w-4 h-4 text-[#143C6B]" />
+                              <span>Add New Catalog Item</span>
+                            </span>
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                          </button>
 
-            {/* Dashboard Statistics Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-3xs flex items-center gap-3">
-                <div className="bg-emerald-50 text-emerald-600 p-2.5 rounded-lg">
-                  <Coins className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="text-[9px] text-gray-400 uppercase font-extrabold tracking-wider">Net Earnings</span>
-                  <p className="text-sm font-black text-gray-800 mt-0.5">₹ {totalRevenue.toLocaleString()}</p>
-                </div>
-              </div>
+                          <button
+                            onClick={() => goToVendorRoute('profile')}
+                            className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 text-xs font-bold text-slate-700 border border-slate-100 cursor-pointer"
+                          >
+                            <span className="flex items-center gap-2">
+                              <Building2 className="w-4 h-4 text-purple-600" />
+                              <span>Business Profile & Tax Info</span>
+                            </span>
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                          </button>
+                        </div>
+                      </div>
 
-              <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-3xs flex items-center gap-3">
-                <div className="bg-lucky-magenta-light text-lucky-magenta p-2.5 rounded-lg">
-                  <Package className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="text-[9px] text-gray-400 uppercase font-extrabold tracking-wider">My Products</span>
-                  <p className="text-sm font-black text-gray-800 mt-0.5">{vendorProducts.length}</p>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-3xs flex items-center gap-3">
-                <div className="bg-amber-50 text-amber-600 p-2.5 rounded-lg">
-                  <Clock className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="text-[9px] text-gray-400 uppercase font-extrabold tracking-wider">Awaiting Review</span>
-                  <p className="text-sm font-black text-gray-800 mt-0.5">
-                    {vendorProducts.filter(p => p.approvalStatus === 'pending').length}
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-3xs flex items-center gap-3">
-                <div className="bg-lucky-magenta-light text-lucky-magenta p-2.5 rounded-lg">
-                  <ShoppingBag className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="text-[9px] text-gray-400 uppercase font-extrabold tracking-wider">Client Orders</span>
-                  <p className="text-sm font-black text-gray-800 mt-0.5">{vendorOrders.length}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Sub Tabs Toggle Bar */}
-            <div className="bg-white rounded-xl border border-gray-100 p-1 flex shadow-3xs" id="vendor-dashboard-subtabs">
-              {(['dashboard', 'products', 'orders', 'profile'] as const).map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveSubTab(tab)}
-                  className={`flex-1 text-center py-2 text-xs font-extrabold uppercase tracking-wide rounded-lg cursor-pointer transition-all ${
-                    activeSubTab === tab 
-                      ? 'bg-lucky-magenta text-white shadow-2xs' 
-                      : 'text-gray-500 hover:text-gray-800 hover:bg-slate-50'
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-
-            {/* SUB-TABS VIEWS RENDERING */}
-            <AnimatePresence mode="wait">
-              {activeSubTab === 'dashboard' && (
-                <motion.div
-                  key="dashboard-view"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="grid md:grid-cols-3 gap-6"
-                >
-                  {/* Left Column: Recent Orders Fulfillment */}
-                  <div className="md:col-span-2 bg-white rounded-xl border border-gray-100 p-5 shadow-3xs space-y-4">
-                    <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-                      <h3 className="text-xs font-black text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
-                        <span>📦 Recent Orders Needing Shipment</span>
-                        <span className="bg-lucky-magenta-light text-lucky-magenta text-[8px] font-black px-1.5 py-0.2 rounded-xs">{vendorOrders.length} Total</span>
-                      </h3>
-                      <button onClick={() => setActiveSubTab('orders')} className="text-[10px] text-lucky-magenta font-extrabold hover:underline">View All Orders</button>
                     </div>
 
-                    {vendorOrders.length === 0 ? (
-                      <div className="py-12 text-center">
-                        <span className="text-3xl">📭</span>
-                        <h4 className="text-xs font-bold text-gray-400 mt-2">No orders placed by customers yet.</h4>
-                        <p className="text-[10px] text-gray-400 mt-0.5">Share your catalog or lower prices to attract clients!</p>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* 2. CATALOG PRODUCTS PAGE */}
+              {activeTabKey === 'products' && (
+                <motion.div
+                  key="vendor-products-tab"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="space-y-4"
+                >
+                  <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                      <div>
+                        <h2 className="text-base font-black text-slate-900">Your Catalog Products ({vendorProducts.length})</h2>
+                        <p className="text-xs text-slate-500 font-medium">Manage wholesale prices, stock sizes and live listings.</p>
+                      </div>
+
+                      <button
+                        onClick={() => goToVendorRoute('products/add')}
+                        className="bg-[#143C6B] hover:bg-[#0D2C4E] text-white text-xs font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>+ List New Product</span>
+                      </button>
+                    </div>
+
+                    {/* Search and Filters */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="sm:col-span-2 relative">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="Search your products by title or category..."
+                          value={searchQuery}
+                          onChange={e => setSearchQuery(e.target.value)}
+                          className="w-full text-xs font-medium border border-slate-300 rounded-xl py-2 pl-9 pr-3 bg-white focus:outline-hidden focus:border-[#143C6B]"
+                        />
+                      </div>
+
+                      <select
+                        value={statusFilter}
+                        onChange={e => setStatusFilter(e.target.value as any)}
+                        className="text-xs font-bold border border-slate-300 rounded-xl py-2 px-3 bg-white focus:outline-hidden focus:border-[#143C6B]"
+                      >
+                        <option value="all">All Approval Statuses</option>
+                        <option value="approved">Approved & Live</option>
+                        <option value="pending">Pending Admin Review</option>
+                        <option value="rejected">Rejected / Needs Fix</option>
+                      </select>
+                    </div>
+
+                    {filteredProducts.length === 0 ? (
+                      <div className="py-16 text-center space-y-3">
+                        <Package className="w-10 h-10 text-slate-300 mx-auto" />
+                        <h3 className="text-sm font-bold text-slate-700">No Products Listed Yet</h3>
+                        <p className="text-xs text-slate-400 max-w-sm mx-auto font-medium">
+                          Click "List New Product" to snap photos and add your wholesale inventory.
+                        </p>
+                        <button
+                          onClick={() => goToVendorRoute('products/add')}
+                          className="bg-[#143C6B] text-white text-xs font-bold px-4 py-2 rounded-xl cursor-pointer"
+                        >
+                          + Add First Product
+                        </button>
                       </div>
                     ) : (
-                      <div className="divide-y divide-gray-50">
-                        {vendorOrders.slice(0, 3).map(order => {
-                          const vendorItems = order.items.filter(item => item.product.vendorId === currentVendor.id);
-                          const vendorSubtotal = vendorItems.reduce((sub, item) => sub + (item.product.price * item.quantity), 0);
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                        {filteredProducts.map(product => {
+                          const isApproved = product.approvalStatus === 'approved' || !product.approvalStatus;
+                          const isPending = product.approvalStatus === 'pending';
+
                           return (
-                            <div key={order.id} className="py-3 flex flex-col xs:flex-row justify-between xs:items-center gap-3">
-                              <div>
-                                <span className="text-[10px] text-lucky-magenta font-black">ID: {order.id.slice(0, 10).toUpperCase()}</span>
-                                <p className="text-xs font-semibold text-gray-800 mt-0.5">{vendorItems.map(vi => `${vi.product.title} (${vi.selectedSize}) x${vi.quantity}`).join(', ')}</p>
-                                <span className="text-[10px] text-gray-400 font-semibold">{order.orderDate} • Deliver to {order.shippingAddress.city}</span>
+                            <div key={product.id} className="bg-slate-50/70 border border-slate-200/90 rounded-2xl p-3 flex flex-col justify-between gap-3 hover:border-slate-300 transition-colors">
+                              <div className="flex gap-3">
+                                <img
+                                  src={product.images[0] || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=200'}
+                                  alt={product.title}
+                                  className="w-20 h-20 object-cover rounded-xl border border-slate-200 shrink-0 bg-white"
+                                  referrerPolicy="no-referrer"
+                                />
+                                <div className="space-y-1 min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={`text-[9.5px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                                      isApproved 
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                                        : isPending 
+                                        ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                                        : 'bg-red-50 text-red-700 border-red-200'
+                                    }`}>
+                                      {isApproved ? '✓ Live' : isPending ? '⏳ Reviewing' : '✕ Needs Fix'}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 font-mono">#{product.numericId || product.id.slice(-4)}</span>
+                                  </div>
+                                  <h4 className="text-xs font-bold text-slate-900 truncate" title={product.title}>
+                                    {product.title}
+                                  </h4>
+                                  <p className="text-[10.5px] text-slate-500 truncate">{product.category} • {product.subCategory}</p>
+                                  <div className="flex items-baseline gap-2">
+                                    <span className="text-xs font-black text-slate-900">₹{product.price}</span>
+                                    <span className="text-[10px] text-slate-400 line-through">₹{product.originalPrice}</span>
+                                    <span className="text-[10px] text-emerald-600 font-bold">{product.discountPercent}% OFF</span>
+                                  </div>
+                                </div>
                               </div>
-                              <div className="text-right flex-shrink-0 self-end xs:self-auto">
-                                <span className="text-xs font-black text-gray-800">₹ {vendorSubtotal}</span>
-                                <div className="mt-1">
-                                  <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${
-                                    order.status === 'Cancelled' ? 'bg-red-50 text-red-500' :
-                                    order.status === 'Delivered Early' ? 'bg-emerald-50 text-emerald-500' :
-                                    'bg-lucky-magenta-light text-lucky-magenta'
-                                  }`}>
-                                    {order.status}
-                                  </span>
+
+                              <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-xs">
+                                <span className="text-[10px] text-slate-400 font-medium">
+                                  Sizes: {product.sizeOptions?.join(', ') || 'Free Size'}
+                                </span>
+
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    onClick={() => goToVendorRoute('products/edit', `id=${product.id}`)}
+                                    className="p-1.5 bg-white hover:bg-blue-50 text-slate-700 hover:text-[#143C6B] rounded-lg border border-slate-200 cursor-pointer transition-colors"
+                                    title="Edit price, size, description (Title & Photos locked)"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => triggerConfirm(
+                                      `Are you sure you want to remove "${product.title}" from your catalog?`,
+                                      () => onDeleteProduct(product.id),
+                                      'Delete Product',
+                                      'Delete'
+                                    )}
+                                    className="p-1.5 bg-white hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg border border-slate-200 cursor-pointer transition-colors"
+                                    title="Delete product"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
                                 </div>
                               </div>
                             </div>
@@ -1011,905 +1126,1255 @@ export default function VendorDashboard({
                       </div>
                     )}
                   </div>
+                </motion.div>
+              )}
 
-                  {/* Right Column: Mini Catalog Overview */}
-                  <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-3xs space-y-4">
-                    <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-                      <h3 className="text-xs font-black text-gray-800 uppercase tracking-wider">⚡ Fast Action</h3>
-                    </div>
-
-                    <button 
-                      onClick={() => handleOpenListingModal(null)}
-                      className="w-full bg-lucky-magenta hover:bg-lucky-magenta-hover text-white font-extrabold text-xs py-3 px-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-3xs transition-all"
+              {/* 3. ADD PRODUCT PAGE (NO AUTO SELECTED PHOTOS, DIRECT CAMERA/GALLERY SNAP, COMPREHENSIVE CATEGORIES) */}
+              {activeTabKey === 'add-product' && (
+                <motion.div
+                  key="vendor-add-product-tab"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="max-w-3xl mx-auto w-full space-y-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => goToVendorRoute('products')}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#143C6B] hover:underline cursor-pointer"
                     >
-                      <Plus className="w-4.5 h-4.5 stroke-[2.5]" />
-                      <span>List New Wholesale Item</span>
+                      <ArrowLeft className="w-4 h-4" />
+                      <span>Back to Catalog</span>
                     </button>
-
-                    <div className="space-y-3 pt-2">
-                      <h4 className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">Top Selling Classifications</h4>
-                      {['Women Apparel', 'Home & Kitchen', 'Cosmetics & Beauty'].map(cat => {
-                        const count = vendorProducts.filter(p => p.category === cat).length;
-                        return (
-                          <div key={cat} className="flex justify-between items-center bg-slate-50 p-2.5 rounded-lg border border-slate-100/50">
-                            <span className="text-xs font-bold text-gray-700">{cat}</span>
-                            <span className="bg-white border border-gray-100 text-gray-600 text-[10px] font-black px-2 py-0.5 rounded-md">{count} items</span>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">
+                      0% Commission Listing
+                    </span>
                   </div>
-                </motion.div>
-              )}
 
-              {activeSubTab === 'products' && (
-                <motion.div
-                  key="products-view"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="space-y-4"
-                >
-                  {/* Search and Filters */}
-                  <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-3xs flex flex-col sm:flex-row gap-3 justify-between items-center">
-                    <div className="relative w-full sm:max-w-xs">
-                      <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+                  <form onSubmit={handleSaveProductForm} className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-6 space-y-5">
+                    <div className="pb-3 border-b border-slate-100">
+                      <h2 className="text-base font-black text-slate-900">List New Product</h2>
+                      <p className="text-xs text-slate-500 font-medium">
+                        Direct camera click or gallery upload. Photos and title will be permanently locked once published.
+                      </p>
+                    </div>
+
+                    {/* PHOTO UPLOAD & DIRECT CAMERA CLICK */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block">
+                          Product Photos * <span className="text-slate-400 font-normal lowercase">(at least 1 photo required)</span>
+                        </label>
+                        <span className="text-[10px] font-bold text-[#143C6B]">
+                          {uploadedImages.length} photo{uploadedImages.length === 1 ? '' : 's'} added
+                        </span>
+                      </div>
+
+                      {/* Hidden File Inputs */}
                       <input
-                        type="text"
-                        placeholder="Search products..."
-                        value={searchQuery}
-                        onChange={e => setSearchQuery(e.target.value)}
-                        className="w-full border border-gray-200/80 rounded-lg pl-9 pr-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta bg-slate-50/50"
+                        ref={cameraInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleCameraCapture}
+                        className="hidden"
+                        id="vendor-camera-file-input"
                       />
-                    </div>
+                      <input
+                        ref={galleryInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleGalleryUpload}
+                        className="hidden"
+                        id="vendor-gallery-file-input"
+                      />
 
-                    <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
-                      {(['all', 'approved', 'pending', 'rejected'] as const).map(f => (
+                      {/* Action Buttons: Camera Snap & Gallery Pick */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                         <button
-                          key={f}
-                          onClick={() => setStatusFilter(f)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize whitespace-nowrap cursor-pointer transition-all ${
-                            statusFilter === f 
-                              ? 'bg-lucky-magenta/10 text-lucky-magenta border border-lucky-magenta/20' 
-                              : 'bg-slate-50 text-gray-500 hover:text-gray-800 hover:bg-slate-100 border border-transparent'
-                          }`}
+                          type="button"
+                          onClick={() => cameraInputRef.current?.click()}
+                          className="h-14 bg-blue-50/80 hover:bg-blue-100 text-[#143C6B] border border-blue-200 rounded-xl font-black text-xs flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98"
+                          id="vendor-click-photo-btn"
                         >
-                          {f} ({
-                            f === 'all' ? vendorProducts.length :
-                            f === 'approved' ? vendorProducts.filter(p => p.approvalStatus === 'approved' || !p.approvalStatus).length :
-                            vendorProducts.filter(p => p.approvalStatus === f).length
-                          })
+                          <Camera className="w-5 h-5 text-[#143C6B]" />
+                          <span>Click Photo (Camera)</span>
                         </button>
-                      ))}
-                    </div>
-                  </div>
 
-                  {/* Listings Table Grid */}
-                  {filteredProducts.length === 0 ? (
-                    <div className="bg-white border border-gray-100 rounded-xl p-12 text-center shadow-3xs">
-                      <span className="text-4xl">🏷️</span>
-                      <h3 className="text-sm font-bold text-gray-700 mt-3">No matching products found</h3>
-                      <p className="text-xs text-gray-400 mt-1">Try listing a new item or updating your filters.</p>
-                      <button 
-                        onClick={() => handleOpenListingModal(null)}
-                        className="bg-lucky-magenta text-white font-extrabold text-xs py-2 px-4 rounded-lg mt-4 cursor-pointer"
-                      >
-                        Add Product Now
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {filteredProducts.map(p => (
-                        <div key={p.id} className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-3xs hover:shadow-2xs transition-shadow flex flex-col justify-between relative">
-                          
-                          {/* Approval Status Header Ribbon */}
-                          <div className={`absolute top-2.5 right-2.5 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border shadow-3xs z-10 ${
-                            p.approvalStatus === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                            p.approvalStatus === 'rejected' ? 'bg-red-50 text-red-500 border-red-100' :
-                            'bg-emerald-50 text-emerald-600 border-emerald-100'
-                          }`}>
-                            {p.approvalStatus === 'pending' ? 'Pending Approval' :
-                             p.approvalStatus === 'rejected' ? 'Rejected' :
-                             'Live / Active'}
-                          </div>
+                        <button
+                          type="button"
+                          onClick={() => galleryInputRef.current?.click()}
+                          className="h-14 bg-purple-50/80 hover:bg-purple-100 text-purple-800 border border-purple-200 rounded-xl font-black text-xs flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98"
+                          id="vendor-upload-gallery-btn"
+                        >
+                          <Upload className="w-5 h-5 text-purple-700" />
+                          <span>Upload From Gallery</span>
+                        </button>
 
-                          <div>
-                            <div className="h-44 bg-slate-50 relative flex items-center justify-center overflow-hidden">
-                              <img 
-                                src={p.images[0]} 
-                                alt={p.title} 
-                                className="object-cover w-full h-full"
-                                referrerPolicy="no-referrer"
-                              />
-                            </div>
-
-                            <div className="p-4 space-y-1.5">
-                              <div className="flex items-center justify-between">
-                                <span className="text-[9px] text-lucky-magenta font-extrabold uppercase tracking-wider">{p.category} • {p.subCategory}</span>
-                                {p.numericId && (
-                                  <span className="bg-slate-100 text-slate-700 font-mono font-black text-[9px] px-1.5 py-0.2 rounded-sm border border-slate-200/50">
-                                    ID: #{p.numericId}
-                                  </span>
-                                )}
-                              </div>
-                              {p.sponsoredUntil && new Date(p.sponsoredUntil) > new Date() && (
-                                <div className="mt-1">
-                                  <span className="text-[9.5px] text-amber-700 bg-amber-50 border border-amber-200 font-black uppercase px-2 py-0.5 rounded-md inline-block">
-                                    ⭐ Sponsored Active
-                                  </span>
-                                </div>
-                              )}
-                              <h4 className="text-xs font-black text-gray-800 line-clamp-1">{p.title}</h4>
-                              
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-black text-gray-800">₹{p.price}</span>
-                                <span className="text-[10px] text-gray-400 line-through">₹{p.originalPrice}</span>
-                                <span className="text-[9px] text-lucky-green font-extrabold">{p.discountPercent}% OFF</span>
-                              </div>
-
-                              <p className="text-[10px] text-gray-400 line-clamp-2">{p.description}</p>
-
-                              {p.rejectionReason && p.approvalStatus === 'rejected' && (
-                                <div className="bg-red-50 border border-red-100 text-[10px] text-red-600 font-bold p-2.5 rounded-lg mt-2">
-                                  <strong>Feedback:</strong> {p.rejectionReason}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="p-4 pt-0 border-t border-gray-50 mt-3 flex gap-2">
-                            <button
-                              onClick={() => handleOpenListingModal(p)}
-                              className="flex-1 border border-gray-200 hover:border-lucky-magenta/40 hover:text-lucky-magenta text-[10px] font-black uppercase py-2 rounded-lg cursor-pointer transition-colors flex items-center justify-center gap-1.5"
-                            >
-                              <Edit3 className="w-3 h-3" />
-                              <span>Edit Details</span>
-                            </button>
-                            <button
-                              onClick={() => {
-                                triggerConfirm(
-                                  'Are you sure you want to delete this product listing?',
-                                  () => {
-                                    onDeleteProduct(p.id);
-                                  },
-                                  'Delete Listing',
-                                  'Delete'
-                                );
-                              }}
-                              className="border border-red-100 hover:bg-red-50 text-red-500 p-2 rounded-lg cursor-pointer transition-colors"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </motion.div>
-              )}
-
-              {activeSubTab === 'orders' && (
-                <motion.div
-                  key="orders-view"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="bg-white rounded-xl border border-gray-100 p-5 shadow-3xs space-y-4"
-                >
-                  <div className="pb-2 border-b border-gray-100">
-                    <h3 className="text-xs font-black text-gray-800 uppercase tracking-wider">Wholesale Orders Directory</h3>
-                    <p className="text-[10px] text-gray-400 mt-0.5">Manage and ship items sold under your business catalog.</p>
-                  </div>
-
-                  {vendorOrders.length === 0 ? (
-                    <div className="py-16 text-center">
-                      <span className="text-4xl">📦</span>
-                      <h4 className="text-xs font-black text-gray-400 mt-3">No wholesale orders placed yet</h4>
-                      <p className="text-[10px] text-gray-400 mt-0.5">Your catalog items are active but have no customer demand logs yet.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4 divide-y divide-gray-100">
-                      {vendorOrders.map(order => {
-                        const vendorItems = order.items.filter(item => item.product.vendorId === currentVendor.id);
-                        const vendorSubtotal = vendorItems.reduce((sub, item) => sub + (item.product.price * item.quantity), 0);
-                        return (
-                          <div key={order.id} className="pt-4 first:pt-0 flex flex-col md:flex-row gap-4 justify-between items-start">
-                            <div className="space-y-2 flex-1">
-                              <div className="flex flex-wrap gap-2 items-center">
-                                <span className="bg-lucky-magenta-light text-lucky-magenta text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                                  ID: {order.id.slice(0, 12).toUpperCase()}
-                                </span>
-                                <span className="text-[10px] text-gray-400 font-semibold">{order.orderDate}</span>
-                              </div>
-
-                              <div className="space-y-1.5 pl-1.5 border-l-2 border-lucky-magenta-light">
-                                {vendorItems.map(item => (
-                                  <div key={item.id} className="flex gap-3 items-center">
-                                    <img 
-                                      src={item.product.images[0]} 
-                                      alt={item.product.title} 
-                                      className="w-10 h-10 object-cover rounded-md border border-gray-100"
-                                      referrerPolicy="no-referrer"
-                                    />
-                                    <div>
-                                      <p className="text-xs font-bold text-gray-800">{item.product.title}</p>
-                                      <p className="text-[10px] text-gray-400 mt-0.5">Size: <strong>{item.selectedSize}</strong> • Quantity: <strong>{item.quantity}</strong> • Color: <strong>{item.product.variants[item.selectedVariantIndex]?.colorName || 'Default'}</strong></p>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-
-                              <div className="bg-slate-50/50 p-2.5 rounded-lg text-[10px] text-gray-500 space-y-0.5 max-w-md">
-                                <p className="font-bold text-gray-700">Client Delivery Address:</p>
-                                <p>{order.shippingAddress.name} • {order.shippingAddress.phone}</p>
-                                <p>{order.shippingAddress.addressLine}, {order.shippingAddress.city}, {order.shippingAddress.state} - {order.shippingAddress.pincode}</p>
-                              </div>
-                            </div>
-
-                            <div className="text-right flex flex-col items-end gap-2 shrink-0 w-full md:w-auto">
-                              <div>
-                                <span className="text-[10px] text-gray-400 font-bold uppercase block">Your Payout subtotal</span>
-                                <span className="text-base font-black text-gray-800">₹ {vendorSubtotal}</span>
-                              </div>
-
-                              <div className="flex gap-1.5 items-center">
-                                <span className="text-[9px] text-gray-400 font-extrabold uppercase">Order Status:</span>
-                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                                  order.status === 'Cancelled' ? 'bg-red-50 text-red-500' :
-                                  order.status === 'Delivered Early' ? 'bg-emerald-50 text-emerald-500' :
-                                  'bg-blue-50 text-blue-500'
-                                }`}>
-                                  {order.status}
-                                </span>
-                              </div>
-
-                              <div className="mt-1 flex items-center gap-1.5 bg-slate-50 p-1.5 rounded-lg border border-slate-100">
-                                <Truck className="w-3.5 h-3.5 text-gray-400" />
-                                <span className="text-[9.5px] text-gray-500 font-bold">Fulfillment Managed globally by QueKart Courier Partners</span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </motion.div>
-              )}
-
-              {activeSubTab === 'profile' && (
-                <motion.div
-                  key={isEditingProfile ? "profile-edit" : "profile-view"}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="space-y-6 max-w-xl mx-auto w-full"
-                >
-                  {!isEditingProfile ? (
-                    /* VIEW MODE */
-                    <div className="space-y-6">
-                      <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-3xs">
-                        <div className="pb-4 border-b border-gray-100 mb-4 text-center space-y-3 animate-fadeIn">
-                          <div className="relative w-20 h-20 mx-auto">
-                            {currentVendor.avatar ? (
-                              <img 
-                                src={currentVendor.avatar} 
-                                alt={currentVendor.name} 
-                                className="w-20 h-20 rounded-full object-cover border-2 border-lucky-magenta shadow-sm"
-                                referrerPolicy="no-referrer"
-                              />
-                            ) : (
-                              <div className="bg-gradient-to-br from-lucky-magenta-light to-lucky-magenta/20 text-lucky-magenta w-20 h-20 rounded-full flex items-center justify-center text-3xl mx-auto font-black shadow-inner">
-                                🏪
-                              </div>
-                            )}
-                            <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-white rounded-full p-1 border-2 border-white shadow-3xs">
-                              <Check className="w-3 h-3 stroke-[3]" />
-                            </div>
-                          </div>
-
-                          <div>
-                            <h3 className="text-base font-black text-gray-800 uppercase tracking-wider">{currentVendor.name}</h3>
-                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Wholesale Seller Registry Certificate</p>
-                          </div>
-
-                          {currentVendor.description && (
-                            <p className="text-xs text-gray-500 text-center italic max-w-md mx-auto px-4 bg-slate-50 py-2 rounded-lg border border-slate-100/50">
-                              "{currentVendor.description}"
-                            </p>
-                          )}
-
-                          <button 
-                            onClick={() => setIsEditingProfile(true)}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-lucky-magenta hover:bg-lucky-magenta-hover text-white font-extrabold text-xs rounded-lg transition-all cursor-pointer shadow-3xs"
+                        <div className="col-span-2 sm:col-span-1 flex gap-1">
+                          <input
+                            type="text"
+                            placeholder="Or image URL..."
+                            value={customImageUrl}
+                            onChange={e => setCustomImageUrl(e.target.value)}
+                            className="flex-1 text-xs font-medium border border-slate-300 rounded-xl px-2.5 py-1.5 focus:outline-hidden focus:border-[#143C6B]"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddImageUrl}
+                            disabled={!customImageUrl.trim()}
+                            className="bg-slate-800 hover:bg-black text-white text-xs font-bold px-3 rounded-xl cursor-pointer disabled:opacity-40"
                           >
-                            <Edit2 className="w-3.5 h-3.5" />
-                            <span>Edit Supplier Profile</span>
+                            Add
                           </button>
-                        </div>
-
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center py-2 border-b border-gray-50 text-xs">
-                            <span className="text-gray-400 font-extrabold uppercase tracking-wide">Vendor ID</span>
-                            <span className="font-mono text-gray-800 font-black text-[11px]">{currentVendor.id}</span>
-                          </div>
-                          <div className="flex justify-between items-center py-2 border-b border-gray-50 text-xs">
-                            <span className="text-gray-400 font-extrabold uppercase tracking-wide">Seller Type</span>
-                            <span className={`font-black uppercase text-[10px] px-2 py-0.5 rounded-md ${
-                              currentVendor.vendorType === 'big' 
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                                : 'bg-amber-50 text-amber-700 border border-amber-200'
-                            }`}>
-                              {currentVendor.vendorType === 'big' ? '👑 Verified Seller (GST)' : '🌱 Unverified Seller'}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center py-2 border-b border-gray-50 text-xs">
-                            <span className="text-gray-400 font-extrabold uppercase tracking-wide">GSTIN Certification</span>
-                            <span className={`font-semibold uppercase ${currentVendor.vendorType === 'big' ? 'text-emerald-700 font-bold' : 'text-gray-500'}`}>
-                              {currentVendor.gstin || 'NOT CERTIFIED (UNVERIFIED)'}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center py-2 border-b border-gray-50 text-xs">
-                            <span className="text-gray-400 font-extrabold uppercase tracking-wide">Registered Phone</span>
-                            <span className="font-semibold text-gray-800">{currentVendor.phone}</span>
-                          </div>
-                          <div className="flex justify-between items-center py-2 border-b border-gray-50 text-xs">
-                            <span className="text-gray-400 font-extrabold uppercase tracking-wide">Registered Email</span>
-                            <span className="font-semibold text-gray-800">{currentVendor.email}</span>
-                          </div>
-                          <div className="flex justify-between items-center py-2 border-b border-gray-50 text-xs">
-                            <span className="text-gray-400 font-extrabold uppercase tracking-wide">Operating Location</span>
-                            <span className="font-semibold text-gray-800">
-                              {currentVendor.city && currentVendor.state 
-                                ? `${currentVendor.city}, ${currentVendor.state}` 
-                                : 'Not specified'}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center py-2 border-b border-gray-50 text-xs">
-                            <span className="text-gray-400 font-extrabold uppercase tracking-wide">Seller Reputation</span>
-                            <span className="font-black text-amber-500">★ {currentVendor.rating} (Verified)</span>
-                          </div>
-                          <div className="flex justify-between items-center py-2 text-xs">
-                            <span className="text-gray-400 font-extrabold uppercase tracking-wide">Onboarding Date</span>
-                            <span className="font-semibold text-gray-500">{new Date(currentVendor.createdAt).toLocaleDateString()}</span>
-                          </div>
                         </div>
                       </div>
 
-                      {/* GST SELF-SERVICE UPGRADE MODULE */}
-                      {currentVendor.vendorType !== 'big' && (
-                        <div className="bg-gradient-to-br from-amber-50/50 to-orange-50/30 border border-amber-100 rounded-xl p-5 shadow-3xs space-y-4">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">⚡</span>
-                            <div>
-                              <h4 className="text-xs font-black text-amber-900 uppercase tracking-wide">Upgrade to Verified Seller</h4>
-                              <p className="text-[10px] text-amber-700 font-medium mt-0.5">Enter and verify your GSTIN to bypass manual admin reviews & take listings live instantly.</p>
-                            </div>
-                          </div>
+                      {photoError && (
+                        <p className="text-xs text-red-600 font-bold flex items-center gap-1">
+                          <AlertCircle className="w-4 h-4" /> {photoError}
+                        </p>
+                      )}
 
-                          <div className="space-y-3">
-                            <div className="flex gap-2">
-                              <input
-                                type="text"
-                                placeholder="Enter 15-character GSTIN (e.g. 08AAAAA1111A1Z1)"
-                                value={profileGstin}
-                                disabled={isGstVerifying}
-                                onChange={e => {
-                                  setProfileGstin(e.target.value);
-                                  setProfileGstError('');
-                                  setProfileGstSuccess('');
-                                  setGstVerifyStatus('idle');
-                                }}
-                                className="flex-1 text-xs font-semibold border border-amber-200 rounded-lg p-2.5 bg-white focus:outline-hidden focus:border-lucky-magenta uppercase placeholder:normal-case disabled:bg-slate-100 disabled:text-gray-400"
+                      {/* Photo Previews Grid */}
+                      {uploadedImages.length === 0 ? (
+                        <div className="p-6 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 text-center space-y-1.5">
+                          <ImageIcon className="w-8 h-8 text-slate-300 mx-auto" />
+                          <p className="text-xs text-slate-600 font-bold">No photos selected yet</p>
+                          <p className="text-[11px] text-slate-400">
+                            Use "Click Photo" or "Upload From Gallery" to attach your real product photos.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 pt-1">
+                          {uploadedImages.map((img, idx) => (
+                            <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-100 shadow-2xs">
+                              <img
+                                src={img}
+                                alt={`Product ${idx + 1}`}
+                                className="w-full h-full object-cover"
+                                referrerPolicy="no-referrer"
                               />
+                              {idx === 0 && (
+                                <span className="absolute top-1 left-1 bg-[#143C6B] text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-xs">
+                                  Cover
+                                </span>
+                              )}
                               <button
                                 type="button"
-                                disabled={isGstVerifying || !profileGstin.trim()}
-                                onClick={async () => {
-                                  setProfileGstError('');
-                                  setProfileGstSuccess('');
-                                  const formattedGst = profileGstin.trim().toUpperCase();
-                                  const ok = await simulateGstVerification(formattedGst, currentVendor.name);
-                                  if (ok) {
-                                    // Save to backend
-                                    const upgradedVendor: Vendor = {
-                                      ...currentVendor,
-                                      gstin: formattedGst,
-                                      vendorType: 'big'
-                                    };
-                                    try {
-                                      const res = await fetch(`/api/vendors/${currentVendor.id}`, {
-                                        method: 'PUT',
-                                        headers: {
-                                          'Content-Type': 'application/json'
-                                        },
-                                        body: JSON.stringify(upgradedVendor)
-                                      });
-                                      if (res.ok) {
-                                        setProfileGstSuccess('Congratulations! Your account is now verified.');
-                                        setCurrentVendor(upgradedVendor);
-                                        localStorage.setItem('quekart_current_vendor', JSON.stringify(upgradedVendor));
-                                        setProfileGstin('');
-                                        fetchVendors();
-                                      } else {
-                                        setProfileGstError('Failed to save upgraded status to server registry.');
-                                      }
-                                    } catch (err) {
-                                      console.warn('Offline backup: Upgrading vendor profile locally.');
-                                      setProfileGstSuccess('Congratulations! Your account is verified (Local).');
-                                      setCurrentVendor(upgradedVendor);
-                                      localStorage.setItem('quekart_current_vendor', JSON.stringify(upgradedVendor));
-                                      setProfileGstin('');
-                                    }
-                                  } else {
-                                    setProfileGstError('GSTIN structure validation failed. Ensure it is exactly 15 alphanumeric characters.');
-                                  }
-                                }}
-                                className="px-3 bg-lucky-magenta hover:bg-lucky-magenta-hover text-white font-extrabold text-[10px] rounded-lg disabled:bg-slate-100 disabled:text-gray-400 cursor-pointer uppercase tracking-wider transition-colors shrink-0"
+                                onClick={() => handleRemovePhoto(idx)}
+                                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-600 text-white flex items-center justify-center cursor-pointer shadow-xs opacity-90 hover:opacity-100"
+                                title="Remove photo"
                               >
-                                {isGstVerifying ? 'Verifying...' : 'Verify & Upgrade'}
+                                <X className="w-3.5 h-3.5" />
                               </button>
                             </div>
-
-                            {/* Progress display */}
-                            {gstVerifyStatus === 'verifying' && (
-                              <div className="bg-amber-50 border border-amber-100 text-[10px] font-bold text-amber-800 p-2.5 rounded-lg flex items-center gap-2 animate-pulse">
-                                <div className="w-2.5 h-2.5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
-                                <span>{gstVerifyMessage}</span>
-                              </div>
-                            )}
-
-                            {profileGstError && (
-                              <div className="bg-red-50 border border-red-100 text-[10px] font-bold text-red-700 p-2.5 rounded-lg flex items-center gap-2">
-                                <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0" />
-                                <span>{profileGstError}</span>
-                              </div>
-                            )}
-
-                            {profileGstSuccess && (
-                              <div className="bg-emerald-50 border border-emerald-100 text-[10px] font-bold text-emerald-700 p-2.5 rounded-lg flex items-center gap-2">
-                                <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                <span>{profileGstSuccess}</span>
-                              </div>
-                            )}
-                          </div>
+                          ))}
                         </div>
                       )}
                     </div>
-                  ) : (
-                    /* EDITING MODE */
-                    <form onSubmit={handleSaveProfile} className="bg-white rounded-xl border border-gray-100 p-5 shadow-3xs space-y-5 animate-fadeIn">
-                      <div className="flex justify-between items-center pb-3 border-b border-gray-100">
-                        <div>
-                          <h3 className="text-sm font-black text-gray-800 uppercase tracking-wide">Edit Supplier Details</h3>
-                          <p className="text-[10px] text-gray-400 font-semibold mt-0.5">Maintain updated profile and branding information</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setIsEditingProfile(false)}
-                          className="px-2.5 py-1 bg-slate-50 hover:bg-slate-100 rounded-lg text-[10px] text-gray-500 font-extrabold uppercase cursor-pointer"
-                        >
-                          Cancel
-                        </button>
+
+                    {/* Title & Master Category */}
+                    <div className="space-y-4 pt-2">
+                      <div>
+                        <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                          Product Title *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Pure Cotton Banarasi Jacquard Woven Saree with Blouse"
+                          value={pTitle}
+                          onChange={e => setPTitle(e.target.value)}
+                          className="w-full text-xs font-bold border border-slate-300 rounded-xl p-3 focus:outline-hidden focus:border-[#143C6B]"
+                          id="vendor-product-title-input"
+                        />
+                        <p className="text-[10px] text-slate-400 font-medium mt-1">
+                          Note: Once published, the title cannot be changed for catalog compliance.
+                        </p>
                       </div>
 
-                      {/* Interactive Avatar Selection */}
-                      <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100/60">
-                        <label className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">1. Choose Brand Logo or Profile Photo</label>
-                        
-                        <div className="flex items-center gap-4">
-                          <div className="shrink-0 w-16 h-16 rounded-full bg-white border border-gray-100 overflow-hidden flex items-center justify-center shadow-3xs relative group">
-                            {profileAvatar ? (
-                              <img 
-                                src={profileAvatar} 
-                                alt="Avatar Preview" 
-                                className="w-16 h-16 object-cover"
-                                referrerPolicy="no-referrer"
-                              />
-                            ) : (
-                              <span className="text-2xl">🏪</span>
-                            )}
-                            {profileAvatar && (
-                              <button
-                                type="button"
-                                onClick={() => setProfileAvatar('')}
-                                className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[9px] text-white font-black uppercase"
-                              >
-                                Clear
-                              </button>
-                            )}
-                          </div>
-
-                          <div className="flex-1">
-                            <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 hover:border-lucky-magenta/50 rounded-lg text-[10.5px] font-extrabold text-slate-700 transition-colors shadow-3xs cursor-pointer">
-                              <Camera className="w-3.5 h-3.5 text-gray-400" />
-                              <span>Upload custom photo</span>
-                              <input 
-                                type="file" 
-                                accept="image/*" 
-                                onChange={handleAvatarFileChange} 
-                                className="hidden" 
-                              />
-                            </label>
-                            <p className="text-[9px] text-gray-400 mt-1">Accepts PNG, JPG, or WebP up to 2.5MB. Instant Base64 serialization.</p>
-                          </div>
+                      {/* COMPREHENSIVE CATEGORIES DATABASE SELECTOR */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                          <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                            Primary Category * ({MASTER_CATEGORIES.length} Master Groups)
+                          </label>
+                          <select
+                            value={pCategory}
+                            onChange={e => {
+                              const newCat = e.target.value;
+                              setPCategory(newCat);
+                              const subList = getSubcategoriesForCategory(newCat);
+                              if (subList.length > 0) {
+                                setPSubCategory(subList[0]);
+                              }
+                            }}
+                            className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 bg-white focus:outline-hidden focus:border-[#143C6B]"
+                            id="vendor-category-select"
+                          >
+                            {MASTER_CATEGORIES.map(cat => (
+                              <option key={cat.id} value={cat.name}>
+                                {cat.name} ({cat.group})
+                              </option>
+                            ))}
+                          </select>
                         </div>
 
-                        {/* Presets Grid */}
-                        <div className="space-y-1.5 pt-1 border-t border-slate-200/50">
-                          <span className="text-[9px] text-gray-400 font-bold uppercase block">Or select an elegant demo preset logo:</span>
-                          <div className="grid grid-cols-6 gap-2">
-                            {[
-                              'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150',
-                              'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150',
-                              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150',
-                              'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150',
-                              'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=150',
-                              'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=150'
-                            ].map((url, idx) => (
+                        <div>
+                          <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                            Subcategory Classification *
+                          </label>
+                          {availableSubcategories.length > 0 ? (
+                            <select
+                              value={pSubCategory}
+                              onChange={e => setPSubCategory(e.target.value)}
+                              className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 bg-white focus:outline-hidden focus:border-[#143C6B]"
+                              id="vendor-subcategory-select"
+                            >
+                              {availableSubcategories.map((sub, sIdx) => (
+                                <option key={sIdx} value={sub}>
+                                  {sub}
+                                </option>
+                              ))}
+                              <option value="Custom / Other">Custom / Other</option>
+                            </select>
+                          ) : (
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. Saree, Kurti, Shoes, Watch"
+                              value={pSubCategory}
+                              onChange={e => setPSubCategory(e.target.value)}
+                              className="w-full text-xs font-medium border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Subcategory Suggestion Chips */}
+                      {availableSubcategories.length > 0 && (
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase">Quick Suggested Tags:</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {availableSubcategories.slice(0, 6).map((sub, idx) => (
                               <button
                                 key={idx}
                                 type="button"
-                                onClick={() => setProfileAvatar(url)}
-                                className={`aspect-square rounded-lg border-2 overflow-hidden transition-all ${
-                                  profileAvatar === url ? 'border-lucky-magenta scale-95 shadow-xs' : 'border-white hover:border-gray-200'
+                                onClick={() => setPSubCategory(sub)}
+                                className={`text-[10.5px] px-2 py-0.5 rounded-md font-bold transition-colors cursor-pointer border ${
+                                  pSubCategory === sub
+                                    ? 'bg-[#143C6B] text-white border-[#143C6B]'
+                                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
                                 }`}
                               >
-                                <img src={url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                {sub}
                               </button>
                             ))}
                           </div>
                         </div>
+                      )}
+                    </div>
 
-                        {/* Direct URL input */}
-                        <div className="pt-1.5">
-                          <input
-                            type="text"
-                            placeholder="Or paste custom image URL..."
-                            value={profileAvatar.startsWith('data:') ? '' : profileAvatar}
-                            onChange={e => setProfileAvatar(e.target.value)}
-                            className="w-full text-[10.5px] border border-gray-200 rounded-lg p-2 bg-white"
-                          />
-                        </div>
+                    {/* Pricing */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
+                      <div>
+                        <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                          Wholesale Price (₹) *
+                        </label>
+                        <input
+                          type="number"
+                          required
+                          min={1}
+                          placeholder="299"
+                          value={pPrice}
+                          onChange={e => setPPrice(Number(e.target.value))}
+                          className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                          id="vendor-price-input"
+                        />
+                        <span className="text-[10px] text-emerald-600 font-bold">100% Payout to Seller</span>
                       </div>
 
-                      {/* Fields */}
-                      <div className="space-y-3.5">
-                        <div>
-                          <label className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wide block mb-1">Business Name *</label>
-                          <input
-                            type="text"
-                            required
-                            value={profileName}
-                            onChange={e => setProfileName(e.target.value)}
-                            className="w-full text-xs font-semibold border border-gray-200 rounded-lg p-2.5 focus:border-lucky-magenta focus:outline-hidden"
-                          />
+                      <div>
+                        <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                          MRP Sticker Price (₹) *
+                        </label>
+                        <input
+                          type="number"
+                          required
+                          min={1}
+                          placeholder="599"
+                          value={pOrigPrice}
+                          onChange={e => setPOrigPrice(Number(e.target.value))}
+                          className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                          id="vendor-original-price-input"
+                        />
+                        <span className="text-[10px] text-slate-400 font-medium">Printed Box MRP</span>
+                      </div>
+
+                      <div className="col-span-2 sm:col-span-1">
+                        <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                          Discount Margin
+                        </label>
+                        <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-center text-xs font-black text-emerald-700">
+                          {pOrigPrice > pPrice ? `${Math.round(((pOrigPrice - pPrice) / pOrigPrice) * 100)}% Margin OFF` : 'Standard Rate'}
                         </div>
+                      </div>
+                    </div>
 
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wide block mb-1">Mobile Contact * (Lock-in key)</label>
-                            <input
-                              type="tel"
-                              required
-                              value={profilePhone}
-                              onChange={e => setProfilePhone(e.target.value)}
-                              className="w-full text-xs font-semibold border border-gray-200 rounded-lg p-2.5 focus:border-lucky-magenta focus:outline-hidden bg-slate-50/50"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wide block mb-1">Registered Email *</label>
-                            <input
-                              type="email"
-                              required
-                              value={profileEmail}
-                              onChange={e => setProfileEmail(e.target.value)}
-                              className="w-full text-xs font-semibold border border-gray-200 rounded-lg p-2.5 focus:border-lucky-magenta focus:outline-hidden"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-3">
-                          <div className="col-span-1">
-                            <label className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wide block mb-1">Business Category</label>
-                            <select
-                              value={profileCategory}
-                              onChange={e => setProfileCategory(e.target.value)}
-                              className="w-full text-xs font-semibold border border-gray-200 rounded-lg p-2.5 focus:border-lucky-magenta focus:outline-hidden"
+                    {/* Sizing Chips */}
+                    <div className="pt-2">
+                      <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1.5">
+                        Available Sizes / Inventory Options
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {['Free Size', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '6-12M', '1-2Y', '3-4Y', '5-6Y'].map(sz => {
+                          const active = pSizeOptions.includes(sz);
+                          return (
+                            <button
+                              key={sz}
+                              type="button"
+                              onClick={() => handleToggleSize(sz)}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                                active 
+                                  ? 'bg-[#143C6B] text-white border-[#143C6B] shadow-xs' 
+                                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                              }`}
                             >
-                              <option value="Apparel & Sarees">Apparel & Sarees</option>
-                              <option value="Home Decor & Textiles">Home Decor & Textiles</option>
-                              <option value="Handicrafts & Gifts">Handicrafts & Gifts</option>
-                              <option value="Jewelry & Accessories">Jewelry & Accessories</option>
-                            </select>
-                          </div>
+                              {sz}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
 
-                          <div className="col-span-1">
-                            <label className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wide block mb-1">City</label>
-                            <input
-                              type="text"
-                              placeholder="e.g. Jaipur"
-                              value={profileCity}
-                              onChange={e => setProfileCity(e.target.value)}
-                              className="w-full text-xs font-semibold border border-gray-200 rounded-lg p-2.5 focus:border-lucky-magenta focus:outline-hidden"
-                            />
-                          </div>
+                    {/* Description */}
+                    <div className="pt-2">
+                      <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                        Product Description & Specifications *
+                      </label>
+                      <textarea
+                        required
+                        rows={3}
+                        placeholder="Detail fabric material, weave, wash care instructions, pack contents, weight, and dimensions..."
+                        value={pDesc}
+                        onChange={e => setPDesc(e.target.value)}
+                        className="w-full text-xs font-medium border border-slate-300 rounded-xl p-3 focus:outline-hidden focus:border-[#143C6B]"
+                        id="vendor-product-desc-input"
+                      />
+                    </div>
 
-                          <div className="col-span-1">
-                            <label className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wide block mb-1">State</label>
-                            <input
-                              type="text"
-                              placeholder="e.g. Rajasthan"
-                              value={profileState}
-                              onChange={e => setProfileState(e.target.value)}
-                              className="w-full text-xs font-semibold border border-gray-200 rounded-lg p-2.5 focus:border-lucky-magenta focus:outline-hidden"
-                            />
+                    {/* Submit Actions */}
+                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+                      <button
+                        type="button"
+                        onClick={() => goToVendorRoute('products')}
+                        className="px-4 py-2.5 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSavingProduct || uploadedImages.length === 0}
+                        className="bg-[#143C6B] hover:bg-[#0D2C4E] disabled:bg-slate-300 text-white font-black text-xs py-2.5 px-6 rounded-xl cursor-pointer shadow-xs uppercase tracking-wider flex items-center gap-2"
+                        id="vendor-publish-product-btn"
+                      >
+                        {isSavingProduct ? 'Publishing...' : 'Publish Product to Catalog'}
+                      </button>
+                    </div>
+                  </form>
+                </motion.div>
+              )}
+
+              {/* 4. EDIT PRODUCT PAGE (TITLE & PHOTOS PERMANENTLY LOCKED) */}
+              {activeTabKey === 'edit-product' && (
+                <motion.div
+                  key="vendor-edit-product-tab"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="max-w-2xl mx-auto w-full space-y-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => goToVendorRoute('products')}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#143C6B] hover:underline cursor-pointer"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      <span>Back to Catalog</span>
+                    </button>
+                    <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-md flex items-center gap-1">
+                      <Lock className="w-3 h-3 text-amber-700" />
+                      <span>Title & Photos Locked</span>
+                    </span>
+                  </div>
+
+                  <form onSubmit={handleSaveProductForm} className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-6 space-y-5">
+                    <div className="pb-3 border-b border-slate-100">
+                      <h2 className="text-base font-black text-slate-900">Edit Catalog Product Details</h2>
+                      <p className="text-xs text-slate-500 font-medium">
+                        Update wholesale pricing, sticker MRP, available sizes, and descriptions.
+                      </p>
+                    </div>
+
+                    {/* PHOTO SECTION - PERMANENTLY LOCKED */}
+                    <div className="space-y-2 p-3.5 bg-slate-50 border border-slate-200 rounded-2xl">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider flex items-center gap-1.5">
+                          <Lock className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Product Photos (Permanently Locked)</span>
+                        </label>
+                        <span className="text-[10px] bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-md">
+                          Read-Only
+                        </span>
+                      </div>
+                      <p className="text-[10.5px] text-slate-500 font-medium">
+                        Photos are permanently locked after listing to maintain catalog integrity and buyer trust.
+                      </p>
+
+                      <div className="flex gap-2 pt-1 overflow-x-auto">
+                        {uploadedImages.map((img, idx) => (
+                          <img
+                            key={idx}
+                            src={img}
+                            alt="Product photo"
+                            className="w-16 h-16 object-cover rounded-xl border border-slate-300 bg-white shrink-0"
+                            referrerPolicy="no-referrer"
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* TITLE - PERMANENTLY LOCKED */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider flex items-center gap-1.5">
+                          <Lock className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Product Title (Permanently Locked)</span>
+                        </label>
+                        <span className="text-[10px] bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-md">
+                          Read-Only
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        disabled
+                        value={pTitle}
+                        className="w-full text-xs font-bold border border-slate-200 rounded-xl p-3 bg-slate-100 text-slate-500 cursor-not-allowed"
+                      />
+                      <p className="text-[10px] text-slate-400 font-medium">
+                        Product titles cannot be modified once listed.
+                      </p>
+                    </div>
+
+                    {/* Category Details */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                          Category
+                        </label>
+                        <input
+                          type="text"
+                          disabled
+                          value={pCategory}
+                          className="w-full text-xs font-bold border border-slate-200 rounded-xl p-2.5 bg-slate-100 text-slate-500 cursor-not-allowed"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                          Subcategory
+                        </label>
+                        <input
+                          type="text"
+                          disabled
+                          value={pSubCategory}
+                          className="w-full text-xs font-bold border border-slate-200 rounded-xl p-2.5 bg-slate-100 text-slate-500 cursor-not-allowed"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Pricing Edit */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                          Wholesale Price (₹) *
+                        </label>
+                        <input
+                          type="number"
+                          required
+                          min={1}
+                          value={pPrice}
+                          onChange={e => setPPrice(Number(e.target.value))}
+                          className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                          MRP Sticker (₹) *
+                        </label>
+                        <input
+                          type="number"
+                          required
+                          min={1}
+                          value={pOrigPrice}
+                          onChange={e => setPOrigPrice(Number(e.target.value))}
+                          className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                        />
+                      </div>
+                      <div className="col-span-2 sm:col-span-1">
+                        <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                          Discount Margin
+                        </label>
+                        <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-center text-xs font-black text-emerald-700">
+                          {pOrigPrice > pPrice ? `${Math.round(((pOrigPrice - pPrice) / pOrigPrice) * 100)}% Margin OFF` : 'Standard'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Sizing Chips */}
+                    <div>
+                      <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1.5">
+                        Available Sizes
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {['Free Size', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '6-12M', '1-2Y', '3-4Y', '5-6Y'].map(sz => {
+                          const active = pSizeOptions.includes(sz);
+                          return (
+                            <button
+                              key={sz}
+                              type="button"
+                              onClick={() => handleToggleSize(sz)}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                                active 
+                                  ? 'bg-[#143C6B] text-white border-[#143C6B]' 
+                                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                              }`}
+                            >
+                              {sz}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                      <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                        Product Description *
+                      </label>
+                      <textarea
+                        required
+                        rows={3}
+                        value={pDesc}
+                        onChange={e => setPDesc(e.target.value)}
+                        className="w-full text-xs font-medium border border-slate-300 rounded-xl p-3 focus:outline-hidden focus:border-[#143C6B]"
+                      />
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-100 flex justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={() => goToVendorRoute('products')}
+                        className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSavingProduct}
+                        className="bg-[#143C6B] hover:bg-[#0D2C4E] text-white font-bold text-xs py-2.5 px-6 rounded-xl cursor-pointer shadow-xs uppercase tracking-wider"
+                      >
+                        {isSavingProduct ? 'Saving...' : 'Update Product'}
+                      </button>
+                    </div>
+                  </form>
+                </motion.div>
+              )}
+
+              {/* 5. ORDERS & DISPATCH PAGE */}
+              {activeTabKey === 'orders' && (
+                <motion.div
+                  key="vendor-orders-tab"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="space-y-4"
+                >
+                  <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                      <div>
+                        <h2 className="text-base font-black text-slate-900">Client Orders & Dispatch ({vendorOrders.length})</h2>
+                        <p className="text-xs text-slate-500 font-medium">Process buyer orders, update courier dispatch, and print slips.</p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => goToVendorRoute('export')}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3.5 rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer"
+                        >
+                          <FileSpreadsheet className="w-4 h-4" />
+                          <span>Export Customer Ledger</span>
+                        </button>
+
+                        <button
+                          onClick={() => window.print()}
+                          className="bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold py-2 px-3 rounded-xl flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Printer className="w-4 h-4" />
+                          <span className="hidden sm:inline">Print All</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Search and Filters */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="sm:col-span-2 relative">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="Search order ID, customer name, or city..."
+                          value={searchQuery}
+                          onChange={e => setSearchQuery(e.target.value)}
+                          className="w-full text-xs font-medium border border-slate-300 rounded-xl py-2 pl-9 pr-3 bg-white focus:outline-hidden focus:border-[#143C6B]"
+                        />
+                      </div>
+
+                      <select
+                        value={orderStatusFilter}
+                        onChange={e => setOrderStatusFilter(e.target.value)}
+                        className="text-xs font-bold border border-slate-300 rounded-xl py-2 px-3 bg-white focus:outline-hidden focus:border-[#143C6B]"
+                      >
+                        <option value="all">All Dispatch Statuses</option>
+                        <option value="Ordered">Pending Dispatch</option>
+                        <option value="Shipped">In Transit / Shipped</option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </select>
+                    </div>
+
+                    {filteredOrders.length === 0 ? (
+                      <div className="py-16 text-center space-y-3">
+                        <ShoppingBag className="w-10 h-10 text-slate-300 mx-auto" />
+                        <h3 className="text-sm font-bold text-slate-700">No Orders Match Filter</h3>
+                        <p className="text-xs text-slate-400 max-w-sm mx-auto font-medium">
+                          Try changing your search term or select "All Dispatch Statuses".
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-slate-100 border border-slate-200/80 rounded-2xl overflow-hidden">
+                        {filteredOrders.map(order => {
+                          const vendorItems = (order.items || []).filter(item => item.product?.vendorId === currentVendor.id);
+                          const vendorItemsTotal = vendorItems.reduce((s, i) => s + ((i.product?.price || 0) * i.quantity), 0);
+
+                          return (
+                            <div key={order.id} className="p-3.5 sm:p-4 bg-white hover:bg-slate-50/80 transition-colors space-y-3">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-black font-mono text-[#143C6B]">#{order.id}</span>
+                                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                                      order.status === 'Delivered Early'
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                        : order.status === 'Shipped' || order.status === 'Out for Delivery'
+                                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                        : order.status === 'Cancelled'
+                                        ? 'bg-red-50 text-red-700 border-red-200'
+                                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                                    }`}>
+                                      {order.status}
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 mt-0.5">
+                                    Customer: <strong>{order.shippingAddress?.name || 'Customer'}</strong> (+91 {order.shippingAddress?.phone || 'N/A'}) • {order.shippingAddress?.city || 'India'}, {order.shippingAddress?.state || ''}
+                                  </p>
+                                </div>
+
+                                <div className="flex items-center gap-3 justify-between sm:justify-end">
+                                  <div className="text-right">
+                                    <span className="text-xs font-black text-slate-900 block">₹{vendorItemsTotal}</span>
+                                    <span className="text-[9.5px] text-emerald-600 font-bold">100% Payout</span>
+                                  </div>
+
+                                  <button
+                                    onClick={() => goToVendorRoute('orders/details', `id=${order.id}`)}
+                                    className="bg-[#143C6B] hover:bg-[#0D2C4E] text-white text-xs font-bold py-1.5 px-3 rounded-xl cursor-pointer shadow-3xs"
+                                  >
+                                    Manage
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Items mini list */}
+                              <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-100">
+                                {vendorItems.map((item, idx) => (
+                                  <div key={idx} className="flex items-center gap-2 bg-slate-50 border border-slate-200/80 px-2 py-1 rounded-lg text-xs">
+                                    <img
+                                      src={item.product?.images?.[0] || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=100'}
+                                      alt=""
+                                      className="w-5 h-5 object-cover rounded-md"
+                                      referrerPolicy="no-referrer"
+                                    />
+                                    <span className="font-bold text-slate-700 truncate max-w-[140px]">{item.product?.title}</span>
+                                    <span className="text-[10px] text-slate-400 font-mono">x{item.quantity}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* 6. EXPORT & REPORTS PAGE (Dedicated Indexed Customer Orders Download Component) */}
+              {activeTabKey === 'export' && (
+                <motion.div
+                  key="vendor-export-tab"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="space-y-4"
+                >
+                  <VendorExportReports 
+                    currentVendor={currentVendor} 
+                    orders={orders} 
+                    products={products} 
+                  />
+                </motion.div>
+              )}
+
+              {/* 7. ORDER DETAILS SUBPAGE */}
+              {activeTabKey === 'order-details' && (
+                <motion.div
+                  key="vendor-order-details-tab"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="max-w-2xl mx-auto w-full space-y-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => goToVendorRoute('orders')}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#143C6B] hover:underline cursor-pointer"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      <span>Back to Orders</span>
+                    </button>
+                  </div>
+
+                  {!selectedOrderForDetail ? (
+                    <div className="bg-white rounded-2xl p-8 text-center space-y-2 border border-slate-200">
+                      <p className="text-xs text-slate-600 font-bold">Order Not Found</p>
+                      <button
+                        onClick={() => goToVendorRoute('orders')}
+                        className="mt-3 bg-[#143C6B] text-white text-xs font-bold px-4 py-2 rounded-xl"
+                      >
+                        Return to Orders
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-6 space-y-5">
+                      
+                      {/* Top Header */}
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 pb-4 border-b border-slate-100">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h2 className="text-base font-black text-slate-900">Order #{selectedOrderForDetail.id.slice(0, 8)}</h2>
+                            <span className="text-[10px] bg-blue-100 text-[#143C6B] font-bold px-2 py-0.5 rounded-full uppercase">
+                              {selectedOrderForDetail.status}
+                            </span>
                           </div>
+                          <p className="text-xs text-slate-500 font-medium mt-0.5">Placed: {selectedOrderForDetail.orderDate}</p>
                         </div>
 
+                        <button
+                          onClick={() => window.print()}
+                          className="bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold py-2 px-3 rounded-xl flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Printer className="w-4 h-4" />
+                          <span>Print Dispatch Slip</span>
+                        </button>
+                      </div>
+
+                      {/* Delivery Address */}
+                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-2">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Customer Delivery Details</span>
+                        <p className="text-xs font-black text-slate-900">{selectedOrderForDetail.shippingAddress?.name}</p>
+                        <p className="text-xs text-slate-600">{selectedOrderForDetail.shippingAddress?.addressLine}</p>
+                        <p className="text-xs text-slate-600">
+                          {selectedOrderForDetail.shippingAddress?.city}, {selectedOrderForDetail.shippingAddress?.state} - {selectedOrderForDetail.shippingAddress?.pincode}
+                        </p>
+                        <p className="text-xs font-bold text-slate-700">Phone: {selectedOrderForDetail.shippingAddress?.phone}</p>
+                      </div>
+
+                      {/* Merchandise List */}
+                      <div>
+                        <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">Ordered Items</h3>
+                        <div className="border border-slate-200/80 rounded-xl overflow-hidden divide-y divide-slate-100">
+                          {(selectedOrderForDetail.items || []).map((item, idx) => (
+                            <div key={idx} className="p-3 flex items-center justify-between gap-3 bg-white">
+                              <div className="flex items-center gap-3">
+                                <img
+                                  src={item.product?.images?.[0] || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=100'}
+                                  alt={item.product?.title}
+                                  className="w-12 h-12 object-cover rounded-lg border border-slate-200"
+                                  referrerPolicy="no-referrer"
+                                />
+                                <div>
+                                  <h4 className="text-xs font-bold text-slate-800">{item.product?.title}</h4>
+                                  <p className="text-[10px] text-slate-400 font-medium">Size: {item.selectedSize || 'Standard'} • Qty: {item.quantity}</p>
+                                </div>
+                              </div>
+                              <span className="text-xs font-black text-slate-900">₹{(item.product?.price || 0) * item.quantity}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Dispatch Status Updater */}
+                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-2.5">
+                        <span className="text-[10px] text-slate-500 font-bold uppercase block">Update Dispatch Status</span>
+                        <div className="flex flex-wrap gap-2">
+                          {(['Ordered', 'Shipped', 'Out for Delivery', 'Delivered Early', 'Cancelled'] as const).map(statusOpt => (
+                            <button
+                              key={statusOpt}
+                              onClick={() => {
+                                if (onUpdateOrderStatus) {
+                                  onUpdateOrderStatus(selectedOrderForDetail.id, statusOpt);
+                                }
+                              }}
+                              className={`px-3 py-1.5 text-xs font-bold rounded-lg cursor-pointer transition-all uppercase ${
+                                selectedOrderForDetail.status === statusOpt
+                                  ? 'bg-[#143C6B] text-white shadow-3xs'
+                                  : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                              }`}
+                            >
+                              Mark {statusOpt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
+              {/* 8. SUPPLIER PROFILE (GST VERIFIED VENDORS PERMANENTLY LOCKED) */}
+              {activeTabKey === 'profile' && (
+                <motion.div
+                  key="vendor-profile-tab"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="max-w-2xl mx-auto w-full space-y-4"
+                >
+                  <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-sm space-y-5">
+                    
+                    {/* Header */}
+                    <div className="pb-4 border-b border-slate-100 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-14 h-14 rounded-2xl bg-[#143C6B] text-white flex items-center justify-center font-black text-xl shadow-xs">
+                          {currentVendor.name.charAt(0)}
+                        </div>
                         <div>
-                          <label className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wide block mb-1">Business Bio / Brand Story</label>
-                          <textarea
-                            rows={3}
-                            placeholder="Tell buyers about your manufacturing process, legacy, or wholesale capabilities..."
-                            value={profileDescText}
-                            onChange={e => setProfileDescText(e.target.value)}
-                            className="w-full text-xs font-semibold border border-gray-200 rounded-lg p-2.5 focus:border-lucky-magenta focus:outline-hidden resize-none"
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-base font-black text-slate-900">{currentVendor.name}</h3>
+                            {isGstLocked && (
+                              <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                                <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                                <span>GST Verified</span>
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-500 font-medium">{currentVendor.businessCategory || 'General Merchandise'} • Mob: +91 {currentVendor.phone}</p>
+                        </div>
+                      </div>
+
+                      {/* EDIT BUTTON LOGIC:
+                          If GST Verified -> Profile is permanently locked! Button shows locked badge.
+                          If Not GST Verified -> Can edit non-GST details.
+                      */}
+                      {isGstLocked ? (
+                        <div 
+                          className="bg-slate-100 border border-slate-200 text-slate-600 text-xs font-bold py-2 px-3 rounded-xl flex items-center gap-1.5 cursor-not-allowed select-none"
+                          title="Profile details are permanently locked for GST-verified merchants for tax compliance."
+                        >
+                          <Lock className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Profile Locked</span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => goToVendorRoute('profile/edit')}
+                          className="bg-[#143C6B] hover:bg-[#0D2C4E] text-white text-xs font-bold py-2 px-3.5 rounded-xl flex items-center gap-1.5 cursor-pointer shadow-3xs"
+                          id="vendor-edit-profile-btn"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                          <span>Edit</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* GST Compliance Notice if locked */}
+                    {isGstLocked && (
+                      <div className="bg-emerald-50/80 border border-emerald-200 rounded-xl p-3.5 flex items-start gap-2.5">
+                        <Lock className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                        <div className="space-y-0.5">
+                          <h4 className="text-xs font-black text-emerald-950">GST Compliance Security Lock Active</h4>
+                          <p className="text-[11px] text-emerald-800 font-medium">
+                            Your legal business name, registered phone number, and state credentials are permanently locked in compliance with Central GST Portal regulations. Invoices are automatically generated using these verified credentials.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Attributes Table */}
+                    <div className="space-y-2.5 divide-y divide-slate-100 text-xs">
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-slate-500 font-medium">Merchant ID</span>
+                        <span className="font-mono font-bold text-slate-800">{currentVendor.id}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-slate-500 font-medium">Seller Classification</span>
+                        <span className={`font-bold text-[10px] uppercase px-2.5 py-1 rounded-md ${
+                          isGstLocked 
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                            : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}>
+                          {isGstLocked ? '👑 Verified GST Store' : '🌱 Small Business (Unverified GST)'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-slate-500 font-medium">GSTIN Number</span>
+                        <span className="font-mono font-bold text-slate-800 uppercase">
+                          {currentVendor.gstin || 'Not Provided (Standard Bill)'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-slate-500 font-medium">Operating City & State</span>
+                        <span className="font-bold text-slate-800">{currentVendor.city || 'Jaipur'}, {currentVendor.state || 'Rajasthan'}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-slate-500 font-medium">Official Contact Email</span>
+                        <span className="font-bold text-slate-800">{currentVendor.email}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-slate-500 font-medium">Aadhaar UIDAI Status</span>
+                        <span className="font-bold text-slate-800">
+                          {currentVendor.aadhaarVerified ? '✓ Biometrically Verified' : 'Standard Documented'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* POST-SIGNUP GSTIN VERIFICATION UPGRADE BOX (For unverified vendors) */}
+                    {!isGstLocked && (
+                      <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-4 sm:p-5 space-y-3" id="vendor-post-signup-gst-upgrade">
+                        <div className="flex items-center gap-2 text-amber-900 font-black text-xs uppercase tracking-wider">
+                          <Zap className="w-4 h-4 text-amber-600 fill-amber-500" />
+                          <span>Instant GSTIN Verification & Upgrade</span>
+                        </div>
+                        <p className="text-xs text-amber-800 font-medium leading-relaxed">
+                          Didn't add a GST number during sign-up? You can verify your GSTIN at any time. Once verified, your products will be automatically approved without waiting for manual admin review.
+                        </p>
+
+                        <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                          <input
+                            type="text"
+                            maxLength={15}
+                            placeholder="Enter 15-character GSTIN (e.g. 08AAAAA0000A1Z5)"
+                            value={profileGstin}
+                            onChange={e => setProfileGstin(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                            className="flex-1 text-xs font-mono font-bold border border-amber-300 rounded-xl p-2.5 bg-white uppercase focus:outline-hidden focus:border-[#143C6B]"
+                            id="vendor-profile-gstin-upgrade-input"
+                          />
+                          <button
+                            type="button"
+                            disabled={isGstVerifying || profileGstin.trim().length !== 15}
+                            onClick={handleUpgradeGstin}
+                            className="bg-[#143C6B] hover:bg-[#0D2C4E] disabled:bg-slate-300 text-white text-xs font-black py-2.5 px-4 rounded-xl cursor-pointer shadow-xs transition-colors"
+                            id="vendor-profile-gstin-upgrade-btn"
+                          >
+                            {isGstVerifying ? 'Verifying with GSTN...' : 'Verify & Lock Profile'}
+                          </button>
+                        </div>
+
+                        {gstVerifyStatus !== 'idle' && (
+                          <div className={`p-2.5 rounded-xl text-xs font-bold ${
+                            gstVerifyStatus === 'success' ? 'bg-emerald-100 text-emerald-800' :
+                            gstVerifyStatus === 'failed' ? 'bg-red-100 text-red-800' :
+                            'bg-blue-100 text-[#143C6B]'
+                          }`}>
+                            {gstVerifyMessage}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                  </div>
+                </motion.div>
+              )}
+
+              {/* 9. EDIT PROFILE PAGE (ONLY ACCESSIBLE BY NON-GST VENDORS) */}
+              {activeTabKey === 'edit-profile' && (
+                <motion.div
+                  key="vendor-edit-profile-tab"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="max-w-2xl mx-auto w-full space-y-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => goToVendorRoute('profile')}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#143C6B] hover:underline cursor-pointer"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      <span>Back to Profile</span>
+                    </button>
+                  </div>
+
+                  {isGstLocked ? (
+                    <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center space-y-3">
+                      <Lock className="w-10 h-10 text-emerald-600 mx-auto" />
+                      <h3 className="text-sm font-black text-slate-900">Profile Permanently Locked</h3>
+                      <p className="text-xs text-slate-500 max-w-md mx-auto">
+                        Your profile is verified under GSTIN <strong>{currentVendor.gstin}</strong> and is legally locked from modifications.
+                      </p>
+                      <button
+                        onClick={() => goToVendorRoute('profile')}
+                        className="bg-[#143C6B] text-white text-xs font-bold px-4 py-2 rounded-xl cursor-pointer"
+                      >
+                        Return to Profile
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleSaveProfile} className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-6 space-y-4" id="edit-profile-form">
+                      <div className="pb-3 border-b border-slate-100">
+                        <h2 className="text-base font-black text-slate-900">Edit Store Profile</h2>
+                        <p className="text-xs text-slate-500 font-medium">
+                          Update your store contact and dispatch location.
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                          Store / Business Name *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={profileName}
+                          onChange={e => setProfileName(e.target.value)}
+                          className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                            Contact Phone *
+                          </label>
+                          <input
+                            type="tel"
+                            required
+                            value={profilePhone}
+                            onChange={e => setProfilePhone(e.target.value)}
+                            className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                            Email Address *
+                          </label>
+                          <input
+                            type="email"
+                            required
+                            value={profileEmail}
+                            onChange={e => setProfileEmail(e.target.value)}
+                            className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
                           />
                         </div>
                       </div>
 
-                      <div className="pt-3 border-t border-gray-100 flex gap-2 justify-end">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                            City
+                          </label>
+                          <input
+                            type="text"
+                            value={profileCity}
+                            onChange={e => setProfileCity(e.target.value)}
+                            className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                            State
+                          </label>
+                          <input
+                            type="text"
+                            value={profileState}
+                            onChange={e => setProfileState(e.target.value)}
+                            className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                          Store Description
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={profileDescText}
+                          onChange={e => setProfileDescText(e.target.value)}
+                          className="w-full text-xs font-medium border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                        />
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-100 flex justify-end gap-3">
                         <button
                           type="button"
-                          onClick={() => setIsEditingProfile(false)}
-                          className="px-4 py-2 border border-gray-200 rounded-lg text-xs font-extrabold text-gray-500 hover:bg-slate-50 cursor-pointer transition-colors"
+                          onClick={() => goToVendorRoute('profile')}
+                          className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl cursor-pointer"
                         >
                           Cancel
                         </button>
                         <button
                           type="submit"
                           disabled={isSavingProfile}
-                          className="px-5 py-2 bg-lucky-magenta hover:bg-lucky-magenta-hover disabled:opacity-50 text-white text-xs font-black uppercase tracking-wider rounded-lg shadow-3xs cursor-pointer transition-colors"
+                          className="bg-[#143C6B] hover:bg-[#0D2C4E] text-white font-black text-xs py-2 px-5 rounded-xl cursor-pointer shadow-xs uppercase tracking-wider"
                         >
-                          {isSavingProfile ? 'Saving Changes...' : 'Save Profile Changes'}
+                          {isSavingProfile ? 'Saving...' : 'Save Profile'}
                         </button>
                       </div>
                     </form>
                   )}
+                </motion.div>
+              )}
 
-                  <div className="bg-lucky-magenta-light/40 rounded-xl p-4 border border-lucky-magenta-light space-y-2">
-                    <h4 className="text-[11px] font-black text-lucky-magenta uppercase tracking-wider flex items-center gap-1.5">
-                      <Award className="w-4 h-4 text-lucky-magenta" />
-                      <span>QueKart Commission-Free Pledge</span>
-                    </h4>
-                    <p className="text-[10px] text-lucky-magenta/90 leading-relaxed font-semibold">
-                      QueKart charges absolutely **0% commissions** on all listed products. 100% of the listed catalog cost is disbursed instantly into your supplier bank account after verified shipping delivery. Safe, honest, and truly Indian.
-                    </p>
+              {/* 10. ANALYTICS PAGE */}
+              {activeTabKey === 'analytics' && (
+                <motion.div
+                  key="vendor-analytics-tab"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="space-y-4"
+                >
+                  <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                      <div>
+                        <h3 className="text-sm font-black text-slate-900 uppercase">Sales & Wholesale Analytics</h3>
+                        <p className="text-xs text-slate-500 font-medium">Real-time breakdown of your wholesale catalog performance.</p>
+                      </div>
+                      <button
+                        onClick={() => goToVendorRoute('export')}
+                        className="bg-[#143C6B] text-white text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <FileSpreadsheet className="w-3.5 h-3.5" />
+                        <span>Export Data</span>
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Gross Catalog Volume</span>
+                        <p className="text-xl font-black text-slate-900 mt-1">₹{totalRevenue.toLocaleString()}</p>
+                      </div>
+                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Dispatched Orders</span>
+                        <p className="text-xl font-black text-[#143C6B] mt-1">{vendorOrders.length}</p>
+                      </div>
+                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Commission Saved (0%)</span>
+                        <p className="text-xl font-black text-emerald-600 mt-1">₹{Math.round(totalRevenue * 0.15).toLocaleString()}</p>
+                      </div>
+                    </div>
                   </div>
                 </motion.div>
               )}
+
+              {/* 11. PAYOUTS PAGE */}
+              {activeTabKey === 'payouts' && (
+                <motion.div
+                  key="vendor-payouts-tab"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="space-y-4"
+                >
+                  <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                      <h3 className="text-sm font-black text-slate-900 uppercase">Direct Bank Settlement</h3>
+                      <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-2 py-0.5 rounded-md uppercase">
+                        Automated Payout
+                      </span>
+                    </div>
+
+                    <div className="bg-emerald-50/70 border border-emerald-200/80 p-4 rounded-xl flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-emerald-700 font-bold uppercase block">Next Scheduled Settlement</span>
+                        <p className="text-base font-black text-emerald-950 mt-0.5">Every Tuesday & Friday</p>
+                      </div>
+                      <span className="text-xl font-black text-emerald-700">₹{totalRevenue.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
             </AnimatePresence>
 
           </div>
         )}
       </main>
 
-      {/* PRODUCT LISTING / EDITING MODAL DRAWER */}
-      <AnimatePresence>
-        {isListingModalOpen && (
-          <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl border border-gray-100 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-5 space-y-4"
-              id="vendor-product-modal"
-            >
-              <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-                <h3 className="text-sm font-black text-gray-800 uppercase tracking-wide">
-                  {editingProduct ? 'Edit Listed Product Details' : 'List New Wholesale Product'}
-                </h3>
-                <button 
-                  onClick={() => setIsListingModalOpen(false)}
-                  className="p-1 hover:bg-slate-100 rounded-full text-gray-400 cursor-pointer"
-                >
-                  ✕
-                </button>
-              </div>
+      {/* 4. MOBILE BOTTOM NAVIGATION (Fixed at bottom for mobile screens) */}
+      {currentVendor && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200/90 shadow-lg px-2 py-1 flex justify-around items-center" id="vendor-mobile-bottom-nav">
+          {navTabs.map(tab => {
+            const Icon = tab.icon;
+            const isActive = activeTabKey === tab.id || 
+              (tab.id === 'products' && activeTabKey === 'edit-product') ||
+              (tab.id === 'orders' && activeTabKey === 'order-details') ||
+              (tab.id === 'profile' && activeTabKey === 'edit-profile');
 
-              <form onSubmit={handleSaveProduct} className="space-y-4">
-                
-                {/* Image Selection Area */}
-                <div className="space-y-2">
-                  <label className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">1. Product Catalog Photography</label>
-                  
-                  {/* Selected image preview */}
-                  <div className="flex gap-4 items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
-                    <img 
-                      src={customImageUrl.trim() ? customImageUrl : pSelectedImage} 
-                      alt="Catalog selection preview" 
-                      className="w-14 h-14 object-cover rounded-lg border border-gray-200"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="flex-1">
-                      <p className="text-[10px] font-bold text-gray-700">Currently Selected Photo Accent</p>
-                      <p className="text-[9px] text-gray-400 font-semibold mt-0.5">Choose from our instant premium Meesho-styled templates below OR paste a direct web image link.</p>
-                    </div>
+            return (
+              <button
+                key={tab.id}
+                onClick={() => goToVendorRoute(tab.path)}
+                className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all cursor-pointer relative min-w-[50px] ${
+                  isActive ? 'text-[#143C6B]' : 'text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                {tab.isAction ? (
+                  <div className="w-8 h-8 rounded-full bg-[#143C6B] text-white flex items-center justify-center shadow-xs -mt-2">
+                    <Plus className="w-5 h-5 stroke-[2.5]" />
                   </div>
+                ) : (
+                  <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-[1.8]'}`} />
+                )}
 
-                  {/* Preset Grid */}
-                  <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
-                    {imagePresets.map((img, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => {
-                          setPSelectedImage(img.url);
-                          setCustomImageUrl('');
-                        }}
-                        className={`aspect-square rounded-md overflow-hidden border-2 transition-all cursor-pointer ${
-                          pSelectedImage === img.url && !customImageUrl 
-                            ? 'border-lucky-magenta scale-95 shadow-xs' 
-                            : 'border-transparent hover:border-slate-300'
-                        }`}
-                        title={img.label}
-                      >
-                        <img 
-                          src={img.url} 
-                          alt={img.label} 
-                          className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                      </button>
-                    ))}
-                  </div>
+                <span className={`text-[10px] mt-0.5 ${isActive ? 'font-black' : 'font-semibold'}`}>
+                  {tab.label}
+                </span>
 
-                  {/* Custom link input */}
-                  <div>
-                    <input
-                      type="text"
-                      placeholder="Paste direct product image URL (Optional)"
-                      value={customImageUrl}
-                      onChange={e => setCustomImageUrl(e.target.value)}
-                      className="w-full text-xs font-semibold border border-gray-200 rounded-lg p-2.5 bg-slate-50/50 focus:outline-hidden focus:border-lucky-magenta"
-                    />
-                  </div>
-                </div>
+                {tab.badge !== undefined && tab.badge > 0 && (
+                  <span className="absolute top-0 right-1 w-4 h-4 rounded-full bg-lucky-magenta text-white text-[9px] font-black flex items-center justify-center shadow-xs">
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
-                {/* Text Fields */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wide block mb-1">Product Title *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Traditional Banarasi Cotton Saree"
-                      value={pTitle}
-                      onChange={e => setPTitle(e.target.value)}
-                      className="w-full text-xs font-semibold border border-gray-200 rounded-lg p-2.5 bg-slate-50/50 focus:outline-hidden focus:border-lucky-magenta"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wide block mb-1">Catalog Classification</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <select
-                        value={pCategory}
-                        onChange={e => setPCategory(e.target.value)}
-                        className="w-full text-xs font-semibold border border-gray-200 rounded-lg p-2 bg-slate-50/50 focus:outline-hidden focus:border-lucky-magenta"
-                      >
-                        <option value="Women Apparel">Women Apparel</option>
-                        <option value="Men Apparel">Men Apparel</option>
-                        <option value="Cosmetics & Beauty">Cosmetics & Beauty</option>
-                        <option value="Home & Kitchen">Home & Kitchen</option>
-                        <option value="Consumer Electronics">Consumer Electronics</option>
-                      </select>
-                      <input
-                        type="text"
-                        placeholder="Saree / Kurtis / Watch"
-                        value={pSubCategory}
-                        onChange={e => setPSubCategory(e.target.value)}
-                        className="w-full text-xs font-semibold border border-gray-200 rounded-lg p-2 bg-slate-50/50 focus:outline-hidden focus:border-lucky-magenta"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wide block mb-1">Wholesale Cost (₹) *</label>
-                    <input
-                      type="number"
-                      required
-                      min={1}
-                      placeholder="e.g. 299"
-                      value={pPrice}
-                      onChange={e => setPPrice(Number(e.target.value))}
-                      className="w-full text-xs font-semibold border border-gray-200 rounded-lg p-2.5 bg-slate-50/50 focus:outline-hidden focus:border-lucky-magenta"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wide block mb-1">M.R.P. Sticker Price (₹) *</label>
-                    <input
-                      type="number"
-                      required
-                      min={1}
-                      placeholder="e.g. 599"
-                      value={pOrigPrice}
-                      onChange={e => setPOrigPrice(Number(e.target.value))}
-                      className="w-full text-xs font-semibold border border-gray-200 rounded-lg p-2.5 bg-slate-50/50 focus:outline-hidden focus:border-lucky-magenta"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wide block mb-1">Calculated Discount</label>
-                    <div className="bg-slate-50 rounded-lg p-2.5 border border-gray-200 text-xs font-black text-lucky-green flex items-center justify-center">
-                      {pOrigPrice > pPrice 
-                        ? `${Math.round(((pOrigPrice - pPrice) / pOrigPrice) * 100)}% Discount` 
-                        : 'No Discount'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Size options */}
-                <div>
-                  <label className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wide block mb-1">Size Options Available</label>
-                  <div className="flex flex-wrap gap-2">
-                    {['Free Size', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', 'Standard Size'].map(sz => {
-                      const active = pSizeOptions.includes(sz);
-                      return (
-                        <button
-                          key={sz}
-                          type="button"
-                          onClick={() => handleToggleSize(sz)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                            active 
-                              ? 'bg-lucky-magenta text-white border-lucky-magenta shadow-3xs' 
-                              : 'bg-white text-gray-500 border-gray-200 hover:bg-slate-50'
-                          }`}
-                        >
-                          {sz}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wide block mb-1">Product Description *</label>
-                  <textarea
-                    required
-                    rows={3}
-                    placeholder="Provide rich details of fabrics, fitting instructions, embroidery work, material composition, etc."
-                    value={pDesc}
-                    onChange={e => setPDesc(e.target.value)}
-                    className="w-full text-xs font-semibold border border-gray-200 rounded-lg p-2.5 bg-slate-50/50 focus:outline-hidden focus:border-lucky-magenta"
-                  />
-                </div>
-
-                <div className="pt-3 border-t border-gray-100 flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsListingModalOpen(false)}
-                    className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-800 cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="bg-lucky-magenta hover:bg-lucky-magenta-hover text-white font-extrabold text-xs py-2 px-5 rounded-lg cursor-pointer shadow-3xs transition-all uppercase tracking-wider"
-                  >
-                    {editingProduct ? 'Update Listing' : 'Publish Catalog'}
-                  </button>
-                </div>
-
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Custom Confirmation Dialog */}
+      {/* 5. CONFIRMATION MODAL */}
       <AnimatePresence>
         {confirmDialog && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
@@ -1917,14 +2382,14 @@ export default function VendorDashboard({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100"
+              className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-xl border border-slate-100"
             >
-              <h3 className="text-sm font-extrabold text-slate-900 mb-2">{confirmDialog.title || 'Confirm Action'}</h3>
-              <p className="text-xs text-slate-600 font-medium leading-relaxed mb-6">{confirmDialog.message}</p>
-              <div className="flex justify-end gap-2.5">
+              <h3 className="text-sm font-black text-slate-900 mb-1.5">{confirmDialog.title || 'Confirm Action'}</h3>
+              <p className="text-xs text-slate-600 leading-relaxed mb-5">{confirmDialog.message}</p>
+              <div className="flex justify-end gap-2">
                 <button
                   onClick={() => setConfirmDialog(null)}
-                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                  className="px-3.5 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1933,7 +2398,7 @@ export default function VendorDashboard({
                     confirmDialog.onConfirm();
                     setConfirmDialog(null);
                   }}
-                  className="px-4 py-2 text-xs font-black text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-xs cursor-pointer"
+                  className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-xs cursor-pointer"
                 >
                   {confirmDialog.confirmText || 'Confirm'}
                 </button>

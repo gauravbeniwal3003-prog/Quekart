@@ -11,6 +11,10 @@ To run locally:
 
 import os
 import random
+import hmac
+import hashlib
+import base64
+import time
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from fastapi import FastAPI, Header, HTTPException, Request, status
@@ -43,6 +47,55 @@ app.add_middleware(
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
 ADMIN_SECRET = os.getenv("ADMIN_SECRET", "lucky-secret-admin-pass-123")
+JWT_SECRET = os.getenv("JWT_SECRET", "quekart-secure-jwt-secret-987654321")
+
+# --- SECURE JWT UTILITIES (Using native Python libraries for perfect reliability) ---
+def base64url_encode(payload: bytes) -> str:
+    return base64.urlsafe_b64encode(payload).decode('utf-8').replace('=', '')
+
+def base64url_decode(s: str) -> bytes:
+    rem = len(s) % 4
+    if rem > 0:
+        s += '=' * (4 - rem)
+    return base64.urlsafe_b64decode(s)
+
+def sign_token(payload: dict, expiry_hours=24) -> str:
+    header = {"alg": "HS256", "typ": "JWT"}
+    exp = int(time.time()) + (expiry_hours * 60 * 60)
+    full_payload = {**payload, "exp": exp}
+    
+    encoded_header = base64url_encode(json.dumps(header, separators=(',', ':')).encode('utf-8'))
+    encoded_payload = base64url_encode(json.dumps(full_payload, separators=(',', ':')).encode('utf-8'))
+    
+    msg = f"{encoded_header}.{encoded_payload}".encode('utf-8')
+    sig = hmac.new(JWT_SECRET.encode('utf-8'), msg, hashlib.sha256).digest()
+    encoded_sig = base64url_encode(sig)
+    
+    return f"{encoded_header}.{encoded_payload}.{encoded_sig}"
+
+def verify_token(token: str) -> Optional[dict]:
+    try:
+        parts = token.split('.')
+        if len(parts) != 3:
+            return None
+        encoded_header, encoded_payload, encoded_sig = parts
+        
+        msg = f"{encoded_header}.{encoded_payload}".encode('utf-8')
+        sig = hmac.new(JWT_SECRET.encode('utf-8'), msg, hashlib.sha256).digest()
+        expected_sig = base64url_encode(sig)
+        
+        if not hmac.compare_digest(encoded_sig, expected_sig):
+            return None
+            
+        payload_bytes = base64url_decode(encoded_payload)
+        payload = json.loads(payload_bytes.decode('utf-8'))
+        
+        if "exp" in payload and payload["exp"] < int(time.time()):
+            return None # Expired
+            
+        return payload
+    except Exception:
+        return None
 
 supabase: Optional[Client] = None
 use_supabase = False
@@ -151,12 +204,43 @@ class Category(BaseModel):
 class CategoryReorder(BaseModel):
     ids: List[str]
 
+class BannerInput(BaseModel):
+    id: str
+    imageUrl: str
+    type: str
+
 class OrderStatusUpdate(BaseModel):
     status: str
 
+class VendorInput(BaseModel):
+    id: Optional[str] = None
+    name: str
+    email: str
+    phone: str
+    businessCategory: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    gstin: Optional[str] = None
+    description: Optional[str] = None
+
+class UserInput(BaseModel):
+    id: Optional[str] = None
+    name: str
+    email: str
+    phone: str
+    address: Optional[str] = None
+
+class LoginInput(BaseModel):
+    phone: str
+
+class AdminLoginInput(BaseModel):
+    secret: str
+
 # -------------------------------------------------------------
-# LOCAL MEMORY FALLBACK STORAGE (Seeded with initial states)
+# LOCAL MEMORY FALLBACK STORAGE (Seeded dynamically from mock_data.json)
 # -------------------------------------------------------------
+import json
+
 local_products: List[Dict[str, Any]] = []
 local_orders: List[Dict[str, Any]] = []
 local_coupons: List[Dict[str, Any]] = [
@@ -252,6 +336,171 @@ local_categories: List[Dict[str, Any]] = [
     }
 ]
 
+local_vendors: List[Dict[str, Any]] = [
+    {
+        "id": "vendor-hdf",
+        "name": "HDFCREATION",
+        "email": "hdf.creation@quekart.com",
+        "phone": "9876543210",
+        "vendorType": "big",
+        "businessCategory": "Men",
+        "gstin": "08AAAAA1111A1Z1",
+        "rating": 4.1,
+        "status": "active"
+    }
+]
+
+local_users: List[Dict[str, Any]] = [
+    {
+        "id": "user-gaurav",
+        "name": "Gaurav Beniwal",
+        "email": "gauravbeniwal30003@gmail.com",
+        "phone": "9999999999",
+        "address": "Jaipur, Rajasthan"
+    }
+]
+
+local_banners: List[Dict[str, Any]] = [
+    {
+        "id": "banner-promo-1",
+        "imageUrl": "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&q=80&w=1200&h=400",
+        "type": "promotional"
+    },
+    {
+        "id": "banner-promo-2",
+        "imageUrl": "https://images.unsplash.com/photo-1607083206968-13611e3d76ba?auto=format&fit=crop&q=80&w=1200&h=400",
+        "type": "promotional"
+    },
+    {
+        "id": "banner-news-1",
+        "imageUrl": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=1200&h=400",
+        "type": "news"
+    }
+]
+
+# Load and synchronize from mock_data.json if present
+if os.path.exists("./mock_data.json"):
+    try:
+        with open("./mock_data.json", "r", encoding="utf-8") as f:
+            _mock_data = json.load(f)
+            if "products" in _mock_data and _mock_data["products"]:
+                local_products = _mock_data["products"]
+            if "orders" in _mock_data and _mock_data["orders"]:
+                local_orders = _mock_data["orders"]
+            if "categories" in _mock_data and _mock_data["categories"]:
+                local_categories = _mock_data["categories"]
+            if "coupons" in _mock_data and _mock_data["coupons"]:
+                local_coupons = _mock_data["coupons"]
+            if "vendors" in _mock_data and _mock_data["vendors"]:
+                local_vendors = _mock_data["vendors"]
+            if "users" in _mock_data and _mock_data["users"]:
+                local_users = _mock_data["users"]
+            if "banners" in _mock_data and _mock_data["banners"]:
+                local_banners = _mock_data["banners"]
+            print("✅ Python successfully loaded ./mock_data.json.")
+    except Exception as e:
+        print(f"⚠️ Warning: Python failed to parse ./mock_data.json: {e}")
+
+# -------------------------------------------------------------
+# HELPER: TEST SUPABASE TABLES & AUTO-SEED IN PYTHON
+# -------------------------------------------------------------
+def test_and_seed_supabase():
+    global use_supabase, local_products, local_orders, local_categories, local_coupons, local_vendors, local_users, local_banners
+    if not use_supabase or not supabase:
+        return
+    
+    try:
+        # 1. Verify and seed products table
+        try:
+            p_res = supabase.table("products").select("id").execute()
+            p_ids = [row["id"] for row in p_res.data] if p_res and p_res.data else []
+            if len(p_ids) == 0:
+                print("🌱 Products table is empty in Python backend. Seeding default catalog...")
+                for p in local_products:
+                    supabase.table("products").insert({"id": p["id"], "data": p}).execute()
+            else:
+                print(f"📊 Products in Supabase: {len(p_ids)}. Skipping seeding.")
+        except Exception as p_err:
+            print(f"❌ Supabase products table check failed in Python: {p_err}")
+            print("⚠️ products table not found or inaccessible in Supabase. Disable Supabase live mode in Python.")
+            use_supabase = False
+            return
+
+        # 2. Verify and seed coupons table
+        try:
+            c_res = supabase.table("coupons").select("code").execute()
+            c_codes = [row["code"] for row in c_res.data] if c_res and c_res.data else []
+            if len(c_codes) == 0:
+                print("🌱 Coupons table is empty. Seeding default coupons...")
+                for c in local_coupons:
+                    supabase.table("coupons").insert({"code": c["code"], "data": c}).execute()
+        except Exception as c_err:
+            print(f"❌ Coupons table check failed in Python: {c_err}")
+
+        # 3. Verify and seed orders table
+        try:
+            o_res = supabase.table("orders").select("id").execute()
+            o_ids = [row["id"] for row in o_res.data] if o_res and o_res.data else []
+            if len(o_ids) == 0:
+                print("🌱 Orders table is empty. Seeding default orders...")
+                for o in local_orders:
+                    supabase.table("orders").insert({"id": o["id"], "data": o}).execute()
+        except Exception as o_err:
+            print(f"❌ Orders table check failed in Python: {o_err}")
+
+        # 4. Verify and seed vendors table
+        try:
+            v_res = supabase.table("vendors").select("id").execute()
+            v_ids = [row["id"] for row in v_res.data] if v_res and v_res.data else []
+            if len(v_ids) == 0:
+                print("🌱 Vendors table is empty. Seeding default vendors...")
+                for v in local_vendors:
+                    supabase.table("vendors").insert({"id": v["id"], "data": v}).execute()
+        except Exception as v_err:
+            print(f"❌ Vendors table check failed in Python: {v_err}")
+
+        # 4.5. Verify and seed users table
+        try:
+            u_res = supabase.table("users").select("id").execute()
+            u_ids = [row["id"] for row in u_res.data] if u_res and u_res.data else []
+            if len(u_ids) == 0:
+                print("🌱 Users table is empty. Seeding default users...")
+                for u in local_users:
+                    supabase.table("users").insert({"id": u["id"], "data": u}).execute()
+        except Exception as u_err:
+            print(f"❌ Users table check failed in Python: {u_err}")
+
+        # 5. Verify and seed categories table
+        try:
+            cat_res = supabase.table("categories").select("id").execute()
+            cat_ids = [row["id"] for row in cat_res.data] if cat_res and cat_res.data else []
+            if len(cat_ids) == 0:
+                print("🌱 Categories table is empty. Seeding default categories...")
+                for i, c in enumerate(local_categories):
+                    supabase.table("categories").insert({"id": c["id"], "data": c, "position": i}).execute()
+        except Exception as cat_err:
+            print(f"❌ Categories table check failed in Python: {cat_err}")
+
+        # 6. Verify and seed banners table
+        try:
+            banner_res = supabase.table("banners").select("id").execute()
+            banner_ids = [row["id"] for row in banner_res.data] if banner_res and banner_res.data else []
+            if len(banner_ids) == 0:
+                print("🌱 Banners table is empty. Seeding default banners...")
+                for b in local_banners:
+                    supabase.table("banners").insert({"id": b["id"], "data": b}).execute()
+        except Exception as banner_err:
+            print(f"❌ Banners table check failed in Python: {banner_err}")
+
+        print("✨ Supabase database synchronized perfectly in Python backend.")
+        use_supabase = True
+    except Exception as e:
+        print(f"❌ Error testing or seeding Supabase in Python: {e}")
+        use_supabase = False
+
+# Run seeding tests
+test_and_seed_supabase()
+
 # -------------------------------------------------------------
 # DYNAMIC RATE LIMITER (Protects against DDoS / Burp scraping)
 # -------------------------------------------------------------
@@ -308,7 +557,7 @@ async def get_products():
     if use_supabase and supabase:
         try:
             res = supabase.table("products").select("*").execute()
-            if res.data is not None:
+            if res.data is not None and len(res.data) > 0:
                 return [row["data"] for row in res.data]
         except Exception as e:
             print(f"Supabase products read warning: {e}")
@@ -371,7 +620,7 @@ async def get_coupons():
     if use_supabase and supabase:
         try:
             res = supabase.table("coupons").select("*").execute()
-            if res.data is not None:
+            if res.data is not None and len(res.data) > 0:
                 return [row["data"] for row in res.data]
         except Exception as e:
             print(f"Supabase coupons warning: {e}")
@@ -415,7 +664,7 @@ async def get_categories():
     if use_supabase and supabase:
         try:
             res = supabase.table("categories").select("*").order("position").execute()
-            if res.data is not None:
+            if res.data is not None and len(res.data) > 0:
                 return [row["data"] for row in res.data]
         except Exception as e:
             print(f"Supabase categories warning: {e}")
@@ -658,6 +907,442 @@ async def delete_order(order_id: str, x_admin_secret: Optional[str] = Header(Non
     global local_orders
     local_orders = [o for o in local_orders if o["id"] != order_id]
     return {"success": True, "message": "Order deleted"}
+
+
+# --- VENDORS & CUSTOMER AUTH / SESSIONS ---
+
+@app.post("/api/auth/vendor-login")
+async def vendor_login(payload: LoginInput):
+    phone = payload.phone
+    if not phone:
+        raise HTTPException(status_code=400, detail="Mobile phone number is required.")
+    clean_phone = phone.strip().replace(" ", "")
+    
+    vendors_list = []
+    if use_supabase and supabase:
+        try:
+            res = supabase.table("vendors").select("*").execute()
+            if res.data:
+                vendors_list = [row["data"] for row in res.data]
+        except Exception:
+            pass
+    if not vendors_list:
+        vendors_list = local_vendors
+        
+    vendor = None
+    for v in vendors_list:
+        cleaned_db_phone = "".join(filter(str.isdigit, v.get("phone", "")))
+        cleaned_input_phone = "".join(filter(str.isdigit, clean_phone))
+        if cleaned_db_phone == cleaned_input_phone or (len(cleaned_db_phone) >= 10 and len(cleaned_input_phone) >= 10 and cleaned_db_phone[-10:] == cleaned_input_phone[-10:]):
+            vendor = v
+            break
+            
+    if not vendor:
+        raise HTTPException(status_code=404, detail="No registered vendor found with this mobile number.")
+        
+    if vendor.get("status") == "suspended":
+        raise HTTPException(status_code=403, detail="Your seller account has been suspended. Login blocked.")
+        
+    token = sign_token({"vendorId": vendor["id"], "role": "vendor", "phone": vendor["phone"]})
+    return {"success": True, "token": token, "vendor": vendor}
+
+@app.post("/api/auth/login")
+async def auth_login_alias(payload: LoginInput):
+    return await vendor_login(payload)
+
+@app.post("/api/auth/vendor-register")
+async def vendor_register(payload: VendorInput):
+    if not payload.name or not payload.email or not payload.phone:
+        raise HTTPException(status_code=400, detail="Business name, email, and mobile phone are required.")
+        
+    clean_phone = payload.phone.strip().replace(" ", "")
+    
+    vendors_list = []
+    if use_supabase and supabase:
+        try:
+            res = supabase.table("vendors").select("*").execute()
+            if res.data:
+                vendors_list = [row["data"] for row in res.data]
+        except Exception:
+            pass
+    if not vendors_list:
+        vendors_list = local_vendors
+        
+    existing_vendor = None
+    for v in vendors_list:
+        cleaned_db_phone = "".join(filter(str.isdigit, v.get("phone", "")))
+        cleaned_input_phone = "".join(filter(str.isdigit, clean_phone))
+        if cleaned_db_phone == cleaned_input_phone:
+            existing_vendor = v
+            break
+            
+    if existing_vendor:
+        raise HTTPException(status_code=400, detail="A supplier is already registered with this mobile number.")
+        
+    vendor_id = f"vendor-{int(time.time() * 1000)}"
+    new_vendor = {
+        "id": vendor_id,
+        "name": payload.name.strip(),
+        "email": payload.email.strip(),
+        "phone": clean_phone,
+        "vendorType": "small",
+        "businessCategory": payload.businessCategory or "Apparel & Sarees",
+        "gstin": payload.gstin.strip() if payload.gstin else "",
+        "city": payload.city.strip() if payload.city else "",
+        "state": payload.state.strip() if payload.state else "",
+        "description": payload.description.strip() if payload.description else "",
+        "rating": 5.0,
+        "status": "active",
+        "createdAt": datetime.now().isoformat()
+    }
+    
+    local_vendors.append(new_vendor)
+    if use_supabase and supabase:
+        try:
+            supabase.table("vendors").insert({"id": vendor_id, "data": new_vendor}).execute()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Database failed to save vendor: {e}")
+            
+    token = sign_token({"vendorId": vendor_id, "role": "vendor", "phone": clean_phone})
+    return {"success": True, "token": token, "vendor": new_vendor}
+
+@app.post("/api/auth/user-login")
+async def user_login(payload: LoginInput):
+    phone = payload.phone
+    if not phone:
+        raise HTTPException(status_code=400, detail="Mobile phone number is required.")
+    clean_phone = phone.strip().replace(" ", "")
+    
+    users_list = []
+    if use_supabase and supabase:
+        try:
+            res = supabase.table("users").select("*").execute()
+            if res.data:
+                users_list = [row["data"] for row in res.data]
+        except Exception:
+            pass
+    if not users_list:
+        users_list = local_users
+        
+    user = None
+    for u in users_list:
+        cleaned_db_phone = "".join(filter(str.isdigit, u.get("phone", "")))
+        cleaned_input_phone = "".join(filter(str.isdigit, clean_phone))
+        if cleaned_db_phone == cleaned_input_phone or (len(cleaned_db_phone) >= 10 and len(cleaned_input_phone) >= 10 and cleaned_db_phone[-10:] == cleaned_input_phone[-10:]):
+            user = u
+            break
+            
+    if not user:
+        raise HTTPException(status_code=404, detail="No customer account found with this mobile number.")
+        
+    token = sign_token({"userId": user["id"], "role": "user", "phone": user["phone"]})
+    return {"success": True, "token": token, "user": user}
+
+@app.post("/api/auth/user-register")
+async def user_register(payload: UserInput):
+    if not payload.name or not payload.email or not payload.phone:
+        raise HTTPException(status_code=400, detail="Full name, email address, and mobile phone are required.")
+        
+    clean_phone = payload.phone.strip().replace(" ", "")
+    
+    users_list = []
+    if use_supabase and supabase:
+        try:
+            res = supabase.table("users").select("*").execute()
+            if res.data:
+                users_list = [row["data"] for row in res.data]
+        except Exception:
+            pass
+    if not users_list:
+        users_list = local_users
+        
+    existing_user = None
+    for u in users_list:
+        cleaned_db_phone = "".join(filter(str.isdigit, u.get("phone", "")))
+        cleaned_input_phone = "".join(filter(str.isdigit, clean_phone))
+        if cleaned_db_phone == cleaned_input_phone:
+            existing_user = u
+            break
+            
+    if existing_user:
+        raise HTTPException(status_code=400, detail="A customer account with this mobile number is already registered.")
+        
+    user_id = f"user-{int(time.time() * 1000)}"
+    new_user = {
+        "id": user_id,
+        "name": payload.name.strip(),
+        "email": payload.email.strip(),
+        "phone": clean_phone,
+        "address": payload.address.strip() if payload.address else "",
+        "createdAt": datetime.now().isoformat()
+    }
+    
+    local_users.append(new_user)
+    if use_supabase and supabase:
+        try:
+            supabase.table("users").insert({"id": user_id, "data": new_user}).execute()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Database failed to save user: {e}")
+            
+    token = sign_token({"userId": user_id, "role": "user", "phone": clean_phone})
+    return {"success": True, "token": token, "user": new_user}
+
+@app.post("/api/auth/admin-login")
+async def admin_login(payload: AdminLoginInput):
+    if not payload.secret or payload.secret != ADMIN_SECRET:
+        raise HTTPException(status_code=401, detail="Invalid admin credentials.")
+    token = sign_token({"role": "admin"})
+    return {"success": True, "token": token}
+
+@app.get("/api/auth/session")
+async def auth_session(authorization: Optional[str] = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="No active session token.")
+        
+    token = authorization.split(" ")[1]
+    decoded = verify_token(token)
+    if not decoded:
+        raise HTTPException(status_code=401, detail="Invalid or expired session token.")
+        
+    role = decoded.get("role")
+    if role == "admin":
+        return {"role": "admin"}
+    elif role == "vendor":
+        vendor_id = decoded.get("vendorId")
+        if use_supabase and supabase:
+            try:
+                res = supabase.table("vendors").select("*").eq("id", vendor_id).single().execute()
+                if res.data:
+                    return {"role": "vendor", "vendor": res.data["data"]}
+            except Exception:
+                pass
+        vendor = next((v for v in local_vendors if v["id"] == vendor_id), None)
+        if not vendor:
+            raise HTTPException(status_code=404, detail="Vendor profile not found.")
+        return {"role": "vendor", "vendor": vendor}
+    elif role == "user":
+        user_id = decoded.get("userId")
+        if use_supabase and supabase:
+            try:
+                res = supabase.table("users").select("*").eq("id", user_id).single().execute()
+                if res.data:
+                    return {"role": "user", "user": res.data["data"]}
+            except Exception:
+                pass
+        user = next((u for u in local_users if u["id"] == user_id), None)
+        if not user:
+            raise HTTPException(status_code=404, detail="Customer profile not found.")
+        return {"role": "user", "user": user}
+        
+    raise HTTPException(status_code=401, detail="Unknown session role.")
+
+
+# --- VENDORS MANAGEMENT ---
+
+@app.get("/api/vendors")
+async def get_vendors():
+    if use_supabase and supabase:
+        try:
+            res = supabase.table("vendors").select("*").execute()
+            if res.data:
+                return [row["data"] for row in res.data]
+        except Exception as e:
+            print(f"Supabase vendors read warning: {e}")
+    return local_vendors
+
+@app.post("/api/vendors", status_code=201)
+async def create_vendor(vendor: VendorInput):
+    vendor_dict = vendor.dict()
+    vendor_id = vendor.id or f"vendor-{int(time.time() * 1000)}"
+    vendor_dict["id"] = vendor_id
+    vendor_dict["vendorType"] = "small"
+    vendor_dict["rating"] = 5.0
+    vendor_dict["status"] = "active"
+    vendor_dict["createdAt"] = datetime.now().isoformat()
+    
+    if use_supabase and supabase:
+        try:
+            supabase.table("vendors").insert({"id": vendor_id, "data": vendor_dict}).execute()
+            local_vendors.append(vendor_dict)
+            return vendor_dict
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+            
+    local_vendors.append(vendor_dict)
+    return vendor_dict
+
+@app.put("/api/vendors/{id}")
+async def update_vendor(id: str, vendor: VendorInput):
+    vendor_dict = vendor.dict()
+    vendor_dict["id"] = id
+    
+    if use_supabase and supabase:
+        try:
+            supabase.table("vendors").update({"data": vendor_dict}).eq("id", id).execute()
+            global local_vendors
+            local_vendors = [vendor_dict if v["id"] == id else v for v in local_vendors]
+            return vendor_dict
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+            
+    local_vendors = [vendor_dict if v["id"] == id else v for v in local_vendors]
+    return vendor_dict
+
+
+# --- DIAGNOSTICS & SYSTEM STATUS ---
+
+@app.get("/api/system-status")
+async def get_system_status():
+    supabase_connected = False
+    table_checks = {
+        "products": False,
+        "orders": False,
+        "vendors": False,
+        "coupons": False
+    }
+    last_error = None
+    
+    if use_supabase and supabase:
+        try:
+            supabase.table("products").select("id").limit(1).execute()
+            table_checks["products"] = True
+            
+            supabase.table("orders").select("id").limit(1).execute()
+            table_checks["orders"] = True
+            
+            supabase.table("vendors").select("id").limit(1).execute()
+            table_checks["vendors"] = True
+            
+            supabase.table("coupons").select("code").limit(1).execute()
+            table_checks["coupons"] = True
+            
+            supabase_connected = True
+        except Exception as e:
+            last_error = str(e)
+            
+    return {
+        "useSupabase": use_supabase,
+        "supabaseConnected": supabase_connected,
+        "supabaseInitialized": supabase is not None,
+        "tableChecks": table_checks,
+        "lastError": last_error,
+        "localCounts": {
+            "products": len(local_products),
+            "orders": len(local_orders),
+            "vendors": len(local_vendors),
+            "coupons": len(local_coupons),
+            "banners": len(local_banners)
+        }
+    }
+
+
+# --- BANNERS ENDPOINTS ---
+
+@app.get("/api/banners")
+async def get_banners():
+    if use_supabase and supabase:
+        try:
+            res = supabase.table("banners").select("*").execute()
+            if res.data:
+                return [row["data"] for row in res.data]
+        except Exception as e:
+            print(f"Supabase banners read warning: {e}")
+    return local_banners
+
+@app.post("/api/banners", status_code=201)
+async def create_banner(banner: BannerInput, x_admin_secret: Optional[str] = Header(None)):
+    verify_admin_header(x_admin_secret)
+    banner_dict = banner.dict()
+    banner_id = banner.id
+    
+    if use_supabase and supabase:
+        try:
+            supabase.table("banners").insert({"id": banner_id, "data": banner_dict}).execute()
+            local_banners.append(banner_dict)
+            return banner_dict
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+            
+    local_banners.append(banner_dict)
+    return banner_dict
+
+@app.delete("/api/banners/{id}")
+async def delete_banner(id: str, x_admin_secret: Optional[str] = Header(None)):
+    verify_admin_header(x_admin_secret)
+    global local_banners
+    
+    if use_supabase and supabase:
+        try:
+            supabase.table("banners").delete().eq("id", id).execute()
+            local_banners = [b for b in local_banners if b["id"] != id]
+            return {"success": True, "message": "Banner deleted successfully"}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+            
+    local_banners = [b for b in local_banners if b["id"] != id]
+    return {"success": True, "message": "Banner deleted"}
+
+
+# --- MANUAL ADMIN DB SYNC ---
+
+@app.post("/api/admin/sync-demo-products")
+async def sync_demo_products(x_admin_secret: Optional[str] = Header(None)):
+    verify_admin_header(x_admin_secret)
+    global use_supabase, supabase
+    
+    if not supabase:
+        raise HTTPException(status_code=400, detail="Supabase client is not initialized. Check your environment setup.")
+        
+    try:
+        supabase.table("products").select("id").limit(1).execute()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"The 'products' table is inaccessible. Run your schema.sql setup first: {e}"
+        )
+        
+    products_synced = 0
+    for p in local_products:
+        try:
+            supabase.table("products").upsert({"id": p["id"], "data": p}).execute()
+            products_synced += 1
+        except Exception:
+            pass
+            
+    coupons_synced = 0
+    for c in local_coupons:
+        try:
+            supabase.table("coupons").upsert({"code": c["code"], "data": c}).execute()
+            coupons_synced += 1
+        except Exception:
+            pass
+            
+    orders_synced = 0
+    for o in local_orders:
+        try:
+            supabase.table("orders").upsert({"id": o["id"], "data": o}).execute()
+            orders_synced += 1
+        except Exception:
+            pass
+            
+    banners_synced = 0
+    for b in local_banners:
+        try:
+            supabase.table("banners").upsert({"id": b["id"], "data": b}).execute()
+            banners_synced += 1
+        except Exception:
+            pass
+            
+    use_supabase = True
+    return {
+        "success": True,
+        "message": "Demo catalog & logs successfully synced and written to live Supabase database!",
+        "productsSynced": products_synced,
+        "couponsSynced": coupons_synced,
+        "ordersSynced": orders_synced,
+        "bannersSynced": banners_synced,
+        "useSupabase": use_supabase
+    }
 
 # --- SERVER RUNNER ---
 if __name__ == "__main__":

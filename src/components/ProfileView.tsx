@@ -16,6 +16,7 @@ import {
   Star, 
   ShieldAlert, 
   LogOut,
+  LogIn,
   Camera,
   Check,
   Copy,
@@ -50,6 +51,8 @@ interface ProfileViewProps {
   ordersCount: number;
   activeSubPage?: string | null;
   setActiveSubPage?: (subPage: string | null) => void;
+  currentUser?: any;
+  onLogout?: () => void;
 }
 
 export default function ProfileView({
@@ -60,7 +63,9 @@ export default function ProfileView({
   wishlistCount,
   ordersCount,
   activeSubPage: propsActiveSubPage,
-  setActiveSubPage: propsSetActiveSubPage
+  setActiveSubPage: propsSetActiveSubPage,
+  currentUser = null,
+  onLogout
 }: ProfileViewProps) {
 
   const triggerToast = (message: string) => {
@@ -76,12 +81,39 @@ export default function ProfileView({
   const [showLogoutModal, setShowLogoutModal] = React.useState(false);
 
   // 2. Avatar & Edit Profile custom states
-  const [profileName, setProfileName] = React.useState("Gaurav Beniwal");
-  const [profileEmail, setProfileEmail] = React.useState("gauravbeniwal30003@gmail.com");
-  const [profilePhone, setProfilePhone] = React.useState("9876543210");
+  const [profileName, setProfileName] = React.useState(() => currentUser?.name || "Guest User");
+  const [profileEmail, setProfileEmail] = React.useState(() => currentUser?.email || (currentUser?.phone ? `+91 ${currentUser.phone}` : "Not logged in"));
+  const [profilePhone, setProfilePhone] = React.useState(() => currentUser?.phone || "");
   const [profileGender, setProfileGender] = React.useState("Male");
   const [profileCity, setProfileCity] = React.useState("Jaipur");
   const [profilePin, setProfilePin] = React.useState("302001");
+
+  // Keep state updated when currentUser prop changes
+  React.useEffect(() => {
+    if (currentUser) {
+      setProfileName(currentUser.name || "Valued Customer");
+      setProfileEmail(currentUser.email || (currentUser.phone ? `+91 ${currentUser.phone}` : "customer@quekart.com"));
+      setProfilePhone(currentUser.phone || "");
+    } else {
+      setProfileName("Guest User");
+      setProfileEmail("Not logged in");
+      setProfilePhone("");
+    }
+  }, [currentUser]);
+
+  // Scroll to top instantly when subpage changes inside profile
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [activeSubPage]);
+
+  const guardAuthAction = (actionCallback: () => void, featureName: string) => {
+    if (!currentUser) {
+      triggerToast(`Sign in required to view ${featureName}`);
+      onSelectTab('user');
+      return;
+    }
+    actionCallback();
+  };
   
   // Custom interactive avatar colors
   const [avatarSkin, setAvatarSkin] = React.useState("#fbc3a1");
@@ -340,34 +372,55 @@ export default function ProfileView({
             </div>
           </header>
 
-          {/* User Info Section */}
-          <div className={`px-4 py-4 flex items-center justify-between border-b ${simulatedTwilightTheme ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'}`} id="profile-user-section">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                {renderAvatarSvg("w-16 h-16")}
-                <button 
-                  onClick={() => setActiveSubPage('edit-profile')}
-                  className="absolute bottom-0 right-0 bg-white border border-gray-200/80 p-1 rounded-full shadow-md hover:scale-105 active:scale-95 transition-transform"
-                  id="avatar-camera-btn"
-                >
-                  <Camera className="w-3.5 h-3.5 text-gray-500 stroke-[2]" />
-                </button>
+          {/* User Info Section / Guest Banner */}
+          {!currentUser ? (
+            <div className="px-4 py-5 border-b bg-gradient-to-r from-blue-50/80 via-indigo-50/50 to-white flex items-center justify-between gap-3 shadow-3xs" id="profile-guest-card">
+              <div className="flex items-center gap-3.5">
+                <div className="w-13 h-13 rounded-2xl bg-white border border-slate-200 shadow-2xs flex items-center justify-center text-slate-400">
+                  <User className="w-6 h-6 stroke-[1.8]" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-black text-slate-900 leading-tight">Welcome to QueKart</h2>
+                  <p className="text-[11px] text-slate-500 font-semibold mt-0.5">Sign in to view orders, wallet & profile</p>
+                </div>
               </div>
-
-              <div>
-                <h2 className="text-[17px] font-extrabold leading-tight tracking-tight" id="profile-user-name">{profileName}</h2>
-                <p className="text-xs text-gray-400 font-semibold mt-0.5" id="profile-user-email">{profileEmail}</p>
-              </div>
+              <button
+                onClick={() => onSelectTab('user')}
+                className="bg-[#143C6B] hover:bg-[#0C2340] active:scale-95 text-white text-xs font-black px-4 py-2.5 rounded-xl shadow-xs transition-all cursor-pointer flex-shrink-0"
+                id="profile-signin-btn"
+              >
+                Sign In
+              </button>
             </div>
+          ) : (
+            <div className={`px-4 py-4 flex items-center justify-between border-b ${simulatedTwilightTheme ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'}`} id="profile-user-section">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  {renderAvatarSvg("w-16 h-16")}
+                  <button 
+                    onClick={() => setActiveSubPage('edit-profile')}
+                    className="absolute bottom-0 right-0 bg-white border border-gray-200/80 p-1 rounded-full shadow-md hover:scale-105 active:scale-95 transition-transform"
+                    id="avatar-camera-btn"
+                  >
+                    <Camera className="w-3.5 h-3.5 text-gray-500 stroke-[2]" />
+                  </button>
+                </div>
 
-            <button 
-              onClick={() => setActiveSubPage('edit-profile')} 
-              className="text-gray-400 hover:text-gray-600 transition-transform active:translate-x-0.5"
-              id="profile-edit-chevron"
-            >
-              <ChevronRight className="w-6 h-6 stroke-[1.8]" />
-            </button>
-          </div>
+                <div>
+                  <h2 className="text-[17px] font-extrabold leading-tight tracking-tight" id="profile-user-name">{profileName}</h2>
+                  <p className="text-xs text-gray-400 font-semibold mt-0.5" id="profile-user-email">{profileEmail}</p>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setActiveSubPage('edit-profile')} 
+                className="text-gray-400 hover:text-gray-600 transition-transform active:translate-x-0.5"
+                id="profile-edit-chevron"
+              >
+                <ChevronRight className="w-6 h-6 stroke-[1.8]" />
+              </button>
+            </div>
+          )}
 
           {/* Dual Quick Action Cards */}
           <div className={`grid grid-cols-2 gap-3.5 px-4 py-4 border-b ${simulatedTwilightTheme ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'}`} id="profile-dual-cards">
@@ -386,7 +439,7 @@ export default function ProfileView({
 
             {/* Refer & Earn Card */}
             <div 
-              onClick={() => setActiveSubPage('refer-earn')}
+              onClick={() => guardAuthAction(() => setActiveSubPage('refer-earn'), 'Refer & Earn rewards')}
               className={`border rounded-xl p-4 flex flex-col items-center text-center cursor-pointer transition-all hover:scale-[1.02] shadow-2xs ${simulatedTwilightTheme ? 'border-slate-700 bg-slate-900/50 hover:bg-slate-700' : 'border-gray-200/80 hover:bg-gray-50'}`}
               id="profile-refer-card"
             >
@@ -398,50 +451,7 @@ export default function ProfileView({
             </div>
           </div>
 
-          {/* My Payments Section */}
-          <div className={`mt-2.5 border-y ${simulatedTwilightTheme ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'}`} id="profile-payments-section">
-            <h3 className="px-4 pt-3 pb-1 text-[13px] font-extrabold tracking-tight text-gray-400 uppercase">My Payments</h3>
-            <div className="divide-y divide-gray-100/10">
-              {/* Bank & UPI Details */}
-              <div 
-                onClick={() => setActiveSubPage('bank-upi')}
-                className="px-4 py-3.5 flex items-center justify-between cursor-pointer hover:bg-opacity-5 transition-colors"
-                id="row-bank-upi"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-9 h-9 rounded-full bg-blue-50/60 flex items-center justify-center text-blue-500 shadow-3xs">
-                    <Smartphone className="w-5 h-5 stroke-[2]" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold">Bank & UPI Details</span>
-                    <p className="text-[10px] text-gray-400 mt-0.5 font-medium">To receive refunds & cashbacks</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="bg-emerald-50 text-emerald-600 font-extrabold text-[9px] px-2 py-0.5 rounded-full border border-emerald-100">Linked</span>
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
-                </div>
-              </div>
 
-              {/* Payment & Refund Status */}
-              <div 
-                onClick={() => setActiveSubPage('payment-refund')}
-                className="px-4 py-3.5 flex items-center justify-between cursor-pointer hover:bg-opacity-5 transition-colors"
-                id="row-payments-refunds"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-9 h-9 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500 shadow-3xs">
-                    <CreditCard className="w-5 h-5 stroke-[2]" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold">Payment & Refund</span>
-                    <p className="text-[10px] text-gray-400 mt-0.5 font-medium">Track transactions & returns</p>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
-              </div>
-            </div>
-          </div>
 
           {/* My Activity Section */}
           <div className={`mt-2.5 border-y ${simulatedTwilightTheme ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'}`} id="profile-activity-section">
@@ -488,44 +498,7 @@ export default function ProfileView({
                 </div>
               </div>
 
-              {/* Shared Products */}
-              <div 
-                onClick={() => setActiveSubPage('shared-products')}
-                className="px-4 py-3.5 flex items-center justify-between cursor-pointer hover:bg-opacity-5 transition-colors"
-                id="row-shared"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-lucky-magenta shadow-3xs">
-                    <Share2 className="w-5 h-5 stroke-[2]" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold">Shared Products</span>
-                    <p className="text-[10px] text-gray-400 mt-0.5 font-medium">Catalog items you shared with friends</p>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
-              </div>
 
-              {/* Followed Shops */}
-              <div 
-                onClick={() => setActiveSubPage('followed-shops')}
-                className="px-4 py-3.5 flex items-center justify-between cursor-pointer hover:bg-opacity-5 transition-colors"
-                id="row-followed"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center text-amber-500 shadow-3xs">
-                    <Store className="w-5 h-5 stroke-[2]" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold">Followed Shops</span>
-                    <p className="text-[10px] text-gray-400 mt-0.5 font-medium">View updates from preferred merchants</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="bg-blue-50 text-blue-600 text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-tight">Active</span>
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
-                </div>
-              </div>
             </div>
           </div>
 
@@ -535,7 +508,7 @@ export default function ProfileView({
             <div className="divide-y divide-gray-100/10">
               {/* Quekart Balance */}
               <div 
-                onClick={() => setActiveSubPage('quekart-balance')}
+                onClick={() => guardAuthAction(() => setActiveSubPage('quekart-balance'), 'wallet balance & rewards')}
                 className="px-4 py-3.5 flex items-center justify-between cursor-pointer hover:bg-opacity-5 transition-colors"
                 id="row-quekart-balance"
               >
@@ -551,60 +524,13 @@ export default function ProfileView({
                 <div className="flex items-center gap-2">
                   <span className="bg-[#e6fffa] text-[#00a389] border border-[#b2f5ea] text-xs font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1">
                     <Coins className="w-3 h-3" />
-                    ₹{quekartBalance}
+                    <span>{currentUser ? `₹${quekartBalance}` : '₹0'}</span>
                   </span>
                   <ChevronRight className="w-4 h-4 text-gray-400" />
                 </div>
               </div>
 
-              {/* Become a Supplier */}
-              <div 
-                onClick={() => onSelectTab('vendor')}
-                className="px-4 py-3.5 flex items-center justify-between cursor-pointer hover:bg-opacity-5 transition-colors"
-                id="row-supplier"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-9 h-9 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 shadow-3xs">
-                    <Briefcase className="w-5 h-5 stroke-[2]" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold">Become a Supplier</span>
-                    <p className="text-[10px] text-gray-400 mt-0.5 font-medium">Sell items at 0% commission fee</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {isSupplierVerified ? (
-                    <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-extrabold px-2 py-0.5 rounded-full">Active ✅</span>
-                  ) : (
-                    <span className="bg-orange-50 text-orange-600 border border-orange-100 text-[10px] font-extrabold px-2 py-0.5 rounded-full">Incomplete</span>
-                  )}
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
-                </div>
-              </div>
 
-              {/* Admin Control Panel */}
-              <div 
-                onClick={() => onSelectTab('admin')}
-                className="px-4 py-3.5 flex items-center justify-between cursor-pointer hover:bg-red-50/10 transition-colors bg-red-50/30 border-y border-red-100/50"
-                id="row-admin-suite"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center text-red-600 shadow-3xs">
-                    <Lock className="w-5 h-5 stroke-[2]" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-black text-slate-900">Admin Control Panel</span>
-                      <span className="text-[9px] bg-red-600 text-white font-extrabold px-1.5 py-0.2 rounded-sm tracking-widest uppercase">Max Access</span>
-                    </div>
-                    <p className="text-[10px] text-gray-400 mt-0.5 font-medium">Manage products, orders, coupons & charts</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="bg-emerald-50 text-emerald-600 text-[9px] font-extrabold px-2 py-0.5 rounded-full">Authorized</span>
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
-                </div>
-              </div>
 
               {/* Settings */}
               <div 
@@ -660,23 +586,42 @@ export default function ProfileView({
                 <ChevronRight className="w-4 h-4 text-gray-400" />
               </div>
 
-              {/* Logout */}
-              <div 
-                onClick={() => setShowLogoutModal(true)}
-                className="px-4 py-3.5 flex items-center justify-between cursor-pointer hover:bg-opacity-5 transition-colors"
-                id="row-logout"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center text-red-500 shadow-3xs">
-                    <LogOut className="w-5 h-5 stroke-[2]" />
+              {/* Logout / Login row */}
+              {currentUser ? (
+                <div 
+                  onClick={() => setShowLogoutModal(true)}
+                  className="px-4 py-3.5 flex items-center justify-between cursor-pointer hover:bg-opacity-5 transition-colors"
+                  id="row-logout"
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center text-red-500 shadow-3xs">
+                      <LogOut className="w-5 h-5 stroke-[2]" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-red-600">Logout</span>
+                      <p className="text-[10px] text-gray-400 mt-0.5 font-medium">Log out of this device safely</p>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-xs font-bold">Logout</span>
-                    <p className="text-[10px] text-gray-400 mt-0.5 font-medium">Log out of this device safely</p>
-                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
                 </div>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
-              </div>
+              ) : (
+                <div 
+                  onClick={() => onSelectTab('user')}
+                  className="px-4 py-3.5 flex items-center justify-between cursor-pointer hover:bg-blue-50/40 transition-colors bg-blue-50/20"
+                  id="row-login-guest"
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-9 h-9 rounded-full bg-[#143C6B]/10 flex items-center justify-center text-[#143C6B] shadow-3xs">
+                      <LogIn className="w-5 h-5 stroke-[2]" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-black text-[#143C6B]">Sign In / Register</span>
+                      <p className="text-[10px] text-gray-500 mt-0.5 font-medium">Log in to track orders, save items & get ₹150 off</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-[#143C6B]" />
+                </div>
+              )}
             </div>
           </div>
 
@@ -2245,7 +2190,13 @@ export default function ProfileView({
               <button 
                 onClick={() => {
                   setShowLogoutModal(false);
-                  onBack();
+                  if (onLogout) {
+                    onLogout();
+                  } else {
+                    localStorage.removeItem('quekart_current_user');
+                    localStorage.removeItem('quekart_user_token');
+                    onSelectTab('user');
+                  }
                   triggerToast("Logged out successfully! Resetting session.");
                 }}
                 className="bg-lucky-magenta text-white hover:bg-opacity-95 text-xs font-black py-2.5 rounded-lg shadow-md cursor-pointer transition-all active:scale-95"

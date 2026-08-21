@@ -66,7 +66,13 @@ export interface Vendor {
   name: string;
   email: string;
   phone: string;
+  age?: number;
+  aadhaarNumber?: string;
+  aadhaarVerified?: boolean;
+  gstinVerified?: boolean;
+  legalBusinessName?: string;
   vendorType: 'small' | 'big';
+  isVerified?: boolean;
   businessCategory: string;
   gstin?: string;
   rating: number;
@@ -76,6 +82,15 @@ export interface Vendor {
   city?: string;
   avatar?: string;
   description?: string;
+}
+
+export interface AppUser {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address?: string;
+  createdAt: string;
 }
 
 export interface CartItem {

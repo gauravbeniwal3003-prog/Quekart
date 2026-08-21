@@ -63,6 +63,8 @@ interface AdminDashboardProps {
   onClose: () => void;
   activeSubPage?: string | null;
   setActiveSubPage?: (page: string) => void;
+  navigateTo?: (path: string) => void;
+  currentPath?: string;
 }
 
 export default function AdminDashboard({
@@ -83,7 +85,9 @@ export default function AdminDashboard({
   onDeleteBanner,
   onClose,
   activeSubPage,
-  setActiveSubPage
+  setActiveSubPage,
+  navigateTo = (p) => window.history.pushState(null, '', p),
+  currentPath = window.location.pathname + window.location.search
 }: AdminDashboardProps) {
   // Admin Passcode State
   const [adminPasscode, setAdminPasscode] = useState(() => localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123');
@@ -297,8 +301,9 @@ export default function AdminDashboard({
   };
 
   const handleToggleVendorTier = async (vendor: Vendor) => {
-    const nextType = vendor.vendorType === 'big' ? 'small' : 'big';
-    const updatedVendor: Vendor = { ...vendor, vendorType: nextType };
+    const isNowVerified = !(vendor.isVerified ?? (vendor.vendorType === 'big'));
+    const nextType = isNowVerified ? 'big' : 'small';
+    const updatedVendor: Vendor = { ...vendor, vendorType: nextType, isVerified: isNowVerified };
     try {
       const res = await fetch(`/api/vendors/${vendor.id}`, {
         method: 'PUT',
@@ -2579,7 +2584,7 @@ export default function AdminDashboard({
         {/* Sidebar Header */}
         <div className="p-4 border-b border-slate-100 flex items-center justify-between h-[73px]">
           {!isCollapsed ? (
-            <div className="flex items-center gap-2 cursor-pointer select-none" onClick={onClose}>
+            <div className="flex items-center gap-2 cursor-pointer select-none" onClick={() => handleMenuClick('overview')}>
               <Logo className="h-8 w-8 flex-shrink-0" animated={true} />
               <span className="font-display font-semibold text-lg tracking-normal flex items-center">
                 <span className="text-[#143C6B] font-black">Que</span>
@@ -2588,7 +2593,7 @@ export default function AdminDashboard({
               </span>
             </div>
           ) : (
-            <div className="mx-auto cursor-pointer" onClick={onClose} title="Back to Store">
+            <div className="mx-auto cursor-pointer" onClick={() => handleMenuClick('overview')} title="Admin Overview">
               <Logo className="h-8 w-8" animated={false} />
             </div>
           )}
@@ -2673,11 +2678,11 @@ export default function AdminDashboard({
                 </div>
               </div>
               <button
-                onClick={onClose}
+                onClick={() => handleMenuClick('overview')}
                 className="w-full flex items-center justify-center gap-2 py-2 px-4 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-bold rounded-xl transition-all cursor-pointer shadow-3xs"
               >
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span>Back to Store</span>
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                <span>Dashboard Overview</span>
               </button>
             </div>
           ) : (
@@ -2689,11 +2694,11 @@ export default function AdminDashboard({
                 title="Musharof - Master Admin"
               />
               <button
-                onClick={onClose}
+                onClick={() => handleMenuClick('overview')}
                 className="p-2 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-800 rounded-xl transition-all cursor-pointer shadow-3xs"
-                title="Back to Store"
+                title="Dashboard Overview"
               >
-                <ExternalLink className="w-3.5 h-3.5" />
+                <LayoutDashboard className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
@@ -2762,7 +2767,7 @@ export default function AdminDashboard({
             </button>
 
             {/* Logo on Mobile Only */}
-            <div className="flex items-center gap-1.5 cursor-pointer lg:hidden" onClick={onClose}>
+            <div className="flex items-center gap-1.5 cursor-pointer lg:hidden" onClick={() => handleMenuClick('overview')}>
               <Logo className="h-8 w-8 flex-shrink-0" animated={true} />
               <span className="font-display font-semibold text-base sm:text-lg tracking-normal flex items-center">
                 <span className="text-[#143C6B]">Que</span>
@@ -2841,10 +2846,10 @@ export default function AdminDashboard({
                   </button>
                   <hr className="border-slate-100 my-1" />
                   <button 
-                    onClick={onClose}
-                    className="w-full text-left px-3 py-2 hover:bg-red-50 text-red-600 rounded-lg cursor-pointer"
+                    onClick={() => { setIsDropdownOpen(false); handleMenuClick('overview'); }}
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 text-slate-700 font-bold rounded-lg cursor-pointer"
                   >
-                    Back to Store
+                    Dashboard Overview
                   </button>
                 </div>
               )}

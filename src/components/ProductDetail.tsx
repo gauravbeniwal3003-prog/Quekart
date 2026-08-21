@@ -12,6 +12,8 @@ interface ProductDetailProps {
   onDirectBuy: (product: Product, size: string, variantIndex: number) => void;
   wishlist: string[];
   onToggleWishlist: (productId: string) => void;
+  currentUser?: any;
+  onRequireLogin?: (actionTitle?: string, actionDesc?: string) => void;
 }
 
 export default function ProductDetail({
@@ -22,7 +24,9 @@ export default function ProductDetail({
   onAddToCart,
   onDirectBuy,
   wishlist,
-  onToggleWishlist
+  onToggleWishlist,
+  currentUser,
+  onRequireLogin
 }: ProductDetailProps) {
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState(product.sizeOptions[0] || 'Free Size');
@@ -87,12 +91,28 @@ export default function ProductDetail({
   };
 
   const handleAddToCartClick = () => {
+    if (!currentUser && onRequireLogin) {
+      onRequireLogin('Add to Cart', 'Sign in to add items to your shopping cart and enjoy member discounts.');
+      return;
+    }
     onAddToCart(product, selectedSize, selectedVariantIndex);
     triggerToast(`Added ${product.title.substring(0, 20)}... to Cart!`);
   };
 
   const handleBuyNowClick = () => {
+    if (!currentUser && onRequireLogin) {
+      onRequireLogin('Buy Now', 'Sign in with your mobile number to complete your checkout.');
+      return;
+    }
     onDirectBuy(product, selectedSize, selectedVariantIndex);
+  };
+
+  const handleWishlistToggle = () => {
+    if (!currentUser && onRequireLogin) {
+      onRequireLogin('Save to Wishlist', 'Sign in to save products to your personal wishlist.');
+      return;
+    }
+    onToggleWishlist(product.id);
   };
 
   const toggleHelpful = (reviewId: string) => {
@@ -129,7 +149,7 @@ export default function ProductDetail({
 
         <div className="flex items-center gap-4 text-gray-700">
           <button
-            onClick={() => onToggleWishlist(product.id)}
+            onClick={handleWishlistToggle}
             className="p-1 hover:bg-gray-100 rounded-full cursor-pointer"
             id="detail-wishlist-btn"
           >

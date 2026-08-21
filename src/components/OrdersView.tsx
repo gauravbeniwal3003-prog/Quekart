@@ -6,14 +6,52 @@ interface OrdersViewProps {
   orders: Order[];
   onSelectProduct: (productId: string) => void;
   onSelectTab: (tab: string) => void;
+  currentUser?: any;
 }
 
 export default function OrdersView({
   orders,
   onSelectProduct,
-  onSelectTab
+  onSelectTab,
+  currentUser
 }: OrdersViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
+
+  // If user is not logged in (guest mode), show clean Meesho-style Logged-Out Orders State
+  if (!currentUser) {
+    return (
+      <div className="bg-gray-50 min-h-[calc(100vh-130px)] pb-16 w-full" id="orders-logged-out-view">
+        <div className="max-w-md mx-auto px-6 py-16 flex flex-col items-center text-center">
+          <div className="w-20 h-20 rounded-3xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#143C6B] shadow-sm mb-4">
+            <Package className="w-10 h-10 stroke-[1.8]" />
+          </div>
+
+          <h2 className="text-lg font-black text-slate-900 tracking-tight">You are not logged in</h2>
+          <p className="text-xs text-slate-500 font-semibold mt-2 leading-relaxed max-w-xs">
+            Sign in with your mobile number to view past purchases, live shipment status, and request hassle-free returns.
+          </p>
+
+          <div className="w-full space-y-2.5 mt-6">
+            <button
+              onClick={() => onSelectTab('user')}
+              className="w-full py-3 bg-[#143C6B] hover:bg-[#0C2340] active:scale-[0.99] text-white text-xs font-black rounded-xl shadow-md transition-all cursor-pointer uppercase tracking-wider"
+              id="orders-login-btn"
+            >
+              Sign In / Log In
+            </button>
+
+            <button
+              onClick={() => onSelectTab('home')}
+              className="w-full py-2.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+              id="orders-browse-btn"
+            >
+              Continue Shopping as Guest
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Filter orders by title of the product inside
   const filteredOrders = orders.filter((order) =>
@@ -26,11 +64,6 @@ export default function OrdersView({
     <div className="bg-gray-50 min-h-[calc(100vh-130px)] pb-16 w-full" id="orders-view-container">
       {/* Sticky Header Section */}
       <div className="sticky top-[60px] md:top-[120px] z-[90] bg-gray-50 px-4 pt-3 pb-3 border-b border-gray-200/80 shadow-xs" id="orders-sticky-header">
-        {/* Title */}
-        <div className="mb-3 border-b border-gray-200/60 pb-2">
-          <h1 className="text-sm font-black text-gray-800 tracking-wider">MY ORDERS</h1>
-        </div>
-
         {/* Search orders & filters row */}
         <div className="flex items-center gap-3" id="orders-search-row">
           <div className="relative flex-1">

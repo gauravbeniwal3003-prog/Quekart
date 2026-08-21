@@ -12,6 +12,8 @@ interface HomeFeedProps {
   selectedCategory: string;
   onSelectCategory: (category: string) => void;
   searchQuery?: string;
+  currentUser?: any;
+  onRequireLogin?: (actionTitle?: string, actionDesc?: string) => void;
 }
 
 export default function HomeFeed({
@@ -23,7 +25,9 @@ export default function HomeFeed({
   onToggleWishlist,
   selectedCategory,
   onSelectCategory,
-  searchQuery = ''
+  searchQuery = '',
+  currentUser,
+  onRequireLogin
 }: HomeFeedProps) {
   // State for sorting & filtering
   const [sortBy, setSortBy] = useState<string>('popular');
@@ -477,7 +481,7 @@ export default function HomeFeed({
                           </h4>
                           
                           <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-                            <span className="text-xs font-black text-gray-950">₹{item.price}</span>
+                            <span className="text-xs font-black text-gray-950 premium-rupee">₹{item.price}</span>
                             <span className="text-[10px] text-gray-400 line-through">₹{item.originalPrice}</span>
                             <span className="text-[10px] text-green-600 font-bold bg-green-50 px-1 rounded-sm">{item.discountPercent}% OFF</span>
                           </div>
@@ -524,6 +528,10 @@ export default function HomeFeed({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (!currentUser && onRequireLogin) {
+                      onRequireLogin('Save to Wishlist', 'Sign in to add items to your personal wishlist and track prices.');
+                      return;
+                    }
                     onToggleWishlist(product.id);
                   }}
                   className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center shadow-xs cursor-pointer hover:scale-110 active:scale-95 transition-transform"

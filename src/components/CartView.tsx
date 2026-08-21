@@ -10,6 +10,8 @@ interface CartDrawerProps {
   onRemoveItem: (id: string) => void;
   onPlaceOrder: (order: Order, couponCode?: string, isUpi?: boolean) => void;
   coupons: Coupon[];
+  currentUser?: any;
+  onNavigate?: (path: string) => void;
 }
 
 export default function CartDrawer({
@@ -19,12 +21,14 @@ export default function CartDrawer({
   onUpdateQuantity,
   onRemoveItem,
   onPlaceOrder,
-  coupons
+  coupons,
+  currentUser,
+  onNavigate
 }: CartDrawerProps) {
   // Address form fields
-  const [name, setName] = useState('Gaurav Beniwal');
-  const [phone, setPhone] = useState('9876543210');
-  const [addressLine, setAddressLine] = useState('House 442, Sector 15');
+  const [name, setName] = useState(() => currentUser?.name || '');
+  const [phone, setPhone] = useState(() => currentUser?.phone || '');
+  const [addressLine, setAddressLine] = useState(() => currentUser?.address || '');
   const [city, setCity] = useState('Gurugram');
   const [pincode, setPincode] = useState('122001');
   const [state, setState] = useState('Haryana');
@@ -99,6 +103,13 @@ export default function CartDrawer({
   const handleNextStep = () => {
     if (checkoutStep === 'cart') {
       if (cart.length === 0) return;
+      if (!currentUser) {
+        alert('Authentication Required! Before placing any order, it is compulsory to sign up or sign in using your mobile number and OTP.');
+        if (onNavigate) {
+          onNavigate('/user');
+        }
+        return;
+      }
       setCheckoutStep('address');
     }
   };
@@ -593,7 +604,7 @@ export default function CartDrawer({
                     className="w-full bg-lucky-magenta hover:bg-opacity-95 text-white font-extrabold py-3.5 rounded-lg text-sm shadow-md transition-all flex items-center justify-center gap-1 cursor-pointer"
                     id="cart-continue-btn"
                   >
-                    <span>Proceed to Delivery</span>
+                    <span>{currentUser ? 'Proceed to Delivery' : 'Sign In via SMS OTP to Checkout'}</span>
                   </button>
                 ) : (
                   <button

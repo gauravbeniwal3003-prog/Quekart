@@ -133,6 +133,25 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- ----------------------------------------------------------------------
+-- 4.6. BANNERS TABLE
+-- ----------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS banners (
+    id TEXT PRIMARY KEY,
+    data JSONB NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE banners DISABLE ROW LEVEL SECURITY;
+
+-- Seed Default Banners
+INSERT INTO banners (id, data)
+VALUES
+('banner-promo-1', '{"id": "banner-promo-1", "imageUrl": "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&q=80&w=1200&h=400", "type": "promotional"}'),
+('banner-promo-2', '{"id": "banner-promo-2", "imageUrl": "https://images.unsplash.com/photo-1607083206968-13611e3d76ba?auto=format&fit=crop&q=80&w=1200&h=400", "type": "promotional"}'),
+('banner-news-1', '{"id": "banner-news-1", "imageUrl": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=1200&h=400", "type": "news"}')
+ON CONFLICT (id) DO NOTHING;
+
+-- ----------------------------------------------------------------------
 -- 5. CATEGORIES TABLE
 -- ----------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS categories (
