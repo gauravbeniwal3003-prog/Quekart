@@ -87,9 +87,9 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
       }
       // Fallback customer session
       const fallbackUser = {
-        id: 'user-gaurav',
+        id: `user-${demoPhone}`,
         name: demoName,
-        email: 'gauravbeniwal30003@gmail.com',
+        email: '',
         phone: demoPhone,
         address: 'Mansarovar, Jaipur, Rajasthan',
         createdAt: new Date().toISOString()
@@ -97,9 +97,9 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
       onLoginSuccess(fallbackUser, 'demo-customer-jwt-token');
     } catch (_) {
       const fallbackUser = {
-        id: 'user-gaurav',
+        id: `user-${demoPhone}`,
         name: demoName,
-        email: 'gauravbeniwal30003@gmail.com',
+        email: '',
         phone: demoPhone,
         address: 'Mansarovar, Jaipur, Rajasthan',
         createdAt: new Date().toISOString()
