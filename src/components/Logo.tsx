@@ -76,23 +76,23 @@ export function BrandLogo({
 }: BrandLogoProps) {
   const iconSizeClasses = {
     sm: 'h-7 w-7',
-    md: 'h-9 w-9 sm:h-10 sm:w-10 md:h-11 md:w-11 lg:h-12 lg:w-12',
-    lg: 'h-12 w-12 sm:h-14 sm:w-14',
-    xl: 'h-16 w-16 sm:h-20 sm:w-20'
+    md: 'h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10',
+    lg: 'h-10 w-10 sm:h-11 sm:w-11 md:h-12 md:w-12',
+    xl: 'h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20'
   }[size];
 
   const textSizeClasses = {
     sm: 'text-base sm:text-lg',
     md: 'text-lg sm:text-xl md:text-2xl',
-    lg: 'text-2xl sm:text-3xl',
-    xl: 'text-3xl sm:text-4xl'
+    lg: 'text-2xl sm:text-2.5xl md:text-3xl font-extrabold',
+    xl: 'text-3xl sm:text-4xl md:text-5xl font-black'
   }[size];
 
   return (
     <div
       id={id}
       onClick={onClick}
-      className={`flex ${layout === 'col' ? 'flex-col items-center justify-center gap-1.5' : 'flex-row items-center gap-1.5 sm:gap-2 justify-center md:justify-start'} ${onClick ? 'cursor-pointer select-none' : ''} ${className}`}
+      className={`flex ${layout === 'col' ? 'flex-col items-center justify-center gap-1.5' : 'flex-row items-center gap-2 sm:gap-2.5 justify-center'} ${onClick ? 'cursor-pointer select-none' : ''} ${className}`}
     >
       <Logo
         className={`${iconSizeClasses} flex-shrink-0 transition-transform duration-200 ${onClick ? 'hover:scale-105 active:scale-95' : ''}`}

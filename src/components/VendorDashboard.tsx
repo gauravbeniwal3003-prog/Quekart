@@ -43,7 +43,12 @@ import {
   RefreshCw,
   Info,
   Check,
-  Tag
+  Tag,
+  Truck,
+  RotateCcw,
+  BadgePercent,
+  Banknote,
+  Ban
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, Order, Vendor } from '../types';
@@ -252,10 +257,98 @@ export default function VendorDashboard({
   const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [photoError, setPhotoError] = useState('');
 
+  // Cash on Delivery (COD) Configuration
+  const [pCodAvailable, setPCodAvailable] = useState<boolean>(true);
+  const [pCodSurcharge, setPCodSurcharge] = useState<number>(39);
+
+  // Return & Replacement Policy Configuration
+  const [pReturnPolicyType, setPReturnPolicyType] = useState<'return' | 'replacement' | 'no_return'>('return');
+  const [pReturnDays, setPReturnDays] = useState<number>(7);
+  const [pReturnPolicyText, setPReturnPolicyText] = useState<string>('');
+
+  // UPI Offers & Instant Promotions Configuration
+  const [pHasUpiOffer, setPHasUpiOffer] = useState<boolean>(true);
+  const [pUpiDiscountType, setPUpiDiscountType] = useState<'percentage' | 'flat'>('percentage');
+  const [pUpiDiscountValue, setPUpiDiscountValue] = useState<number>(5);
+  const [pUpiOfferText, setPUpiOfferText] = useState<string>('Extra 5% Instant Discount on UPI Payment');
+
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending' | 'rejected'>('all');
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('all');
+
+  // Interactive Quick Stock & Price Updater State
+  const [quickStockProduct, setQuickStockProduct] = useState<Product | null>(null);
+  const [quickStockQty, setQuickStockQty] = useState<number>(100);
+  const [quickStockPrice, setQuickStockPrice] = useState<number>(299);
+  const [isUpdatingQuickStock, setIsUpdatingQuickStock] = useState<boolean>(false);
+
+  // Dispatch & AWB Generator Modal State
+  const [dispatchOrder, setDispatchOrder] = useState<Order | null>(null);
+  const [dispatchCourier, setDispatchCourier] = useState<string>('Delhivery Express');
+  const [dispatchAwb, setDispatchAwb] = useState<string>('');
+  const [isSavingDispatch, setIsSavingDispatch] = useState<boolean>(false);
+
+  // Bank & UPI Settlement Details State
+  const [bankAccountName, setBankAccountName] = useState<string>(() => currentVendor?.name || '');
+  const [bankAccountNumber, setBankAccountNumber] = useState<string>('98765432109876');
+  const [bankIfscCode, setBankIfscCode] = useState<string>('SBIN0001234');
+  const [bankName, setBankName] = useState<string>('State Bank of India');
+  const [bankUpiId, setBankUpiId] = useState<string>(() => `${(currentVendor?.phone || '9876543210')}@upi`);
+  const [isSavingBank, setIsSavingBank] = useState<boolean>(false);
+  const [bankSaveSuccess, setBankSaveSuccess] = useState<boolean>(false);
+
+  // B2B Wholesale Bulk Quote Requests
+  const [b2bQuotes, setB2bQuotes] = useState<Array<{
+    id: string;
+    buyerName: string;
+    city: string;
+    productTitle: string;
+    quantityRequested: number;
+    targetPricePerUnit: number;
+    date: string;
+    status: 'Pending' | 'Quoted' | 'Accepted' | 'Declined';
+    vendorOfferedPrice?: number;
+    note?: string;
+  }>>([
+    {
+      id: 'Q-9821',
+      buyerName: 'Surat Textiles Boutique',
+      city: 'Surat, Gujarat',
+      productTitle: 'Pure Banarasi Silk Zari Saree',
+      quantityRequested: 150,
+      targetPricePerUnit: 1450,
+      date: '2026-08-20',
+      status: 'Pending'
+    },
+    {
+      id: 'Q-9822',
+      buyerName: 'Jaipur Craft Collections',
+      city: 'Jaipur, Rajasthan',
+      productTitle: 'Handblock Printed Cotton Kurti Set',
+      quantityRequested: 300,
+      targetPricePerUnit: 420,
+      date: '2026-08-19',
+      status: 'Quoted',
+      vendorOfferedPrice: 435,
+      note: 'Express dispatch within 48 hours with GST bill.'
+    },
+    {
+      id: 'Q-9823',
+      buyerName: 'Delhi Wholesale Traders',
+      city: 'Chandni Chowk, Delhi',
+      productTitle: 'Embroidered Salwar Suit Material',
+      quantityRequested: 500,
+      targetPricePerUnit: 890,
+      date: '2026-08-18',
+      status: 'Accepted',
+      vendorOfferedPrice: 890,
+      note: 'Wholesale order confirmed for 500 sets.'
+    }
+  ]);
+  const [activeQuoteModal, setActiveQuoteModal] = useState<any | null>(null);
+  const [quoteOfferPrice, setQuoteOfferPrice] = useState<number>(0);
+  const [quoteNote, setQuoteNote] = useState<string>('');
 
   // Available subcategories for the selected category
   const availableSubcategories = useMemo(() => {
@@ -333,6 +426,15 @@ export default function VendorDashboard({
         setUploadedImages(target.images || []);
         setCustomImageUrl('');
         setPhotoError('');
+        setPCodAvailable(target.isCodAvailable !== false);
+        setPCodSurcharge(target.codSurcharge ?? (target.codPrice ? Math.max(0, target.codPrice - target.price) : 39));
+        setPReturnPolicyType(target.returnPolicyType || 'return');
+        setPReturnDays(target.returnDays ?? 7);
+        setPReturnPolicyText(target.returnPolicyText || '');
+        setPHasUpiOffer(target.hasUpiOffer !== false);
+        setPUpiDiscountType(target.upiDiscountType || 'percentage');
+        setPUpiDiscountValue(target.upiDiscountValue ?? 5);
+        setPUpiOfferText(target.upiOfferText || 'Extra 5% Instant Discount on UPI Payment');
       }
     } else if (activeTabKey === 'add-product') {
       // CLEAR ALL FIELDS COMPLETELY - NO AUTO SELECTED PHOTOS!
@@ -347,6 +449,15 @@ export default function VendorDashboard({
       setUploadedImages([]); // Empty images array
       setCustomImageUrl('');
       setPhotoError('');
+      setPCodAvailable(true);
+      setPCodSurcharge(39);
+      setPReturnPolicyType('return');
+      setPReturnDays(7);
+      setPReturnPolicyText('');
+      setPHasUpiOffer(true);
+      setPUpiDiscountType('percentage');
+      setPUpiDiscountValue(5);
+      setPUpiOfferText('Extra 5% Instant Discount on UPI Payment');
     }
   }, [activeTabKey, queryId, products]);
 
@@ -479,6 +590,17 @@ export default function VendorDashboard({
     const finalTitle = isEditMode && existingProduct ? existingProduct.title : pTitle.trim();
     const finalImages = isEditMode && existingProduct ? existingProduct.images : uploadedImages;
 
+    const finalCodPrice = pCodAvailable ? (pPrice + (Number(pCodSurcharge) || 0)) : pPrice;
+    const finalReturnPolicyText = pReturnPolicyType === 'no_return'
+      ? 'No Return / Non-Returnable (Final Sale)'
+      : pReturnPolicyType === 'replacement'
+      ? `${pReturnDays || 7} Days Replacement / Exchange Only`
+      : `${pReturnDays || 7} Days Easy Return & 100% Refund`;
+
+    const finalUpiText = pHasUpiOffer
+      ? (pUpiOfferText.trim() || (pUpiDiscountType === 'percentage' ? `Extra ${pUpiDiscountValue}% OFF on UPI Payment` : `Instant ₹${pUpiDiscountValue} OFF on UPI Payment`))
+      : '';
+
     const productPayload: Product = {
       id: existingProduct ? existingProduct.id : 'prod-' + Math.random().toString(36).substring(2, 9),
       title: finalTitle,
@@ -488,8 +610,16 @@ export default function VendorDashboard({
       price: pPrice,
       originalPrice: pOrigPrice,
       discountPercent: discount,
-      codPrice: pPrice + 39,
-      hasUpiOffer: true,
+      isCodAvailable: pCodAvailable,
+      codPrice: finalCodPrice,
+      codSurcharge: pCodAvailable ? (Number(pCodSurcharge) || 0) : 0,
+      returnPolicyType: pReturnPolicyType,
+      returnDays: pReturnPolicyType === 'no_return' ? 0 : (Number(pReturnDays) || 7),
+      returnPolicyText: finalReturnPolicyText,
+      hasUpiOffer: pHasUpiOffer,
+      upiDiscountType: pUpiDiscountType,
+      upiDiscountValue: Number(pUpiDiscountValue) || 0,
+      upiOfferText: finalUpiText,
       rating: existingProduct ? existingProduct.rating : 4.8,
       ratingCount: existingProduct ? existingProduct.ratingCount : 12,
       reviewCount: existingProduct ? existingProduct.reviewCount : 8,
@@ -500,11 +630,15 @@ export default function VendorDashboard({
       productHighlights: [
         { label: 'Fabric / Material', value: '100% Premium Grade' },
         { label: 'Direct Manufacturer', value: currentVendor?.name || 'QueKart Partner' },
-        { label: 'GST Invoice', value: currentVendor?.gstin ? 'Available' : 'Standard Bill' }
+        { label: 'GST Invoice', value: currentVendor?.gstin ? 'Available' : 'Standard Bill' },
+        { label: 'Return Policy', value: finalReturnPolicyText },
+        { label: 'Payment Terms', value: pCodAvailable ? `COD Available (₹${finalCodPrice}) & Online UPI` : 'Prepaid Online Only' }
       ],
       additionalDetails: [
         { label: 'Country of Origin', value: 'India' },
-        { label: 'Dispatch Location', value: `${currentVendor?.city || 'Surat'}, ${currentVendor?.state || 'Gujarat'}` }
+        { label: 'Dispatch Location', value: `${currentVendor?.city || 'Surat'}, ${currentVendor?.state || 'Gujarat'}` },
+        { label: 'Return Window', value: pReturnPolicyType === 'no_return' ? 'Non-Returnable' : `${pReturnDays || 7} Calendar Days` },
+        { label: 'Cash on Delivery', value: pCodAvailable ? `Supported (₹${pCodSurcharge} handling)` : 'Not Available (Online Only)' }
       ],
       sizeOptions: pSizeOptions.length ? pSizeOptions : ['Free Size'],
       reviews: existingProduct ? existingProduct.reviews : [],
@@ -533,6 +667,85 @@ export default function VendorDashboard({
     setPSizeOptions(prev => 
       prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]
     );
+  };
+
+  // Quick Stock & Price Updater Handlers
+  const handleOpenQuickStock = (prod: Product) => {
+    setQuickStockProduct(prod);
+    setQuickStockPrice(prod.price);
+    setQuickStockQty(100);
+  };
+
+  const handleSaveQuickStock = async () => {
+    if (!quickStockProduct) return;
+    setIsUpdatingQuickStock(true);
+    try {
+      const updatedProd: Product = {
+        ...quickStockProduct,
+        price: quickStockPrice,
+        originalPrice: Math.max(quickStockProduct.originalPrice, quickStockPrice + 100),
+        discountPercent: Math.round(((Math.max(quickStockProduct.originalPrice, quickStockPrice + 100) - quickStockPrice) / Math.max(quickStockProduct.originalPrice, quickStockPrice + 100)) * 100)
+      };
+      await onEditProduct(updatedProd);
+      setQuickStockProduct(null);
+    } catch (err) {
+      alert('Failed to update stock and price.');
+    } finally {
+      setIsUpdatingQuickStock(false);
+    }
+  };
+
+  // Dispatch & AWB Generator Handlers
+  const handleOpenDispatch = (order: Order) => {
+    setDispatchOrder(order);
+    setDispatchAwb(`AWB${Math.floor(100000000 + Math.random() * 900000000)}`);
+  };
+
+  const handleSaveDispatch = async () => {
+    if (!dispatchOrder) return;
+    setIsSavingDispatch(true);
+    try {
+      if (onUpdateOrderStatus) {
+        onUpdateOrderStatus(dispatchOrder.id, 'Shipped');
+      }
+      setDispatchOrder(null);
+      alert(`Order #${dispatchOrder.id.slice(0, 8)} marked as SHIPPED via ${dispatchCourier}! Tracking AWB: ${dispatchAwb}`);
+    } catch (err) {
+      alert('Failed to update order status.');
+    } finally {
+      setIsSavingDispatch(false);
+    }
+  };
+
+  // Bank Account & UPI Save Handler
+  const handleSaveBankDetails = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingBank(true);
+    setTimeout(() => {
+      setIsSavingBank(false);
+      setBankSaveSuccess(true);
+      setTimeout(() => setBankSaveSuccess(false), 3000);
+    }, 600);
+  };
+
+  // B2B Quote Response Handler
+  const handleSendB2bQuote = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeQuoteModal || quoteOfferPrice <= 0) return;
+    
+    setB2bQuotes(prev => prev.map(q => {
+      if (q.id === activeQuoteModal.id) {
+        return {
+          ...q,
+          status: 'Quoted',
+          vendorOfferedPrice: quoteOfferPrice,
+          note: quoteNote.trim() || 'Custom wholesale quote submitted.'
+        };
+      }
+      return q;
+    }));
+    setActiveQuoteModal(null);
+    alert(`Wholesale quote submitted to ${activeQuoteModal.buyerName} at ₹${quoteOfferPrice}/unit!`);
   };
 
   // Filter vendor items & orders
@@ -577,6 +790,16 @@ export default function VendorDashboard({
     { id: 'export', label: 'Export', icon: FileSpreadsheet, path: 'export' },
     { id: 'profile', label: 'Profile', icon: Building2, path: 'profile' }
   ];
+
+  if (!currentVendor) {
+    return (
+      <VendorAuthView 
+        onLoginSuccess={handleSelectVendor} 
+        systemVendors={systemVendors}
+        navigateTo={navigateTo}
+      />
+    );
+  }
 
   return (
     <div className="bg-slate-50 min-h-screen text-slate-900 flex flex-col font-sans selection:bg-[#143C6B]/10 selection:text-[#143C6B]" id="vendor-portal-root">
@@ -670,9 +893,10 @@ export default function VendorDashboard({
                 { id: 'products', label: 'Catalog', icon: Package, path: 'products', count: vendorProducts.length },
                 { id: 'add-product', label: '+ Add Product', icon: Plus, path: 'products/add' },
                 { id: 'orders', label: 'Orders & Dispatch', icon: ShoppingBag, path: 'orders', count: vendorOrders.length },
+                { id: 'quotes', label: 'B2B Quotes', icon: Tag, path: 'quotes', count: b2bQuotes.filter(q => q.status === 'Pending').length },
                 { id: 'export', label: 'Export & Reports', icon: FileSpreadsheet, path: 'export' },
                 { id: 'analytics', label: 'Sales & Analytics', icon: BarChart3, path: 'analytics' },
-                { id: 'payouts', label: 'Settlement (₹0)', icon: Coins, path: 'payouts' },
+                { id: 'payouts', label: 'Settlement (0%)', icon: Coins, path: 'payouts' },
                 { id: 'profile', label: 'Store Profile', icon: Building2, path: 'profile' }
               ].map(tab => {
                 const Icon = tab.icon;
@@ -717,12 +941,8 @@ export default function VendorDashboard({
 
       {/* 3. MAIN CONTENT BODY */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-3.5 sm:p-6 pb-24 md:pb-10 flex flex-col">
-        {!currentVendor ? (
-          /* SUPPLIER AUTHENTICATION SCREEN */
-          <VendorAuthView onLoginSuccess={handleSelectVendor} systemVendors={systemVendors} />
-        ) : (
-          /* AUTHENTICATED VENDOR VIEWS */
-          <div className="space-y-4 sm:space-y-6" id="vendor-dashboard-content">
+        {/* AUTHENTICATED VENDOR VIEWS */}
+        <div className="space-y-4 sm:space-y-6" id="vendor-dashboard-content">
             
             {/* DYNAMIC SUBPAGE ROUTING */}
             <AnimatePresence mode="wait">
@@ -1461,6 +1681,283 @@ export default function VendorDashboard({
                       />
                     </div>
 
+                    {/* 1. CASH ON DELIVERY (COD) SETTINGS */}
+                    <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-4 space-y-3.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black ${pCodAvailable ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'}`}>
+                            <Banknote className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Cash on Delivery (COD)</h4>
+                            <p className="text-[10.5px] text-slate-500 font-medium">Decide whether buyers can pay cash upon parcel delivery</p>
+                          </div>
+                        </div>
+
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={pCodAvailable}
+                            onChange={e => setPCodAvailable(e.target.checked)}
+                            className="sr-only peer"
+                            id="vendor-toggle-cod"
+                          />
+                          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                        </label>
+                      </div>
+
+                      {pCodAvailable ? (
+                        <div className="pt-2 border-t border-slate-200/60 grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                          <div>
+                            <label className="text-[10.5px] text-slate-600 font-bold block mb-1">
+                              COD Handling / Convenience Fee (₹)
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                min={0}
+                                value={pCodSurcharge}
+                                onChange={e => setPCodSurcharge(Number(e.target.value))}
+                                className="w-24 text-xs font-bold border border-slate-300 rounded-xl p-2 bg-white focus:outline-hidden focus:border-[#143C6B]"
+                                placeholder="39"
+                              />
+                              <div className="flex gap-1">
+                                {[0, 29, 39, 49].map(amt => (
+                                  <button
+                                    key={amt}
+                                    type="button"
+                                    onClick={() => setPCodSurcharge(amt)}
+                                    className={`text-[10px] px-2 py-1 rounded-lg font-bold border transition-colors cursor-pointer ${
+                                      pCodSurcharge === amt ? 'bg-[#143C6B] text-white border-[#143C6B]' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                                    }`}
+                                  >
+                                    {amt === 0 ? 'Free' : `₹${amt}`}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="bg-white rounded-xl p-2.5 border border-emerald-200/80 flex items-center justify-between">
+                            <div>
+                              <span className="text-[10px] text-slate-400 font-bold uppercase block">Customer COD Price</span>
+                              <span className="text-sm font-black text-slate-900">₹{pPrice + (Number(pCodSurcharge) || 0)}</span>
+                            </div>
+                            <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                              ✔ COD Enabled
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="pt-2 border-t border-slate-200/60 bg-indigo-50/70 rounded-xl p-2.5 border border-indigo-100 text-indigo-900 text-xs font-semibold flex items-center gap-2">
+                          <Zap className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                          <span>This item will be listed as <strong>Online Payment Only (Prepaid)</strong>. COD disabled for buyers.</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 2. RETURN & REPLACEMENT POLICY */}
+                    <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-4 space-y-3.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-blue-100 text-[#143C6B] flex items-center justify-center font-black">
+                          <RotateCcw className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Return & Replacement Policy</h4>
+                          <p className="text-[10.5px] text-slate-500 font-medium">Choose policy type and return duration for this specific product</p>
+                        </div>
+                      </div>
+
+                      {/* Policy Mode Selector: 3 Options */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPReturnPolicyType('return')}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                            pReturnPolicyType === 'return'
+                              ? 'bg-blue-50 border-[#143C6B] ring-1 ring-[#143C6B]'
+                              : 'bg-white border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-black text-slate-900">Return & Refund</span>
+                            <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${pReturnPolicyType === 'return' ? 'border-[#143C6B] bg-[#143C6B]' : 'border-slate-300'}`}>
+                              {pReturnPolicyType === 'return' && <Check className="w-2.5 h-2.5 text-white" />}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-500 font-medium">Full refund upon item return</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setPReturnPolicyType('replacement')}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                            pReturnPolicyType === 'replacement'
+                              ? 'bg-amber-50 border-amber-500 ring-1 ring-amber-500'
+                              : 'bg-white border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-black text-slate-900">Replacement Only</span>
+                            <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${pReturnPolicyType === 'replacement' ? 'border-amber-500 bg-amber-500' : 'border-slate-300'}`}>
+                              {pReturnPolicyType === 'replacement' && <Check className="w-2.5 h-2.5 text-white" />}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-500 font-medium">Size/defect exchange only</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setPReturnPolicyType('no_return')}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                            pReturnPolicyType === 'no_return'
+                              ? 'bg-red-50 border-red-500 ring-1 ring-red-500'
+                              : 'bg-white border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-black text-slate-900">No Return</span>
+                            <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${pReturnPolicyType === 'no_return' ? 'border-red-500 bg-red-500' : 'border-slate-300'}`}>
+                              {pReturnPolicyType === 'no_return' && <Check className="w-2.5 h-2.5 text-white" />}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-500 font-medium">Final sale, non-returnable</span>
+                        </button>
+                      </div>
+
+                      {/* Days Selection when policy is Return or Replacement */}
+                      {pReturnPolicyType !== 'no_return' ? (
+                        <div className="pt-2 border-t border-slate-200/60 flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <label className="text-[11px] text-slate-700 font-bold">Policy Window:</label>
+                            <div className="flex gap-1.5">
+                              {[7, 10, 14, 15, 30].map(days => (
+                                <button
+                                  key={days}
+                                  type="button"
+                                  onClick={() => setPReturnDays(days)}
+                                  className={`text-xs px-2.5 py-1 rounded-lg font-bold border transition-colors cursor-pointer ${
+                                    pReturnDays === days ? 'bg-[#143C6B] text-white border-[#143C6B]' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                                  }`}
+                                >
+                                  {days} Days
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="bg-white px-3 py-1.5 rounded-xl border border-blue-200 text-xs font-bold text-[#143C6B] flex items-center gap-1.5">
+                            <span>Badge:</span>
+                            <span className="bg-blue-50 text-[#143C6B] px-2 py-0.5 rounded-md border border-blue-100 font-black">
+                              {pReturnPolicyType === 'return' ? `${pReturnDays || 7} Days Return` : `${pReturnDays || 7} Days Replacement`}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="pt-2 border-t border-slate-200/60 bg-red-50/60 rounded-xl p-2.5 border border-red-100 text-red-900 text-xs font-semibold flex items-center gap-2">
+                          <Ban className="w-4 h-4 text-red-600 flex-shrink-0" />
+                          <span>Buyers will see a clear <strong>"Non-Returnable (Final Sale)"</strong> badge on the product page.</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 3. UPI OFFERS & INSTANT PROMOTIONS */}
+                    <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-4 space-y-3.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black ${pHasUpiOffer ? 'bg-purple-100 text-purple-700' : 'bg-slate-200 text-slate-500'}`}>
+                            <BadgePercent className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">UPI Instant Discount Offer</h4>
+                            <p className="text-[10.5px] text-slate-500 font-medium">Incentivize buyers to pay via Google Pay, PhonePe, Paytm, BHIM UPI</p>
+                          </div>
+                        </div>
+
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={pHasUpiOffer}
+                            onChange={e => setPHasUpiOffer(e.target.checked)}
+                            className="sr-only peer"
+                            id="vendor-toggle-upi-offer"
+                          />
+                          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                        </label>
+                      </div>
+
+                      {pHasUpiOffer && (
+                        <div className="pt-2 border-t border-slate-200/60 space-y-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-[10.5px] text-slate-600 font-bold block mb-1">
+                                Discount Structure
+                              </label>
+                              <div className="flex gap-2">
+                                <select
+                                  value={pUpiDiscountType}
+                                  onChange={e => setPUpiDiscountType(e.target.value as 'percentage' | 'flat')}
+                                  className="text-xs font-bold border border-slate-300 rounded-xl p-2 bg-white focus:outline-hidden focus:border-[#143C6B]"
+                                >
+                                  <option value="percentage">Percentage (%)</option>
+                                  <option value="flat">Flat Amount (₹)</option>
+                                </select>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={pUpiDiscountValue}
+                                  onChange={e => setPUpiDiscountValue(Number(e.target.value))}
+                                  placeholder={pUpiDiscountType === 'percentage' ? '5' : '30'}
+                                  className="w-24 text-xs font-bold border border-slate-300 rounded-xl p-2 bg-white focus:outline-hidden focus:border-[#143C6B]"
+                                />
+                                <span className="self-center text-xs font-bold text-slate-600">
+                                  {pUpiDiscountType === 'percentage' ? '%' : '₹'} OFF
+                                </span>
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="text-[10.5px] text-slate-600 font-bold block mb-1">
+                                Buyer UPI Price Preview
+                              </label>
+                              <div className="p-2 bg-purple-50 border border-purple-200 rounded-xl text-xs font-black text-purple-800 flex items-center justify-between">
+                                <span>Instant UPI Price:</span>
+                                <span>₹{Math.max(1, pPrice - (pUpiDiscountType === 'percentage' ? Math.round((pPrice * pUpiDiscountValue) / 100) : pUpiDiscountValue))}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="text-[10.5px] text-slate-600 font-bold block mb-1">
+                              Custom Offer Tagline
+                            </label>
+                            <input
+                              type="text"
+                              value={pUpiOfferText}
+                              onChange={e => setPUpiOfferText(e.target.value)}
+                              placeholder="e.g. Extra 5% Instant Discount on UPI Payment"
+                              className="w-full text-xs font-medium border border-slate-300 rounded-xl p-2.5 bg-white focus:outline-hidden focus:border-[#143C6B]"
+                            />
+                            <div className="flex flex-wrap gap-1.5 mt-1.5">
+                              {[
+                                'Extra 5% Instant Discount on UPI Payment',
+                                'Instant ₹30 Flat OFF on UPI Payment',
+                                'Save ₹50 Extra with GPay / PhonePe / Paytm'
+                              ].map((preset, idx) => (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  onClick={() => setPUpiOfferText(preset)}
+                                  className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md font-semibold cursor-pointer"
+                                >
+                                  + {preset}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     {/* Submit Actions */}
                     <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
                       <button
@@ -1666,6 +2163,283 @@ export default function VendorDashboard({
                         onChange={e => setPDesc(e.target.value)}
                         className="w-full text-xs font-medium border border-slate-300 rounded-xl p-3 focus:outline-hidden focus:border-[#143C6B]"
                       />
+                    </div>
+
+                    {/* 1. CASH ON DELIVERY (COD) SETTINGS */}
+                    <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-4 space-y-3.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black ${pCodAvailable ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'}`}>
+                            <Banknote className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Cash on Delivery (COD)</h4>
+                            <p className="text-[10.5px] text-slate-500 font-medium">Decide whether buyers can pay cash upon parcel delivery</p>
+                          </div>
+                        </div>
+
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={pCodAvailable}
+                            onChange={e => setPCodAvailable(e.target.checked)}
+                            className="sr-only peer"
+                            id="vendor-edit-toggle-cod"
+                          />
+                          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                        </label>
+                      </div>
+
+                      {pCodAvailable ? (
+                        <div className="pt-2 border-t border-slate-200/60 grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                          <div>
+                            <label className="text-[10.5px] text-slate-600 font-bold block mb-1">
+                              COD Handling Fee (₹)
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                min={0}
+                                value={pCodSurcharge}
+                                onChange={e => setPCodSurcharge(Number(e.target.value))}
+                                className="w-24 text-xs font-bold border border-slate-300 rounded-xl p-2 bg-white focus:outline-hidden focus:border-[#143C6B]"
+                                placeholder="39"
+                              />
+                              <div className="flex gap-1">
+                                {[0, 29, 39, 49].map(amt => (
+                                  <button
+                                    key={amt}
+                                    type="button"
+                                    onClick={() => setPCodSurcharge(amt)}
+                                    className={`text-[10px] px-2 py-1 rounded-lg font-bold border transition-colors cursor-pointer ${
+                                      pCodSurcharge === amt ? 'bg-[#143C6B] text-white border-[#143C6B]' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                                    }`}
+                                  >
+                                    {amt === 0 ? 'Free' : `₹${amt}`}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="bg-white rounded-xl p-2.5 border border-emerald-200/80 flex items-center justify-between">
+                            <div>
+                              <span className="text-[10px] text-slate-400 font-bold uppercase block">Customer COD Price</span>
+                              <span className="text-sm font-black text-slate-900">₹{pPrice + (Number(pCodSurcharge) || 0)}</span>
+                            </div>
+                            <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                              ✔ COD Enabled
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="pt-2 border-t border-slate-200/60 bg-indigo-50/70 rounded-xl p-2.5 border border-indigo-100 text-indigo-900 text-xs font-semibold flex items-center gap-2">
+                          <Zap className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                          <span>This item will be listed as <strong>Online Payment Only (Prepaid)</strong>. COD disabled.</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 2. RETURN & REPLACEMENT POLICY */}
+                    <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-4 space-y-3.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-blue-100 text-[#143C6B] flex items-center justify-center font-black">
+                          <RotateCcw className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Return & Replacement Policy</h4>
+                          <p className="text-[10.5px] text-slate-500 font-medium">Configure return/replacement terms for this product</p>
+                        </div>
+                      </div>
+
+                      {/* Policy Mode Selector: 3 Options */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPReturnPolicyType('return')}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                            pReturnPolicyType === 'return'
+                              ? 'bg-blue-50 border-[#143C6B] ring-1 ring-[#143C6B]'
+                              : 'bg-white border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-black text-slate-900">Return & Refund</span>
+                            <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${pReturnPolicyType === 'return' ? 'border-[#143C6B] bg-[#143C6B]' : 'border-slate-300'}`}>
+                              {pReturnPolicyType === 'return' && <Check className="w-2.5 h-2.5 text-white" />}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-500 font-medium">Full refund upon item return</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setPReturnPolicyType('replacement')}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                            pReturnPolicyType === 'replacement'
+                              ? 'bg-amber-50 border-amber-500 ring-1 ring-amber-500'
+                              : 'bg-white border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-black text-slate-900">Replacement Only</span>
+                            <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${pReturnPolicyType === 'replacement' ? 'border-amber-500 bg-amber-500' : 'border-slate-300'}`}>
+                              {pReturnPolicyType === 'replacement' && <Check className="w-2.5 h-2.5 text-white" />}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-500 font-medium">Size/defect exchange only</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setPReturnPolicyType('no_return')}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                            pReturnPolicyType === 'no_return'
+                              ? 'bg-red-50 border-red-500 ring-1 ring-red-500'
+                              : 'bg-white border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-black text-slate-900">No Return</span>
+                            <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${pReturnPolicyType === 'no_return' ? 'border-red-500 bg-red-500' : 'border-slate-300'}`}>
+                              {pReturnPolicyType === 'no_return' && <Check className="w-2.5 h-2.5 text-white" />}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-500 font-medium">Final sale, non-returnable</span>
+                        </button>
+                      </div>
+
+                      {/* Days Selection */}
+                      {pReturnPolicyType !== 'no_return' ? (
+                        <div className="pt-2 border-t border-slate-200/60 flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <label className="text-[11px] text-slate-700 font-bold">Policy Window:</label>
+                            <div className="flex gap-1.5">
+                              {[7, 10, 14, 15, 30].map(days => (
+                                <button
+                                  key={days}
+                                  type="button"
+                                  onClick={() => setPReturnDays(days)}
+                                  className={`text-xs px-2.5 py-1 rounded-lg font-bold border transition-colors cursor-pointer ${
+                                    pReturnDays === days ? 'bg-[#143C6B] text-white border-[#143C6B]' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                                  }`}
+                                >
+                                  {days} Days
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="bg-white px-3 py-1.5 rounded-xl border border-blue-200 text-xs font-bold text-[#143C6B] flex items-center gap-1.5">
+                            <span>Badge:</span>
+                            <span className="bg-blue-50 text-[#143C6B] px-2 py-0.5 rounded-md border border-blue-100 font-black">
+                              {pReturnPolicyType === 'return' ? `${pReturnDays || 7} Days Return` : `${pReturnDays || 7} Days Replacement`}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="pt-2 border-t border-slate-200/60 bg-red-50/60 rounded-xl p-2.5 border border-red-100 text-red-900 text-xs font-semibold flex items-center gap-2">
+                          <Ban className="w-4 h-4 text-red-600 flex-shrink-0" />
+                          <span>Buyers will see a clear <strong>"Non-Returnable (Final Sale)"</strong> badge on the product page.</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 3. UPI OFFERS & INSTANT PROMOTIONS */}
+                    <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-4 space-y-3.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black ${pHasUpiOffer ? 'bg-purple-100 text-purple-700' : 'bg-slate-200 text-slate-500'}`}>
+                            <BadgePercent className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">UPI Instant Discount Offer</h4>
+                            <p className="text-[10.5px] text-slate-500 font-medium">Incentivize buyers to pay via Google Pay, PhonePe, Paytm, BHIM UPI</p>
+                          </div>
+                        </div>
+
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={pHasUpiOffer}
+                            onChange={e => setPHasUpiOffer(e.target.checked)}
+                            className="sr-only peer"
+                            id="vendor-edit-toggle-upi-offer"
+                          />
+                          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                        </label>
+                      </div>
+
+                      {pHasUpiOffer && (
+                        <div className="pt-2 border-t border-slate-200/60 space-y-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-[10.5px] text-slate-600 font-bold block mb-1">
+                                Discount Structure
+                              </label>
+                              <div className="flex gap-2">
+                                <select
+                                  value={pUpiDiscountType}
+                                  onChange={e => setPUpiDiscountType(e.target.value as 'percentage' | 'flat')}
+                                  className="text-xs font-bold border border-slate-300 rounded-xl p-2 bg-white focus:outline-hidden focus:border-[#143C6B]"
+                                >
+                                  <option value="percentage">Percentage (%)</option>
+                                  <option value="flat">Flat Amount (₹)</option>
+                                </select>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={pUpiDiscountValue}
+                                  onChange={e => setPUpiDiscountValue(Number(e.target.value))}
+                                  placeholder={pUpiDiscountType === 'percentage' ? '5' : '30'}
+                                  className="w-24 text-xs font-bold border border-slate-300 rounded-xl p-2 bg-white focus:outline-hidden focus:border-[#143C6B]"
+                                />
+                                <span className="self-center text-xs font-bold text-slate-600">
+                                  {pUpiDiscountType === 'percentage' ? '%' : '₹'} OFF
+                                </span>
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="text-[10.5px] text-slate-600 font-bold block mb-1">
+                                Buyer UPI Price Preview
+                              </label>
+                              <div className="p-2 bg-purple-50 border border-purple-200 rounded-xl text-xs font-black text-purple-800 flex items-center justify-between">
+                                <span>Instant UPI Price:</span>
+                                <span>₹{Math.max(1, pPrice - (pUpiDiscountType === 'percentage' ? Math.round((pPrice * pUpiDiscountValue) / 100) : pUpiDiscountValue))}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="text-[10.5px] text-slate-600 font-bold block mb-1">
+                              Custom Offer Tagline
+                            </label>
+                            <input
+                              type="text"
+                              value={pUpiOfferText}
+                              onChange={e => setPUpiOfferText(e.target.value)}
+                              placeholder="e.g. Extra 5% Instant Discount on UPI Payment"
+                              className="w-full text-xs font-medium border border-slate-300 rounded-xl p-2.5 bg-white focus:outline-hidden focus:border-[#143C6B]"
+                            />
+                            <div className="flex flex-wrap gap-1.5 mt-1.5">
+                              {[
+                                'Extra 5% Instant Discount on UPI Payment',
+                                'Instant ₹30 Flat OFF on UPI Payment',
+                                'Save ₹50 Extra with GPay / PhonePe / Paytm'
+                              ].map((preset, idx) => (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  onClick={() => setPUpiOfferText(preset)}
+                                  className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md font-semibold cursor-pointer"
+                                >
+                                  + {preset}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="pt-3 border-t border-slate-100 flex justify-end gap-3">
@@ -2295,7 +3069,85 @@ export default function VendorDashboard({
                 </motion.div>
               )}
 
-              {/* 11. PAYOUTS PAGE */}
+              {/* 11. B2B BULK QUOTES PAGE */}
+              {activeTabKey === 'quotes' && (
+                <motion.div
+                  key="vendor-quotes-tab"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="space-y-4"
+                >
+                  <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-black text-slate-900 uppercase">B2B Wholesale Inquiries & Bulk Quotes</h3>
+                          <span className="text-[10px] bg-[#C89D1F]/15 text-[#8C6A0A] border border-[#C89D1F]/30 font-bold px-2 py-0.5 rounded-md uppercase">
+                            Direct Buyers
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 font-medium">Boutiques, shop owners, and resellers requesting volume pricing.</p>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-xs font-black text-[#143C6B] block">0% Commission Guaranteed</span>
+                        <span className="text-[10px] text-slate-400 font-medium">Keep 100% of agreed wholesale rate</span>
+                      </div>
+                    </div>
+
+                    <div className="divide-y divide-slate-100 border border-slate-200/80 rounded-2xl overflow-hidden">
+                      {b2bQuotes.map(quote => (
+                        <div key={quote.id} className="p-4 bg-white hover:bg-slate-50/80 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-black font-mono text-[#143C6B]">{quote.id}</span>
+                              <span className={`text-[9.5px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                                quote.status === 'Accepted' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                quote.status === 'Quoted' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                'bg-amber-50 text-amber-700 border-amber-200'
+                              }`}>
+                                {quote.status}
+                              </span>
+                              <span className="text-[10.5px] text-slate-400">{quote.date}</span>
+                            </div>
+                            <h4 className="text-xs font-bold text-slate-900">{quote.productTitle}</h4>
+                            <p className="text-[11px] text-slate-500">
+                              Buyer: <strong>{quote.buyerName}</strong> ({quote.city}) • Quantity: <strong className="text-slate-900">{quote.quantityRequested} units</strong>
+                            </p>
+                            {quote.vendorOfferedPrice && (
+                              <p className="text-[11px] text-emerald-700 font-bold">
+                                Your Offer: ₹{quote.vendorOfferedPrice}/unit • {quote.note}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-3 justify-between sm:justify-end shrink-0">
+                            <div className="text-right">
+                              <span className="text-[10px] text-slate-400 uppercase font-bold block">Target Unit Price</span>
+                              <span className="text-xs font-black text-slate-900">₹{quote.targetPricePerUnit}</span>
+                            </div>
+
+                            <button
+                              onClick={() => {
+                                setActiveQuoteModal(quote);
+                                setQuoteOfferPrice(quote.targetPricePerUnit);
+                                setQuoteNote('Fast dispatch within 48 hours with GST invoice.');
+                              }}
+                              className="bg-[#143C6B] hover:bg-[#0D2C4E] text-white text-xs font-bold py-2 px-3.5 rounded-xl cursor-pointer shadow-3xs flex items-center gap-1.5"
+                            >
+                              <Tag className="w-3.5 h-3.5 text-[#C89D1F]" />
+                              <span>{quote.status === 'Quoted' ? 'Update Quote' : 'Send Quote'}</span>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* 12. PAYOUTS & BANK SETTLEMENT PAGE */}
               {activeTabKey === 'payouts' && (
                 <motion.div
                   key="vendor-payouts-tab"
@@ -2304,20 +3156,164 @@ export default function VendorDashboard({
                   exit={{ opacity: 0, y: -6 }}
                   className="space-y-4"
                 >
-                  <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-4">
-                    <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                      <h3 className="text-sm font-black text-slate-900 uppercase">Direct Bank Settlement</h3>
-                      <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-2 py-0.5 rounded-md uppercase">
-                        Automated Payout
-                      </span>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Left 2 Cols: Settlement Form & History */}
+                    <div className="md:col-span-2 space-y-4">
+                      {/* Bank Details Form */}
+                      <form onSubmit={handleSaveBankDetails} className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-4">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                          <div>
+                            <h3 className="text-sm font-black text-slate-900 uppercase">Direct Bank Settlement Account</h3>
+                            <p className="text-xs text-slate-500 font-medium">Earnings are deposited directly to your bank account with 0% platform deductions.</p>
+                          </div>
+                          <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-2 py-0.5 rounded-md uppercase">
+                            0% Commission
+                          </span>
+                        </div>
+
+                        {bankSaveSuccess && (
+                          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-bold flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            <span>Bank Account Details updated & verified successfully!</span>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                              Account Holder Name *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={bankAccountName}
+                              onChange={e => setBankAccountName(e.target.value)}
+                              className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                              Bank Name *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={bankName}
+                              onChange={e => setBankName(e.target.value)}
+                              className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                              Account Number *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={bankAccountNumber}
+                              onChange={e => setBankAccountNumber(e.target.value)}
+                              className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 font-mono focus:outline-hidden focus:border-[#143C6B]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                              IFSC Code *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={bankIfscCode}
+                              onChange={e => setBankIfscCode(e.target.value.toUpperCase())}
+                              className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 font-mono focus:outline-hidden focus:border-[#143C6B]"
+                            />
+                          </div>
+
+                          <div className="sm:col-span-2">
+                            <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                              UPI ID (Instant Auto Payouts)
+                            </label>
+                            <input
+                              type="text"
+                              value={bankUpiId}
+                              onChange={e => setBankUpiId(e.target.value)}
+                              className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 font-mono focus:outline-hidden focus:border-[#143C6B]"
+                              placeholder="mobile@upi or name@okaxis"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="pt-3 border-t border-slate-100 flex justify-end">
+                          <button
+                            type="submit"
+                            disabled={isSavingBank}
+                            className="bg-[#143C6B] hover:bg-[#0D2C4E] text-white text-xs font-bold py-2.5 px-5 rounded-xl cursor-pointer shadow-xs uppercase tracking-wider"
+                          >
+                            {isSavingBank ? 'Saving Bank Details...' : 'Save & Verify Bank Details'}
+                          </button>
+                        </div>
+                      </form>
+
+                      {/* Recent Payout Ledger */}
+                      <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-3">
+                        <h4 className="text-xs font-black text-slate-900 uppercase">Settlement History Ledger</h4>
+                        <div className="divide-y divide-slate-100">
+                          <div className="py-2.5 flex items-center justify-between text-xs">
+                            <div>
+                              <p className="font-bold text-slate-900">Weekly Tuesday Settlement</p>
+                              <span className="text-[10px] text-slate-400">Ref: SETT-9921804 • State Bank of India</span>
+                            </div>
+                            <div className="text-right">
+                              <span className="font-black text-emerald-600 block">₹{Math.max(12450, totalRevenue)}</span>
+                              <span className="text-[9.5px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.2 rounded">TRANSFERRED</span>
+                            </div>
+                          </div>
+
+                          <div className="py-2.5 flex items-center justify-between text-xs">
+                            <div>
+                              <p className="font-bold text-slate-900">Friday Automated Settlement</p>
+                              <span className="text-[10px] text-slate-400">Ref: SETT-9910482 • SBI (**9876)</span>
+                            </div>
+                            <div className="text-right">
+                              <span className="font-black text-emerald-600 block">₹8,920</span>
+                              <span className="text-[9.5px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.2 rounded">TRANSFERRED</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="bg-emerald-50/70 border border-emerald-200/80 p-4 rounded-xl flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-emerald-700 font-bold uppercase block">Next Scheduled Settlement</span>
-                        <p className="text-base font-black text-emerald-950 mt-0.5">Every Tuesday & Friday</p>
+                    {/* Right 1 Col: Summary Card */}
+                    <div className="space-y-4">
+                      <div className="bg-gradient-to-br from-[#143C6B] to-[#0D2C4E] text-white rounded-2xl p-5 shadow-md space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] uppercase font-bold text-[#C89D1F] tracking-wider">0% Commission Hub</span>
+                          <Coins className="w-5 h-5 text-[#C89D1F]" />
+                        </div>
+
+                        <div>
+                          <span className="text-xs text-slate-300 block">Next Scheduled Settlement</span>
+                          <p className="text-2xl font-black text-white mt-1">₹{totalRevenue.toLocaleString()}</p>
+                          <span className="text-[10.5px] text-emerald-300 font-medium">Automatic payout every Tuesday & Friday</span>
+                        </div>
+
+                        <div className="pt-3 border-t border-white/10 space-y-1.5 text-xs">
+                          <div className="flex justify-between text-slate-300">
+                            <span>QueKart Fee (0%):</span>
+                            <span className="font-bold text-white">₹0</span>
+                          </div>
+                          <div className="flex justify-between text-slate-300">
+                            <span>Payment Gateway Charges:</span>
+                            <span className="font-bold text-white">₹0 (Waived)</span>
+                          </div>
+                          <div className="flex justify-between text-emerald-300 font-bold pt-1 border-t border-white/10">
+                            <span>Total Savings vs Other Platforms:</span>
+                            <span>₹{Math.round(totalRevenue * 0.18).toLocaleString()}</span>
+                          </div>
+                        </div>
                       </div>
-                      <span className="text-xl font-black text-emerald-700">₹{totalRevenue.toLocaleString()}</span>
                     </div>
                   </div>
                 </motion.div>
@@ -2326,8 +3322,268 @@ export default function VendorDashboard({
             </AnimatePresence>
 
           </div>
-        )}
       </main>
+
+      {/* MODAL 1: QUICK STOCK & PRICE UPDATER MODAL */}
+      <AnimatePresence>
+        {quickStockProduct && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-slate-100 space-y-4"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <Package className="w-5 h-5 text-[#143C6B]" />
+                  <h3 className="text-sm font-black text-slate-900">Quick Stock & Price Editor</h3>
+                </div>
+                <button
+                  onClick={() => setQuickStockProduct(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+                <img
+                  src={quickStockProduct.images[0] || ''}
+                  alt=""
+                  className="w-14 h-14 object-cover rounded-lg border border-slate-200 shrink-0 bg-white"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="min-w-0">
+                  <h4 className="text-xs font-bold text-slate-900 truncate">{quickStockProduct.title}</h4>
+                  <p className="text-[10.5px] text-slate-500">{quickStockProduct.category} • {quickStockProduct.subCategory}</p>
+                  <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.2 rounded mt-1 inline-block">
+                    Current Wholesale Price: ₹{quickStockProduct.price}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                    Wholesale Price (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={quickStockPrice}
+                    onChange={e => setQuickStockPrice(Number(e.target.value))}
+                    className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                    In-Stock Quantity *
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={quickStockQty}
+                    onChange={e => setQuickStockQty(Number(e.target.value))}
+                    className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setQuickStockProduct(null)}
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isUpdatingQuickStock}
+                  onClick={handleSaveQuickStock}
+                  className="bg-[#143C6B] hover:bg-[#0D2C4E] text-white font-black text-xs py-2 px-5 rounded-xl cursor-pointer shadow-xs uppercase"
+                >
+                  {isUpdatingQuickStock ? 'Updating...' : 'Save Changes'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL 2: DISPATCH & AWB GENERATOR MODAL */}
+      <AnimatePresence>
+        {dispatchOrder && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-slate-100 space-y-4"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <Truck className="w-5 h-5 text-[#143C6B]" />
+                  <h3 className="text-sm font-black text-slate-900">Dispatch Order #{dispatchOrder.id.slice(0, 8)}</h3>
+                </div>
+                <button
+                  onClick={() => setDispatchOrder(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 text-xs space-y-1">
+                  <p className="font-bold text-slate-900">Ship To: {dispatchOrder.shippingAddress?.name}</p>
+                  <p className="text-slate-600">{dispatchOrder.shippingAddress?.street}, {dispatchOrder.shippingAddress?.city}, {dispatchOrder.shippingAddress?.state} - {dispatchOrder.shippingAddress?.pincode}</p>
+                  <p className="text-[#143C6B] font-bold">Contact: +91 {dispatchOrder.shippingAddress?.phone}</p>
+                </div>
+
+                <div>
+                  <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                    Select Courier Partner *
+                  </label>
+                  <select
+                    value={dispatchCourier}
+                    onChange={e => setDispatchCourier(e.target.value)}
+                    className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                  >
+                    <option value="Delhivery Express">Delhivery Express Logistics</option>
+                    <option value="BlueDart Logistics">BlueDart Express</option>
+                    <option value="Ekart Logistics">Ekart Logistics</option>
+                    <option value="Expressbees">Expressbees Courier</option>
+                    <option value="IndiaPost Speed Post">IndiaPost Speed Post</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                    Courier Tracking AWB Number *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={dispatchAwb}
+                    onChange={e => setDispatchAwb(e.target.value.toUpperCase())}
+                    className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 font-mono focus:outline-hidden focus:border-[#143C6B]"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="text-xs font-bold text-slate-600 hover:text-slate-900 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Print Slip</span>
+                </button>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDispatchOrder(null)}
+                    className="px-3.5 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSavingDispatch}
+                    onClick={handleSaveDispatch}
+                    className="bg-[#143C6B] hover:bg-[#0D2C4E] text-white font-black text-xs py-2 px-4 rounded-xl cursor-pointer shadow-xs uppercase"
+                  >
+                    {isSavingDispatch ? 'Dispatching...' : 'Confirm Dispatch'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL 3: B2B BULK QUOTE RESPONSE MODAL */}
+      <AnimatePresence>
+        {activeQuoteModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-slate-100 space-y-4"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <Tag className="w-5 h-5 text-[#C89D1F]" />
+                  <h3 className="text-sm font-black text-slate-900">Submit Wholesale Price Quote</h3>
+                </div>
+                <button
+                  onClick={() => setActiveQuoteModal(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSendB2bQuote} className="space-y-3">
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 text-xs space-y-1">
+                  <p className="font-bold text-slate-900">Buyer: {activeQuoteModal.buyerName} ({activeQuoteModal.city})</p>
+                  <p className="text-slate-600">Product: {activeQuoteModal.productTitle}</p>
+                  <p className="text-[#143C6B] font-bold">Volume Requested: {activeQuoteModal.quantityRequested} units (Target: ₹{activeQuoteModal.targetPricePerUnit}/unit)</p>
+                </div>
+
+                <div>
+                  <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                    Your Wholesale Offer Price (Per Unit ₹) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    value={quoteOfferPrice}
+                    onChange={e => setQuoteOfferPrice(Number(e.target.value))}
+                    className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                    Wholesale Terms / Dispatch SLA *
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={quoteNote}
+                    onChange={e => setQuoteNote(e.target.value)}
+                    className="w-full text-xs font-medium border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                    placeholder="e.g. Express dispatch within 48 hours with GST bill."
+                  />
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveQuoteModal(null)}
+                    className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-[#143C6B] hover:bg-[#0D2C4E] text-white font-black text-xs py-2 px-5 rounded-xl cursor-pointer shadow-xs uppercase"
+                  >
+                    Submit Quote
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* 4. MOBILE BOTTOM NAVIGATION (Fixed at bottom for mobile screens) */}
       {currentVendor && (

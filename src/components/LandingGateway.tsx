@@ -15,7 +15,10 @@ import {
   AlertCircle,
   HelpCircle,
   Clock,
-  Sparkles
+  Sparkles,
+  Building2,
+  ChevronRight,
+  RotateCcw
 } from 'lucide-react';
 import Logo, { BrandLogo } from './Logo';
 
@@ -103,21 +106,103 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
       {/* Main Container */}
       <div className="relative z-10 min-h-screen flex flex-col justify-between">
         
-        {/* 1. Header pinned always on top - Minimal QueKart logo and name only */}
-        <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50 px-4 sm:px-8 py-3.5 shadow-xs">
-          <div className="max-w-6xl mx-auto flex items-center justify-between">
-            <BrandLogo size="md" onClick={() => onNavigate('/')} id="landing-logo-brand" />
+        {/* 1. Header pinned always on top - Horizontally Centered QueKart Logo & Name */}
+        <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50 px-4 sm:px-8 py-3 sm:py-3.5 shadow-xs">
+          <div className="max-w-6xl mx-auto flex items-center justify-center text-center">
+            <BrandLogo 
+              size="lg" 
+              animated={true} 
+              onClick={() => onNavigate('/')} 
+              id="landing-logo-brand" 
+              className="justify-center mx-auto"
+            />
           </div>
         </header>
 
-        {/* 2. Headline Section */}
-        <div className="pt-6 sm:pt-10 pb-3 text-center max-w-4xl mx-auto px-4">
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-slate-900 leading-tight font-display">
-            A New Era of <span style={{ color: '#143C6B' }}>Shopping</span>
-          </h1>
-          <p className="text-base sm:text-2xl font-bold text-[#C89D1F] tracking-wide mt-2 font-display">
-            Shop. Enjoy. Get Surprised.
-          </p>
+        {/* 2. Branded Headline Banner matching reference design */}
+        <div className="pt-4 sm:pt-7 pb-3 max-w-5xl mx-auto px-3 sm:px-6 w-full" id="landing-hero-banner-container">
+          <div className="relative group overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-r from-[#07192F] via-[#0D284C] to-[#081C36] p-4 sm:p-5 md:py-6 md:px-8 border-2 border-[#D4AF37]/80 shadow-[0_10px_35px_rgba(7,25,47,0.35),0_0_20px_rgba(212,175,55,0.2)] flex items-center justify-center">
+            
+            {/* Top and bottom subtle golden ambient glow flares */}
+            <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-3/4 h-8 bg-gradient-to-r from-transparent via-[#FBBF24]/40 to-transparent blur-md pointer-events-none" />
+            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-3/4 h-8 bg-gradient-to-r from-transparent via-[#FBBF24]/30 to-transparent blur-md pointer-events-none" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1E4E8C]/20 via-transparent to-transparent pointer-events-none" />
+
+            {/* Inner Content flex container */}
+            <div className="relative z-10 flex items-center gap-3.5 sm:gap-6 md:gap-8 max-w-4xl mx-auto">
+              
+              {/* Golden Shopping Bag with Heart Icon */}
+              <div className="flex-shrink-0">
+                <div className="relative w-12 h-14 sm:w-16 sm:h-18 md:w-20 md:h-22 flex items-center justify-center drop-shadow-[0_4px_12px_rgba(245,166,35,0.4)]">
+                  <svg 
+                    viewBox="0 0 100 115" 
+                    fill="none" 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    className="w-full h-full"
+                  >
+                    {/* Bag Handle */}
+                    <path 
+                      d="M34 38V22C34 13.1634 41.1634 6 50 6C58.8366 6 66 13.1634 66 22V38" 
+                      stroke="#F5A623" 
+                      strokeWidth="7" 
+                      strokeLinecap="round" 
+                    />
+                    
+                    {/* Bag Body Gradient & Shape */}
+                    <defs>
+                      <linearGradient id="goldBagGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#FDE047" />
+                        <stop offset="35%" stopColor="#F5A623" />
+                        <stop offset="100%" stopColor="#D97706" />
+                      </linearGradient>
+                      <linearGradient id="bagShine" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4" />
+                        <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    
+                    {/* Bag Body with rounded corners */}
+                    <path 
+                      d="M16 32H84C87.3137 32 89.8732 34.887 89.5168 38.1754L82.1472 106.175C81.8415 108.997 79.4674 111 76.6305 111H23.3695C20.5326 111 18.1585 108.997 17.8528 106.175L10.4832 38.1754C10.1268 34.887 12.6863 32 16 32Z" 
+                      fill="url(#goldBagGrad)" 
+                    />
+                    
+                    {/* Subtle highlights */}
+                    <path 
+                      d="M20 36H80L75 104H25L20 36Z" 
+                      fill="url(#bagShine)" 
+                      opacity="0.25"
+                    />
+
+                    {/* Dark Navy Heart in the center */}
+                    <path 
+                      d="M50 87.5C49.1 87.5 48.3 87.15 47.7 86.55L34.2 73.05C28.6 67.45 28.6 58.35 34.2 52.75C39.8 47.15 48.9 47.15 50 52.55C51.1 47.15 60.2 47.15 65.8 52.75C71.4 58.35 71.4 67.45 65.8 73.05L52.3 86.55C51.7 87.15 50.9 87.5 50 87.5Z" 
+                      fill="#0B1E36" 
+                    />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Banner Text Block */}
+              <div className="flex flex-col justify-center text-left">
+                {/* Main Heading */}
+                <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-[42px] font-black tracking-tight sm:tracking-normal uppercase leading-tight font-sans flex flex-wrap items-baseline gap-x-2 sm:gap-x-3">
+                  <span className="text-white drop-shadow-sm font-black">
+                    A NEW ERA OF
+                  </span>
+                  <span className="text-[#F5A623] sm:text-[#FBBF24] font-black drop-shadow-[0_2px_10px_rgba(245,166,35,0.4)]">
+                    SHOPPING
+                  </span>
+                </h1>
+
+                {/* Subtitle */}
+                <p className="text-xs sm:text-base md:text-lg font-medium text-white/95 tracking-wide mt-0.5 sm:mt-1 font-sans">
+                  Great Products. Best Prices. Surprise Rewards.
+                </p>
+              </div>
+
+            </div>
+          </div>
         </div>
 
         {/* 3. 8-ROW CLOTHING ANIMATION WITH TRANSLUCENT BOTTOM ROWS & OVERLAY ACTION BUTTONS */}
@@ -280,119 +365,327 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
           </div>
         </div>
 
-        {/* 4. THREE GOOD HIGHLIGHT POINTS FOR OUR WEBSITE */}
-        <section className="max-w-5xl mx-auto w-full px-4 sm:px-6 py-12">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Why Choose <span style={{ color: '#143C6B' }}>Que</span><span style={{ color: '#C89D1F' }}>Kart</span>?
+        {/* 4. WHY CHOOSE QUEKART? - EXACT PIXEL-PERFECT MATCH TO SCREENSHOT */}
+        <section className="max-w-xl mx-auto w-full px-4 sm:px-6 py-12 sm:py-16" id="why-choose-quekart-section">
+          {/* Header */}
+          <div className="text-center mb-8 sm:mb-9">
+            <h2 className="text-3xl sm:text-4xl md:text-[40px] font-bold tracking-tight font-sans">
+              <span className="text-[#0B1E36]">Why Choose Que</span><span className="text-[#E5A812]">Kart</span><span className="text-[#0B1E36]">?</span>
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500 font-bold mt-1">Direct, Transparent & Fast E-Commerce Experience</p>
+
+            {/* Decorative Divider: Gold bar + Center Navy Dot + Navy bar */}
+            <div className="flex items-center justify-center gap-1.5 my-3">
+              <div className="w-12 h-[2px] bg-[#E5A812] rounded-full" />
+              <div className="w-1.5 h-1.5 bg-[#0B1E36] rounded-full" />
+              <div className="w-12 h-[2px] bg-[#0B1E36] rounded-full" />
+            </div>
+
+            <p className="text-sm sm:text-base text-[#556987] font-medium tracking-normal mt-2">
+              Direct, Transparent &amp; Fast E-Commerce Experience
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Vertical Stacked Cards */}
+          <div className="flex flex-col gap-4 sm:gap-5">
             
-            {/* Point 1: 0% Platform Commission */}
-            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-3xs flex flex-col items-center text-center hover:border-blue-200 transition-all">
-              <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 text-[#143C6B] flex items-center justify-center mb-4">
-                <Store className="w-6 h-6 stroke-[2.2]" />
+            {/* Card 1: 0% Platform Commission */}
+            <div className="bg-white rounded-[20px] p-6 sm:p-7 border border-[#E2EAF2] shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_6px_20px_rgba(20,60,107,0.06)] transition-all duration-200 flex flex-row items-center gap-5 sm:gap-6 text-left">
+              {/* Circular Icon Badge: Ice Blue with Storefront Icon */}
+              <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-[#EAF3FA] border border-[#D8E6F3] flex items-center justify-center flex-shrink-0">
+                <svg className="w-9 h-9 sm:w-10 sm:h-10" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* Scalloped Awning */}
+                  <path d="M9 19C9 15 11 13.5 15 13.5H33C37 13.5 39 15 39 19C39 21.8 36.8 23.5 34 23.5C31.2 23.5 29.5 21.8 28 20C26.5 21.8 24.8 23.5 22 23.5C19.2 23.5 17.5 21.8 16 20C14.5 21.8 12.8 23.5 10 23.5C9.2 23.5 9 21 9 19Z" stroke="#143C6B" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/>
+                  {/* Shop Walls */}
+                  <path d="M11 23.5V36.5C11 37.8 12 38.5 13.5 38.5H34.5C36 38.5 37 37.8 37 36.5V23.5" stroke="#143C6B" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/>
+                  {/* Central Door */}
+                  <path d="M20.5 38.5V29.5C20.5 28.5 21.2 27.5 22.5 27.5H25.5C26.8 27.5 27.5 28.5 27.5 29.5V38.5" stroke="#143C6B" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </div>
-              <h3 className="text-base sm:text-lg font-black text-slate-900 mb-2">0% Platform Commission</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                Direct manufacturer-to-retailer pricing with zero hidden fees, enabling sellers to pass maximum margin and discounts to customers.
-              </p>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg sm:text-[21px] font-bold text-[#0B1E36] tracking-tight">
+                  0% Platform Commission
+                </h3>
+                {/* Accent Underline Bar */}
+                <div className="w-12 h-[2.5px] bg-[#143C6B] rounded-full mt-2 mb-2.5" />
+                <p className="text-xs sm:text-[13.5px] text-[#556987] font-normal leading-relaxed">
+                  Direct manufacturer-to-retailer pricing with zero hidden fees, enabling sellers to pass maximum margin and discounts to customers.
+                </p>
+              </div>
             </div>
 
-            {/* Point 2: 10-Second Fast OTP Login */}
-            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-3xs flex flex-col items-center text-center hover:border-amber-200 transition-all">
-              <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 text-[#C89D1F] flex items-center justify-center mb-4">
-                <Smartphone className="w-6 h-6 stroke-[2.2]" />
+            {/* Card 2: 10-Second Instant Checkout */}
+            <div className="bg-white rounded-[20px] p-6 sm:p-7 border border-[#E2EAF2] shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_6px_20px_rgba(229,168,18,0.06)] transition-all duration-200 flex flex-row items-center gap-5 sm:gap-6 text-left">
+              {/* Circular Icon Badge: Warm Cream with Smartphone Icon */}
+              <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-[#FEF8EC] border border-[#FDEECC] flex items-center justify-center flex-shrink-0">
+                <svg className="w-9 h-9 sm:w-10 sm:h-10" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* Smartphone Body */}
+                  <rect x="15" y="9" width="18" height="30" rx="4" stroke="#E5A812" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/>
+                  {/* Home Dot */}
+                  <circle cx="24" cy="33" r="1.5" fill="#E5A812"/>
+                </svg>
               </div>
-              <h3 className="text-base sm:text-lg font-black text-slate-900 mb-2">10-Second Instant Checkout</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                No passwords required. Access accounts instantly with seamless mobile OTP authentication and 1-click quick guest browsing.
-              </p>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg sm:text-[21px] font-bold text-[#0B1E36] tracking-tight">
+                  10-Second Instant Checkout
+                </h3>
+                {/* Accent Underline Bar */}
+                <div className="w-12 h-[2.5px] bg-[#E5A812] rounded-full mt-2 mb-2.5" />
+                <p className="text-xs sm:text-[13.5px] text-[#556987] font-normal leading-relaxed">
+                  No passwords required. Access accounts instantly with seamless mobile OTP authentication and 1-click quick guest browsing.
+                </p>
+              </div>
             </div>
 
-            {/* Point 3: 100% GST Verified Suppliers & Cash on Delivery */}
-            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-3xs flex flex-col items-center text-center hover:border-emerald-200 transition-all">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center mb-4">
-                <ShieldCheck className="w-6 h-6 stroke-[2.2]" />
+            {/* Card 3: 100% GST Verified & COD */}
+            <div className="bg-white rounded-[20px] p-6 sm:p-7 border border-[#E2EAF2] shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_6px_20px_rgba(5,150,105,0.06)] transition-all duration-200 flex flex-row items-center gap-5 sm:gap-6 text-left">
+              {/* Circular Icon Badge: Light Mint with Shield-Checkmark Icon */}
+              <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-[#E8F7EE] border border-[#D2EFE0] flex items-center justify-center flex-shrink-0">
+                <svg className="w-9 h-9 sm:w-10 sm:h-10" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* Shield outline */}
+                  <path d="M24 9.5L13 14.5V23C13 29.8 17.7 36 24 37.5C30.3 36 35 29.8 35 23V14.5L24 9.5Z" stroke="#059669" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/>
+                  {/* Checkmark inside */}
+                  <path d="M19 23.5L22.5 27L29 20" stroke="#059669" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </div>
-              <h3 className="text-base sm:text-lg font-black text-slate-900 mb-2">100% GST Verified & COD</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                Every wholesaler is government GST verified with Surat & Jaipur warehouse nodes, offering guaranteed quality and Cash on Delivery.
-              </p>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg sm:text-[21px] font-bold text-[#0B1E36] tracking-tight">
+                  100% GST Verified &amp; COD
+                </h3>
+                {/* Accent Underline Bar */}
+                <div className="w-12 h-[2.5px] bg-[#059669] rounded-full mt-2 mb-2.5" />
+                <p className="text-xs sm:text-[13.5px] text-[#556987] font-normal leading-relaxed">
+                  Every wholesaler is government GST verified with Surat &amp; Jaipur warehouse nodes, offering guaranteed quality and Cash on Delivery.
+                </p>
+              </div>
             </div>
 
           </div>
         </section>
 
-        {/* 5. PROFESSIONAL REGISTERED ENTERPRISE FOOTER WITH DETAILED COMPLIANCE DRAWER LINKS */}
-        <footer className="bg-white border-t border-slate-200/90 py-10 px-4 sm:px-8 mt-12">
-          <div className="max-w-6xl mx-auto space-y-8">
+        {/* 5. PROFESSIONAL FOOTER - EXACT SCREENSHOT LAYOUT MATCH */}
+        <footer className="bg-white border-t border-[#E8EEF5] pt-10 sm:pt-14 pb-12 px-4 sm:px-6 mt-12" id="landing-footer-section">
+          <div className="max-w-xl mx-auto w-full">
             
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-8 border-b border-slate-100">
+            {/* Logo & Headline */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Logo className="h-8 w-8" />
+                <span className="text-2xl font-bold tracking-tight flex items-center">
+                  <span className="text-[#0B1E36]">Que</span>
+                  <span className="text-[#E5A812]">kart</span>
+                </span>
+              </div>
+              <p className="text-sm sm:text-[14.5px] text-[#556987] font-normal leading-relaxed">
+                India's trusted digital marketplace connecting verified sellers and happy shoppers with quality products, transparent pricing and reliable delivery.
+              </p>
+            </div>
+
+            {/* Enterprise Information List (3 Items with circular icons) */}
+            <div className="flex flex-col gap-4 sm:gap-5 mb-8">
               
-              {/* Brand Description */}
-              <div className="space-y-3 md:col-span-2">
-                <div className="flex items-center gap-2">
-                  <Logo className="h-7 w-7" />
-                  <span className="text-lg font-black tracking-tight flex items-center">
-                    <span style={{ color: '#143C6B' }}>Que</span>
-                    <span style={{ color: '#C89D1F' }}>Kart</span>
+              {/* Item 1: Registered Firm */}
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-full bg-[#EAF3FA] border border-[#D8E6F3] flex items-center justify-center flex-shrink-0 text-[#143C6B]">
+                  <Building2 className="w-5 h-5 stroke-[2.2]" />
+                </div>
+                <div className="flex flex-col justify-center">
+                  <span className="text-[11px] font-bold text-[#8B9EB2] tracking-wider uppercase">
+                    REGISTERED FIRM
+                  </span>
+                  <span className="text-[15px] font-bold text-[#0B1E36] leading-snug">
+                    PASI E-COMMERCE SERVICES
+                  </span>
+                  <span className="text-xs text-[#6B7F96] mt-0.5">
+                    Proprietorship Firm
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 font-semibold leading-relaxed max-w-sm">
-                  QueKart Commerce Private Limited is a registered corporate enterprise facilitating frictionless direct transactions between licensed Indian textile manufacturers, verified small businesses, and retail shoppers.
-                </p>
-                <p className="text-[10px] text-slate-400 font-mono font-bold">
-                  Corporate Identity Number (CIN): U72900RJ2026PTC091054
-                </p>
               </div>
 
-              {/* Useful Portal Routes */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-black uppercase text-slate-800 tracking-wider">Commerce Portals</h4>
-                <div className="flex flex-col space-y-2 text-xs font-bold text-slate-500">
-                  <button onClick={() => onNavigate('/shop')} className="hover:text-[#143C6B] transition-colors cursor-pointer text-left flex items-center gap-1.5">
-                    <ShoppingBag className="w-3.5 h-3.5 text-[#143C6B]" />
-                    <span>Explore E-Shop</span>
-                  </button>
-                  <button onClick={() => onNavigate('/vendor')} className="hover:text-[#C89D1F] transition-colors cursor-pointer text-left flex items-center gap-1.5">
-                    <Store className="w-3.5 h-3.5 text-[#C89D1F]" />
-                    <span>Sell on QueKart (0%)</span>
-                  </button>
+              {/* Item 2: GST Registration Number */}
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-full bg-[#EAF3FA] border border-[#D8E6F3] flex items-center justify-center flex-shrink-0 text-[#143C6B]">
+                  <FileText className="w-5 h-5 stroke-[2.2]" />
+                </div>
+                <div className="flex flex-col justify-center">
+                  <span className="text-[11px] font-bold text-[#8B9EB2] tracking-wider uppercase">
+                    GST REGISTRATION NUMBER
+                  </span>
+                  <span className="text-[15px] font-bold text-[#0B1E36] leading-snug">
+                    06KLFPS7562K2Z8
+                  </span>
+                  <div className="flex items-center gap-1 text-xs text-[#6B7F96] mt-0.5 font-medium">
+                    <span>GSTIN Verified</span>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 fill-emerald-100" />
+                  </div>
                 </div>
               </div>
 
-              {/* Registered Legal Links */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-black uppercase text-slate-800 tracking-wider">Compliance & Policies</h4>
-                <div className="flex flex-col space-y-2 text-xs font-black text-[#143C6B]">
-                  <button onClick={() => setActiveModal('contact')} className="hover:text-[#C89D1F] text-left transition-colors cursor-pointer flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5" /> Contact Us
-                  </button>
-                  <button onClick={() => setActiveModal('refund')} className="hover:text-[#C89D1F] text-left transition-colors cursor-pointer flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5" /> Refund & Cancellations
-                  </button>
-                  <button onClick={() => setActiveModal('terms')} className="hover:text-[#C89D1F] text-left transition-colors cursor-pointer flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5" /> Terms & Conditions
-                  </button>
-                  <button onClick={() => setActiveModal('privacy')} className="hover:text-[#C89D1F] text-left transition-colors cursor-pointer flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5" /> Privacy Policy
-                  </button>
+              {/* Item 3: Registered Address */}
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-full bg-[#EAF3FA] border border-[#D8E6F3] flex items-center justify-center flex-shrink-0 text-[#143C6B]">
+                  <MapPin className="w-5 h-5 stroke-[2.2]" />
+                </div>
+                <div className="flex flex-col justify-center">
+                  <span className="text-[11px] font-bold text-[#8B9EB2] tracking-wider uppercase">
+                    REGISTERED ADDRESS
+                  </span>
+                  <span className="text-[15px] font-bold text-[#0B1E36] leading-snug">
+                    PASI E-COMMERCE SERVICES
+                  </span>
+                  <span className="text-xs text-[#6B7F96] mt-0.5">
+                    Panchkula, Haryana – 134118
+                  </span>
+                  <span className="text-xs text-[#6B7F96]">
+                    India
+                  </span>
                 </div>
               </div>
 
             </div>
 
-            {/* Bottom Credit */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-bold text-slate-500">
-              <p>© 2026 QueKart Commerce Private Limited. Registered in Surat & Jaipur, India. All rights reserved.</p>
-              <div className="flex items-center gap-3 text-[10px] font-mono text-slate-400">
+            {/* Divider */}
+            <div className="border-t border-[#E8EEF5] my-6 sm:my-8" />
+
+            {/* COMMERCE PORTALS SECTION */}
+            <div className="mb-7">
+              <h4 className="text-xs font-bold text-[#0B1E36] uppercase tracking-wider mb-3">
+                COMMERCE PORTALS
+              </h4>
+              <div className="flex flex-col space-y-1">
+                {/* Explore E-Shop */}
+                <button 
+                  onClick={() => onNavigate('/shop')} 
+                  className="w-full flex items-center justify-between p-2.5 -mx-2.5 rounded-xl hover:bg-slate-50 transition-colors text-left group cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <ShoppingBag className="w-5 h-5 text-[#0B1E36] stroke-[2.2]" />
+                    <div>
+                      <div className="text-sm font-bold text-[#0B1E36] group-hover:text-[#143C6B] transition-colors">
+                        Explore E-Shop
+                      </div>
+                      <div className="text-xs text-[#6B7F96]">
+                        Shop from a wide range of quality products
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-600 transition-colors flex-shrink-0" />
+                </button>
+
+                {/* Sell on Quekart (0%) */}
+                <button 
+                  onClick={() => onNavigate('/vendor')} 
+                  className="w-full flex items-center justify-between p-2.5 -mx-2.5 rounded-xl hover:bg-slate-50 transition-colors text-left group cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <Store className="w-5 h-5 text-[#E5A812] stroke-[2.2]" />
+                    <div>
+                      <div className="text-sm font-bold text-[#0B1E36] group-hover:text-[#C89D1F] transition-colors">
+                        Sell on Quekart (0%)
+                      </div>
+                      <div className="text-xs text-[#6B7F96]">
+                        Zero commission. Maximum growth.
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-600 transition-colors flex-shrink-0" />
+                </button>
+              </div>
+            </div>
+
+            {/* COMPLIANCE & POLICIES SECTION */}
+            <div className="mb-8">
+              <h4 className="text-xs font-bold text-[#0B1E36] uppercase tracking-wider mb-3">
+                COMPLIANCE &amp; POLICIES
+              </h4>
+              <div className="flex flex-col divide-y divide-slate-100/80">
+                {/* Contact Us */}
+                <button 
+                  onClick={() => setActiveModal('contact')} 
+                  className="w-full flex items-center justify-between py-3.5 hover:text-[#143C6B] transition-colors text-left group cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <Mail className="w-4.5 h-4.5 text-[#0B1E36] stroke-[2.2]" />
+                    <span className="text-sm font-bold text-[#0B1E36] group-hover:text-[#143C6B] transition-colors">
+                      Contact Us
+                    </span>
+                  </div>
+                  <ChevronRight className="w-4.5 h-4.5 text-slate-400 group-hover:text-slate-600 transition-colors flex-shrink-0" />
+                </button>
+
+                {/* Refund & Cancellations */}
+                <button 
+                  onClick={() => setActiveModal('refund')} 
+                  className="w-full flex items-center justify-between py-3.5 hover:text-[#143C6B] transition-colors text-left group cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <RotateCcw className="w-4.5 h-4.5 text-[#0B1E36] stroke-[2.2]" />
+                    <span className="text-sm font-bold text-[#0B1E36] group-hover:text-[#143C6B] transition-colors">
+                      Refund &amp; Cancellations
+                    </span>
+                  </div>
+                  <ChevronRight className="w-4.5 h-4.5 text-slate-400 group-hover:text-slate-600 transition-colors flex-shrink-0" />
+                </button>
+
+                {/* Terms & Conditions */}
+                <button 
+                  onClick={() => setActiveModal('terms')} 
+                  className="w-full flex items-center justify-between py-3.5 hover:text-[#143C6B] transition-colors text-left group cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-4.5 h-4.5 text-[#0B1E36] stroke-[2.2]" />
+                    <span className="text-sm font-bold text-[#0B1E36] group-hover:text-[#143C6B] transition-colors">
+                      Terms &amp; Conditions
+                    </span>
+                  </div>
+                  <ChevronRight className="w-4.5 h-4.5 text-slate-400 group-hover:text-slate-600 transition-colors flex-shrink-0" />
+                </button>
+
+                {/* Privacy Policy */}
+                <button 
+                  onClick={() => setActiveModal('privacy')} 
+                  className="w-full flex items-center justify-between py-3.5 hover:text-[#143C6B] transition-colors text-left group cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <ShieldCheck className="w-4.5 h-4.5 text-[#0B1E36] stroke-[2.2]" />
+                    <span className="text-sm font-bold text-[#0B1E36] group-hover:text-[#143C6B] transition-colors">
+                      Privacy Policy
+                    </span>
+                  </div>
+                  <ChevronRight className="w-4.5 h-4.5 text-slate-400 group-hover:text-slate-600 transition-colors flex-shrink-0" />
+                </button>
+              </div>
+            </div>
+
+            {/* Bottom Copyright, Address & Certifications */}
+            <div className="pt-6 border-t border-[#E8EEF5]">
+              <div className="flex items-start gap-3 mb-4">
+                {/* Hexagonal / Shield Copyright Emblem */}
+                <div className="w-7 h-7 rounded-lg border-2 border-[#143C6B] flex items-center justify-center flex-shrink-0 text-[#143C6B] font-bold text-xs">
+                  ©
+                </div>
+                <div className="text-xs text-[#4A5D73] font-medium leading-relaxed">
+                  <div>© 2026 PASI E-COMMERCE SERVICES. All rights reserved.</div>
+                  <div className="text-slate-500">Operating the brand "Quekart".</div>
+                  <div className="flex items-center gap-1.5 text-slate-500 mt-1">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                    <span>Panchkula, Haryana – 134118, India</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Certification Chips */}
+              <div className="flex items-center gap-2.5 text-[11.5px] text-[#6B7F96] font-medium pt-2 flex-wrap">
                 <span>ISO 9001:2015 Certified</span>
-                <span>•</span>
-                <span>GSTIN Compliant Network</span>
+                <span className="text-slate-300">|</span>
+                <span>GST Compliant</span>
+                <span className="text-slate-300">|</span>
+                <span>Secure &amp; Trusted</span>
               </div>
             </div>
 

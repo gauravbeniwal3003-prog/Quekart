@@ -62,8 +62,15 @@ export default function CartDrawer({
   const totalDiscount = originalItemsPrice - itemsPrice;
   const deliveryCharge = 0; // Free delivery representation
   
-  // UPI offer calculation (Extra ₹10 off per item if has UPI offer)
-  const upiOfferDiscount = cart.some(item => item.product.hasUpiOffer) ? 12 : 0;
+  // UPI offer calculation (Dynamically computed from each product's vendor settings)
+  const upiOfferDiscount = cart.reduce((sum, item) => {
+    if (item.product.hasUpiOffer === false) return sum;
+    const vPrice = item.product.variants[item.selectedVariantIndex]?.price || item.product.price;
+    const discount = item.product.upiDiscountType === 'flat'
+      ? (item.product.upiDiscountValue || 30)
+      : Math.round((vPrice * (item.product.upiDiscountValue || 5)) / 100);
+    return sum + (discount * item.quantity);
+  }, 0);
   
   // Validate applied coupon against current items price
   const isCouponValid = appliedCoupon ? itemsPrice >= appliedCoupon.minPurchase : false;

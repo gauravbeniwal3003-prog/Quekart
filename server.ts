@@ -882,20 +882,27 @@ app.post('/api/auth/vendor-register', async (req, res) => {
 
     const newVendor: Vendor = {
       id: `vendor-${Date.now()}`,
-      name: name.trim(),
+      name: (req.body.name || req.body.tradeName || 'Supplier Partner').trim(),
+      ownerName: req.body.ownerName ? req.body.ownerName.trim() : undefined,
+      legalBusinessName: req.body.legalBusinessName || req.body.legal_name,
+      tradeName: req.body.tradeName || req.body.trade_name,
+      businessType: req.body.businessType || req.body.business_type,
       email: email.trim(),
       phone: cleanPhone,
       age: req.body.age ? Number(req.body.age) : undefined,
       aadhaarNumber: req.body.aadhaarNumber ? String(req.body.aadhaarNumber).trim() : undefined,
       aadhaarVerified: !!req.body.aadhaarVerified,
       gstinVerified: !!req.body.gstinVerified,
-      vendorType: req.body.isVerified || req.body.vendorType === 'big' ? 'big' : 'small',
-      isVerified: !!req.body.isVerified,
+      vendorType: req.body.isVerified || req.body.vendorType === 'big' || !!req.body.gstinVerified ? 'big' : 'small',
+      isVerified: !!req.body.isVerified || !!req.body.gstinVerified,
       businessCategory: businessCategory || 'Apparel & Sarees',
       gstin: gstin ? gstin.trim().toUpperCase() : '',
-      city: city ? city.trim() : 'Surat',
-      state: state ? state.trim() : 'Gujarat',
-      description: description ? description.trim() : 'Verified QueKart Wholesale Supplier.',
+      city: (city || req.body.district || 'Jaipur').trim(),
+      state: (state || 'Rajasthan').trim(),
+      district: (req.body.district || city || 'Jaipur').trim(),
+      pincode: (req.body.pincode || '302001').trim(),
+      address: req.body.address ? req.body.address.trim() : undefined,
+      description: description ? description.trim() : (req.body.gstinVerified ? 'GST-Verified Supplier' : 'Artisan Supplier'),
       rating: 5.0,
       status: 'active',
       createdAt: new Date().toISOString()
@@ -914,15 +921,16 @@ app.post('/api/auth/vendor-register', async (req, res) => {
   }
 });
 
-// Government GST Verification API Endpoint
+// Government GST Verification API Endpoint matching exact response schema
 app.post('/api/auth/verify-gst-lookup', async (req, res) => {
-  const { gstin, name } = req.body;
+  const { gstin } = req.body;
   const cleanGst = (gstin || '').trim().toUpperCase();
   
   if (!cleanGst || cleanGst.length !== 15) {
     return res.status(400).json({
-      valid: false,
-      error: 'GSTIN must be exactly 15 alphanumeric characters.'
+      status: 400,
+      message: 'GSTIN must be exactly 15 alphanumeric characters.',
+      data: null
     });
   }
 
@@ -937,24 +945,99 @@ app.post('/api/auth/verify-gst-lookup', async (req, res) => {
     '19': 'West Bengal',
     '33': 'Tamil Nadu',
     '29': 'Karnataka',
-    '36': 'Telangana'
+    '36': 'Telangana',
+    '22': 'Chhattisgarh',
+    '23': 'Madhya Pradesh',
+    '03': 'Punjab',
+    '06': 'Haryana'
   };
-  const registeredState = stateMap[stateCode] || 'National Territory';
 
-  // Return simulated GSTN registry data
-  const tradeName = name ? `${name.trim()} Enterprises` : 'Verified Trading Co.';
-  const proprietorName = name ? name.trim() : 'Registered Taxpayer';
+  const districtMap: Record<string, string> = {
+    '08': 'Jaipur',
+    '24': 'Surat',
+    '27': 'Mumbai',
+    '07': 'Central Delhi',
+    '09': 'Varanasi',
+    '19': 'Kolkata',
+    '33': 'Chennai',
+    '29': 'Bengaluru',
+    '36': 'Hyderabad',
+    '22': 'Raipur',
+    '23': 'Indore',
+    '03': 'Ludhiana',
+    '06': 'Gurugram'
+  };
 
-  res.json({
-    valid: true,
-    gstin: cleanGst,
-    legalName: tradeName,
-    proprietorName: proprietorName,
-    state: registeredState,
-    taxpayerType: 'Regular',
-    status: 'ACTIVE',
-    registrationDate: '2021-04-01'
-  });
+  const pincodeMap: Record<string, string> = {
+    '08': '302001',
+    '24': '395003',
+    '27': '400001',
+    '07': '110001',
+    '09': '221001',
+    '19': '700001',
+    '33': '600001',
+    '29': '560001',
+    '36': '500001',
+    '22': '492001',
+    '23': '452001',
+    '03': '141001',
+    '06': '122001'
+  };
+
+  const registeredState = stateMap[stateCode] || 'Rajasthan';
+  const registeredDistrict = districtMap[stateCode] || 'Jaipur';
+  const registeredPincode = pincodeMap[stateCode] || '302001';
+
+  // Sample known data presets or dynamic derivation
+  let legalName = 'EXAMPLE PRIVATE LIMITED';
+  let tradeName = 'EXAMPLE CORP';
+  let businessType = 'Private Limited Company';
+  let address = '123, MG Road, Sector 5';
+
+  if (cleanGst === '08AAAAA1111A1Z1') {
+    legalName = 'RAJASTHAN HANDLOOM & TEXTILES PVT LTD';
+    tradeName = 'Rajasthan Handloom House';
+    businessType = 'Private Limited Company';
+    address = '42, Johari Bazar, Pink City Market';
+  } else if (cleanGst === '24AAAAA2222A1Z2') {
+    legalName = 'SURAT SILK WEAVERS PRIVATE LIMITED';
+    tradeName = 'Surat Silk Hub';
+    businessType = 'Private Limited Company';
+    address = '108, Ring Road Textile Market';
+  } else if (cleanGst.startsWith('22')) {
+    legalName = 'EXAMPLE PRIVATE LIMITED';
+    tradeName = 'EXAMPLE CORP';
+    businessType = 'Private Limited Company';
+    address = '123, MG Road, Sector 5';
+  } else {
+    // Generate intelligent readable business names
+    const entityName = `BHARAT ${registeredState.toUpperCase()} ENTERPRISES`;
+    legalName = `${entityName} LLP`;
+    tradeName = `${registeredState} Wholesale Hub`;
+    businessType = 'Proprietorship / LLP';
+    address = `Shop 14, Main Commercial Complex, Sector 4`;
+  }
+
+  const responsePayload = {
+    status: 200,
+    message: "success",
+    request_id: `GST_V_1_${Date.now()}_a1b2`,
+    data: {
+      gstin: cleanGst,
+      verified: true,
+      status: "Active",
+      legal_name: legalName,
+      trade_name: tradeName,
+      business_type: businessType,
+      registration_date: "01/07/2017",
+      address: address,
+      state: registeredState,
+      district: registeredDistrict,
+      pincode: registeredPincode
+    }
+  };
+
+  res.json(responsePayload);
 });
 
 // Government UIDAI Aadhaar Verification API Endpoint

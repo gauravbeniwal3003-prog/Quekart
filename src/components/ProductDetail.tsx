@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ArrowLeft, Heart, Share2, HelpCircle, ChevronLeft, ChevronRight, ChevronDown, Check, ThumbsUp, ShoppingCart, Play } from 'lucide-react';
 import { Product, Review, CartItem } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -30,20 +30,50 @@ export default function ProductDetail({
 }: ProductDetailProps) {
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState(product.sizeOptions[0] || 'Free Size');
-  const [[imageIndex, direction], setImagePage] = useState([0, 0]);
   const [isHighlightsExpanded, setIsHighlightsExpanded] = useState(true);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
 
-  // Wrap around index to stay in bounds
-  const activeImageIndex = ((imageIndex % product.images.length) + product.images.length) % product.images.length;
-
-  const paginate = (newDirection: number) => {
-    setImagePage([imageIndex + newDirection, newDirection]);
+  const currentVariant = product.variants[selectedVariantIndex] || {
+    imageUrl: (product.images && product.images[0]) || '',
+    price: product.price,
+    originalPrice: product.originalPrice,
+    colorName: 'Default'
   };
 
-  const getImageUrl = (index: number) => {
-    const wrappedIdx = ((index % product.images.length) + product.images.length) % product.images.length;
-    return wrappedIdx === 0 ? currentVariant.imageUrl : product.images[wrappedIdx];
+  // Compile full list of distinct valid product images
+  const allImages = useMemo(() => {
+    if (product.images && product.images.length > 0) {
+      return product.images;
+    }
+    return currentVariant.imageUrl ? [currentVariant.imageUrl] : [];
+  }, [product.images, currentVariant.imageUrl]);
+
+  // Non-looping bounded gallery index: Strictly 0 to allImages.length - 1
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [slideDirection, setSlideDirection] = useState(0);
+
+  // Safely bounded next / previous navigation (Strictly NO looping/wrapping!)
+  const handlePrevImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (activeImageIndex > 0) {
+      setSlideDirection(-1);
+      setActiveImageIndex(prev => prev - 1);
+    }
+  };
+
+  const handleNextImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (activeImageIndex < allImages.length - 1) {
+      setSlideDirection(1);
+      setActiveImageIndex(prev => prev + 1);
+    }
+  };
+
+  const handleSelectImageIndex = (idx: number) => {
+    if (idx >= 0 && idx < allImages.length && idx !== activeImageIndex) {
+      setSlideDirection(idx > activeImageIndex ? 1 : -1);
+      setActiveImageIndex(idx);
+    }
   };
 
   const slideVariants = {
@@ -70,18 +100,12 @@ export default function ProductDetail({
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  const currentVariant = product.variants[selectedVariantIndex] || {
-    imageUrl: product.images[0],
-    price: product.price,
-    originalPrice: product.originalPrice,
-    colorName: 'Default'
-  };
-
   const isWishlisted = wishlist.includes(product.id);
 
   const handleVariantSelect = (index: number) => {
     setSelectedVariantIndex(index);
-    setImagePage([0, 0]); // reset main image to variant image
+    setActiveImageIndex(0);
+    setSlideDirection(0);
   };
 
   const triggerToast = (msg: string) => {
@@ -131,6 +155,25 @@ export default function ProductDetail({
     'https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?auto=format&fit=crop&q=80&w=300',
   ];
 
+  const currentImageSrc = allImages[activeImageIndex] || currentVariant.imageUrl || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=600';
+
+  // Vendor configured policies
+  const returnPolicyType = product.returnPolicyType || 'return';
+  const returnDays = product.returnDays ?? 7;
+  const isCodAvailable = product.isCodAvailable !== false;
+  const codPrice = product.codPrice || (product.price + (product.codSurcharge ?? 39));
+  const hasUpiOffer = product.hasUpiOffer !== false;
+
+  const upiSavingsAmount = product.upiDiscountType === 'flat'
+    ? (product.upiDiscountValue || 30)
+    : Math.round((currentVariant.price * (product.upiDiscountValue || 5)) / 100);
+
+  const upiTagline = product.upiOfferText || (
+    product.upiDiscountType === 'flat'
+      ? `Instant ₹${product.upiDiscountValue || 30} Flat OFF with UPI Payment`
+      : `Extra ${product.upiDiscountValue || 5}% Instant Discount with UPI (GPay/PhonePe/Paytm)`
+  );
+
   return (
     <div className="bg-gray-100 min-h-screen pb-24 relative" id="product-detail-page">
       {/* Toast Notification */}
@@ -174,28 +217,36 @@ export default function ProductDetail({
           {/* Main product photo viewport */}
           <div className="bg-white p-4 relative flex flex-col items-center border-b md:border border-gray-200 md:rounded-xl md:shadow-3xs" id="main-image-viewport">
             <div className="relative aspect-square w-full max-w-[340px] md:max-w-[420px] rounded-lg overflow-hidden flex items-center justify-center bg-gray-50 group">
-              <AnimatePresence initial={false} custom={direction}>
+              
+              {/* Photo Count Pill (e.g. 1 / 2) */}
+              {allImages.length > 1 && (
+                <span className="absolute top-3 left-3 z-20 bg-slate-900/80 backdrop-blur-xs text-white text-[11px] font-black px-2.5 py-1 rounded-full shadow-md font-mono pointer-events-none">
+                  {activeImageIndex + 1} / {allImages.length}
+                </span>
+              )}
+
+              <AnimatePresence initial={false} custom={slideDirection}>
                 <motion.img
-                  key={imageIndex}
-                  src={getImageUrl(imageIndex)}
-                  custom={direction}
+                  key={activeImageIndex}
+                  src={currentImageSrc}
+                  custom={slideDirection}
                   variants={slideVariants}
                   initial="enter"
                   animate="center"
                   exit="exit"
                   transition={{
-                    x: { type: "spring", stiffness: 300, damping: 30 },
-                    opacity: { duration: 0.2 }
+                    x: { type: "spring", stiffness: 320, damping: 32 },
+                    opacity: { duration: 0.18 }
                   }}
                   drag="x"
                   dragConstraints={{ left: 0, right: 0 }}
-                  dragElastic={0.6}
+                  dragElastic={0.4}
                   onDragEnd={(e, info) => {
-                    const swipeThreshold = 50;
+                    const swipeThreshold = 40;
                     if (info.offset.x < -swipeThreshold) {
-                      paginate(1);
+                      handleNextImage();
                     } else if (info.offset.x > swipeThreshold) {
-                      paginate(-1);
+                      handlePrevImage();
                     }
                   }}
                   alt={product.title}
@@ -205,27 +256,29 @@ export default function ProductDetail({
                 />
               </AnimatePresence>
 
-              {/* Desktop slide arrows */}
-              {product.images.length > 1 && (
+              {/* Desktop slide arrows: Strictly visible only when there is a previous / next image */}
+              {allImages.length > 1 && (
                 <>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      paginate(-1);
-                    }}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/80 hover:bg-white text-gray-800 flex items-center justify-center shadow-md border border-gray-100 hover:scale-105 active:scale-95 transition-all cursor-pointer opacity-0 group-hover:opacity-100 hidden md:flex"
-                  >
-                    <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      paginate(1);
-                    }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/80 hover:bg-white text-gray-800 flex items-center justify-center shadow-md border border-gray-100 hover:scale-105 active:scale-95 transition-all cursor-pointer opacity-0 group-hover:opacity-100 hidden md:flex"
-                  >
-                    <ChevronRight className="w-5 h-5 stroke-[2.5]" />
-                  </button>
+                  {activeImageIndex > 0 && (
+                    <button
+                      onClick={handlePrevImage}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-gray-800 flex items-center justify-center shadow-lg border border-gray-100 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                      title="Previous photo (1)"
+                      id="gallery-prev-btn"
+                    >
+                      <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
+                    </button>
+                  )}
+                  {activeImageIndex < allImages.length - 1 && (
+                    <button
+                      onClick={handleNextImage}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-gray-800 flex items-center justify-center shadow-lg border border-gray-100 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                      title="Next photo (2)"
+                      id="gallery-next-btn"
+                    >
+                      <ChevronRight className="w-5 h-5 stroke-[2.5]" />
+                    </button>
+                  )}
                 </>
               )}
 
@@ -240,68 +293,119 @@ export default function ProductDetail({
               </button>
             </div>
 
-            {/* Carousel Dots indicator */}
-            <div className="flex items-center gap-1.5 mt-3" id="carousel-dots">
-              {product.images.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    const diff = idx - activeImageIndex;
-                    if (diff !== 0) {
-                      setImagePage([idx, diff > 0 ? 1 : -1]);
-                    }
-                  }}
-                  className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                    activeImageIndex === idx ? 'w-6 bg-lucky-magenta' : 'w-1.5 bg-gray-300'
-                  }`}
-                />
-              ))}
-            </div>
+            {/* Gallery Thumbnail Strip (Numbered 1, 2, ...) with no infinite loop */}
+            {allImages.length > 1 && (
+              <div className="flex items-center gap-2 mt-3.5 overflow-x-auto py-1 scrollbar-hide max-w-full justify-center" id="carousel-numbered-thumbnails">
+                {allImages.map((imgUrl, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleSelectImageIndex(idx)}
+                    className={`relative w-14 h-16 rounded-lg overflow-hidden border-2 transition-all p-0.5 bg-white cursor-pointer ${
+                      activeImageIndex === idx
+                        ? 'border-lucky-magenta scale-105 shadow-sm ring-1 ring-lucky-magenta'
+                        : 'border-slate-200 opacity-60 hover:opacity-100'
+                    }`}
+                    id={`carousel-thumbnail-${idx}`}
+                  >
+                    <img
+                      src={imgUrl}
+                      alt={`Product photo ${idx + 1}`}
+                      className="w-full h-full object-cover rounded-xs"
+                      referrerPolicy="no-referrer"
+                    />
+                    <span className={`absolute bottom-0.5 right-0.5 text-[8.5px] font-black px-1.5 py-0.2 rounded-xs font-mono shadow-xs ${
+                      activeImageIndex === idx ? 'bg-lucky-magenta text-white' : 'bg-black/70 text-white'
+                    }`}>
+                      {idx + 1}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Color / Variant Swatches */}
-          <div className="bg-white p-4 border-b md:border border-gray-200 md:rounded-xl md:shadow-3xs" id="variants-swatches-section">
-            <span className="text-xs font-bold text-gray-500 tracking-wide uppercase">Select Variant</span>
-            <div className="flex gap-2.5 mt-2 overflow-x-auto py-1 scrollbar-hide" id="variants-swatches-row">
-              {product.variants.map((v, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleVariantSelect(idx)}
-                  className={`w-[60px] flex-shrink-0 aspect-[3/4] rounded-md overflow-hidden border-2 transition-all p-0.5 bg-white shadow-xs cursor-pointer ${
-                    selectedVariantIndex === idx ? 'border-lucky-magenta scale-105 shadow-md' : 'border-transparent opacity-80 hover:opacity-100'
-                  }`}
-                  id={`variant-swatch-${idx}`}
-                >
-                  <img
-                    src={v.imageUrl}
-                    alt={v.colorName}
-                    className="w-full h-full object-cover rounded-sm"
-                    referrerPolicy="no-referrer"
-                  />
-                </button>
-              ))}
+          {product.variants && product.variants.length > 1 && (
+            <div className="bg-white p-4 border-b md:border border-gray-200 md:rounded-xl md:shadow-3xs" id="variants-swatches-section">
+              <span className="text-xs font-bold text-gray-500 tracking-wide uppercase">Select Variant</span>
+              <div className="flex gap-2.5 mt-2 overflow-x-auto py-1 scrollbar-hide" id="variants-swatches-row">
+                {product.variants.map((v, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleVariantSelect(idx)}
+                    className={`w-[60px] flex-shrink-0 aspect-[3/4] rounded-md overflow-hidden border-2 transition-all p-0.5 bg-white shadow-xs cursor-pointer ${
+                      selectedVariantIndex === idx ? 'border-lucky-magenta scale-105 shadow-md' : 'border-transparent opacity-80 hover:opacity-100'
+                    }`}
+                    id={`variant-swatch-${idx}`}
+                  >
+                    <img
+                      src={v.imageUrl}
+                      alt={v.colorName}
+                      className="w-full h-full object-cover rounded-sm"
+                      referrerPolicy="no-referrer"
+                    />
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-gray-400 mt-1.5">
+                Selected: <span className="font-bold text-gray-700">{currentVariant.colorName}</span>
+              </p>
             </div>
-            <p className="text-[11px] text-gray-400 mt-1.5">
-              Selected: <span className="font-bold text-gray-700">{currentVariant.colorName}</span>
-            </p>
-          </div>
+          )}
 
-          {/* Trust Badges - Lucky Quality Indicators */}
+          {/* Trust Badges - Vendor Configured Return & COD Policies */}
           <div className="grid grid-cols-3 bg-white border-y border-gray-100/80 md:border md:rounded-xl p-4 text-center" id="trust-indicators-grid">
+            {/* 1. Return Policy Indicator */}
             <div className="flex flex-col items-center justify-center py-1">
-              <div className="w-12 h-12 rounded-full bg-[#E8F0F8] text-[#17436B] flex items-center justify-center mb-2 shadow-2xs hover:scale-105 transition-transform">
-                <span className="font-black text-base font-sans">7</span>
-              </div>
-              <span className="text-[11px] md:text-xs font-extrabold text-[#1e293b] leading-tight mb-0.5">7 Days Return</span>
-              <span className="text-[10px] text-slate-400 font-bold">Easy Policy</span>
+              {returnPolicyType === 'no_return' ? (
+                <>
+                  <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center mb-2 shadow-2xs">
+                    <span className="font-black text-lg">✕</span>
+                  </div>
+                  <span className="text-[11px] md:text-xs font-extrabold text-[#1e293b] leading-tight mb-0.5">No Return</span>
+                  <span className="text-[10px] text-slate-400 font-bold">Final Sale</span>
+                </>
+              ) : returnPolicyType === 'replacement' ? (
+                <>
+                  <div className="w-12 h-12 rounded-full bg-[#fff7ed] text-[#ea580c] flex items-center justify-center mb-2 shadow-2xs hover:scale-105 transition-transform">
+                    <span className="font-black text-base font-sans">{returnDays}</span>
+                  </div>
+                  <span className="text-[11px] md:text-xs font-extrabold text-[#1e293b] leading-tight mb-0.5">{returnDays} Days Replacement</span>
+                  <span className="text-[10px] text-slate-400 font-bold">Exchange Only</span>
+                </>
+              ) : (
+                <>
+                  <div className="w-12 h-12 rounded-full bg-[#E8F0F8] text-[#17436B] flex items-center justify-center mb-2 shadow-2xs hover:scale-105 transition-transform">
+                    <span className="font-black text-base font-sans">{returnDays}</span>
+                  </div>
+                  <span className="text-[11px] md:text-xs font-extrabold text-[#1e293b] leading-tight mb-0.5">{returnDays} Days Return</span>
+                  <span className="text-[10px] text-slate-400 font-bold">Easy Policy</span>
+                </>
+              )}
             </div>
+
+            {/* 2. COD Policy Indicator */}
             <div className="flex flex-col items-center justify-center py-1 border-x border-slate-100">
-              <div className="w-12 h-12 rounded-full bg-[#ecfdf5] text-[#059669] flex items-center justify-center mb-2 shadow-2xs hover:scale-105 transition-transform">
-                <span className="font-black text-lg">₹</span>
-              </div>
-              <span className="text-[11px] md:text-xs font-extrabold text-[#1e293b] leading-tight mb-0.5">COD Available</span>
-              <span className="text-[10px] text-slate-400 font-bold">Pay on Delivery</span>
+              {isCodAvailable ? (
+                <>
+                  <div className="w-12 h-12 rounded-full bg-[#ecfdf5] text-[#059669] flex items-center justify-center mb-2 shadow-2xs hover:scale-105 transition-transform">
+                    <span className="font-black text-lg">₹</span>
+                  </div>
+                  <span className="text-[11px] md:text-xs font-extrabold text-[#1e293b] leading-tight mb-0.5">COD Available</span>
+                  <span className="text-[10px] text-slate-400 font-bold">Pay on Delivery</span>
+                </>
+              ) : (
+                <>
+                  <div className="w-12 h-12 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center mb-2 shadow-2xs hover:scale-105 transition-transform">
+                    <span className="font-black text-base">⚡</span>
+                  </div>
+                  <span className="text-[11px] md:text-xs font-extrabold text-[#1e293b] leading-tight mb-0.5">Prepaid Only</span>
+                  <span className="text-[10px] text-indigo-400 font-bold">Online Payment</span>
+                </>
+              )}
             </div>
+
+            {/* 3. Lowest Price / Quality Guarantee */}
             <div className="flex flex-col items-center justify-center py-1">
               <div className="w-12 h-12 rounded-full bg-[#fffbeb] text-[#d97706] flex items-center justify-center mb-2 shadow-2xs hover:scale-105 transition-transform">
                 <span className="font-black text-base">★</span>
@@ -374,26 +478,37 @@ export default function ProductDetail({
             </div>
 
             {/* UPI Offer banner */}
-            {product.hasUpiOffer && (
-              <div className="bg-gradient-to-r from-blue-50 to-blue-50/20 border border-blue-200/60 rounded-lg p-2.5 mt-3 flex items-center justify-between shadow-3xs" id="upi-banner">
+            {hasUpiOffer && (
+              <div className="bg-gradient-to-r from-purple-50 via-indigo-50/50 to-blue-50/30 border border-purple-200/80 rounded-xl p-3 mt-3 flex items-center justify-between shadow-xs" id="upi-banner">
                 <div className="flex items-center gap-2.5">
-                  <div className="flex items-center">
-                    <span className="bg-emerald-500 text-white font-black text-[10px] w-5 h-5 rounded-xs flex items-center justify-center rotate-12 shadow-3xs">▲</span>
-                    <span className="bg-yellow-500 text-white font-black text-[10px] w-5 h-5 rounded-xs flex items-center justify-center -translate-x-1.5 -rotate-12 shadow-3xs">▶</span>
+                  <div className="flex items-center flex-shrink-0">
+                    <span className="bg-purple-600 text-white font-black text-[10px] w-5 h-5 rounded-md flex items-center justify-center shadow-xs">₹</span>
                   </div>
-                  <span className="text-xs text-blue-950 font-extrabold tracking-tight">
-                    UPI Offer applied for you! Extra discount at checkout
-                  </span>
+                  <div>
+                    <span className="text-xs text-purple-950 font-extrabold tracking-tight block">
+                      {upiTagline}
+                    </span>
+                    <span className="text-[10px] text-purple-600 font-semibold">
+                      Save ₹{upiSavingsAmount} instantly • Pay ₹{Math.max(1, currentVariant.price - upiSavingsAmount)} via GPay / PhonePe / Paytm
+                    </span>
+                  </div>
                 </div>
-                <span className="text-[9px] badge-gradient-magenta font-black px-2 py-0.5 rounded-sm shadow-3xs">APPLIED</span>
+                <span className="text-[9px] badge-gradient-magenta font-black px-2 py-0.5 rounded-sm shadow-3xs flex-shrink-0">OFFER</span>
               </div>
             )}
 
-            {/* COD prices */}
-            <div className="text-xs text-slate-700 font-extrabold mt-2.5 bg-slate-100/60 p-2 rounded-lg inline-flex items-center gap-1 border border-slate-200/50">
-              <span className="text-emerald-600 font-black">✔</span>
-              <span>₹{product.codPrice} with Cash on Delivery (COD)</span>
-            </div>
+            {/* COD Price / Prepaid Indicator */}
+            {isCodAvailable ? (
+              <div className="text-xs text-slate-700 font-extrabold mt-2.5 bg-emerald-50/60 p-2.5 rounded-xl inline-flex items-center gap-2 border border-emerald-200/60 w-fit">
+                <span className="text-emerald-700 font-black text-xs bg-emerald-100 px-1.5 py-0.5 rounded-md">✔ COD</span>
+                <span>₹{codPrice} with Cash on Delivery (COD)</span>
+              </div>
+            ) : (
+              <div className="text-xs text-indigo-900 font-bold mt-2.5 bg-indigo-50/70 p-2.5 rounded-xl inline-flex items-center gap-2 border border-indigo-200/60 w-fit">
+                <span className="text-indigo-700 font-black text-xs bg-indigo-100 px-1.5 py-0.5 rounded-md">⚡ PREPAID ONLY</span>
+                <span>Online payment only for this item. Cash on Delivery is disabled.</span>
+              </div>
+            )}
 
             {/* Rating and reviewer aggregate indicators */}
             <div className="flex items-center gap-2.5 mt-3.5" id="aggregate-review-summary">

@@ -38,8 +38,16 @@ export interface Product {
   originalPrice: number;
   discountPercent: number;
   isAd?: boolean;
-  codPrice: number;
-  hasUpiOffer?: boolean;
+  isCodAvailable?: boolean; // Vendor toggle: Cash on Delivery available or online prepaid only
+  codPrice: number; // COD Price (including COD convenience charge if any)
+  codSurcharge?: number; // Custom COD extra fee if configured by vendor
+  returnPolicyType?: 'return' | 'replacement' | 'no_return'; // Vendor policy: Return, Replacement only, or No return
+  returnDays?: number; // e.g. 7, 10, 15, 30 days
+  returnPolicyText?: string; // Custom policy descriptor
+  hasUpiOffer?: boolean; // Vendor toggle: UPI extra offer enabled
+  upiDiscountType?: 'percentage' | 'flat'; // UPI discount structure
+  upiDiscountValue?: number; // e.g. 5 for 5% or 30 for ₹30 flat off
+  upiOfferText?: string; // e.g. "Extra 5% OFF with UPI / Instant ₹30 Discount"
   rating: number;
   ratingCount: number;
   reviewCount: number;
@@ -63,7 +71,8 @@ export interface Product {
 
 export interface Vendor {
   id: string;
-  name: string;
+  name: string; // Store / Trade / Business name
+  ownerName?: string; // Proprietor / Legal Name
   email: string;
   phone: string;
   age?: number;
@@ -71,6 +80,8 @@ export interface Vendor {
   aadhaarVerified?: boolean;
   gstinVerified?: boolean;
   legalBusinessName?: string;
+  tradeName?: string;
+  businessType?: string;
   vendorType: 'small' | 'big';
   isVerified?: boolean;
   businessCategory: string;
@@ -80,6 +91,9 @@ export interface Vendor {
   createdAt: string;
   state?: string;
   city?: string;
+  district?: string;
+  pincode?: string;
+  address?: string;
   avatar?: string;
   description?: string;
 }
