@@ -152,6 +152,27 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- ----------------------------------------------------------------------
+-- 4.7. REVIEWS TABLE (Permanent dedicated reviews storage & fast lookup)
+-- ----------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS reviews (
+    id TEXT PRIMARY KEY,
+    product_id TEXT NOT NULL,
+    user_id TEXT,
+    user_phone TEXT,
+    user_name TEXT NOT NULL,
+    user_avatar TEXT,
+    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    title TEXT,
+    comment TEXT,
+    images JSONB DEFAULT '[]'::jsonb,
+    helpful_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE reviews DISABLE ROW LEVEL SECURITY;
+
+-- ----------------------------------------------------------------------
 -- 5. CATEGORIES TABLE
 -- ----------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS categories (
@@ -184,6 +205,9 @@ CREATE INDEX IF NOT EXISTS idx_products_category ON products ((data->>'category'
 CREATE INDEX IF NOT EXISTS idx_vendors_phone ON vendors ((data->>'phone'));
 CREATE INDEX IF NOT EXISTS idx_users_phone ON users ((data->>'phone'));
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders ((data->>'status'));
+CREATE INDEX IF NOT EXISTS idx_reviews_product_id ON reviews (product_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews (user_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_user_phone ON reviews (user_phone);
 
 -- ----------------------------------------------------------------------
 -- 7. VIRTUAL EXTRACTED COLUMNS (FOR EASY DASHBOARD VISUALS & METRICS)

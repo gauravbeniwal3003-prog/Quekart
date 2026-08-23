@@ -1247,14 +1247,14 @@ app.get('/api/auth/session', async (req, res) => {
 });
 
 // --- SECURE IMAGE UPLOAD TO IMGBB (PROXIED TO PROTECT SECRETS) ---
-app.post('/api/upload-image', authenticateAdmin, async (req, res) => {
+app.post('/api/upload-image', async (req, res) => {
   try {
     const { image } = req.body; // Base64 representation of image
     if (!image) {
       return res.status(400).json({ error: 'No image data provided. Please capture or select a valid image.' });
     }
 
-    // Retrieve ImgBB API Key from environment or fallback to client's provided key
+    // Retrieve ImgBB API Key from environment or fallback to verified key
     const imgbbKey = process.env.IMGBB_API_KEY || '55179f3e39711f9b8a5f1b568b5567a9';
 
     // Extract raw base64 data (ImgBB accepts raw base64 string or url-encoded data)
@@ -1662,6 +1662,390 @@ app.delete('/api/products/:id', async (req, res) => {
     res.json({ success: true, message: 'Product deleted successfully' });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to delete product' });
+  }
+});
+
+// --- SUBMIT CUSTOM PRODUCT REVIEW ---
+app.post('/api/products/:id/reviews', async (req, res) => {
+  const { id } = req.params;
+  const { rating, title, comment, userName, userAvatar, images, userId, userPhone, userEmail } = req.body;
+
+  const numRating = Number(rating);
+  if (!numRating || isNaN(numRating) || numRating < 1 || numRating > 5) {
+    return res.status(400).json({ error: 'Valid rating between 1 and 5 stars is required.' });
+  }
+
+  try {
+    let product: Product | undefined;
+    if (useSupabase && supabase) {
+      const { data, error } = await supabase.from('products').select('*').eq('id', id).single();
+      if (!error && data) {
+        product = data.data;
+      }
+    }
+    if (!product) {
+      product = localProducts.find(p => p.id === id);
+    }
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found.' });
+    }
+
+    const defaultTitle = numRating >= 5 ? 'Excellent Quality!' : numRating >= 4 ? 'Very Good Product' : numRating >= 3 ? 'Good Value' : numRating >= 2 ? 'Average' : 'Needs Improvement';
+
+    // --- Check if user is a Verified Buyer (has ordered this product ID) ---
+    let isVerifiedPurchase = false;
+    let matchingOrderId: string | undefined = undefined;
+
+    try {
+      let allOrdersList: Order[] = localOrders;
+      if (useSupabase && supabase) {
+        const { data: dbOrders, error: dbOrdersErr } = await supabase.from('orders').select('*');
+        if (!dbOrdersErr && dbOrders) {
+          allOrdersList = dbOrders.map((r: any) => r.data);
+        }
+      }
+
+      const cleanUserPhone = userPhone ? String(userPhone).replace(/[^\d]/g, '').slice(-10) : '';
+
+      const matchedOrder = allOrdersList.find((ord: Order) => {
+        if (!ord || !Array.isArray(ord.items)) return false;
+        const hasProduct = ord.items.some((item: CartItem) =>
+          item.product?.id === id || 
+          (product && item.product?.numericId === product.numericId) ||
+          item.id?.startsWith(id)
+        );
+        if (!hasProduct) return false;
+
+        const matchesUserId = userId && ord.userId && ord.userId === userId;
+        const orderPhoneClean = ord.shippingAddress?.phone ? String(ord.shippingAddress.phone).replace(/[^\d]/g, '').slice(-10) : '';
+        const matchesPhone = cleanUserPhone && orderPhoneClean && orderPhoneClean === cleanUserPhone;
+        const matchesEmail = userEmail && ord.userEmail && ord.userEmail.toLowerCase() === String(userEmail).toLowerCase();
+
+        return matchesUserId || matchesPhone || matchesEmail;
+      });
+
+      if (matchedOrder) {
+        isVerifiedPurchase = true;
+        matchingOrderId = matchedOrder.id;
+      }
+    } catch (ordCheckErr) {
+      console.warn('Verified buyer order check non-blocking warning:', ordCheckErr);
+    }
+
+    const newReview = {
+      id: `rev-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      userId: userId || undefined,
+      userPhone: userPhone || undefined,
+      userEmail: userEmail || undefined,
+      userName: (userName || (isVerifiedPurchase ? 'Verified Buyer' : 'Customer')).trim(),
+      userAvatar: userAvatar || undefined,
+      rating: Math.round(numRating),
+      title: (title && title.trim()) || defaultTitle,
+      comment: (comment || '').trim(),
+      postedDate: 'Posted today',
+      updatedAt: undefined,
+      images: Array.isArray(images) ? images.filter((img: any) => typeof img === 'string' && img.startsWith('http')) : [],
+      helpfulCount: 0,
+      helpfulUsers: [],
+      isVerifiedPurchase,
+      orderId: matchingOrderId
+    };
+
+    const existingReviews = Array.isArray(product.reviews) ? product.reviews : [];
+    const updatedReviews = [newReview, ...existingReviews];
+    const totalReviews = updatedReviews.length;
+    const avgRating = Number((updatedReviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews).toFixed(1));
+
+    product.reviews = updatedReviews;
+    product.reviewCount = totalReviews;
+    product.ratingCount = totalReviews;
+    product.rating = avgRating;
+
+    if (useSupabase && supabase) {
+      const { error: updateErr } = await supabase.from('products').update({ data: product }).eq('id', product.id);
+      if (updateErr) {
+        console.warn('Could not update product reviews in Supabase, continuing locally:', updateErr);
+      }
+
+      // Also upsert into dedicated reviews table if available
+      try {
+        await supabase.from('reviews').upsert({
+          id: newReview.id,
+          product_id: product.id,
+          user_id: newReview.userId || null,
+          user_phone: newReview.userPhone || null,
+          user_name: newReview.userName,
+          user_avatar: newReview.userAvatar || null,
+          rating: newReview.rating,
+          title: newReview.title,
+          comment: newReview.comment,
+          images: newReview.images,
+          helpful_count: newReview.helpfulCount,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      } catch (revTableErr) {
+        console.warn('Dedicated reviews table upsert error (non-blocking):', revTableErr);
+      }
+    }
+
+    // Update memory
+    localProducts = localProducts.map(p => p.id === product!.id ? product! : p);
+
+    res.status(201).json({
+      success: true,
+      message: 'Review submitted successfully',
+      review: newReview,
+      product
+    });
+  } catch (err: any) {
+    console.error('Submit review error:', err);
+    res.status(500).json({ error: err.message || 'Failed to submit review' });
+  }
+});
+
+// --- EDIT / UPDATE PRODUCT REVIEW ---
+app.put('/api/products/:id/reviews/:reviewId', async (req, res) => {
+  const { id, reviewId } = req.params;
+  const { rating, title, comment, userName, images, userId, userPhone } = req.body;
+  const adminSecret = req.headers['x-admin-secret'];
+
+  try {
+    let product: Product | undefined;
+    if (useSupabase && supabase) {
+      const { data, error } = await supabase.from('products').select('*').eq('id', id).single();
+      if (!error && data) product = data.data;
+    }
+    if (!product) product = localProducts.find(p => p.id === id);
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found.' });
+    }
+
+    const reviews = Array.isArray(product.reviews) ? product.reviews : [];
+    const reviewIndex = reviews.findIndex(r => r.id === reviewId);
+
+    if (reviewIndex === -1) {
+      return res.status(404).json({ error: 'Review not found on this product.' });
+    }
+
+    const existingRev = reviews[reviewIndex];
+
+    // Verify ownership (or admin secret)
+    const isAdmin = adminSecret === ADMIN_SECRET;
+    const isOwner = (
+      isAdmin ||
+      (existingRev.userId && userId && existingRev.userId === userId) ||
+      (existingRev.userPhone && userPhone && existingRev.userPhone === userPhone) ||
+      (existingRev.userName && userName && existingRev.userName.toLowerCase() === userName.toLowerCase()) ||
+      (!existingRev.userId && !existingRev.userPhone) // If legacy review created without phone
+    );
+
+    if (!isOwner) {
+      return res.status(403).json({ error: 'Unauthorized: You can only edit your own review.' });
+    }
+
+    const numRating = rating !== undefined ? Number(rating) : existingRev.rating;
+    if (numRating && (numRating < 1 || numRating > 5)) {
+      return res.status(400).json({ error: 'Valid rating between 1 and 5 stars is required.' });
+    }
+
+    const updatedReview = {
+      ...existingRev,
+      rating: Math.round(numRating),
+      title: title !== undefined ? title.trim() : existingRev.title,
+      comment: comment !== undefined ? comment.trim() : existingRev.comment,
+      userName: userName ? userName.trim() : existingRev.userName,
+      images: Array.isArray(images) ? images.filter((img: any) => typeof img === 'string' && img.startsWith('http')) : existingRev.images,
+      updatedAt: 'Edited recently'
+    };
+
+    reviews[reviewIndex] = updatedReview;
+    product.reviews = reviews;
+
+    // Recalculate average rating
+    const totalReviews = reviews.length;
+    if (totalReviews > 0) {
+      product.rating = Number((reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews).toFixed(1));
+    }
+
+    if (useSupabase && supabase) {
+      await supabase.from('products').update({ data: product }).eq('id', product.id);
+      try {
+        await supabase.from('reviews').update({
+          rating: updatedReview.rating,
+          title: updatedReview.title,
+          comment: updatedReview.comment,
+          images: updatedReview.images,
+          user_name: updatedReview.userName,
+          updated_at: new Date().toISOString()
+        }).eq('id', reviewId);
+      } catch (revErr) {
+        console.warn('Reviews table update warning:', revErr);
+      }
+    }
+
+    localProducts = localProducts.map(p => p.id === product!.id ? product! : p);
+
+    res.json({
+      success: true,
+      message: 'Review updated successfully',
+      review: updatedReview,
+      product
+    });
+  } catch (err: any) {
+    console.error('Update review error:', err);
+    res.status(500).json({ error: err.message || 'Failed to update review' });
+  }
+});
+
+// --- DELETE PRODUCT REVIEW ---
+app.delete('/api/products/:id/reviews/:reviewId', async (req, res) => {
+  const { id, reviewId } = req.params;
+  const { userId, userPhone, userName } = req.query as { userId?: string; userPhone?: string; userName?: string };
+  const adminSecret = req.headers['x-admin-secret'];
+
+  try {
+    let product: Product | undefined;
+    if (useSupabase && supabase) {
+      const { data, error } = await supabase.from('products').select('*').eq('id', id).single();
+      if (!error && data) product = data.data;
+    }
+    if (!product) product = localProducts.find(p => p.id === id);
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found.' });
+    }
+
+    const reviews = Array.isArray(product.reviews) ? product.reviews : [];
+    const targetRev = reviews.find(r => r.id === reviewId);
+
+    if (!targetRev) {
+      return res.status(404).json({ error: 'Review not found on this product.' });
+    }
+
+    const isAdmin = adminSecret === ADMIN_SECRET;
+    const isOwner = (
+      isAdmin ||
+      (targetRev.userId && userId && targetRev.userId === userId) ||
+      (targetRev.userPhone && userPhone && targetRev.userPhone === userPhone) ||
+      (targetRev.userName && userName && targetRev.userName.toLowerCase() === userName.toLowerCase()) ||
+      (!targetRev.userId && !targetRev.userPhone)
+    );
+
+    if (!isOwner) {
+      return res.status(403).json({ error: 'Unauthorized: You can only delete your own review.' });
+    }
+
+    const updatedReviews = reviews.filter(r => r.id !== reviewId);
+    product.reviews = updatedReviews;
+    product.reviewCount = updatedReviews.length;
+    product.ratingCount = updatedReviews.length;
+    product.rating = updatedReviews.length > 0 ? Number((updatedReviews.reduce((sum, r) => sum + r.rating, 0) / updatedReviews.length).toFixed(1)) : 0;
+
+    if (useSupabase && supabase) {
+      await supabase.from('products').update({ data: product }).eq('id', product.id);
+      try {
+        await supabase.from('reviews').delete().eq('id', reviewId);
+      } catch (revErr) {
+        console.warn('Reviews table delete warning:', revErr);
+      }
+    }
+
+    localProducts = localProducts.map(p => p.id === product!.id ? product! : p);
+
+    res.json({
+      success: true,
+      message: 'Review deleted successfully',
+      product
+    });
+  } catch (err: any) {
+    console.error('Delete review error:', err);
+    res.status(500).json({ error: err.message || 'Failed to delete review' });
+  }
+});
+
+// --- VOTE HELPFUL ON PRODUCT REVIEW (Signed-in only, 1 vote per account) ---
+app.post('/api/products/:id/reviews/:reviewId/helpful', async (req, res) => {
+  const { id, reviewId } = req.params;
+  const { userId, userPhone } = req.body;
+
+  // Strict sign-in enforcement
+  if (!userId && !userPhone) {
+    return res.status(401).json({ 
+      error: 'Sign in required: Please sign in with your mobile number or account to vote reviews as helpful.' 
+    });
+  }
+
+  const voterKey = String(userId || userPhone).trim();
+
+  try {
+    let product: Product | undefined;
+    if (useSupabase && supabase) {
+      const { data, error } = await supabase.from('products').select('*').eq('id', id).single();
+      if (!error && data) product = data.data;
+    }
+    if (!product) product = localProducts.find(p => p.id === id);
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found.' });
+    }
+
+    const reviews = Array.isArray(product.reviews) ? product.reviews : [];
+    const reviewIndex = reviews.findIndex(r => r.id === reviewId);
+
+    if (reviewIndex === -1) {
+      return res.status(404).json({ error: 'Review not found on this product.' });
+    }
+
+    const targetRev = { ...reviews[reviewIndex] };
+    const helpfulUsers = Array.isArray(targetRev.helpfulUsers) ? [...targetRev.helpfulUsers] : [];
+    
+    // Check if user already voted (One account se One hi)
+    const existingIndex = helpfulUsers.indexOf(voterKey);
+    let voted = false;
+
+    if (existingIndex > -1) {
+      // Toggle off / remove vote
+      helpfulUsers.splice(existingIndex, 1);
+      targetRev.helpfulCount = Math.max(0, (targetRev.helpfulCount || 1) - 1);
+      voted = false;
+    } else {
+      // Add new vote
+      helpfulUsers.push(voterKey);
+      targetRev.helpfulCount = (targetRev.helpfulCount || 0) + 1;
+      voted = true;
+    }
+
+    targetRev.helpfulUsers = helpfulUsers;
+    reviews[reviewIndex] = targetRev;
+    product.reviews = reviews;
+
+    if (useSupabase && supabase) {
+      await supabase.from('products').update({ data: product }).eq('id', product.id);
+      try {
+        await supabase.from('reviews').update({
+          helpful_count: targetRev.helpfulCount
+        }).eq('id', reviewId);
+      } catch (revErr) {
+        console.warn('Reviews table helpful count update warning:', revErr);
+      }
+    }
+
+    localProducts = localProducts.map(p => p.id === product!.id ? product! : p);
+
+    res.json({
+      success: true,
+      voted,
+      helpfulCount: targetRev.helpfulCount,
+      message: voted ? 'Thank you! You marked this review as helpful.' : 'Helpful vote removed.',
+      review: targetRev,
+      product
+    });
+  } catch (err: any) {
+    console.error('Vote helpful review error:', err);
+    res.status(500).json({ error: err.message || 'Failed to register helpful vote.' });
   }
 });
 
@@ -2257,6 +2641,9 @@ app.post('/api/orders', async (req, res) => {
 
     const secureOrder: Order = {
       id: 'order-' + Math.floor(100000 + Math.random() * 900000),
+      userId: req.body.userId || undefined,
+      userPhone: (req.body.userPhone || shippingAddress.phone || '').replace(/[^\d+]/g, '') || undefined,
+      userEmail: req.body.userEmail || undefined,
       items: verifiedItemsList,
       orderDate: orderDateStr,
       deliveryDate: deliveryDateStr,
@@ -2581,7 +2968,7 @@ Schema:
 }`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
           responseMimeType: "application/json",

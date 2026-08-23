@@ -163,28 +163,28 @@ export default function CartDrawer({
   const filteredCart = cart.filter(item => item.product.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
-    <div className="bg-gray-50 min-h-[calc(100vh-130px)] pb-16 w-full flex justify-center font-sans" id="cart-view-container">
+    <div className="bg-gray-50 min-h-[calc(100vh-130px)] pb-16 w-full flex justify-center font-sans px-0 sm:px-4 py-0 sm:py-6" id="cart-view-container">
       {/* Main Container */}
-      <div className="relative w-full max-w-md bg-white h-full min-h-screen flex flex-col shadow-sm z-10" id="cart-view-panel">
+      <div className="relative w-full max-w-md md:max-w-4xl lg:max-w-5xl bg-white h-full min-h-screen sm:min-h-0 sm:rounded-2xl sm:border border-gray-200/80 flex flex-col shadow-sm z-10 overflow-hidden" id="cart-view-panel">
         
         {/* Header */}
-        <div className="sticky top-[60px] md:top-[120px] z-[90] bg-white px-4 py-4 border-b border-gray-200/80 flex flex-col gap-3 shadow-xs" id="cart-sticky-header">
-          <div className="flex items-center gap-2">
+        <div className="sticky top-[60px] md:top-[120px] z-[90] bg-white px-4 sm:px-6 py-4 border-b border-gray-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs" id="cart-sticky-header">
+          <div className="flex items-center gap-2.5">
             {checkoutStep === 'address' && (
-              <button onClick={() => setCheckoutStep('cart')} className="p-1 hover:bg-gray-100 rounded-full">
+              <button onClick={() => setCheckoutStep('cart')} className="p-1 hover:bg-gray-100 rounded-full cursor-pointer">
                 <ArrowLeft className="w-5 h-5 text-gray-700" />
               </button>
             )}
-            <h2 className="text-sm font-black text-gray-800 tracking-tight uppercase">
-              {checkoutStep === 'cart' && 'Shopping Cart'}
-              {checkoutStep === 'address' && 'Delivery Address'}
+            <h2 className="text-sm sm:text-base font-black text-gray-800 tracking-tight uppercase">
+              {checkoutStep === 'cart' && `Shopping Cart (${cart.length} ${cart.length === 1 ? 'Item' : 'Items'})`}
+              {checkoutStep === 'address' && 'Delivery Address & Payment'}
               {checkoutStep === 'success' && 'Order Placed!'}
             </h2>
           </div>
           
           {/* Local Search inside Cart View */}
           {checkoutStep === 'cart' && cart.length > 0 && (
-            <div className="relative flex-1 w-full mt-2">
+            <div className="relative w-full sm:w-72">
               <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
               <input
                 type="text"
@@ -230,381 +230,412 @@ export default function CartDrawer({
         ) : (
           <>
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4" id="cart-drawer-content">
-              {checkoutStep === 'cart' ? (
-                /* PHASE 1: Cart Items List */
-                cart.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-center" id="empty-cart-state">
-                    <span className="text-4xl mb-3">🛒</span>
-                    <h3 className="text-sm font-bold text-gray-800">Your cart is empty</h3>
-                    <p className="text-xs text-gray-400 mt-1">Explore similar QueKart products to add items here!</p>
-                  </div>
-                ) : filteredCart.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-center" id="empty-search-cart-state">
-                    <p className="text-xs text-gray-400 mt-1">No cart items matched "{searchQuery}"</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3.5" id="cart-items-list">
-                    {filteredCart.map((item) => {
-                      const variant = item.product.variants[item.selectedVariantIndex] || {
-                        imageUrl: item.product.images[0],
-                        price: item.product.price,
-                        originalPrice: item.product.originalPrice,
-                        colorName: 'Default'
-                      };
-                      return (
-                        <div
-                          key={item.id}
-                          className="bg-white border border-gray-200/80 rounded-lg p-3 flex items-start gap-3.5 relative"
-                          id={`cart-item-${item.id}`}
-                        >
-                          {/* Remove Button */}
-                          <button
-                            onClick={() => onRemoveItem(item.id)}
-                            className="absolute top-3 right-3 text-gray-400 hover:text-red-500 cursor-pointer"
-                            title="Remove"
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:grid md:grid-cols-12 md:gap-6 lg:gap-8 items-start" id="cart-drawer-content">
+              
+              {/* LEFT COLUMN: Items / Address */}
+              <div className="md:col-span-7 space-y-4">
+                {checkoutStep === 'cart' ? (
+                  /* PHASE 1: Cart Items List */
+                  cart.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-center" id="empty-cart-state">
+                      <span className="text-4xl mb-3">🛒</span>
+                      <h3 className="text-sm font-bold text-gray-800">Your cart is empty</h3>
+                      <p className="text-xs text-gray-400 mt-1">Explore similar QueKart products to add items here!</p>
+                    </div>
+                  ) : filteredCart.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-center" id="empty-search-cart-state">
+                      <p className="text-xs text-gray-400 mt-1">No cart items matched "{searchQuery}"</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3.5" id="cart-items-list">
+                      {filteredCart.map((item) => {
+                        const variant = item.product.variants[item.selectedVariantIndex] || {
+                          imageUrl: item.product.images[0],
+                          price: item.product.price,
+                          originalPrice: item.product.originalPrice,
+                          colorName: 'Default'
+                        };
+                        return (
+                          <div
+                            key={item.id}
+                            className="bg-white border border-gray-200/80 rounded-xl p-3 sm:p-4 flex items-start gap-3.5 relative shadow-3xs"
+                            id={`cart-item-${item.id}`}
                           >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-
-                          {/* Image */}
-                          <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
-                            <img src={variant.imageUrl} alt={item.product.title} className="w-full h-full object-cover" />
-                          </div>
-
-                          {/* Info */}
-                          <div className="flex-1 min-w-0 pr-6">
-                            <h4 className="text-xs font-bold text-gray-800 truncate" title={item.product.title}>
-                              {item.product.title}
-                            </h4>
-                            <p className="text-[10px] text-gray-400 mt-0.5">
-                              Size: <span className="font-bold text-gray-700">{item.selectedSize}</span>
-                              <span className="mx-2">|</span>
-                              Color: <span className="font-bold text-gray-700">{variant.colorName}</span>
-                            </p>
-
-                            <div className="flex items-baseline gap-1.5 mt-2">
-                              <span className="text-sm font-black text-slate-900 premium-rupee">₹{variant.price}</span>
-                              <span className="text-[10px] text-gray-400 line-through font-semibold">₹{variant.originalPrice}</span>
-                              <span className="text-[10px] text-lucky-green font-extrabold tracking-tight">{item.product.discountPercent}% Off</span>
-                            </div>
-
-                            {/* Quantity buttons */}
-                            <div className="flex items-center gap-2 mt-2.5">
-                              <button
-                                onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-                                className="w-6 h-6 bg-gray-100 border border-gray-200 rounded-md text-xs font-bold flex items-center justify-center hover:bg-gray-200 cursor-pointer"
-                              >
-                                -
-                              </button>
-                              <span className="text-xs font-bold w-6 text-center">{item.quantity}</span>
-                              <button
-                                onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-                                className="w-6 h-6 bg-gray-100 border border-gray-200 rounded-md text-xs font-bold flex items-center justify-center hover:bg-gray-200 cursor-pointer"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    {/* Safety guarantee */}
-                    <div className="bg-emerald-50 border border-emerald-100/60 rounded-md p-3 flex gap-2.5 items-start mt-4">
-                      <ShieldCheck className="w-5 h-5 text-lucky-green flex-shrink-0" />
-                      <div>
-                        <h4 className="text-[11px] font-extrabold text-emerald-950">QueKart Safety Guarantee</h4>
-                        <p className="text-[10px] text-emerald-800/80 leading-snug mt-0.5">Safe payments, 100% genuine suppliers, and secure tracking information.</p>
-                      </div>
-                    </div>
-                  </div>
-                )
-              ) : (
-                /* PHASE 2: Address Form */
-                <form onSubmit={handleCheckoutSubmit} className="space-y-3.5" id="checkout-address-form">
-                  <div className="bg-blue-50/40 p-3 rounded-lg border border-blue-100/50 flex items-center gap-2 text-xs font-medium text-blue-900">
-                    <MapPin className="w-4 h-4 text-lucky-magenta" />
-                    <span>Please provide a valid Indian shipping address.</span>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Full Name</label>
-                    <input
-                      type="text"
-                      required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 text-xs font-medium focus:outline-hidden focus:border-lucky-magenta"
-                      placeholder="Receiver's name"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Phone Number</label>
-                    <input
-                      type="tel"
-                      required
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 text-xs font-medium focus:outline-hidden focus:border-lucky-magenta"
-                      placeholder="10-digit mobile number"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Flat/House/Street Address</label>
-                    <input
-                      type="text"
-                      required
-                      value={addressLine}
-                      onChange={(e) => setAddressLine(e.target.value)}
-                      className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 text-xs font-medium focus:outline-hidden focus:border-lucky-magenta"
-                      placeholder="Flat no., Street name"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">City</label>
-                      <input
-                        type="text"
-                        required
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                        className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 text-xs font-medium focus:outline-hidden focus:border-lucky-magenta"
-                        placeholder="e.g. Gurugram"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Pincode</label>
-                      <input
-                        type="text"
-                        required
-                        value={pincode}
-                        onChange={(e) => setPincode(e.target.value)}
-                        className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 text-xs font-medium focus:outline-hidden focus:border-lucky-magenta"
-                        placeholder="6-digit PIN"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">State</label>
-                    <input
-                      type="text"
-                      required
-                      value={state}
-                      onChange={(e) => setState(e.target.value)}
-                      className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 text-xs font-medium focus:outline-hidden focus:border-lucky-magenta"
-                      placeholder="e.g. Haryana"
-                    />
-                  </div>
-
-                  <button type="submit" className="hidden" id="hidden-form-submit-btn"></button>
-                </form>
-              )}
-
-              {/* Interactive Coupon System Section */}
-              {checkoutStep === 'cart' && cart.length > 0 && (
-                <div className="bg-white rounded-lg border border-gray-200/80 p-3.5 space-y-3 shadow-3xs" id="coupon-section">
-                  <div className="flex items-center gap-2 text-gray-800 font-extrabold text-xs tracking-wide uppercase">
-                    <Ticket className="w-4 h-4 text-lucky-magenta" />
-                    <span>Select & Apply Coupon</span>
-                  </div>
-
-                  {/* Input form */}
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <input
-                        type="text"
-                        value={inputCoupon}
-                        onChange={(e) => {
-                          setInputCoupon(e.target.value.toUpperCase());
-                          setCouponError('');
-                        }}
-                        placeholder="Enter Promo Code (e.g. QUEKART50)"
-                        className="w-full bg-slate-50 border border-gray-200/80 rounded-md pl-8 pr-3 py-2 text-xs font-semibold tracking-wider text-gray-800 focus:outline-hidden focus:border-lucky-magenta uppercase placeholder:normal-case placeholder:tracking-normal placeholder:font-normal"
-                        id="coupon-input-field"
-                      />
-                      <Tag className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                    </div>
-                    {activeAppliedCoupon ? (
-                      <button
-                        type="button"
-                        onClick={handleRemoveCoupon}
-                        className="bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 font-extrabold text-xs px-4 py-2 rounded-md transition-all cursor-pointer"
-                        id="remove-coupon-btn"
-                      >
-                        Remove
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleApplyCoupon(inputCoupon)}
-                        className="bg-lucky-magenta text-white hover:bg-opacity-90 font-extrabold text-xs px-4 py-2 rounded-md transition-all cursor-pointer shadow-2xs"
-                        id="apply-coupon-btn"
-                      >
-                        Apply
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Error & Success States */}
-                  {couponError && (
-                    <p className="text-[11px] font-bold text-red-500 bg-red-50 border border-red-100 rounded-md px-2.5 py-1.5 leading-normal" id="coupon-error-message">
-                      ⚠️ {couponError}
-                    </p>
-                  )}
-
-                  {appliedCoupon && !isCouponValid && (
-                    <div className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-md p-2.5 leading-normal" id="coupon-invalid-alert">
-                      ⚠️ <span className="font-extrabold">{appliedCoupon.code}</span> is inactive. Add items worth <span className="font-extrabold text-gray-900">₹{appliedCoupon.minPurchase - itemsPrice}</span> more to unlock ₹{appliedCoupon.value} discount!
-                    </div>
-                  )}
-
-                  {activeAppliedCoupon && (
-                    <div className="bg-emerald-50 border border-emerald-100/80 rounded-md p-2.5 flex items-center justify-between" id="coupon-success-alert">
-                      <div className="flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-lucky-green flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-xs font-black text-emerald-950 uppercase tracking-wider">{activeAppliedCoupon.code} Applied!</p>
-                          <p className="text-[10px] text-emerald-800 font-bold">
-                            Saved <span className="text-emerald-950 font-extrabold text-xs">₹{activeCouponDiscount}</span> with this coupon.
-                          </p>
-                        </div>
-                      </div>
-                      <span className="bg-emerald-200/50 text-lucky-green text-[9px] font-black px-2 py-0.5 rounded-full tracking-wider">ACTIVE</span>
-                    </div>
-                  )}
-
-                  {/* Available Coupons list toggle */}
-                  <div className="border-t border-dashed border-gray-100 pt-2.5">
-                    <button
-                      type="button"
-                      onClick={() => setShowAllCoupons(!showAllCoupons)}
-                      className="w-full flex items-center justify-between text-left text-xs font-extrabold text-gray-600 hover:text-lucky-magenta py-1 cursor-pointer"
-                      id="view-coupons-toggle"
-                    >
-                      <span className="flex items-center gap-1.5">
-                        <Percent className="w-3.5 h-3.5 text-lucky-magenta" />
-                        View Available Coupons ({coupons.length})
-                      </span>
-                      {showAllCoupons ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </button>
-
-                    {showAllCoupons && (
-                      <div className="space-y-2 mt-2.5 max-h-[160px] overflow-y-auto pr-1" id="coupons-list">
-                        {coupons.map((coupon) => {
-                          const isEligible = itemsPrice >= coupon.minPurchase;
-                          const isCurrentlyApplied = activeAppliedCoupon?.code === coupon.code;
-                          
-                          return (
-                            <div
-                              key={coupon.code}
-                              onClick={() => isEligible && handleApplyCoupon(coupon.code)}
-                              className={`border rounded-lg p-2.5 flex items-center justify-between transition-all ${
-                                isCurrentlyApplied
-                                  ? 'bg-emerald-50/50 border-lucky-green/50'
-                                  : isEligible
-                                  ? 'bg-white border-gray-200 hover:border-lucky-magenta cursor-pointer'
-                                  : 'bg-gray-50/50 border-gray-150 opacity-60'
-                              }`}
-                              id={`coupon-card-${coupon.code}`}
+                            {/* Remove Button */}
+                            <button
+                              onClick={() => onRemoveItem(item.id)}
+                              className="absolute top-3 right-3 text-gray-400 hover:text-red-500 cursor-pointer p-1"
+                              title="Remove"
                             >
-                              <div className="space-y-1 pr-2">
-                                <div className="flex items-center gap-1.5">
-                                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-md tracking-wider border ${
-                                    isCurrentlyApplied
-                                      ? 'bg-emerald-100 border-lucky-green/40 text-lucky-green'
-                                      : 'bg-lucky-magenta/5 border-lucky-magenta/20 text-lucky-magenta'
-                                  }`}>
-                                    {coupon.code}
-                                  </span>
-                                  {!isEligible && (
-                                    <span className="text-[9px] text-amber-600 font-extrabold bg-amber-50 px-1.5 py-0.5 rounded-sm">
-                                      Needs ₹{coupon.minPurchase} min
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+
+                            {/* Image */}
+                            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
+                              <img src={variant.imageUrl} alt={item.product.title} className="w-full h-full object-cover" />
+                            </div>
+
+                            {/* Info */}
+                            <div className="flex-1 min-w-0 pr-6">
+                              <h4 className="text-xs sm:text-sm font-bold text-gray-800 truncate" title={item.product.title}>
+                                {item.product.title}
+                              </h4>
+                              <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5">
+                                Size: <span className="font-bold text-gray-700">{item.selectedSize}</span>
+                                <span className="mx-2">|</span>
+                                Color: <span className="font-bold text-gray-700">{variant.colorName}</span>
+                              </p>
+
+                              <div className="flex items-baseline gap-1.5 mt-2">
+                                <span className="text-sm sm:text-base font-black text-slate-900 premium-rupee">₹{variant.price}</span>
+                                <span className="text-[10px] sm:text-xs text-gray-400 line-through font-semibold">₹{variant.originalPrice}</span>
+                                <span className="text-[10px] sm:text-xs text-lucky-green font-extrabold tracking-tight">{item.product.discountPercent}% Off</span>
+                              </div>
+
+                              {/* Quantity buttons */}
+                              <div className="flex items-center gap-2 mt-2.5">
+                                <button
+                                  onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
+                                  className="w-6 h-6 sm:w-7 sm:h-7 bg-gray-100 border border-gray-200 rounded-md text-xs font-bold flex items-center justify-center hover:bg-gray-200 cursor-pointer"
+                                >
+                                  -
+                                </button>
+                                <span className="text-xs font-bold w-6 text-center">{item.quantity}</span>
+                                <button
+                                  onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+                                  className="w-6 h-6 sm:w-7 sm:h-7 bg-gray-100 border border-gray-200 rounded-md text-xs font-bold flex items-center justify-center hover:bg-gray-200 cursor-pointer"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Safety guarantee */}
+                      <div className="bg-emerald-50 border border-emerald-100/60 rounded-xl p-3 sm:p-4 flex gap-2.5 items-start mt-4">
+                        <ShieldCheck className="w-5 h-5 text-lucky-green flex-shrink-0" />
+                        <div>
+                          <h4 className="text-[11px] sm:text-xs font-extrabold text-emerald-950">QueKart Safety Guarantee</h4>
+                          <p className="text-[10px] sm:text-[11px] text-emerald-800/80 leading-snug mt-0.5">Safe payments, 100% genuine suppliers, and secure tracking information.</p>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  /* PHASE 2: Address Form */
+                  <form onSubmit={handleCheckoutSubmit} className="space-y-3.5 bg-gray-50/70 p-4 sm:p-5 rounded-xl border border-gray-200/80" id="checkout-address-form">
+                    <div className="bg-blue-50/40 p-3 rounded-lg border border-blue-100/50 flex items-center gap-2 text-xs font-medium text-blue-900">
+                      <MapPin className="w-4 h-4 text-lucky-magenta shrink-0" />
+                      <span>Please provide a valid Indian shipping address.</span>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Full Name</label>
+                      <input
+                        type="text"
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 text-xs font-medium focus:outline-hidden focus:border-lucky-magenta shadow-3xs"
+                        placeholder="Receiver's name"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Phone Number</label>
+                      <input
+                        type="tel"
+                        required
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 text-xs font-medium focus:outline-hidden focus:border-lucky-magenta shadow-3xs"
+                        placeholder="10-digit mobile number"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Flat/House/Street Address</label>
+                      <input
+                        type="text"
+                        required
+                        value={addressLine}
+                        onChange={(e) => setAddressLine(e.target.value)}
+                        className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 text-xs font-medium focus:outline-hidden focus:border-lucky-magenta shadow-3xs"
+                        placeholder="Flat no., Street name"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">City</label>
+                        <input
+                          type="text"
+                          required
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                          className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 text-xs font-medium focus:outline-hidden focus:border-lucky-magenta shadow-3xs"
+                          placeholder="e.g. Gurugram"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Pincode</label>
+                        <input
+                          type="text"
+                          required
+                          value={pincode}
+                          onChange={(e) => setPincode(e.target.value)}
+                          className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 text-xs font-medium focus:outline-hidden focus:border-lucky-magenta shadow-3xs"
+                          placeholder="6-digit PIN"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">State</label>
+                      <input
+                        type="text"
+                        required
+                        value={state}
+                        onChange={(e) => setState(e.target.value)}
+                        className="w-full bg-white border border-gray-200 rounded-md px-3 py-2 text-xs font-medium focus:outline-hidden focus:border-lucky-magenta shadow-3xs"
+                        placeholder="e.g. Haryana"
+                      />
+                    </div>
+
+                    <button type="submit" className="hidden" id="hidden-form-submit-btn"></button>
+                  </form>
+                )}
+              </div>
+
+              {/* RIGHT COLUMN: Coupons & Price Breakdown & Desktop Action */}
+              <div className="md:col-span-5 space-y-4 mt-4 md:mt-0">
+                {/* Interactive Coupon System Section */}
+                {checkoutStep === 'cart' && cart.length > 0 && (
+                  <div className="bg-white rounded-xl border border-gray-200/80 p-3.5 sm:p-4 space-y-3 shadow-3xs" id="coupon-section">
+                    <div className="flex items-center gap-2 text-gray-800 font-extrabold text-xs tracking-wide uppercase">
+                      <Ticket className="w-4 h-4 text-lucky-magenta" />
+                      <span>Select & Apply Coupon</span>
+                    </div>
+
+                    {/* Input form */}
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <input
+                          type="text"
+                          value={inputCoupon}
+                          onChange={(e) => {
+                            setInputCoupon(e.target.value.toUpperCase());
+                            setCouponError('');
+                          }}
+                          placeholder="Enter Promo Code (e.g. QUEKART50)"
+                          className="w-full bg-slate-50 border border-gray-200/80 rounded-md pl-8 pr-3 py-2 text-xs font-semibold tracking-wider text-gray-800 focus:outline-hidden focus:border-lucky-magenta uppercase placeholder:normal-case placeholder:tracking-normal placeholder:font-normal"
+                          id="coupon-input-field"
+                        />
+                        <Tag className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      </div>
+                      {activeAppliedCoupon ? (
+                        <button
+                          type="button"
+                          onClick={handleRemoveCoupon}
+                          className="bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 font-extrabold text-xs px-4 py-2 rounded-md transition-all cursor-pointer"
+                          id="remove-coupon-btn"
+                        >
+                          Remove
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleApplyCoupon(inputCoupon)}
+                          className="bg-lucky-magenta text-white hover:bg-opacity-90 font-extrabold text-xs px-4 py-2 rounded-md transition-all cursor-pointer shadow-2xs"
+                          id="apply-coupon-btn"
+                        >
+                          Apply
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Error & Success States */}
+                    {couponError && (
+                      <p className="text-[11px] font-bold text-red-500 bg-red-50 border border-red-100 rounded-md px-2.5 py-1.5 leading-normal" id="coupon-error-message">
+                        ⚠️ {couponError}
+                      </p>
+                    )}
+
+                    {appliedCoupon && !isCouponValid && (
+                      <div className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-md p-2.5 leading-normal" id="coupon-invalid-alert">
+                        ⚠️ <span className="font-extrabold">{appliedCoupon.code}</span> is inactive. Add items worth <span className="font-extrabold text-gray-900">₹{appliedCoupon.minPurchase - itemsPrice}</span> more to unlock ₹{appliedCoupon.value} discount!
+                      </div>
+                    )}
+
+                    {activeAppliedCoupon && (
+                      <div className="bg-emerald-50 border border-emerald-100/80 rounded-md p-2.5 flex items-center justify-between" id="coupon-success-alert">
+                        <div className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-lucky-green flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-xs font-black text-emerald-950 uppercase tracking-wider">{activeAppliedCoupon.code} Applied!</p>
+                            <p className="text-[10px] text-emerald-800 font-bold">
+                              Saved <span className="text-emerald-950 font-extrabold text-xs">₹{activeCouponDiscount}</span> with this coupon.
+                            </p>
+                          </div>
+                        </div>
+                        <span className="bg-emerald-200/50 text-lucky-green text-[9px] font-black px-2 py-0.5 rounded-full tracking-wider">ACTIVE</span>
+                      </div>
+                    )}
+
+                    {/* Available Coupons list toggle */}
+                    <div className="border-t border-dashed border-gray-100 pt-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setShowAllCoupons(!showAllCoupons)}
+                        className="w-full flex items-center justify-between text-left text-xs font-extrabold text-gray-600 hover:text-lucky-magenta py-1 cursor-pointer"
+                        id="view-coupons-toggle"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <Percent className="w-3.5 h-3.5 text-lucky-magenta" />
+                          View Available Coupons ({coupons.length})
+                        </span>
+                        {showAllCoupons ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </button>
+
+                      {showAllCoupons && (
+                        <div className="space-y-2 mt-2.5 max-h-[160px] overflow-y-auto pr-1" id="coupons-list">
+                          {coupons.map((coupon) => {
+                            const isEligible = itemsPrice >= coupon.minPurchase;
+                            const isCurrentlyApplied = activeAppliedCoupon?.code === coupon.code;
+                            
+                            return (
+                              <div
+                                key={coupon.code}
+                                onClick={() => isEligible && handleApplyCoupon(coupon.code)}
+                                className={`border rounded-lg p-2.5 flex items-center justify-between transition-all ${
+                                  isCurrentlyApplied
+                                    ? 'bg-emerald-50/50 border-lucky-green/50'
+                                    : isEligible
+                                    ? 'bg-white border-gray-200 hover:border-lucky-magenta cursor-pointer'
+                                    : 'bg-gray-50/50 border-gray-150 opacity-60'
+                                }`}
+                                id={`coupon-card-${coupon.code}`}
+                              >
+                                <div className="space-y-1 pr-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-md tracking-wider border ${
+                                      isCurrentlyApplied
+                                        ? 'bg-emerald-100 border-lucky-green/40 text-lucky-green'
+                                        : 'bg-lucky-magenta/5 border-lucky-magenta/20 text-lucky-magenta'
+                                    }`}>
+                                      {coupon.code}
                                     </span>
+                                    {!isEligible && (
+                                      <span className="text-[9px] text-amber-600 font-extrabold bg-amber-50 px-1.5 py-0.5 rounded-sm">
+                                        Needs ₹{coupon.minPurchase} min
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] text-gray-500 font-semibold leading-tight">
+                                    {coupon.description}
+                                  </p>
+                                </div>
+                                
+                                <div>
+                                  {isCurrentlyApplied ? (
+                                    <span className="text-[10px] font-black text-lucky-green uppercase tracking-wider flex items-center gap-0.5">
+                                      <CheckCircle className="w-3.5 h-3.5" /> Applied
+                                    </span>
+                                  ) : isEligible ? (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleApplyCoupon(coupon.code);
+                                      }}
+                                      className="bg-white border border-lucky-magenta text-lucky-magenta hover:bg-lucky-magenta hover:text-white font-extrabold text-[10px] px-2.5 py-1 rounded-md transition-all cursor-pointer"
+                                    >
+                                      APPLY
+                                    </button>
+                                  ) : (
+                                    <span className="text-[9px] font-extrabold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-sm">Locked</span>
                                   )}
                                 </div>
-                                <p className="text-[10px] text-gray-500 font-semibold leading-tight">
-                                  {coupon.description}
-                                </p>
                               </div>
-                              
-                              <div>
-                                {isCurrentlyApplied ? (
-                                  <span className="text-[10px] font-black text-lucky-green uppercase tracking-wider flex items-center gap-0.5">
-                                    <CheckCircle className="w-3.5 h-3.5" /> Applied
-                                  </span>
-                                ) : isEligible ? (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleApplyCoupon(coupon.code);
-                                    }}
-                                    className="bg-white border border-lucky-magenta text-lucky-magenta hover:bg-lucky-magenta hover:text-white font-extrabold text-[10px] px-2.5 py-1 rounded-md transition-all cursor-pointer"
-                                  >
-                                    APPLY
-                                  </button>
-                                ) : (
-                                  <span className="text-[9px] font-extrabold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-sm">Locked</span>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Pricing breakdown box - visible on both cart and address phases */}
-              {cart.length > 0 && (
-                <div className="bg-gray-50 rounded-lg p-3.5 border border-gray-150" id="pricing-breakdown">
-                  <h3 className="text-xs font-extrabold text-gray-700 tracking-tight mb-2.5 uppercase">Price Details</h3>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between text-gray-500">
-                      <span>Total Product MRP</span>
-                      <span className="font-extrabold text-slate-700 premium-rupee">₹{originalItemsPrice}</span>
-                    </div>
-                    <div className="flex justify-between text-gray-500">
-                      <span>Supplier Discount</span>
-                      <span className="font-extrabold text-lucky-green premium-rupee">-₹{totalDiscount}</span>
-                    </div>
-                    {upiOfferDiscount > 0 && (
+                {/* Pricing breakdown box */}
+                {cart.length > 0 && (
+                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-150 shadow-3xs" id="pricing-breakdown">
+                    <h3 className="text-xs font-extrabold text-gray-700 tracking-tight mb-2.5 uppercase">Price Details</h3>
+                    <div className="space-y-2 text-xs">
                       <div className="flex justify-between text-gray-500">
-                        <span>UPI Extra Offer Off</span>
-                        <span className="font-extrabold text-lucky-green premium-rupee">-₹{upiOfferDiscount}</span>
+                        <span>Total Product MRP</span>
+                        <span className="font-extrabold text-slate-700 premium-rupee">₹{originalItemsPrice}</span>
                       </div>
-                    )}
-                    {activeCouponDiscount > 0 && (
                       <div className="flex justify-between text-gray-500">
-                        <span>Coupon Discount ({activeAppliedCoupon?.code})</span>
-                        <span className="font-extrabold text-lucky-green premium-rupee">-₹{activeCouponDiscount}</span>
+                        <span>Supplier Discount</span>
+                        <span className="font-extrabold text-lucky-green premium-rupee">-₹{totalDiscount}</span>
                       </div>
-                    )}
-                    <div className="flex justify-between text-gray-500">
-                      <span>Delivery Charges</span>
-                      <span className="font-extrabold text-lucky-green flex items-center gap-1">
-                        <span className="line-through text-gray-400 text-[10px] font-medium">₹40</span> Free
-                      </span>
+                      {upiOfferDiscount > 0 && (
+                        <div className="flex justify-between text-gray-500">
+                          <span>UPI Extra Offer Off</span>
+                          <span className="font-extrabold text-lucky-green premium-rupee">-₹{upiOfferDiscount}</span>
+                        </div>
+                      )}
+                      {activeCouponDiscount > 0 && (
+                        <div className="flex justify-between text-gray-500">
+                          <span>Coupon Discount ({activeAppliedCoupon?.code})</span>
+                          <span className="font-extrabold text-lucky-green premium-rupee">-₹{activeCouponDiscount}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-gray-500">
+                        <span>Delivery Charges</span>
+                        <span className="font-extrabold text-lucky-green flex items-center gap-1">
+                          <span className="line-through text-gray-400 text-[10px] font-medium">₹40</span> Free
+                        </span>
+                      </div>
+                      <div className="h-[1px] bg-gray-200 my-2"></div>
+                      <div className="flex justify-between text-sm font-black text-gray-900">
+                        <span>Order Total</span>
+                        <span className="text-base font-black text-slate-900 premium-rupee">₹{finalPrice}</span>
+                      </div>
                     </div>
-                    <div className="h-[1px] bg-gray-200 my-2"></div>
-                    <div className="flex justify-between text-sm font-black text-gray-900">
-                      <span>Order Total</span>
-                      <span className="text-base font-black text-slate-900 premium-rupee">₹{finalPrice}</span>
+
+                    {/* Desktop in-card action button */}
+                    <div className="hidden md:block mt-4 pt-3 border-t border-gray-200/80">
+                      {checkoutStep === 'cart' ? (
+                        <button
+                          onClick={handleNextStep}
+                          className="w-full bg-lucky-magenta hover:bg-opacity-95 text-white font-extrabold py-3.5 rounded-lg text-sm shadow-md transition-all flex items-center justify-center gap-1 cursor-pointer"
+                          id="cart-continue-desktop-btn"
+                        >
+                          <span>{currentUser ? 'Proceed to Delivery' : 'Sign In via SMS OTP to Checkout'}</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => document.getElementById('hidden-form-submit-btn')?.click()}
+                          className="w-full bg-lucky-magenta hover:bg-opacity-95 text-white font-extrabold py-3.5 rounded-lg text-sm shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                          id="cart-pay-desktop-btn"
+                        >
+                          <CreditCard className="w-4 h-4" />
+                          <span>Pay ₹{finalPrice} via UPI</span>
+                        </button>
+                      )}
+                      <p className="text-[10px] text-gray-400 text-center mt-2 font-medium">Safe payments • Direct manufacturing prices</p>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+
             </div>
 
-            {/* Bottom sticky action bar inside drawer */}
+            {/* Bottom sticky action bar inside drawer (Mobile only) */}
             {cart.length > 0 && (
-              <div className="p-4 border-t border-gray-100 bg-white" id="cart-drawer-footer">
+              <div className="md:hidden p-4 border-t border-gray-100 bg-white" id="cart-drawer-footer">
                 {checkoutStep === 'cart' ? (
                   <button
                     onClick={handleNextStep}

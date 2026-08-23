@@ -65,7 +65,7 @@ export default function OrdersView({
       {/* Sticky Header Section */}
       <div className="sticky top-[60px] md:top-[120px] z-[90] bg-gray-50 px-4 pt-3 pb-3 border-b border-gray-200/80 shadow-xs" id="orders-sticky-header">
         {/* Search orders & filters row */}
-        <div className="flex items-center gap-3" id="orders-search-row">
+        <div className="max-w-4xl lg:max-w-5xl mx-auto flex items-center gap-3" id="orders-search-row">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
             <input
@@ -84,20 +84,20 @@ export default function OrdersView({
         </div>
       </div>
 
-      <div className="px-4 mt-4" id="orders-list-content">
+      <div className="max-w-4xl lg:max-w-5xl mx-auto px-4 mt-4" id="orders-list-content">
 
       {/* Orders List */}
       {filteredOrders.length > 0 ? (
-        <div className="flex flex-col gap-3" id="orders-list">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5" id="orders-list">
           {filteredOrders.map((order) => (
             <div
               key={order.id}
               onClick={() => onSelectProduct(order.items[0].product.id)}
-              className="bg-white rounded-lg p-3.5 border border-gray-200/80 shadow-3xs cursor-pointer hover:shadow-xs transition-shadow flex items-start justify-between gap-3"
+              className="bg-white rounded-xl p-3.5 sm:p-4 border border-gray-200/80 shadow-3xs cursor-pointer hover:shadow-xs hover:border-lucky-magenta/40 transition-all flex items-start justify-between gap-3.5"
               id={`order-card-${order.id}`}
             >
               {/* Product Thumbnail */}
-              <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
                 <img
                   src={order.items[0].product.images[0]}
                   alt={order.items[0].product.title}
@@ -112,15 +112,15 @@ export default function OrdersView({
                   <CheckCircleIcon />
                   <span>{order.status}</span>
                 </span>
-                <p className="text-[10px] text-gray-400 font-bold mt-0.5">
+                <p className="text-[10px] sm:text-xs text-gray-400 font-bold mt-0.5">
                   Ordered on {order.orderDate}
                 </p>
                 
-                <h3 className="text-xs font-extrabold text-gray-800 tracking-tight mt-1 truncate">
+                <h3 className="text-xs sm:text-sm font-extrabold text-gray-800 tracking-tight mt-1 truncate">
                   {order.items[0].product.title}
                 </h3>
 
-                <p className="text-[10px] text-gray-400 font-medium mt-1 flex items-center gap-1.5 flex-wrap">
+                <p className="text-[10px] sm:text-xs text-gray-400 font-medium mt-1.5 flex items-center gap-1.5 flex-wrap">
                   <span>Size:</span> <span className="font-bold text-gray-700">{order.items[0].selectedSize}</span>
                   <span className="text-gray-300">•</span>
                   <span>Qty:</span> <span className="font-bold text-gray-700">{order.items[0].quantity}</span>
@@ -130,7 +130,7 @@ export default function OrdersView({
               </div>
 
               {/* Right Pointer */}
-              <ChevronRight className="w-5 h-5 text-gray-400 self-center" />
+              <ChevronRight className="w-5 h-5 text-gray-400 self-center shrink-0" />
             </div>
           ))}
         </div>

@@ -10,11 +10,14 @@ To run locally:
 """
 
 import os
+import json
 import random
 import hmac
 import hashlib
 import base64
 import time
+import urllib.request
+import urllib.parse
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from fastapi import FastAPI, Header, HTTPException, Request, status
@@ -129,14 +132,41 @@ class VariantSwatch(BaseModel):
 
 class Review(BaseModel):
     id: str
+    userId: Optional[str] = None
+    userPhone: Optional[str] = None
+    userEmail: Optional[str] = None
     userName: str
     userAvatar: Optional[str] = None
     rating: float
     title: str
     comment: str
     postedDate: str
+    updatedAt: Optional[str] = None
     images: List[str] = []
-    helpfulCount: int
+    helpfulCount: int = 0
+
+class ReviewCreateInput(BaseModel):
+    userId: Optional[str] = None
+    userPhone: Optional[str] = None
+    userEmail: Optional[str] = None
+    rating: float
+    title: Optional[str] = None
+    comment: Optional[str] = ""
+    userName: Optional[str] = "Verified Buyer"
+    userAvatar: Optional[str] = None
+    images: List[str] = []
+
+class ReviewUpdateInput(BaseModel):
+    userId: Optional[str] = None
+    userPhone: Optional[str] = None
+    userName: Optional[str] = None
+    rating: Optional[float] = None
+    title: Optional[str] = None
+    comment: Optional[str] = None
+    images: Optional[List[str]] = None
+
+class ImageUploadInput(BaseModel):
+    image: str
 
 class Product(BaseModel):
     id: str
@@ -611,6 +641,290 @@ async def delete_product(product_id: str, x_admin_secret: Optional[str] = Header
     global local_products
     local_products = [p for p in local_products if p["id"] != product_id]
     return {"success": True, "message": "Product deleted"}
+
+# --- SECURE IMAGE UPLOAD TO IMGBB (PROXIED TO PROTECT SECRETS) ---
+@app.post("/api/upload-image")
+async def upload_image_proxy(payload: ImageUploadInput):
+    image_data = payload.image
+    if not image_data:
+        raise HTTPException(status_code=400, detail="No image data provided.")
+
+    imgbb_key = os.environ.get("IMGBB_API_KEY", "55179f3e39711f9b8a5f1b568b5567a9")
+
+    # Extract base64
+    base64_data = image_data
+    if "base64," in base64_data:
+        base64_data = base64_data.split("base64,")[1]
+
+    post_data = urllib.parse.urlencode({"image": base64_data}).encode("utf-8")
+    req = urllib.request.Request(
+        f"https://api.imgbb.com/1/upload?key={imgbb_key}",
+        data=post_data,
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            resp_body = resp.read().decode("utf-8")
+            data = json.loads(resp_body)
+            if data and "data" in data and "url" in data["data"]:
+                return {
+                    "success": True,
+                    "imageUrl": data["data"]["url"],
+                    "thumbUrl": data["data"].get("thumb", {}).get("url", data["data"]["url"])
+                }
+            else:
+                raise HTTPException(status_code=500, detail="Unexpected response from ImgBB API.")
+    except Exception as e:
+        print(f"ImgBB upload error: {e}")
+        raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")
+
+# --- SUBMIT CUSTOM PRODUCT REVIEW ---
+@app.post("/api/products/{product_id}/reviews", status_code=201)
+async def submit_product_review(product_id: str, payload: ReviewCreateInput):
+    num_rating = float(payload.rating)
+    if num_rating < 1 or num_rating > 5:
+        raise HTTPException(status_code=400, detail="Valid rating between 1 and 5 stars is required.")
+
+    target_product = None
+    if use_supabase and supabase:
+        try:
+            res = supabase.table("products").select("*").eq("id", product_id).single().execute()
+            if res.data:
+                target_product = res.data["data"]
+        except Exception:
+            pass
+
+    if not target_product:
+        target_product = next((p for p in local_products if p["id"] == product_id), None)
+
+    if not target_product:
+        raise HTTPException(status_code=404, detail="Product not found.")
+
+    default_title = "Excellent Quality!" if num_rating >= 5 else "Very Good Product" if num_rating >= 4 else "Good Value" if num_rating >= 3 else "Average" if num_rating >= 2 else "Needs Improvement"
+    
+    review_id = f"rev-{int(time.time() * 1000)}-{random.randint(1000, 9999)}"
+    new_review = {
+        "id": review_id,
+        "userId": payload.userId,
+        "userPhone": payload.userPhone,
+        "userEmail": payload.userEmail,
+        "userName": (payload.userName or "Verified Buyer").strip(),
+        "userAvatar": payload.userAvatar,
+        "rating": round(num_rating),
+        "title": (payload.title or default_title).strip(),
+        "comment": (payload.comment or "").strip(),
+        "postedDate": "Posted today",
+        "updatedAt": None,
+        "images": [img for img in payload.images if isinstance(img, str) and img.startswith("http")],
+        "helpfulCount": 0
+    }
+
+    existing_reviews = target_product.get("reviews") or []
+    updated_reviews = [new_review] + existing_reviews
+    total_reviews = len(updated_reviews)
+    avg_rating = round(sum(r["rating"] for r in updated_reviews) / total_reviews, 1)
+
+    target_product["reviews"] = updated_reviews
+    target_product["reviewCount"] = total_reviews
+    target_product["ratingCount"] = int(target_product.get("ratingCount", 0)) + 1
+    target_product["rating"] = avg_rating
+
+    if use_supabase and supabase:
+        try:
+            supabase.table("products").update({"data": target_product}).eq("id", product_id).execute()
+        except Exception as e:
+            print(f"Supabase update review error: {e}")
+
+        try:
+            supabase.table("reviews").upsert({
+                "id": new_review["id"],
+                "product_id": product_id,
+                "user_id": new_review.get("userId"),
+                "user_phone": new_review.get("userPhone"),
+                "user_name": new_review["userName"],
+                "user_avatar": new_review.get("userAvatar"),
+                "rating": new_review["rating"],
+                "title": new_review["title"],
+                "comment": new_review["comment"],
+                "images": new_review["images"],
+                "helpful_count": new_review["helpfulCount"],
+                "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
+            }).execute()
+        except Exception as rev_err:
+            print(f"Supabase reviews table upsert error (non-blocking): {rev_err}")
+
+    for idx, item in enumerate(local_products):
+        if item["id"] == product_id:
+            local_products[idx] = target_product
+            break
+
+    return {
+        "success": True,
+        "message": "Review submitted successfully",
+        "review": new_review,
+        "product": target_product
+    }
+
+# --- EDIT / UPDATE PRODUCT REVIEW ---
+@app.put("/api/products/{product_id}/reviews/{review_id}")
+async def update_product_review(product_id: str, review_id: str, payload: ReviewUpdateInput, x_admin_secret: Optional[str] = Header(None)):
+    target_product = None
+    if use_supabase and supabase:
+        try:
+            res = supabase.table("products").select("*").eq("id", product_id).single().execute()
+            if res.data:
+                target_product = res.data["data"]
+        except Exception:
+            pass
+
+    if not target_product:
+        target_product = next((p for p in local_products if p["id"] == product_id), None)
+
+    if not target_product:
+        raise HTTPException(status_code=404, detail="Product not found.")
+
+    reviews = target_product.get("reviews") or []
+    review_idx = next((i for i, r in enumerate(reviews) if r.get("id") == review_id), None)
+
+    if review_idx is None:
+        raise HTTPException(status_code=404, detail="Review not found on this product.")
+
+    existing_rev = reviews[review_idx]
+
+    is_admin = (x_admin_secret == ADMIN_SECRET)
+    is_owner = (
+        is_admin or
+        (existing_rev.get("userId") and payload.userId and existing_rev.get("userId") == payload.userId) or
+        (existing_rev.get("userPhone") and payload.userPhone and existing_rev.get("userPhone") == payload.userPhone) or
+        (existing_rev.get("userName") and payload.userName and existing_rev.get("userName", "").lower() == payload.userName.lower()) or
+        (not existing_rev.get("userId") and not existing_rev.get("userPhone"))
+    )
+
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Unauthorized: You can only edit your own review.")
+
+    if payload.rating is not None:
+        if payload.rating < 1 or payload.rating > 5:
+            raise HTTPException(status_code=400, detail="Valid rating between 1 and 5 stars is required.")
+        existing_rev["rating"] = round(payload.rating)
+
+    if payload.title is not None:
+        existing_rev["title"] = payload.title.strip()
+    if payload.comment is not None:
+        existing_rev["comment"] = payload.comment.strip()
+    if payload.userName is not None:
+        existing_rev["userName"] = payload.userName.strip()
+    if payload.images is not None:
+        existing_rev["images"] = [img for img in payload.images if isinstance(img, str) and img.startswith("http")]
+    
+    existing_rev["updatedAt"] = "Edited recently"
+
+    reviews[review_idx] = existing_rev
+    target_product["reviews"] = reviews
+
+    total_reviews = len(reviews)
+    if total_reviews > 0:
+        target_product["rating"] = round(sum(r["rating"] for r in reviews) / total_reviews, 1)
+
+    if use_supabase and supabase:
+        try:
+            supabase.table("products").update({"data": target_product}).eq("id", product_id).execute()
+        except Exception as e:
+            print(f"Supabase update error: {e}")
+
+        try:
+            supabase.table("reviews").update({
+                "rating": existing_rev["rating"],
+                "title": existing_rev["title"],
+                "comment": existing_rev["comment"],
+                "images": existing_rev["images"],
+                "user_name": existing_rev["userName"],
+                "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
+            }).eq("id", review_id).execute()
+        except Exception as rev_err:
+            print(f"Supabase reviews table update error: {rev_err}")
+
+    for idx, item in enumerate(local_products):
+        if item["id"] == product_id:
+            local_products[idx] = target_product
+            break
+
+    return {
+        "success": True,
+        "message": "Review updated successfully",
+        "review": existing_rev,
+        "product": target_product
+    }
+
+# --- DELETE PRODUCT REVIEW ---
+@app.delete("/api/products/{product_id}/reviews/{review_id}")
+async def delete_product_review(product_id: str, review_id: str, userId: Optional[str] = None, userPhone: Optional[str] = None, userName: Optional[str] = None, x_admin_secret: Optional[str] = Header(None)):
+    target_product = None
+    if use_supabase and supabase:
+        try:
+            res = supabase.table("products").select("*").eq("id", product_id).single().execute()
+            if res.data:
+                target_product = res.data["data"]
+        except Exception:
+            pass
+
+    if not target_product:
+        target_product = next((p for p in local_products if p["id"] == product_id), None)
+
+    if not target_product:
+        raise HTTPException(status_code=404, detail="Product not found.")
+
+    reviews = target_product.get("reviews") or []
+    target_rev = next((r for r in reviews if r.get("id") == review_id), None)
+
+    if not target_rev:
+        raise HTTPException(status_code=404, detail="Review not found on this product.")
+
+    is_admin = (x_admin_secret == ADMIN_SECRET)
+    is_owner = (
+        is_admin or
+        (target_rev.get("userId") and userId and target_rev.get("userId") == userId) or
+        (target_rev.get("userPhone") and userPhone and target_rev.get("userPhone") == userPhone) or
+        (target_rev.get("userName") and userName and target_rev.get("userName", "").lower() == userName.lower()) or
+        (not target_rev.get("userId") and not target_rev.get("userPhone"))
+    )
+
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Unauthorized: You can only delete your own review.")
+
+    updated_reviews = [r for r in reviews if r.get("id") != review_id]
+    target_product["reviews"] = updated_reviews
+    target_product["reviewCount"] = len(updated_reviews)
+    target_product["ratingCount"] = max(0, int(target_product.get("ratingCount", 1)) - 1)
+
+    if len(updated_reviews) > 0:
+        target_product["rating"] = round(sum(r["rating"] for r in updated_reviews) / len(updated_reviews), 1)
+    else:
+        target_product["rating"] = 4.5
+
+    if use_supabase and supabase:
+        try:
+            supabase.table("products").update({"data": target_product}).eq("id", product_id).execute()
+        except Exception as e:
+            print(f"Supabase update error: {e}")
+
+        try:
+            supabase.table("reviews").delete().eq("id", review_id).execute()
+        except Exception as rev_err:
+            print(f"Supabase reviews delete error: {rev_err}")
+
+    for idx, item in enumerate(local_products):
+        if item["id"] == product_id:
+            local_products[idx] = target_product
+            break
+
+    return {
+        "success": True,
+        "message": "Review deleted successfully",
+        "product": target_product
+    }
 
 
 # --- COUPONS ENDPOINTS ---

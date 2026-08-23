@@ -120,20 +120,20 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
         </header>
 
         {/* 2. Branded Headline Banner matching reference design */}
-        <div className="pt-4 sm:pt-7 pb-3 max-w-5xl mx-auto px-3 sm:px-6 w-full" id="landing-hero-banner-container">
-          <div className="relative group overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-r from-[#07192F] via-[#0D284C] to-[#081C36] p-4 sm:p-5 md:py-6 md:px-8 border-2 border-[#D4AF37]/80 shadow-[0_10px_35px_rgba(7,25,47,0.35),0_0_20px_rgba(212,175,55,0.2)] flex items-center justify-center">
+        <div className="pt-3 sm:pt-6 pb-2 max-w-2xl mx-auto px-3 sm:px-6 w-full" id="landing-hero-banner-container">
+          <div className="relative group overflow-hidden rounded-2xl sm:rounded-[22px] bg-gradient-to-r from-[#07192F] via-[#0D284C] to-[#07192F] px-3.5 py-2.5 sm:px-6 sm:py-3.5 border-1.5 sm:border-2 border-[#D4AF37]/90 shadow-[0_8px_30px_rgba(7,25,47,0.4),0_0_15px_rgba(212,175,55,0.25)] flex items-center justify-center">
             
             {/* Top and bottom subtle golden ambient glow flares */}
-            <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-3/4 h-8 bg-gradient-to-r from-transparent via-[#FBBF24]/40 to-transparent blur-md pointer-events-none" />
-            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-3/4 h-8 bg-gradient-to-r from-transparent via-[#FBBF24]/30 to-transparent blur-md pointer-events-none" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1E4E8C]/20 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute -top-5 left-1/2 -translate-x-1/2 w-2/3 h-6 bg-gradient-to-r from-transparent via-[#FBBF24]/30 to-transparent blur-md pointer-events-none" />
+            <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 w-2/3 h-6 bg-gradient-to-r from-transparent via-[#FBBF24]/20 to-transparent blur-md pointer-events-none" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1E4E8C]/25 via-transparent to-transparent pointer-events-none" />
 
             {/* Inner Content flex container */}
-            <div className="relative z-10 flex items-center gap-2 sm:gap-4 md:gap-6 max-w-4xl mx-auto w-full justify-center">
+            <div className="relative z-10 flex items-center justify-center gap-2.5 sm:gap-3.5 w-full">
               
               {/* Golden Shopping Bag with Heart Icon */}
-              <div className="flex-shrink-0">
-                <div className="relative w-8 h-10 min-[375px]:w-10 min-[375px]:h-12 sm:w-14 sm:h-16 md:w-18 md:h-20 flex items-center justify-center drop-shadow-[0_4px_12px_rgba(245,166,35,0.4)]">
+              <div className="flex-shrink-0 flex items-center justify-center">
+                <div className="relative w-7 h-8 min-[375px]:w-8 min-[375px]:h-9 sm:w-10 sm:h-11 flex items-center justify-center drop-shadow-[0_2px_8px_rgba(245,166,35,0.4)]">
                   <svg 
                     viewBox="0 0 100 115" 
                     fill="none" 
@@ -144,7 +144,7 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
                     <path 
                       d="M34 38V22C34 13.1634 41.1634 6 50 6C58.8366 6 66 13.1634 66 22V38" 
                       stroke="#F5A623" 
-                      strokeWidth="7" 
+                      strokeWidth="8" 
                       strokeLinecap="round" 
                     />
                     
@@ -171,13 +171,13 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
                     <path 
                       d="M20 36H80L75 104H25L20 36Z" 
                       fill="url(#bagShine)" 
-                      opacity="0.25"
+                      opacity="0.2" 
                     />
 
                     {/* Dark Navy Heart in the center */}
                     <path 
                       d="M50 87.5C49.1 87.5 48.3 87.15 47.7 86.55L34.2 73.05C28.6 67.45 28.6 58.35 34.2 52.75C39.8 47.15 48.9 47.15 50 52.55C51.1 47.15 60.2 47.15 65.8 52.75C71.4 58.35 71.4 67.45 65.8 73.05L52.3 86.55C51.7 87.15 50.9 87.5 50 87.5Z" 
-                      fill="#0B1E36" 
+                      fill="#07192F" 
                     />
                   </svg>
                 </div>
@@ -186,7 +186,7 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
               {/* Banner Text Block */}
               <div className="flex flex-col justify-center text-left min-w-0">
                 {/* Main Heading - Guaranteed strictly single line on every screen */}
-                <h1 className="text-[13px] min-[360px]:text-[15px] min-[400px]:text-[17px] sm:text-2xl md:text-3xl lg:text-[38px] font-black tracking-tight sm:tracking-normal uppercase leading-tight font-sans whitespace-nowrap">
+                <h1 className="text-[12.5px] min-[360px]:text-[14px] min-[400px]:text-[15.5px] sm:text-lg md:text-xl font-black tracking-wide uppercase leading-tight font-sans whitespace-nowrap">
                   <span className="text-white drop-shadow-sm font-black">
                     A NEW ERA OF{' '}
                   </span>
@@ -196,7 +196,7 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
                 </h1>
 
                 {/* Subtitle - Guaranteed strictly single line on every screen */}
-                <p className="text-[9px] min-[360px]:text-[10.5px] min-[400px]:text-[12px] sm:text-sm md:text-base lg:text-lg font-medium text-white/95 tracking-tight sm:tracking-wide mt-0.5 sm:mt-1 font-sans whitespace-nowrap">
+                <p className="text-[8.5px] min-[360px]:text-[10px] min-[400px]:text-[11px] sm:text-xs md:text-sm font-medium text-slate-200 tracking-tight sm:tracking-normal mt-0.5 font-sans whitespace-nowrap">
                   Great Products. Best Prices. Surprise Rewards.
                 </p>
               </div>

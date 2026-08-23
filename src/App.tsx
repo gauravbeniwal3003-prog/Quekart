@@ -320,6 +320,9 @@ export default function App() {
     }
     try {
       const payload = {
+        userId: currentUser.id,
+        userPhone: currentUser.phone,
+        userEmail: currentUser.email,
         items: newOrder.items,
         appliedCouponCode: couponCode || null,
         isUpiPayment: isUpi || false,
@@ -344,7 +347,7 @@ export default function App() {
       }
     } catch (e) {
       console.warn("Placing order failed on server. Falling back to secure local emulation.", e);
-      setOrders((prevOrders) => [newOrder, ...prevOrders]);
+      setOrders((prevOrders) => [{ ...newOrder, userId: currentUser.id, userPhone: currentUser.phone }, ...prevOrders]);
       setCart([]); // Clear cart
     }
   };
@@ -757,7 +760,7 @@ export default function App() {
               /* PRODUCT DETAILS VIEW */
               <ProductDetail
                 product={selectedProduct}
-                suggestedProducts={approvedProducts.filter(p => p.category === selectedProduct.category && p.id !== selectedProduct.id).slice(0, 10)}
+                suggestedProducts={approvedProducts.filter(p => p.category === selectedProduct.category && p.id !== selectedProduct.id).slice(0, 12)}
                 onSelectProduct={(id) => navigateTo('/shop/product/' + id)}
                 onBack={() => navigateTo('/shop')}
                 onAddToCart={handleAddToCart}
@@ -765,7 +768,18 @@ export default function App() {
                 wishlist={wishlist}
                 onToggleWishlist={handleToggleWishlist}
                 currentUser={currentUser}
+                orders={orders}
                 onRequireLogin={triggerRequireLogin}
+                onProductUpdated={(updated) => {
+                  setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
+                }}
+                cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
+                onOpenCart={() => navigateTo('/shop/cart')}
+                onOpenWishlist={() => navigateTo('/shop/wishlist')}
+                onSearch={(q) => {
+                  setSearchQuery(q);
+                  navigateTo('/shop');
+                }}
               />
             ) : (
               <>
@@ -838,7 +852,7 @@ export default function App() {
                     {currentUser && (
                       <div className="sticky top-[60px] md:top-[120px] z-[90] bg-gray-50 px-4 pt-3 pb-3 border-b border-gray-200/80 shadow-xs">
                         {/* Local Search for Wishlist */}
-                        <div className="relative flex-1 w-full">
+                        <div className="max-w-7xl mx-auto relative flex-1 w-full">
                           <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
                           <input
                             type="text"
@@ -852,7 +866,7 @@ export default function App() {
                       </div>
                     )}
 
-                    <div className="px-4 mt-4" id="wishlist-list-content">
+                    <div className="max-w-7xl mx-auto px-4 mt-4" id="wishlist-list-content">
                     {!currentUser ? (
                       <div className="max-w-md mx-auto py-16 flex flex-col items-center text-center" id="guest-wishlist-view">
                         <div className="w-20 h-20 rounded-3xl bg-pink-50 border border-pink-100 flex items-center justify-center text-pink-500 shadow-sm mb-4">
@@ -885,22 +899,22 @@ export default function App() {
                         <p className="text-xs text-gray-400 font-bold">Your wishlist is currently empty.</p>
                         <button
                           onClick={() => navigateTo('/shop')}
-                          className="mt-4 bg-lucky-magenta text-white font-extrabold text-xs py-2 px-6 rounded-full"
+                          className="mt-4 bg-lucky-magenta text-white font-extrabold text-xs py-2 px-6 rounded-full cursor-pointer hover:opacity-90"
                         >
                           Browse Products
                         </button>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-2 gap-3" id="wishlist-grid">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4" id="wishlist-grid">
                         {products
                           .filter((p) => wishlist.includes(p.id) && p.title.toLowerCase().includes(searchQuery.toLowerCase()))
                           .map((p) => (
                             <div
                               key={p.id}
                               onClick={() => navigateTo('/shop/product/' + p.id)}
-                              className="bg-white rounded-lg overflow-hidden border border-gray-200/60 p-2.5 relative cursor-pointer hover:shadow-xs transition-shadow"
+                              className="bg-white rounded-xl overflow-hidden border border-gray-200/80 p-2.5 relative cursor-pointer hover:shadow-md transition-all"
                             >
-                              <img src={p.images[0]} alt={p.title} className="w-full aspect-square object-cover rounded-md" />
+                              <img src={p.images[0]} alt={p.title} className="w-full aspect-square object-cover rounded-lg" referrerPolicy="no-referrer" />
                               <h3 className="text-xs font-bold text-gray-700 truncate mt-2">{p.title}</h3>
                               <p className="text-xs font-black text-gray-950 mt-1 premium-rupee">₹{p.price}</p>
                               <button
@@ -908,7 +922,7 @@ export default function App() {
                                   e.stopPropagation();
                                   handleToggleWishlist(p.id);
                                 }}
-                                className="absolute top-4 right-4 bg-white/90 p-1.5 rounded-full text-red-500 shadow-xs"
+                                className="absolute top-4 right-4 bg-white/90 p-1.5 rounded-full text-red-500 shadow-xs hover:scale-110 active:scale-95 transition-transform"
                               >
                                 <Heart className="w-4 h-4 fill-current" />
                               </button>

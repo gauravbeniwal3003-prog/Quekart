@@ -79,68 +79,70 @@ export default function CategoryProductsView({
   return (
     <div className="flex flex-col bg-gray-50 min-h-full" id="category-products-page">
       {/* Sticky Header Row */}
-      <div className="sticky top-0 z-[100] bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between shadow-3xs" id="category-page-header">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="p-1.5 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
-            aria-label="Go back"
-            id="category-back-button"
-          >
-            <ArrowLeft className="w-5 h-5 text-gray-700" />
-          </button>
-          <div>
-            <h1 className="text-sm md:text-base font-black text-slate-800 tracking-tight" id="category-page-title">
-              {filterName}
-            </h1>
-            <p className="text-[10px] text-gray-400 font-bold" id="category-product-count">
-              {filteredProducts.length} {filteredProducts.length === 1 ? 'Product' : 'Products'} Found
-            </p>
-          </div>
-        </div>
-
-        {/* Sorting Dropdown Trigger */}
-        <div className="relative">
-          <button
-            onClick={() => setShowSortDropdown(!showSortDropdown)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-gray-100/80 border border-gray-200/60 rounded-lg text-xs font-bold text-gray-700 transition-colors cursor-pointer"
-            id="category-sort-dropdown-trigger"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span className="capitalize">
-              {sortBy === 'popular' ? 'Popularity' : sortBy === 'price-low' ? 'Price: L-H' : sortBy === 'price-high' ? 'Price: H-L' : 'Top Rated'}
-            </span>
-            <ChevronDown className={`w-3 h-3 transition-transform ${showSortDropdown ? 'rotate-180' : ''}`} />
-          </button>
-
-          {showSortDropdown && (
-            <div className="absolute right-0 mt-1 w-44 bg-white border border-gray-100 rounded-xl shadow-lg py-1.5 z-50 animate-fadeIn" id="category-sort-options">
-              {[
-                { value: 'popular', label: 'Popularity' },
-                { value: 'price-low', label: 'Price: Low to High' },
-                { value: 'price-high', label: 'Price: High to Low' },
-                { value: 'rating', label: 'Customer Rating' }
-              ].map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => {
-                    setSortBy(opt.value);
-                    setShowSortDropdown(false);
-                  }}
-                  className={`w-full px-4 py-2 text-left text-xs font-semibold hover:bg-blue-50/50 block transition-colors ${
-                    sortBy === opt.value ? 'text-lucky-magenta bg-blue-50/40 font-black' : 'text-gray-600'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
+      <div className="sticky top-0 z-[100] bg-white border-b border-gray-100 px-4 py-3 shadow-3xs" id="category-page-header">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onBack}
+              className="p-1.5 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+              aria-label="Go back"
+              id="category-back-button"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-700" />
+            </button>
+            <div>
+              <h1 className="text-sm md:text-base font-black text-slate-800 tracking-tight" id="category-page-title">
+                {filterName}
+              </h1>
+              <p className="text-[10px] text-gray-400 font-bold" id="category-product-count">
+                {filteredProducts.length} {filteredProducts.length === 1 ? 'Product' : 'Products'} Found
+              </p>
             </div>
-          )}
+          </div>
+
+          {/* Sorting Dropdown Trigger */}
+          <div className="relative">
+            <button
+              onClick={() => setShowSortDropdown(!showSortDropdown)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-gray-100/80 border border-gray-200/60 rounded-lg text-xs font-bold text-gray-700 transition-colors cursor-pointer"
+              id="category-sort-dropdown-trigger"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span className="capitalize">
+                {sortBy === 'popular' ? 'Popularity' : sortBy === 'price-low' ? 'Price: L-H' : sortBy === 'price-high' ? 'Price: H-L' : 'Top Rated'}
+              </span>
+              <ChevronDown className={`w-3 h-3 transition-transform ${showSortDropdown ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showSortDropdown && (
+              <div className="absolute right-0 mt-1 w-44 bg-white border border-gray-100 rounded-xl shadow-lg py-1.5 z-50 animate-fadeIn" id="category-sort-options">
+                {[
+                  { value: 'popular', label: 'Popularity' },
+                  { value: 'price-low', label: 'Price: Low to High' },
+                  { value: 'price-high', label: 'Price: High to Low' },
+                  { value: 'rating', label: 'Customer Rating' }
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => {
+                      setSortBy(opt.value);
+                      setShowSortDropdown(false);
+                    }}
+                    className={`w-full px-4 py-2 text-left text-xs font-semibold hover:bg-blue-50/50 block transition-colors ${
+                      sortBy === opt.value ? 'text-lucky-magenta bg-blue-50/40 font-black' : 'text-gray-600'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Main Listing View Body */}
-      <div className="flex-1 p-4 overflow-y-auto" id="category-products-container">
+      <div className="flex-1 p-4 overflow-y-auto max-w-7xl mx-auto w-full" id="category-products-container">
         {sortedProducts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center max-w-md mx-auto" id="category-empty-state">
             <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center text-lucky-magenta mb-4">

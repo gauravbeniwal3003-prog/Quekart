@@ -1,13 +1,20 @@
 export interface Review {
   id: string;
+  userId?: string;
+  userPhone?: string;
+  userEmail?: string;
   userName: string;
   userAvatar?: string;
   rating: number;
   title: string;
   comment: string;
   postedDate: string;
+  updatedAt?: string;
   images: string[]; // Real user photos
   helpfulCount: number;
+  helpfulUsers?: string[]; // User IDs / phone numbers who voted helpful (one account one vote)
+  isVerifiedPurchase?: boolean; // True if submitted by a customer who purchased this product
+  orderId?: string; // Optional linked order ID
 }
 
 export interface ProductHighlight {
@@ -22,7 +29,9 @@ export interface AdditionalDetail {
 
 export interface VariantSwatch {
   colorName: string;
+  colorHex?: string;
   imageUrl: string;
+  imageIndex?: number;
   price: number;
   originalPrice: number;
   stock?: number;
@@ -117,6 +126,9 @@ export interface CartItem {
 
 export interface Order {
   id: string;
+  userId?: string;
+  userPhone?: string;
+  userEmail?: string;
   items: CartItem[];
   orderDate: string;
   deliveryDate: string;

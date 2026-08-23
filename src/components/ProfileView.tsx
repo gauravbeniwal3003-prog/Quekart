@@ -348,7 +348,7 @@ export default function ProfileView({
       
       {/* ==================== A. MAIN ACCOUNT PROFILE MENU VIEW ==================== */}
       {activeSubPage === null && (
-        <div className="animate-fadeIn">
+        <div className="animate-fadeIn max-w-3xl mx-auto md:my-4 md:border md:border-gray-200/80 md:rounded-2xl md:overflow-hidden md:shadow-xs bg-white">
           {/* Header Bar */}
           <header className={`px-4 py-3 border-b sticky top-0 z-50 flex items-center justify-between ${simulatedTwilightTheme ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'}`} id="profile-header">
             <div className="flex items-center gap-4">
