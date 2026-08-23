@@ -1178,15 +1178,32 @@ app.post('/api/auth/verify-gst-lookup', async (req, res) => {
     }
   }
 
-  if (cachedGstData) {
+  if (cachedGstData && cachedGstData.legal_name !== 'EXAMPLE PRIVATE LIMITED' && cachedGstData.trade_name !== 'EXAMPLE CORP') {
     console.log(`[GST Lookup] Served cached result from DB for GSTIN: ${cleanGst}`);
-    const isVerified = cachedGstData.verified === true && (cachedGstData.status === 'Active' || cachedGstData.status === 'ACTIVE');
+    const rawStatus = String(cachedGstData.status || '').trim();
+    const isVerified = (cachedGstData.verified === true || cachedGstData.verified === 'true') && (rawStatus.toLowerCase() === 'active');
     
     if (!isVerified) {
-      const gstStatus = cachedGstData.status || 'Cancelled';
+      const entityName = cachedGstData.legal_name || cachedGstData.trade_name;
+      const entityDetail = entityName ? ` - ${entityName}` : '';
+      const statusLower = rawStatus.toLowerCase();
+
+      let errorMessage = '';
+      if (statusLower === 'cancelled') {
+        errorMessage = `Failed: GST Cancelled (${cleanGst}${entityDetail})`;
+      } else if (statusLower === 'suspended') {
+        errorMessage = `Failed: GST Suspended (${cleanGst}${entityDetail})`;
+      } else if (statusLower === 'inactive') {
+        errorMessage = `Failed: GST Inactive (${cleanGst}${entityDetail})`;
+      } else if (!entityName && (statusLower === 'unknown' || !statusLower || !cachedGstData.verified)) {
+        errorMessage = `Failed: GST Invalid / Not Found (${cleanGst})`;
+      } else {
+        errorMessage = `Failed: GST ${rawStatus || 'Not Active'} (${cleanGst}${entityDetail})`;
+      }
+
       return res.status(400).json({
         status: 400,
-        message: `GST Verification Failed: GSTIN ${cleanGst} status is ${gstStatus}. Only active GST registered businesses are allowed to register.`,
+        message: errorMessage,
         data: cachedGstData
       });
     }
@@ -1199,140 +1216,112 @@ app.post('/api/auth/verify-gst-lookup', async (req, res) => {
     });
   }
 
-  // 3. CALL EXTERNAL API IF NOT CACHED IN DATABASE
-  const authKey = process.env.SMS_OTP_AUTH_KEY || process.env.GST_API_KEY || '';
-  let apiData: any = null;
-  let apiSuccess = false;
-
-  if (authKey && authKey !== 'YOUR_KEY') {
-    try {
-      console.log(`[GST API Call] Querying apitxt.com API for GSTIN: ${cleanGst}`);
-      const apiUrl = `https://apitxt.com/api/gst/${cleanGst}?authkey=${encodeURIComponent(authKey)}`;
-      const fetchRes = await fetch(apiUrl, { method: 'GET' });
-      const apiJson: any = await fetchRes.json();
-
-      if (apiJson && (apiJson.data || apiJson.status === 200)) {
-        apiData = apiJson.data || apiJson;
-        apiSuccess = true;
-      } else if (apiJson && apiJson.message) {
-        console.warn(`[GST API Warning] ${apiJson.message}`);
-      }
-    } catch (fetchErr: any) {
-      console.error('[GST API Fetch Error]:', fetchErr.message);
-    }
-  }
-
-  // Fallback preset data generator if auth key not set or during local testing
-  if (!apiSuccess || !apiData) {
-    const stateCode = cleanGst.substring(0, 2);
-    const stateMap: Record<string, string> = {
-      '08': 'Rajasthan', '24': 'Gujarat', '27': 'Maharashtra', '07': 'Delhi',
-      '09': 'Uttar Pradesh', '19': 'West Bengal', '33': 'Tamil Nadu', '29': 'Karnataka',
-      '36': 'Telangana', '22': 'Chhattisgarh', '23': 'Madhya Pradesh', '03': 'Punjab', '06': 'Haryana'
-    };
-    const districtMap: Record<string, string> = {
-      '08': 'Jaipur', '24': 'Surat', '27': 'Mumbai', '07': 'Central Delhi',
-      '09': 'Varanasi', '19': 'Kolkata', '33': 'Chennai', '29': 'Bengaluru',
-      '36': 'Hyderabad', '22': 'Raipur', '23': 'Indore', '03': 'Ludhiana', '06': 'Gurugram'
-    };
-    const pincodeMap: Record<string, string> = {
-      '08': '302001', '24': '395003', '27': '400001', '07': '110001',
-      '09': '221001', '19': '700001', '33': '600001', '29': '560001',
-      '36': '500001', '22': '492001', '23': '452001', '03': '141001', '06': '122001'
-    };
-
-    const registeredState = stateMap[stateCode] || 'Rajasthan';
-    const registeredDistrict = districtMap[stateCode] || 'Jaipur';
-    const registeredPincode = pincodeMap[stateCode] || '302001';
-
-    let legalName = 'EXAMPLE PRIVATE LIMITED';
-    let tradeName = 'EXAMPLE CORP';
-    let businessType = 'Private Limited Company';
-    let address = '123, MG Road, Sector 5';
-
-    if (cleanGst === '08AAAAA1111A1Z1') {
-      legalName = 'RAJASTHAN HANDLOOM & TEXTILES PVT LTD';
-      tradeName = 'Rajasthan Handloom House';
-      businessType = 'Private Limited Company';
-      address = '42, Johari Bazar, Pink City Market';
-    } else if (cleanGst === '24AAAAA2222A1Z2') {
-      legalName = 'SURAT SILK WEAVERS PRIVATE LIMITED';
-      tradeName = 'Surat Silk Hub';
-      businessType = 'Private Limited Company';
-      address = '108, Ring Road Textile Market';
-    } else {
-      legalName = `EXAMPLE PRIVATE LIMITED`;
-      tradeName = `EXAMPLE CORP`;
-      businessType = 'Private Limited Company';
-      address = `123, MG Road, Sector 5`;
+  // 3. ALWAYS CALL EXTERNAL GOVERNMENT GST API VIA apitxt.com
+  const authKey = process.env.SMS_OTP_AUTH_KEY || process.env.GST_API_KEY || 'TpHpbUBBumiTj7Ayqn1Ty8BixlhtZO63adHE-Wx45ZI';
+  
+  try {
+    console.log(`[GST API Call] Querying apitxt.com API for GSTIN: ${cleanGst}`);
+    const apiUrl = `https://apitxt.com/api/gst/${cleanGst}?authkey=${encodeURIComponent(authKey)}`;
+    const fetchRes = await fetch(apiUrl, { method: 'GET' });
+    
+    if (!fetchRes.ok) {
+      throw new Error(`GST API HTTP ${fetchRes.status}`);
     }
 
-    apiData = {
+    const apiJson: any = await fetchRes.json();
+    console.log(`[GST API Response] GSTIN: ${cleanGst}`, JSON.stringify(apiJson));
+
+    const apiData = apiJson ? (apiJson.data || apiJson) : null;
+
+    if (!apiData) {
+      return res.status(400).json({
+        status: 400,
+        message: `GST Verification Failed: Unable to retrieve data for GSTIN ${cleanGst}. Please check the number and try again.`,
+        data: null
+      });
+    }
+
+    // Determine verification status from API
+    const rawStatus = String(apiData.status || '').trim();
+    const isVerified = (apiData.verified === true || apiData.verified === 'true') && (rawStatus.toLowerCase() === 'active');
+
+    // 4. SAVE REAL RESULT INTO DATABASE CACHE (gst_results)
+    const gstRecordToSave = {
       gstin: cleanGst,
-      verified: true,
-      status: "Active",
-      legal_name: legalName,
-      trade_name: tradeName,
-      business_type: businessType,
-      registration_date: "01/07/2017",
-      address: address,
-      state: registeredState,
-      district: registeredDistrict,
-      pincode: registeredPincode
+      verified: isVerified,
+      status: rawStatus || (isVerified ? 'Active' : 'Inactive'),
+      data: apiData,
+      created_at: new Date().toISOString()
     };
-  }
 
-  // 4. SAVE RESULT INTO DATABASE CACHE (gst_results)
-  const isVerified = apiData.verified === true && (apiData.status === 'Active' || apiData.status === 'ACTIVE');
-  const gstRecordToSave = {
-    gstin: cleanGst,
-    verified: isVerified,
-    status: apiData.status || (isVerified ? 'Active' : 'Cancelled'),
-    data: apiData,
-    created_at: new Date().toISOString()
-  };
+    localGstResults.unshift(gstRecordToSave);
 
-  localGstResults.unshift(gstRecordToSave);
-
-  if (useSupabase && supabase) {
-    try {
-      await supabase.from('gst_results').upsert([
-        {
-          gstin: cleanGst,
-          verified: isVerified,
-          status: apiData.status || (isVerified ? 'Active' : 'Cancelled'),
-          legal_name: apiData.legal_name || apiData.trade_name,
-          trade_name: apiData.trade_name || apiData.legal_name,
-          business_type: apiData.business_type,
-          registration_date: apiData.registration_date,
-          address: apiData.address,
-          state: apiData.state,
-          district: apiData.district,
-          pincode: apiData.pincode,
-          data: apiData
-        }
-      ], { onConflict: 'gstin' });
-    } catch (dbErr) {
-      console.error('Failed to save GST result to Supabase gst_results table:', dbErr);
+    if (useSupabase && supabase) {
+      try {
+        await supabase.from('gst_results').upsert([
+          {
+            gstin: cleanGst,
+            verified: isVerified,
+            status: rawStatus || (isVerified ? 'Active' : 'Inactive'),
+            legal_name: apiData.legal_name || apiData.trade_name,
+            trade_name: apiData.trade_name || apiData.legal_name,
+            business_type: apiData.business_type,
+            registration_date: apiData.registration_date,
+            address: apiData.address,
+            state: apiData.state,
+            district: apiData.district,
+            pincode: apiData.pincode,
+            data: apiData
+          }
+        ], { onConflict: 'gstin' });
+      } catch (dbErr) {
+        console.error('Failed to save GST result to Supabase gst_results table:', dbErr);
+      }
     }
-  }
 
-  // 5. RESPOND WITH VERIFICATION STATUS OR DETAILED REASON IF CANCELLED / SUSPENDED
-  if (!isVerified) {
-    const reasonStatus = apiData.status || 'Cancelled / Inactive';
-    return res.status(400).json({
-      status: 400,
-      message: `GST Verification Failed: GSTIN ${cleanGst} is currently ${reasonStatus}. Registration is only permitted for Active GST accounts.`,
+    // 5. RESPOND WITH REAL STATUS OR ERROR
+    if (!isVerified) {
+      const entityName = apiData.legal_name || apiData.trade_name;
+      const entityDetail = entityName ? ` - ${entityName}` : '';
+      const normalizedStatus = (rawStatus || '').trim();
+      const statusLower = normalizedStatus.toLowerCase();
+
+      let errorMessage = '';
+
+      if (statusLower === 'cancelled') {
+        errorMessage = `Failed: GST Cancelled (${cleanGst}${entityDetail})`;
+      } else if (statusLower === 'suspended') {
+        errorMessage = `Failed: GST Suspended (${cleanGst}${entityDetail})`;
+      } else if (statusLower === 'inactive') {
+        errorMessage = `Failed: GST Inactive (${cleanGst}${entityDetail})`;
+      } else if (!entityName && (statusLower === 'unknown' || !statusLower || !apiData.verified)) {
+        errorMessage = `Failed: GST Invalid / Not Found (${cleanGst})`;
+      } else {
+        errorMessage = `Failed: GST ${normalizedStatus || 'Not Active'} (${cleanGst}${entityDetail})`;
+      }
+
+      return res.status(400).json({
+        status: 400,
+        message: errorMessage,
+        data: apiData
+      });
+    }
+
+    return res.json({
+      status: 200,
+      message: "GSTIN successfully verified",
+      request_id: apiJson.request_id || `GST_VER_${Date.now()}`,
       data: apiData
     });
-  }
 
-  return res.json({
-    status: 200,
-    message: "success",
-    request_id: `GST_V_1_${Date.now()}_a1b2`,
-    data: apiData
-  });
+  } catch (fetchErr: any) {
+    console.error('[GST API Fetch Error]:', fetchErr.message || fetchErr);
+    return res.status(500).json({
+      status: 500,
+      message: `Failed to connect to GST Verification API server (${fetchErr.message || 'Network Error'}). Please try again.`,
+      data: null
+    });
+  }
 });
 
 // Government UIDAI Aadhaar Verification API Endpoint

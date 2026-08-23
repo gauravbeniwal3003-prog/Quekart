@@ -838,7 +838,7 @@ export default function VendorAuthView({
           <div className="flex-1 flex flex-col justify-between px-3.5 pb-2.5 overflow-hidden animate-fadeIn" id="vendor-signup-view">
             
             {/* White Glass Card Containing All Fields */}
-            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/80 p-3 flex flex-col justify-between flex-1 max-h-[83vh] overflow-hidden">
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/80 p-3 flex flex-col justify-between flex-1 max-h-[85vh] overflow-y-auto">
               
               {/* Header Title inside card */}
               <div className="flex items-center justify-between pb-1 border-b border-slate-100 flex-shrink-0">
@@ -857,9 +857,9 @@ export default function VendorAuthView({
 
               {/* Error Message */}
               {errorMsg && (
-                <div className="my-1 bg-red-50 border border-red-200 text-red-600 text-[11px] font-bold py-1 px-2.5 rounded-lg flex items-center gap-1.5 flex-shrink-0">
-                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span className="truncate">{errorMsg}</span>
+                <div className="my-1.5 bg-red-50 border border-red-200 text-red-700 text-[11px] font-extrabold py-1.5 px-2.5 rounded-lg flex items-start gap-1.5 flex-shrink-0 leading-snug break-words shadow-sm">
+                  <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                  <span className="flex-1 whitespace-normal break-words">{errorMsg}</span>
                 </div>
               )}
 
