@@ -109,7 +109,18 @@ async function ensureAllProductsHaveNumericIds() {
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+
+// Universal CORS Middleware for Multi-Cloud / Render / Vercel Deployments
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Admin-Secret, X-Vendor-Id');
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
 
 // Enable JSON parser with payload size limit to accommodate base64 image uploads
 app.use(express.json({ limit: '50mb' }));
@@ -118,8 +129,8 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // -------------------------------------------------------------
 // SECURE CONFIGURATION & CONSTANTS
 // -------------------------------------------------------------
-const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'lucky-secret-admin-pass-123';
 const JWT_SECRET = process.env.JWT_SECRET || 'quekart-secure-jwt-secret-987654321';
 

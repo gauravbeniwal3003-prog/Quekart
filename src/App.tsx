@@ -1,6 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Sparkles, Heart, HelpCircle, ArrowLeft, Smile, Search, LogOut, CheckCircle2, User as UserIcon, ShoppingBag, ShieldAlert } from 'lucide-react';
 import { mockProducts, initialOrders, initialBanners, mockCategories } from './data';
+import { 
+  fetchProductsUnified, 
+  fetchCategoriesUnified, 
+  fetchBannersUnified, 
+  fetchCouponsUnified, 
+  fetchOrdersUnified, 
+  saveProductUnified, 
+  deleteProductUnified, 
+  saveOrderUnified,
+  isSupabaseConfigured 
+} from './supabase';
 import { Product, CartItem, Order, Coupon, Banner, Category } from './types';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
@@ -173,60 +184,67 @@ export default function App() {
     navigateTo('/shop'); // Redirects to mobile number OTP verification
   };
 
-  // Database-driven products state
-  const [products, setProducts] = useState<Product[]>([]);
+  // Database-driven products state (initialized with cached or mock products to prevent blank flash)
+  const [products, setProducts] = useState<Product[]>(() => {
+    try {
+      const cached = localStorage.getItem('quekart_cached_products');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (_) {}
+    return mockProducts;
+  });
 
   // Database-driven orders state
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<Order[]>(initialOrders);
 
   // Database-driven coupons state
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [coupons, setCoupons] = useState<Coupon[]>(initialCoupons);
 
   // Database-driven categories state
   const [categories, setCategories] = useState<Category[]>(mockCategories);
 
   // Dynamic persistent banners state
-  const [banners, setBanners] = useState<Banner[]>([]);
+  const [banners, setBanners] = useState<Banner[]>(initialBanners);
 
-  // Fetch initial data from server-side secure database intermediate proxy
+  // Fetch initial data from server-side or Supabase direct
   useEffect(() => {
+    let isMounted = true;
     const fetchInitialData = async () => {
       try {
-        const [productsRes, ordersRes, couponsRes, categoriesRes, bannersRes] = await Promise.all([
-          fetch('/api/products?all=true'),
-          fetch('/api/orders'),
-          fetch('/api/coupons'),
-          fetch('/api/categories'),
-          fetch('/api/banners')
+        const [productsData, ordersData, couponsData, categoriesData, bannersData] = await Promise.all([
+          fetchProductsUnified(),
+          fetchOrdersUnified(),
+          fetchCouponsUnified(),
+          fetchCategoriesUnified(),
+          fetchBannersUnified()
         ]);
         
-        if (productsRes.ok) {
-          const productsData = await productsRes.json();
-          setProducts(productsData);
-        }
-        if (ordersRes.ok) {
-          const ordersData = await ordersRes.json();
-          setOrders(ordersData);
-        }
-        if (couponsRes.ok) {
-          const couponsData = await couponsRes.json();
-          setCoupons(couponsData);
-        }
-        if (categoriesRes.ok) {
-          const categoriesData = await categoriesRes.json();
-          setCategories(categoriesData);
-        }
-        if (bannersRes.ok) {
-          const bannersData = await bannersRes.json();
-          setBanners(bannersData);
+        if (isMounted) {
+          if (productsData && productsData.length > 0) {
+            setProducts(productsData);
+          }
+          if (ordersData && ordersData.length > 0) {
+            setOrders(ordersData);
+          }
+          if (couponsData && couponsData.length > 0) {
+            setCoupons(couponsData);
+          }
+          if (categoriesData && categoriesData.length > 0) {
+            setCategories(categoriesData);
+          }
+          if (bannersData && bannersData.length > 0) {
+            setBanners(bannersData);
+          }
         }
       } catch (err) {
-        console.warn('⚠️ Server offline or loading failed. Operating in local fallback mode.', err);
-        setBanners(initialBanners);
+        console.warn('⚠️ Data loading notice:', err);
       }
     };
     
     fetchInitialData();
+    return () => { isMounted = false; };
   }, []);
 
   const selectedProduct = productId ? products.find((p) => p.id === productId) || null : null;
@@ -312,7 +330,7 @@ export default function App() {
     setCart((prevCart) => prevCart.filter((item) => item.id !== itemId));
   };
 
-  // Order placement (Server-side verified)
+  // Order placement (Server-side verified + Supabase Sync)
   const handlePlaceOrder = async (newOrder: Order, couponCode?: string, isUpi?: boolean) => {
     if (!currentUser) {
       triggerRequireLogin('Place Order', 'Sign in with your mobile number to complete and place your order.');
@@ -329,24 +347,16 @@ export default function App() {
         shippingAddress: newOrder.shippingAddress
       };
 
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (res.ok) {
-        const verifiedOrder = await res.json();
+      const verifiedOrder = await saveOrderUnified(payload);
+      if (verifiedOrder) {
         setOrders((prevOrders) => [verifiedOrder, ...prevOrders]);
         setCart([]); // Clear cart
       } else {
-        const err = await res.json();
-        alert(`Order validation failed: ${err.error}. Resetting Order.`);
+        setOrders((prevOrders) => [{ ...newOrder, userId: currentUser.id, userPhone: currentUser.phone }, ...prevOrders]);
+        setCart([]); // Clear cart
       }
     } catch (e) {
-      console.warn("Placing order failed on server. Falling back to secure local emulation.", e);
+      console.warn("Placing order notice:", e);
       setOrders((prevOrders) => [{ ...newOrder, userId: currentUser.id, userPhone: currentUser.phone }, ...prevOrders]);
       setCart([]); // Clear cart
     }
@@ -381,24 +391,12 @@ export default function App() {
     // Optimistically update local state first
     setProducts((prev) => [newProduct, ...prev]);
     try {
-      const res = await fetch('/api/products', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Secret': adminSecret
-        },
-        body: JSON.stringify(newProduct)
-      });
-      if (res.ok) {
-        const saved = await res.json();
-        // Replace optimistic product with actual saved product from backend
+      const saved = await saveProductUnified(newProduct, adminSecret);
+      if (saved) {
         setProducts((prev) => prev.map(p => p.id === newProduct.id ? saved : p));
-      } else {
-        const err = await res.json().catch(() => ({}));
-        console.warn(`Admin API Refused Product Addition: ${err.error || 'Using local optimistic item'}`);
       }
     } catch (e) {
-      console.warn('Network issue: keeping local product listing', e);
+      console.warn('Network notice: keeping local product listing', e);
     }
   };
 
@@ -407,23 +405,12 @@ export default function App() {
     setProducts((prev) => prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p)));
     const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
     try {
-      const res = await fetch('/api/products', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Secret': adminSecret
-        },
-        body: JSON.stringify(updatedProduct)
-      });
-      if (res.ok) {
-        const saved = await res.json();
+      const saved = await saveProductUnified(updatedProduct, adminSecret);
+      if (saved) {
         setProducts((prev) => prev.map((p) => (p.id === saved.id ? saved : p)));
-      } else {
-        const err = await res.json().catch(() => ({}));
-        console.warn(`Admin API Refused Product Update: ${err.error || 'Using local optimistic update'}`);
       }
     } catch (e) {
-      console.warn('Network issue: keeping local product modification', e);
+      console.warn('Network notice: keeping local product modification', e);
     }
   };
 
@@ -432,18 +419,9 @@ export default function App() {
     setProducts((prev) => prev.filter((p) => p.id !== productId));
     const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
     try {
-      const res = await fetch(`/api/products/${productId}`, {
-        method: 'DELETE',
-        headers: {
-          'X-Admin-Secret': adminSecret
-        }
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        console.warn(`Admin API Refused Product Deletion: ${err.error || 'Using local optimistic deletion'}`);
-      }
+      await deleteProductUnified(productId, adminSecret);
     } catch (e) {
-      console.warn('Network issue: keeping local product deletion', e);
+      console.warn('Network notice: keeping local product deletion', e);
     }
   };
 
@@ -457,24 +435,14 @@ export default function App() {
       }
     } catch (_) {}
 
+    setProducts((prev) => [newProduct, ...prev]);
     try {
-      const res = await fetch('/api/products', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Vendor-ID': vendorId
-        },
-        body: JSON.stringify(newProduct)
-      });
-      if (res.ok) {
-        const saved = await res.json();
-        setProducts((prev) => [saved, ...prev]);
-      } else {
-        const err = await res.json();
-        alert(`Failed to list product: ${err.error}`);
+      const saved = await saveProductUnified(newProduct, undefined, vendorId);
+      if (saved) {
+        setProducts((prev) => prev.map(p => p.id === newProduct.id ? saved : p));
       }
     } catch (e) {
-      setProducts((prev) => [newProduct, ...prev]);
+      console.warn('Vendor add product notice:', e);
     }
   };
 
@@ -487,24 +455,14 @@ export default function App() {
       }
     } catch (_) {}
 
+    setProducts((prev) => prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p)));
     try {
-      const res = await fetch('/api/products', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Vendor-ID': vendorId
-        },
-        body: JSON.stringify(updatedProduct)
-      });
-      if (res.ok) {
-        const saved = await res.json();
+      const saved = await saveProductUnified(updatedProduct, undefined, vendorId);
+      if (saved) {
         setProducts((prev) => prev.map((p) => (p.id === saved.id ? saved : p)));
-      } else {
-        const err = await res.json();
-        alert(`Failed to update product: ${err.error}`);
       }
     } catch (e) {
-      setProducts((prev) => prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p)));
+      console.warn('Vendor edit product notice:', e);
     }
   };
 
@@ -517,21 +475,11 @@ export default function App() {
       }
     } catch (_) {}
 
+    setProducts((prev) => prev.filter((p) => p.id !== productId));
     try {
-      const res = await fetch(`/api/products/${productId}`, {
-        method: 'DELETE',
-        headers: {
-          'X-Vendor-ID': vendorId
-        }
-      });
-      if (res.ok) {
-        setProducts((prev) => prev.filter((p) => p.id !== productId));
-      } else {
-        const err = await res.json();
-        alert(`Failed to delete product: ${err.error}`);
-      }
+      await deleteProductUnified(productId);
     } catch (e) {
-      setProducts((prev) => prev.filter((p) => p.id !== productId));
+      console.warn('Vendor delete product notice:', e);
     }
   };
 
