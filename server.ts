@@ -1379,12 +1379,16 @@ app.get('/api/products', async (req, res) => {
     if (useSupabase && supabase) {
       const { data, error } = await supabase.from('products').select('*');
       if (!error && data && data.length > 0) {
-        productsList = data.map((row: any) => row.data);
+        productsList = data.map((row: any) => row.data || row);
       } else {
         console.warn('Supabase product query returned empty or failed, fallback to memory database:', error);
         productsList = localProducts;
       }
     } else {
+      productsList = localProducts;
+    }
+
+    if (!productsList || productsList.length === 0) {
       productsList = localProducts;
     }
 
