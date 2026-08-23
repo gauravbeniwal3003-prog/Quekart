@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Trash2, ShieldCheck, MapPin, CheckCircle, ArrowLeft, CreditCard, Ticket, Tag, Percent, ChevronDown, ChevronUp, Search, Lock, User, Phone } from 'lucide-react';
 import { CartItem, Order, Coupon } from '../types';
+import { getApiUrl } from '../utils/api';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -133,7 +134,7 @@ export default function CartDrawer({
 
     // Persist complete customer profile & address to server database
     try {
-      await fetch('/api/user/profile', {
+      await fetch(getApiUrl('/api/user/profile'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

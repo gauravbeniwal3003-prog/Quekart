@@ -503,6 +503,17 @@ testAndSeedSupabase().then(() => {
 // SECURITY MIDDLEWARES
 // -------------------------------------------------------------
 
+// 0. Enable CORS for cross-origin frontend requests (e.g. Vercel deployment)
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // 1. Lightweight Request Rate Limiter (Prevents DDoS and brute forcing)
 const ipRequestCounts = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute

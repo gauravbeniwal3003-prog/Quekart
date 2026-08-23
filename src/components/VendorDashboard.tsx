@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { getApiUrl } from '../utils/api';
 import { 
   Building2, 
   Package, 
@@ -380,7 +381,7 @@ export default function VendorDashboard({
   const fetchVendors = async () => {
     setIsLoadingVendors(true);
     try {
-      const res = await fetch('/api/vendors');
+      const res = await fetch(getApiUrl('/api/vendors'));
       if (res.ok) {
         const data = await res.json();
         setSystemVendors(data);

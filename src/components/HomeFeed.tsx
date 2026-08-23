@@ -6,6 +6,7 @@ import { sortHomeFeedByPerformance } from '../utils/productSorting';
 import { HighlightedText } from './HighlightedText';
 import { useProductImpressionObserver } from '../hooks/useProductImpressionObserver';
 import { trackProductView } from '../utils/analytics';
+import { getApiUrl } from '../utils/api';
 
 interface HomeFeedProps {
   categories?: Category[];
@@ -161,7 +162,7 @@ export default function HomeFeed({
       setSmartResult(null);
 
       const delayDebounce = setTimeout(() => {
-        fetch('/api/smart-search', {
+        fetch(getApiUrl('/api/smart-search'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query: searchQuery })

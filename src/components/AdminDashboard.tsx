@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getApiUrl } from '../utils/api';
 import { 
   LayoutDashboard, 
   Package, 
@@ -123,7 +124,7 @@ export default function AdminDashboard({
     setSyncStatus('idle');
     try {
       const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
-      const res = await fetch('/api/admin/sync-demo-products', {
+      const res = await fetch(getApiUrl('/api/admin/sync-demo-products'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -206,8 +207,8 @@ export default function AdminDashboard({
     setIsLoadingAdminData(true);
     try {
       const [vendorsRes, statusRes] = await Promise.all([
-        fetch('/api/vendors'),
-        fetch('/api/system-status').catch(() => null)
+        fetch(getApiUrl('/api/vendors')),
+        fetch(getApiUrl('/api/system-status')).catch(() => null)
       ]);
       if (vendorsRes.ok) {
         const vendorsData = await vendorsRes.json();
@@ -417,7 +418,7 @@ export default function AdminDashboard({
     setIsSponsoringSubmitting(true);
     try {
       const adminSecret = localStorage.getItem('lucky_admin_secret') || adminPasscode || 'lucky-secret-admin-pass-123';
-      const response = await fetch('/api/products/sponsor', {
+      const response = await fetch(getApiUrl('/api/products/sponsor'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -450,7 +451,7 @@ export default function AdminDashboard({
   // Helper functions for category management
   const handleCategoryDelete = async (catId: string) => {
     try {
-      const res = await fetch(`/api/categories/${catId}`, {
+      const res = await fetch(getApiUrl(`/api/categories/${catId}`), {
         method: 'DELETE',
         headers: {
           'x-admin-secret': adminPasscode
@@ -479,7 +480,7 @@ export default function AdminDashboard({
     onSetCategories(newCats);
 
     try {
-      const res = await fetch('/api/categories/reorder', {
+      const res = await fetch(getApiUrl('/api/categories/reorder'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -507,7 +508,7 @@ export default function AdminDashboard({
     onSetCategories(newCats);
 
     try {
-      const res = await fetch('/api/categories/reorder', {
+      const res = await fetch(getApiUrl('/api/categories/reorder'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -768,7 +769,7 @@ export default function AdminDashboard({
       setCroppingSrc(null); // Close modal instantly
 
       const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
-      const res = await fetch('/api/upload-image', {
+      const res = await fetch(getApiUrl('/api/upload-image'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -882,7 +883,7 @@ export default function AdminDashboard({
 
         // Safe secure upload through our proxied endpoint
         const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
-        const res = await fetch('/api/upload-image', {
+        const res = await fetch(getApiUrl('/api/upload-image'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

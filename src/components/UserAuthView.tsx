@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Check, Sparkles, Zap, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Check, Sparkles, Zap, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { motion } from 'motion/react';
 import Logo, { BrandLogo } from './Logo';
+import { getApiUrl } from '../utils/api';
 
 interface UserAuthViewProps {
   onLoginSuccess: (user: any, token: string) => void;
@@ -103,7 +105,7 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
     setIsProcessing(true);
     setErrorMsg('');
     try {
-      const res = await fetch('/api/auth/user-login', {
+      const res = await fetch(getApiUrl('/api/auth/user-login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: demoPhone })
@@ -138,6 +140,8 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
     }
   };
 
+  const [showSuccessTick, setShowSuccessTick] = useState(false);
+
   // Request SMS verification OTP
   const handleSendOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -150,8 +154,30 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
     }
 
     setIsProcessing(true);
+
+    // Prompt WebOTP API permission listener for auto-capture
+    if (typeof window !== 'undefined' && 'OTPCredential' in window) {
+      try {
+        const ac = new AbortController();
+        navigator.credentials.get({
+          otp: { transport: ['sms'] },
+          signal: ac.signal
+        } as any).then((content: any) => {
+          if (content && content.code) {
+            const chars = content.code.slice(0, 6).split('');
+            setOtpDigits(chars);
+            verifyOtpCode(content.code);
+          }
+        }).catch(err => {
+          console.log('WebOTP Listener inactive:', err);
+        });
+      } catch (err) {
+        console.log('WebOTP API init error:', err);
+      }
+    }
+
     try {
-      const res = await fetch('/api/auth/send-otp', {
+      const res = await fetch(getApiUrl('/api/auth/send-otp'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -254,7 +280,7 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
     const cleanPhone = phone.trim().replace(/\s+/g, '');
 
     try {
-      const res = await fetch('/api/auth/verify-otp', {
+      const res = await fetch(getApiUrl('/api/auth/verify-otp'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -267,11 +293,26 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
 
       const data = await res.json();
       if (res.ok && data.user && data.token) {
-        onLoginSuccess(data.user, data.token);
+        // Trigger smooth green tick animation
+        setShowSuccessTick(true);
+        setTimeout(() => {
+          onLoginSuccess(data.user, data.token);
+        }, 1100);
       } else {
+        // Mobile vibration on incorrect OTP
+        if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+          try {
+            navigator.vibrate(200);
+          } catch (_) {}
+        }
         setErrorMsg(data.error || 'Invalid verification code. Please check and try again.');
       }
     } catch (_) {
+      if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+        try {
+          navigator.vibrate(200);
+        } catch (_) {}
+      }
       setErrorMsg('Network error. Unable to verify OTP code.');
     } finally {
       setIsProcessing(false);
@@ -595,6 +636,41 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
           </div>
 
         </div>
+      )}
+
+      {/* Smooth Green Success Tick Animation Modal Overlay */}
+      {showSuccessTick && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center p-4"
+        >
+          <motion.div 
+            initial={{ scale: 0.6, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 22 }}
+            className="bg-white rounded-3xl p-7 flex flex-col items-center justify-center shadow-2xl border border-emerald-100 text-center max-w-xs w-full"
+          >
+            <div className="w-20 h-20 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 mb-4 relative shadow-sm">
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0.4 }}
+                animate={{ scale: [1, 1.25, 1], opacity: [0.4, 0.1, 0.4] }}
+                transition={{ repeat: Infinity, duration: 1.8 }}
+                className="absolute inset-0 rounded-full bg-emerald-400"
+              />
+              <motion.div
+                initial={{ scale: 0, rotate: -45 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 400, damping: 15, delay: 0.1 }}
+              >
+                <CheckCircle2 className="w-12 h-12 text-emerald-500 stroke-[2.5]" />
+              </motion.div>
+            </div>
+            <h3 className="text-lg font-black text-slate-900 mb-1 tracking-tight">OTP Verified!</h3>
+            <p className="text-xs font-semibold text-slate-500">Welcome to QueKart</p>
+          </motion.div>
+        </motion.div>
       )}
 
     </div>

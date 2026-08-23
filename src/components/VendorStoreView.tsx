@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { getApiUrl } from '../utils/api';
 import { 
   ArrowLeft, 
   Search, 
@@ -71,7 +72,7 @@ export default function VendorStoreView({
 
   // Fetch or infer vendor profile
   useEffect(() => {
-    fetch('/api/vendors')
+    fetch(getApiUrl('/api/vendors'))
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { getApiUrl } from '../utils/api';
 import Logo, { BrandLogo } from './Logo';
 import { 
   ChevronLeft, 
@@ -441,7 +442,7 @@ export default function ProductDetail({
         // 1. Try server proxy endpoint
         let uploadedUrl = '';
         try {
-          const res = await fetch('/api/upload-image', {
+          const res = await fetch(getApiUrl('/api/upload-image'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ image: base64Data })

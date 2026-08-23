@@ -1,4 +1,5 @@
 // Client-side Analytics Utility with Smart Anti-Spam & Impression Observer Support
+import { getApiUrl } from './api';
 
 const SESSION_STORAGE_KEY = 'quekart_client_session_id';
 
@@ -25,7 +26,7 @@ export async function trackProductImpressions(productIds: string[] | string): Pr
 
   try {
     const clientId = getClientSessionId();
-    await fetch('/api/analytics/impression', {
+    await fetch(getApiUrl('/api/analytics/impression'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ productIds: ids, clientId })
@@ -44,7 +45,7 @@ export async function trackProductView(productId: string): Promise<{ success: bo
 
   try {
     const clientId = getClientSessionId();
-    const res = await fetch('/api/analytics/view', {
+    const res = await fetch(getApiUrl('/api/analytics/view'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ productId, clientId })
@@ -67,7 +68,7 @@ export async function trackProductCartAdd(productId: string): Promise<void> {
 
   try {
     const clientId = getClientSessionId();
-    await fetch('/api/analytics/cart-add', {
+    await fetch(getApiUrl('/api/analytics/cart-add'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ productId, clientId })
@@ -82,7 +83,7 @@ export async function trackProductCartAdd(productId: string): Promise<void> {
  */
 export async function fetchVendorAnalytics(vendorId: string) {
   try {
-    const res = await fetch(`/api/analytics/vendor/${vendorId}`);
+    const res = await fetch(getApiUrl(`/api/analytics/vendor/${vendorId}`));
     if (res.ok) {
       return await res.json();
     }
@@ -98,7 +99,7 @@ export async function fetchVendorAnalytics(vendorId: string) {
 export async function fetchAdminAnalytics(adminSecret?: string) {
   try {
     const secret = adminSecret || localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
-    const res = await fetch('/api/analytics/admin', {
+    const res = await fetch(getApiUrl('/api/analytics/admin'), {
       headers: { 'X-Admin-Secret': secret }
     });
     if (res.ok) {

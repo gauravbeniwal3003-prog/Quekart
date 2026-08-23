@@ -13,6 +13,7 @@ import {
   isSupabaseConfigured 
 } from './supabase';
 import { Product, CartItem, Order, Coupon, Banner, Category } from './types';
+import { getApiUrl } from './utils/api';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
 import HomeFeed from './components/HomeFeed';
@@ -534,7 +535,7 @@ export default function App() {
     setCoupons((prev) => [newCoupon, ...prev]);
     const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
     try {
-      const res = await fetch('/api/coupons', {
+      const res = await fetch(getApiUrl('/api/coupons'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -559,7 +560,7 @@ export default function App() {
     setCoupons((prev) => prev.filter((c) => c.code !== code));
     const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
     try {
-      const res = await fetch(`/api/coupons/${code}`, {
+      const res = await fetch(getApiUrl(`/api/coupons/${code}`), {
         method: 'DELETE',
         headers: {
           'X-Admin-Secret': adminSecret
@@ -579,7 +580,7 @@ export default function App() {
     setBanners((prev) => [newBanner, ...prev]);
     const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
     try {
-      const res = await fetch('/api/banners', {
+      const res = await fetch(getApiUrl('/api/banners'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -604,7 +605,7 @@ export default function App() {
     setBanners((prev) => prev.filter((b) => b.id !== id));
     const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
     try {
-      const res = await fetch(`/api/banners/${id}`, {
+      const res = await fetch(getApiUrl(`/api/banners/${id}`), {
         method: 'DELETE',
         headers: {
           'X-Admin-Secret': adminSecret

@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { BrandLogo } from './Logo';
 import { Vendor } from '../types';
+import { motion } from 'motion/react';
+import { getApiUrl } from '../utils/api';
 
 interface VendorAuthViewProps {
   onLoginSuccess: (vendor: Vendor, token?: string) => void;
@@ -204,7 +206,7 @@ export default function VendorAuthView({
     }
 
     try {
-      const res = await fetch('/api/auth/vendor-login', {
+      const res = await fetch(getApiUrl('/api/auth/vendor-login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: demoVendor.phone })
@@ -241,7 +243,7 @@ export default function VendorAuthView({
     setIsGstVerifying(true);
 
     try {
-      const res = await fetch('/api/auth/verify-gst-lookup', {
+      const res = await fetch(getApiUrl('/api/auth/verify-gst-lookup'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ gstin: cleanGst })
@@ -307,6 +309,8 @@ export default function VendorAuthView({
   };
 
   // ----------------- LOGIN HANDLERS -----------------
+  const [showVendorSuccessTick, setShowVendorSuccessTick] = useState(false);
+
   const handleSendLoginOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setErrorMsg('');
@@ -318,8 +322,30 @@ export default function VendorAuthView({
     }
 
     setIsProcessing(true);
+
+    // Prompt WebOTP API permission listener for auto-capture
+    if (typeof window !== 'undefined' && 'OTPCredential' in window) {
+      try {
+        const ac = new AbortController();
+        navigator.credentials.get({
+          otp: { transport: ['sms'] },
+          signal: ac.signal
+        } as any).then((content: any) => {
+          if (content && content.code) {
+            const chars = content.code.slice(0, 6).split('');
+            setLoginOtpDigits(chars);
+            verifyLoginOtpCode(content.code);
+          }
+        }).catch(err => {
+          console.log('WebOTP Listener inactive:', err);
+        });
+      } catch (err) {
+        console.log('WebOTP API init error:', err);
+      }
+    }
+
     try {
-      const res = await fetch('/api/auth/send-otp', {
+      const res = await fetch(getApiUrl('/api/auth/send-otp'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -331,8 +357,6 @@ export default function VendorAuthView({
 
       const data = await res.json();
       if (res.ok) {
-        const code = data.otp ? String(data.otp).slice(0, 6) : '123456';
-        setLoginSimulatedOtp(code);
         setLoginStep('otp');
         setLoginTimer(data.cooldownRemainingSec || 60);
         setIsLoginResendActive(false);
@@ -349,7 +373,6 @@ export default function VendorAuthView({
         setErrorMsg(data.error || 'Failed to dispatch verification code.');
       }
     } catch (_) {
-      setLoginSimulatedOtp('123456');
       setLoginStep('otp');
       setLoginTimer(60);
       setIsLoginResendActive(false);
@@ -414,10 +437,10 @@ export default function VendorAuthView({
     setErrorMsg('');
     setIsProcessing(true);
 
-    const cleanPhone = loginPhone.trim().replace(/\s+/g, '') || '9876543210';
+    const cleanPhone = loginPhone.trim().replace(/\s+/g, '');
 
     try {
-      const res = await fetch('/api/auth/verify-otp', {
+      const res = await fetch(getApiUrl('/api/auth/verify-otp'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -430,25 +453,27 @@ export default function VendorAuthView({
 
       const data = await res.json();
       if (res.ok && data.vendor) {
-        onLoginSuccess(data.vendor, data.token || 'vendor-session-token');
+        setShowVendorSuccessTick(true);
+        setTimeout(() => {
+          onLoginSuccess(data.vendor, data.token || 'vendor-session-token');
+        }, 1100);
         return;
       }
 
-      // Check systemVendors
-      const matched = systemVendors.find(v => {
-        const p1 = v.phone.replace(/[^0-9]/g, '');
-        const p2 = cleanPhone.replace(/[^0-9]/g, '');
-        return p1 === p2 || (p1.length >= 10 && p2.length >= 10 && p1.slice(-10) === p2.slice(-10));
-      });
-
-      if (matched) {
-        onLoginSuccess(matched, 'vendor-session-token');
-        return;
+      // Mobile vibration on incorrect OTP
+      if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+        try {
+          navigator.vibrate(200);
+        } catch (_) {}
       }
-
-      handleFastDemoLogin('verified');
+      setErrorMsg(data.error || 'Invalid verification code. Please check and try again.');
     } catch (_) {
-      handleFastDemoLogin('verified');
+      if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+        try {
+          navigator.vibrate(200);
+        } catch (_) {}
+      }
+      setErrorMsg('Network error. Unable to verify OTP code.');
     } finally {
       setIsProcessing(false);
     }
@@ -464,8 +489,29 @@ export default function VendorAuthView({
     }
 
     setIsProcessing(true);
+
+    if (typeof window !== 'undefined' && 'OTPCredential' in window) {
+      try {
+        const ac = new AbortController();
+        navigator.credentials.get({
+          otp: { transport: ['sms'] },
+          signal: ac.signal
+        } as any).then((content: any) => {
+          if (content && content.code) {
+            const chars = content.code.slice(0, 6).split('');
+            setSignUpOtpDigits(chars);
+            verifyInlineOtpCode(content.code);
+          }
+        }).catch(err => {
+          console.log('WebOTP Listener inactive:', err);
+        });
+      } catch (err) {
+        console.log('WebOTP API init error:', err);
+      }
+    }
+
     try {
-      const res = await fetch('/api/auth/send-otp', {
+      const res = await fetch(getApiUrl('/api/auth/send-otp'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -477,8 +523,6 @@ export default function VendorAuthView({
 
       const data = await res.json();
       if (res.ok) {
-        const code = data.otp ? String(data.otp).slice(0, 6) : '123456';
-        setSignUpSimulatedOtp(code);
         setIsOtpSent(true);
         setSignUpTimer(data.cooldownRemainingSec || 60);
         setIsSignUpResendActive(false);
@@ -495,7 +539,6 @@ export default function VendorAuthView({
         setErrorMsg(data.error || 'Failed to dispatch verification code.');
       }
     } catch (_) {
-      setSignUpSimulatedOtp('123456');
       setIsOtpSent(true);
       setSignUpTimer(60);
       setIsSignUpResendActive(false);
@@ -563,7 +606,7 @@ export default function VendorAuthView({
     const cleanPhone = signUpPhone.trim().replace(/\s+/g, '');
 
     try {
-      const res = await fetch('/api/auth/verify-otp', {
+      const res = await fetch(getApiUrl('/api/auth/verify-otp'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -573,14 +616,28 @@ export default function VendorAuthView({
         })
       });
 
-      if (res.ok || codeToVerify === signUpSimulatedOtp || codeToVerify === '1234') {
+      if (res.ok) {
         setIsMobileVerified(true);
-        setIsProcessing(false);
+        setShowVendorSuccessTick(true);
+        setTimeout(() => {
+          setShowVendorSuccessTick(false);
+        }, 1100);
         return;
+      } else {
+        if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+          try {
+            navigator.vibrate(200);
+          } catch (_) {}
+        }
+        setErrorMsg('Invalid verification code. Please check and try again.');
       }
-      setIsMobileVerified(true);
     } catch (_) {
-      setIsMobileVerified(true);
+      if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+        try {
+          navigator.vibrate(200);
+        } catch (_) {}
+      }
+      setErrorMsg('Network error. Unable to verify OTP code.');
     } finally {
       setIsProcessing(false);
     }
@@ -642,7 +699,7 @@ export default function VendorAuthView({
     };
 
     try {
-      const res = await fetch('/api/auth/vendor-register', {
+      const res = await fetch(getApiUrl('/api/auth/vendor-register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newVendor)
@@ -1396,6 +1453,41 @@ export default function VendorAuthView({
         )}
 
       </div>
+
+      {/* Smooth Green Success Tick Animation Modal Overlay */}
+      {showVendorSuccessTick && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center p-4"
+        >
+          <motion.div 
+            initial={{ scale: 0.6, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 22 }}
+            className="bg-white rounded-3xl p-7 flex flex-col items-center justify-center shadow-2xl border border-emerald-100 text-center max-w-xs w-full"
+          >
+            <div className="w-20 h-20 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 mb-4 relative shadow-sm">
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0.4 }}
+                animate={{ scale: [1, 1.25, 1], opacity: [0.4, 0.1, 0.4] }}
+                transition={{ repeat: Infinity, duration: 1.8 }}
+                className="absolute inset-0 rounded-full bg-emerald-400"
+              />
+              <motion.div
+                initial={{ scale: 0, rotate: -45 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 400, damping: 15, delay: 0.1 }}
+              >
+                <CheckCircle2 className="w-12 h-12 text-emerald-500 stroke-[2.5]" />
+              </motion.div>
+            </div>
+            <h3 className="text-lg font-black text-slate-900 mb-1 tracking-tight">OTP Verified!</h3>
+            <p className="text-xs font-semibold text-slate-500">Welcome to Seller Hub</p>
+          </motion.div>
+        </motion.div>
+      )}
 
     </div>
   );
