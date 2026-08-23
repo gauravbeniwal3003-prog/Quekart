@@ -67,10 +67,10 @@ export default function VendorAuthView({
 
   // ----------------- LOGIN STATE -----------------
   const [loginPhone, setLoginPhone] = useState('');
-  const [loginOtpDigits, setLoginOtpDigits] = useState(['', '', '', '']);
-  const [loginTimer, setLoginTimer] = useState(24);
+  const [loginOtpDigits, setLoginOtpDigits] = useState(['', '', '', '', '', '']);
+  const [loginTimer, setLoginTimer] = useState(60);
   const [isLoginResendActive, setIsLoginResendActive] = useState(false);
-  const [loginSimulatedOtp, setLoginSimulatedOtp] = useState('1234');
+  const [loginSimulatedOtp, setLoginSimulatedOtp] = useState('123456');
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -93,11 +93,11 @@ export default function VendorAuthView({
 
   // 4. Mobile No. + Inline OTP
   const [signUpPhone, setSignUpPhone] = useState('');
-  const [signUpOtpDigits, setSignUpOtpDigits] = useState(['', '', '', '']);
-  const [signUpSimulatedOtp, setSignUpSimulatedOtp] = useState('1234');
+  const [signUpOtpDigits, setSignUpOtpDigits] = useState(['', '', '', '', '', '']);
+  const [signUpSimulatedOtp, setSignUpSimulatedOtp] = useState('123456');
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isMobileVerified, setIsMobileVerified] = useState(false);
-  const [signUpTimer, setSignUpTimer] = useState(24);
+  const [signUpTimer, setSignUpTimer] = useState(60);
   const [isSignUpResendActive, setIsSignUpResendActive] = useState(false);
 
   // OTP input refs
@@ -105,10 +105,14 @@ export default function VendorAuthView({
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null)
   ];
 
   const signUpInlineOtpRefs = [
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
@@ -326,21 +330,30 @@ export default function VendorAuthView({
       });
 
       const data = await res.json();
-      const code = data.otp ? String(data.otp).slice(0, 4) : '1234';
-      setLoginSimulatedOtp(code);
-      setLoginStep('otp');
-      setLoginTimer(24);
-      setIsLoginResendActive(false);
-      setLoginOtpDigits(['', '', '', '']);
-      setTimeout(() => {
-        loginOtpInputRefs[0].current?.focus();
-      }, 100);
+      if (res.ok) {
+        const code = data.otp ? String(data.otp).slice(0, 6) : '123456';
+        setLoginSimulatedOtp(code);
+        setLoginStep('otp');
+        setLoginTimer(data.cooldownRemainingSec || 60);
+        setIsLoginResendActive(false);
+        setLoginOtpDigits(['', '', '', '', '', '']);
+        setTimeout(() => {
+          loginOtpInputRefs[0].current?.focus();
+        }, 100);
+      } else {
+        if (data.cooldownRemainingSec) {
+          setLoginTimer(data.cooldownRemainingSec);
+          setIsLoginResendActive(false);
+          setLoginStep('otp');
+        }
+        setErrorMsg(data.error || 'Failed to dispatch verification code.');
+      }
     } catch (_) {
-      setLoginSimulatedOtp('1234');
+      setLoginSimulatedOtp('123456');
       setLoginStep('otp');
-      setLoginTimer(24);
+      setLoginTimer(60);
       setIsLoginResendActive(false);
-      setLoginOtpDigits(['', '', '', '']);
+      setLoginOtpDigits(['', '', '', '', '', '']);
       setTimeout(() => {
         loginOtpInputRefs[0].current?.focus();
       }, 100);
@@ -352,7 +365,7 @@ export default function VendorAuthView({
   const handleResendLoginOtp = async () => {
     if (!isLoginResendActive) return;
     setIsLoginResendActive(false);
-    setLoginTimer(24);
+    setLoginTimer(60);
     setErrorMsg('');
     await handleSendLoginOtp();
   };
@@ -363,12 +376,12 @@ export default function VendorAuthView({
 
     const newDigits = [...loginOtpDigits];
     if (numericVal.length > 1) {
-      const chars = numericVal.slice(0, 4).split('');
+      const chars = numericVal.slice(0, 6).split('');
       chars.forEach((c, idx) => {
-        newDigits[idx] = c;
+        if (idx < 6) newDigits[idx] = c;
       });
       setLoginOtpDigits(newDigits);
-      if (chars.length === 4) {
+      if (chars.length === 6) {
         verifyLoginOtpCode(newDigits.join(''));
       }
       return;
@@ -377,13 +390,13 @@ export default function VendorAuthView({
     newDigits[index] = numericVal;
     setLoginOtpDigits(newDigits);
 
-    if (numericVal && index < 3) {
+    if (numericVal && index < 5) {
       loginOtpInputRefs[index + 1].current?.focus();
     }
 
-    if (numericVal && index === 3) {
+    if (numericVal && index === 5) {
       const fullCode = newDigits.join('');
-      if (fullCode.length === 4) {
+      if (fullCode.length === 6) {
         verifyLoginOtpCode(fullCode);
       }
     }
@@ -410,7 +423,8 @@ export default function VendorAuthView({
         body: JSON.stringify({
           phone: cleanPhone,
           otp: codeToVerify,
-          role: 'vendor'
+          role: 'vendor',
+          name: `Vendor ${cleanPhone}`
         })
       });
 
@@ -462,21 +476,30 @@ export default function VendorAuthView({
       });
 
       const data = await res.json();
-      const code = data.otp ? String(data.otp).slice(0, 4) : '1234';
-      setSignUpSimulatedOtp(code);
-      setIsOtpSent(true);
-      setSignUpTimer(24);
-      setIsSignUpResendActive(false);
-      setSignUpOtpDigits(['', '', '', '']);
-      setTimeout(() => {
-        signUpInlineOtpRefs[0].current?.focus();
-      }, 150);
+      if (res.ok) {
+        const code = data.otp ? String(data.otp).slice(0, 6) : '123456';
+        setSignUpSimulatedOtp(code);
+        setIsOtpSent(true);
+        setSignUpTimer(data.cooldownRemainingSec || 60);
+        setIsSignUpResendActive(false);
+        setSignUpOtpDigits(['', '', '', '', '', '']);
+        setTimeout(() => {
+          signUpInlineOtpRefs[0].current?.focus();
+        }, 150);
+      } else {
+        if (data.cooldownRemainingSec) {
+          setSignUpTimer(data.cooldownRemainingSec);
+          setIsSignUpResendActive(false);
+          setIsOtpSent(true);
+        }
+        setErrorMsg(data.error || 'Failed to dispatch verification code.');
+      }
     } catch (_) {
-      setSignUpSimulatedOtp('1234');
+      setSignUpSimulatedOtp('123456');
       setIsOtpSent(true);
-      setSignUpTimer(24);
+      setSignUpTimer(60);
       setIsSignUpResendActive(false);
-      setSignUpOtpDigits(['', '', '', '']);
+      setSignUpOtpDigits(['', '', '', '', '', '']);
       setTimeout(() => {
         signUpInlineOtpRefs[0].current?.focus();
       }, 150);
@@ -488,7 +511,7 @@ export default function VendorAuthView({
   const handleResendSignUpInlineOtp = async () => {
     if (!isSignUpResendActive) return;
     setIsSignUpResendActive(false);
-    setSignUpTimer(24);
+    setSignUpTimer(60);
     setErrorMsg('');
     await handleSendSignUpInlineOtp();
   };
@@ -499,12 +522,12 @@ export default function VendorAuthView({
 
     const newDigits = [...signUpOtpDigits];
     if (numericVal.length > 1) {
-      const chars = numericVal.slice(0, 4).split('');
+      const chars = numericVal.slice(0, 6).split('');
       chars.forEach((c, idx) => {
-        newDigits[idx] = c;
+        if (idx < 6) newDigits[idx] = c;
       });
       setSignUpOtpDigits(newDigits);
-      if (chars.length === 4) {
+      if (chars.length === 6) {
         verifyInlineOtpCode(newDigits.join(''));
       }
       return;
@@ -513,13 +536,13 @@ export default function VendorAuthView({
     newDigits[index] = numericVal;
     setSignUpOtpDigits(newDigits);
 
-    if (numericVal && index < 3) {
+    if (numericVal && index < 5) {
       signUpInlineOtpRefs[index + 1].current?.focus();
     }
 
-    if (numericVal && index === 3) {
+    if (numericVal && index === 5) {
       const fullCode = newDigits.join('');
-      if (fullCode.length === 4) {
+      if (fullCode.length === 6) {
         verifyInlineOtpCode(fullCode);
       }
     }
@@ -1104,7 +1127,7 @@ export default function VendorAuthView({
                   <div className="bg-blue-50/90 border border-blue-200 rounded-xl p-2 animate-fadeIn space-y-1">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-bold text-slate-700">
-                        Enter 4-Digit Code:
+                        Enter 6-Digit Code:
                       </span>
                       <div className="flex items-center gap-1.5">
                         <span className="text-[10px] font-mono font-black text-[#143C6B] bg-white px-1.5 py-0.2 rounded border border-blue-200">
@@ -1113,7 +1136,7 @@ export default function VendorAuthView({
                         <button
                           type="button"
                           onClick={() => {
-                            const chars = signUpSimulatedOtp.slice(0, 4).split('');
+                            const chars = signUpSimulatedOtp.slice(0, 6).split('');
                             setSignUpOtpDigits(chars);
                             verifyInlineOtpCode(chars.join(''));
                           }}
@@ -1124,19 +1147,20 @@ export default function VendorAuthView({
                       </div>
                     </div>
 
-                    {/* 4 OTP Digits */}
-                    <div className="flex items-center justify-center gap-2 pt-0.5">
+                    {/* 6 OTP Digits */}
+                    <div className="flex items-center justify-center gap-1.5 pt-0.5">
                       {signUpOtpDigits.map((digit, idx) => (
                         <input
                           key={`su-otp-${idx}`}
                           ref={signUpInlineOtpRefs[idx]}
                           type="tel"
                           inputMode="numeric"
+                          autoComplete="one-time-code"
                           maxLength={1}
                           value={digit}
                           onChange={(e) => handleSignUpInlineOtpChange(idx, e.target.value)}
                           onKeyDown={(e) => handleSignUpInlineOtpKeyDown(idx, e)}
-                          className="w-8 h-8 text-center text-sm font-black bg-white rounded-lg border border-slate-300 focus:border-[#143C6B] focus:ring-1 focus:ring-[#143C6B] focus:outline-hidden"
+                          className="w-7 h-7 text-center text-xs font-black bg-white rounded-lg border border-slate-300 focus:border-[#143C6B] focus:ring-1 focus:ring-[#143C6B] focus:outline-hidden"
                           id={`vendor-signup-otp-${idx}`}
                         />
                       ))}
@@ -1304,26 +1328,27 @@ export default function VendorAuthView({
 
                 <div className="text-center space-y-1 mb-4">
                   <p className="text-xs text-slate-500 font-medium">
-                    We sent a 4-digit code to
+                    We sent a 6-digit verification code to
                   </p>
                   <p className="text-sm font-black text-slate-900">
                     +91 {loginPhone || '9876543210'}
                   </p>
                 </div>
 
-                {/* 4 OTP Input Boxes */}
-                <div className="flex justify-center items-center gap-3 my-4">
+                {/* 6 OTP Input Boxes */}
+                <div className="flex justify-center items-center gap-2 my-4">
                   {loginOtpDigits.map((digit, idx) => (
                     <input
                       key={`li-otp-${idx}`}
                       ref={loginOtpInputRefs[idx]}
                       type="tel"
                       inputMode="numeric"
+                      autoComplete="one-time-code"
                       maxLength={1}
                       value={digit}
                       onChange={(e) => handleLoginOtpChange(idx, e.target.value)}
                       onKeyDown={(e) => handleLoginOtpKeyDown(idx, e)}
-                      className={`w-12 h-12 text-center text-xl font-bold bg-slate-50 rounded-xl border ${
+                      className={`w-10 h-11 text-center text-lg font-black bg-slate-50 rounded-xl border ${
                         digit ? 'border-[#143C6B] bg-blue-50/40 text-slate-900' : 'border-slate-300 text-slate-900'
                       } focus:bg-white focus:border-[#143C6B] focus:ring-2 focus:ring-[#143C6B]/20 focus:outline-hidden transition-all`}
                       id={`vendor-otp-input-${idx}`}
@@ -1336,7 +1361,7 @@ export default function VendorAuthView({
                   <button
                     type="button"
                     onClick={() => {
-                      const chars = loginSimulatedOtp.slice(0, 4).split('');
+                      const chars = loginSimulatedOtp.slice(0, 6).split('');
                       setLoginOtpDigits(chars);
                       verifyLoginOtpCode(chars.join(''));
                     }}
@@ -1367,10 +1392,10 @@ export default function VendorAuthView({
               <div className="pt-4">
                 <button
                   type="button"
-                  disabled={loginOtpDigits.join('').length !== 4 || isProcessing}
+                  disabled={loginOtpDigits.join('').length !== 6 || isProcessing}
                   onClick={() => verifyLoginOtpCode(loginOtpDigits.join(''))}
                   className={`w-full h-11 rounded-xl font-bold text-xs tracking-wide transition-all cursor-pointer flex items-center justify-center shadow-md active:scale-[0.99] ${
-                    loginOtpDigits.join('').length === 4 && !isProcessing
+                    loginOtpDigits.join('').length === 6 && !isProcessing
                       ? 'bg-[#143C6B] hover:bg-[#0C2340] text-white'
                       : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                   }`}

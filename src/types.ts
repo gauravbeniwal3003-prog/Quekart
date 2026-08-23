@@ -37,6 +37,15 @@ export interface VariantSwatch {
   stock?: number;
 }
 
+export interface ProductAnalytics {
+  impressions: number;
+  views: number;
+  cartAdds: number;
+  blockedImpressions: number;
+  blockedViews: number;
+  lastUpdated?: string;
+}
+
 export interface Product {
   id: string;
   title: string;
@@ -76,6 +85,7 @@ export interface Product {
   createdAt?: string;
   numericId?: number; // Sequential simple unique ID starting from 1
   sponsoredUntil?: string; // Timestamp until which product is sponsored
+  analytics?: ProductAnalytics; // Real-time product impression, view, and cart add analytics
 }
 
 export interface Vendor {
@@ -111,8 +121,25 @@ export interface AppUser {
   id: string;
   name: string;
   email: string;
-  phone: string;
+  phone: string; // LOCKED to authenticated mobile number
+  gender?: 'Male' | 'Female' | 'Other' | string;
+  age?: number;
+  alternativePhone?: string;
   address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  isProfileComplete?: boolean;
+  savedAddresses?: Array<{
+    id: string;
+    name: string;
+    phone: string;
+    addressLine: string;
+    city: string;
+    state: string;
+    pincode: string;
+    isDefault?: boolean;
+  }>;
   createdAt: string;
 }
 

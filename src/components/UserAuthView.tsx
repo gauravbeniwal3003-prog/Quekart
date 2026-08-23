@@ -31,22 +31,23 @@ const FASHION_TILES = [
 export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: UserAuthViewProps) {
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [phone, setPhone] = useState('');
-  const [otpDigits, setOtpDigits] = useState(['', '', '', '']);
-  const [timer, setTimer] = useState(24);
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+  const [timer, setTimer] = useState(60);
   const [isResendActive, setIsResendActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [simulatedOtp, setSimulatedOtp] = useState('4892');
-  const [showDemoPrompt, setShowDemoPrompt] = useState(false);
+  const [simulatedOtp, setSimulatedOtp] = useState('123456');
 
   const otpInputRefs = [
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null)
   ];
 
-  // Countdown timer for OTP resend
+  // Countdown timer for OTP resend (60-second strict cooldown rule)
   useEffect(() => {
     let interval: any = null;
     if (step === 'otp' && timer > 0) {
@@ -58,6 +59,33 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
     }
     return () => clearInterval(interval);
   }, [step, timer]);
+
+  // WebOTP API: Auto-read SMS OTP on supported mobile devices
+  useEffect(() => {
+    if (step === 'otp' && 'OTPCredential' in window) {
+      const ac = new AbortController();
+      (navigator.credentials as any).get({
+        otp: { transport: ['sms'] },
+        signal: ac.signal
+      }).then((otpObj: any) => {
+        if (otpObj && otpObj.code) {
+          const codeDigits = otpObj.code.slice(0, 6).split('');
+          const newDigits = ['', '', '', '', '', ''];
+          codeDigits.forEach((c: string, idx: number) => {
+            if (idx < 6) newDigits[idx] = c;
+          });
+          setOtpDigits(newDigits);
+          if (otpObj.code.length >= 6) {
+            verifyOtpCode(otpObj.code);
+          }
+        }
+      }).catch((err: any) => {
+        console.log('WebOTP auto-capture ended or bypassed:', err);
+      });
+
+      return () => ac.abort();
+    }
+  }, [step]);
 
   const handleSkip = () => {
     if (onSkip) {
@@ -90,7 +118,7 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
         id: `user-${demoPhone}`,
         name: demoName,
         email: '',
-        phone: demoPhone,
+        phone: `91${demoPhone.slice(-10)}`,
         address: 'Mansarovar, Jaipur, Rajasthan',
         createdAt: new Date().toISOString()
       };
@@ -100,7 +128,7 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
         id: `user-${demoPhone}`,
         name: demoName,
         email: '',
-        phone: demoPhone,
+        phone: `91${demoPhone.slice(-10)}`,
         address: 'Mansarovar, Jaipur, Rajasthan',
         createdAt: new Date().toISOString()
       };
@@ -135,24 +163,29 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
 
       const data = await res.json();
       if (res.ok) {
-        setSimulatedOtp(data.otp || '4892');
+        setSimulatedOtp(data.otp || '123456');
         setStep('otp');
-        setTimer(24);
+        setTimer(data.cooldownRemainingSec || 60);
         setIsResendActive(false);
-        setOtpDigits(['', '', '', '']);
+        setOtpDigits(['', '', '', '', '', '']);
         setTimeout(() => {
           otpInputRefs[0].current?.focus();
         }, 100);
       } else {
+        if (data.cooldownRemainingSec) {
+          setTimer(data.cooldownRemainingSec);
+          setIsResendActive(false);
+          setStep('otp');
+        }
         setErrorMsg(data.error || 'Failed to dispatch verification code.');
       }
     } catch (_) {
       // Offline / fallback guarantee
-      setSimulatedOtp('4892');
+      setSimulatedOtp('123456');
       setStep('otp');
-      setTimer(24);
+      setTimer(60);
       setIsResendActive(false);
-      setOtpDigits(['', '', '', '']);
+      setOtpDigits(['', '', '', '', '', '']);
       setTimeout(() => {
         otpInputRefs[0].current?.focus();
       }, 100);
@@ -165,26 +198,26 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
   const handleResendOtp = async () => {
     if (!isResendActive) return;
     setIsResendActive(false);
-    setTimer(24);
+    setTimer(60);
     setErrorMsg('');
     await handleSendOtp();
   };
 
-  // Handle OTP digit changes
+  // Handle OTP digit changes (Supports 6 digits & pasting)
   const handleOtpChange = (index: number, value: string) => {
     const numericVal = value.replace(/[^0-9]/g, '');
     if (!numericVal && value !== '') return;
 
     const newDigits = [...otpDigits];
     
-    // Handle paste of 4 digits
+    // Handle paste of 6 digits
     if (numericVal.length > 1) {
-      const chars = numericVal.slice(0, 4).split('');
+      const chars = numericVal.slice(0, 6).split('');
       chars.forEach((c, idx) => {
-        newDigits[idx] = c;
+        if (idx < 6) newDigits[idx] = c;
       });
       setOtpDigits(newDigits);
-      if (chars.length === 4) {
+      if (chars.length === 6) {
         verifyOtpCode(newDigits.join(''));
       }
       return;
@@ -194,14 +227,14 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
     setOtpDigits(newDigits);
 
     // Focus next box if filled
-    if (numericVal && index < 3) {
+    if (numericVal && index < 5) {
       otpInputRefs[index + 1].current?.focus();
     }
 
-    // Auto-submit when all 4 boxes are populated
-    if (numericVal && index === 3) {
+    // Auto-submit when all 6 boxes are populated
+    if (numericVal && index === 5) {
       const fullCode = newDigits.join('');
-      if (fullCode.length === 4) {
+      if (fullCode.length === 6) {
         verifyOtpCode(fullCode);
       }
     }
@@ -231,7 +264,7 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
           phone: cleanPhone,
           otp: codeToVerify,
           role: 'user',
-          name: cleanPhone === '9999999999' ? 'Gaurav Beniwal' : 'Valued Customer'
+          name: cleanPhone === '9999999999' ? 'Gaurav Beniwal' : `Customer ${cleanPhone}`
         })
       });
 
@@ -239,8 +272,11 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
       if (res.ok && data.user && data.token) {
         onLoginSuccess(data.user, data.token);
       } else {
-        // Fallback for seamless developer testing
-        handleInstantDemoLogin(cleanPhone, cleanPhone === '9999999999' ? 'Gaurav Beniwal' : 'Valued Customer');
+        if (data.error) {
+          setErrorMsg(data.error);
+        } else {
+          handleInstantDemoLogin(cleanPhone, cleanPhone === '9999999999' ? 'Gaurav Beniwal' : `Customer ${cleanPhone}`);
+        }
       }
     } catch (_) {
       handleInstantDemoLogin(cleanPhone, 'Gaurav Beniwal');
@@ -500,21 +536,22 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
               </p>
             </div>
 
-            {/* 4-Box Clean OTP Input UI */}
-            <div className="flex justify-center items-center gap-3.5 my-6">
+            {/* 6-Box Clean OTP Input UI */}
+            <div className="flex justify-center items-center gap-2 sm:gap-3 my-6">
               {otpDigits.map((digit, idx) => (
                 <input
                   key={idx}
                   ref={otpInputRefs[idx]}
                   type="tel"
                   inputMode="numeric"
+                  autoComplete="one-time-code"
                   maxLength={1}
                   value={digit}
                   onChange={(e) => handleOtpChange(idx, e.target.value)}
                   onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                  className={`w-14 h-14 sm:w-16 sm:h-16 text-center text-2xl font-black rounded-2xl border transition-all ${
+                  className={`w-11 h-13 sm:w-13 sm:h-15 text-center text-xl font-black rounded-xl border transition-all ${
                     digit 
-                      ? 'bg-white border-slate-900 text-slate-900 shadow-sm' 
+                      ? 'bg-white border-slate-900 text-slate-900 shadow-xs' 
                       : 'bg-[#f1f5f9] border-transparent text-slate-900 focus:bg-white focus:border-slate-800'
                   } focus:outline-hidden`}
                   id={`otp-box-${idx}`}
@@ -526,7 +563,7 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
             <div className="text-center mt-6">
               {timer > 0 ? (
                 <p className="text-sm font-medium text-slate-500">
-                  Resend OTP in <span className="font-bold text-slate-700">{timer}</span>
+                  Resend OTP in <span className="font-bold text-slate-700">{timer}s</span>
                 </p>
               ) : (
                 <button
@@ -553,14 +590,14 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
             <div className="bg-slate-50 border border-slate-200/80 p-3.5 rounded-2xl flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-slate-800">
-                  Verification Code: <span className="font-mono font-black text-sm text-[#143C6B] bg-white px-2 py-0.5 rounded-lg border border-slate-200">{simulatedOtp}</span>
+                  SMS Code Sent: <span className="font-mono font-black text-sm text-[#143C6B] bg-white px-2 py-0.5 rounded-lg border border-slate-200">{simulatedOtp}</span>
                 </p>
-                <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Click Auto-Fill to verify code immediately</p>
+                <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Click Auto-Fill to capture SMS OTP</p>
               </div>
               <button
                 type="button"
                 onClick={() => {
-                  const chars = simulatedOtp.slice(0, 4).split('');
+                  const chars = simulatedOtp.slice(0, 6).split('');
                   setOtpDigits(chars);
                   verifyOtpCode(chars.join(''));
                 }}
@@ -573,10 +610,10 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
 
             <button
               type="button"
-              disabled={otpDigits.join('').length !== 4 || isProcessing}
+              disabled={otpDigits.join('').length !== 6 || isProcessing}
               onClick={() => verifyOtpCode(otpDigits.join(''))}
               className={`w-full h-13 rounded-2xl font-black text-sm tracking-wide transition-all cursor-pointer flex items-center justify-center shadow-md active:scale-[0.99] ${
-                otpDigits.join('').length === 4 && !isProcessing
+                otpDigits.join('').length === 6 && !isProcessing
                   ? 'bg-[#143C6B] hover:bg-[#0C2340] text-white'
                   : 'bg-[#94a3b8] text-white cursor-not-allowed opacity-90'
               }`}

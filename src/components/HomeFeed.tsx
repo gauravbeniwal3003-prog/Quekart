@@ -1,6 +1,11 @@
-import { useState, useEffect } from 'react';
-import { ArrowUpDown, ChevronDown, SlidersHorizontal, Heart, Sparkles, CheckCircle2, Loader2, Search, ShoppingBag, Tag } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { ArrowUpDown, ChevronDown, SlidersHorizontal, Heart, Sparkles, CheckCircle2, Loader2, Search, ShoppingBag, Tag, X, Star, Check, RotateCcw } from 'lucide-react';
 import { Product, Banner, Category } from '../types';
+import { useInfiniteProductPagination } from '../hooks/useInfiniteProductPagination';
+import { sortHomeFeedByPerformance } from '../utils/productSorting';
+import { HighlightedText } from './HighlightedText';
+import { useProductImpressionObserver } from '../hooks/useProductImpressionObserver';
+import { trackProductView } from '../utils/analytics';
 
 interface HomeFeedProps {
   categories?: Category[];
@@ -29,11 +34,23 @@ export default function HomeFeed({
   currentUser,
   onRequireLogin
 }: HomeFeedProps) {
+  // Activate automatic product impression tracking (1 count per 3 hours per IP)
+  useProductImpressionObserver();
+
   // State for sorting & filtering
   const [sortBy, setSortBy] = useState<string>('popular');
   const [selectedGender, setSelectedGender] = useState<string>('All');
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
+
+  // Attribute Filter States
+  const [maxPrice, setMaxPrice] = useState<number | null>(null);
+  const [minRating, setMinRating] = useState<number>(0);
+  const [codOnly, setCodOnly] = useState<boolean>(false);
+  const [minDiscount, setMinDiscount] = useState<number>(0);
+  const [showBudgetDropdown, setShowBudgetDropdown] = useState(false);
+  const [showRatingDropdown, setShowRatingDropdown] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
 
   // Smart AI Search Recommendation states
   const [smartSearchLoading, setSmartSearchLoading] = useState(false);
@@ -72,7 +89,27 @@ export default function HomeFeed({
     }
   }
 
-  // 3. Sorting
+  // 3. Max Budget Filter
+  if (maxPrice !== null && maxPrice > 0) {
+    filteredProducts = filteredProducts.filter((p) => p.price <= maxPrice);
+  }
+
+  // 4. Minimum Rating Filter
+  if (minRating > 0) {
+    filteredProducts = filteredProducts.filter((p) => (p.rating || 0) >= minRating);
+  }
+
+  // 5. COD Available Filter
+  if (codOnly) {
+    filteredProducts = filteredProducts.filter((p) => p.isCodAvailable);
+  }
+
+  // 6. Minimum Discount Filter
+  if (minDiscount > 0) {
+    filteredProducts = filteredProducts.filter((p) => (p.discountPercent || 0) >= minDiscount);
+  }
+
+  // 7. Sorting
   if (sortBy === 'price-asc') {
     filteredProducts.sort((a, b) => a.price - b.price);
   } else if (sortBy === 'price-desc') {
@@ -82,6 +119,24 @@ export default function HomeFeed({
   } else if (sortBy === 'rating') {
     filteredProducts.sort((a, b) => b.rating - a.rating);
   }
+
+  // Processed products for home feed (performance weighted random order when browsing home without active search)
+  const processedProducts = useMemo(() => {
+    if (!searchQuery && sortBy === 'popular') {
+      return sortHomeFeedByPerformance(filteredProducts);
+    }
+    return filteredProducts;
+  }, [filteredProducts, searchQuery, sortBy]);
+
+  // Infinite scroll pagination Hook (50 items max per batch, prefetch at last 10 items)
+  const {
+    visibleProducts,
+    isLoadingMore,
+    hasMore,
+    triggerIndex,
+    triggerRef,
+    totalCount,
+  } = useInfiniteProductPagination(processedProducts, { batchSize: 50, triggerThreshold: 10 });
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -210,118 +265,471 @@ export default function HomeFeed({
       )}
 
       {/* Sorting / Filter Bar */}
-      <div className="bg-white border-b border-gray-100 px-3 py-2 flex items-center justify-between gap-1 relative z-20" id="filters-bar">
-        {/* Sort Button */}
-        <div className="relative">
-          <button
-            onClick={() => {
-              setShowSortDropdown(!showSortDropdown);
-              setShowGenderDropdown(false);
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition-colors ${
-              sortBy !== 'popular' ? 'border-lucky-magenta text-lucky-magenta bg-blue-50' : 'border-gray-200 text-gray-700 hover:bg-gray-50'
-            }`}
-            id="sort-btn"
-          >
-            <ArrowUpDown className="w-3.5 h-3.5" />
-            <span>Sort</span>
-            <ChevronDown className="w-3 h-3" />
-          </button>
+      <div className="bg-white border-b border-gray-100 px-3 py-2 flex items-center justify-between gap-1.5 overflow-x-auto scrollbar-hide relative z-20" id="filters-bar">
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Sort Button */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setShowSortDropdown(!showSortDropdown);
+                setShowGenderDropdown(false);
+                setShowBudgetDropdown(false);
+                setShowRatingDropdown(false);
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition-colors ${
+                sortBy !== 'popular' ? 'border-lucky-magenta text-lucky-magenta bg-blue-50' : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+              }`}
+              id="sort-btn"
+            >
+              <ArrowUpDown className="w-3.5 h-3.5" />
+              <span>Sort</span>
+              <ChevronDown className="w-3 h-3" />
+            </button>
 
-          {showSortDropdown && (
-            <div className="absolute left-0 mt-1.5 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-30 py-1" id="sort-dropdown">
-              <button
-                onClick={() => { setSortBy('popular'); setShowSortDropdown(false); }}
-                className={`w-full text-left px-4 py-2 text-xs hover:bg-blue-50 cursor-pointer ${sortBy === 'popular' ? 'text-lucky-magenta font-semibold' : 'text-gray-700'}`}
-              >
-                Relevance / Popular
-              </button>
-              <button
-                onClick={() => { setSortBy('price-asc'); setShowSortDropdown(false); }}
-                className={`w-full text-left px-4 py-2 text-xs hover:bg-blue-50 cursor-pointer ${sortBy === 'price-asc' ? 'text-lucky-magenta font-semibold' : 'text-gray-700'}`}
-              >
-                Price: Low to High
-              </button>
-              <button
-                onClick={() => { setSortBy('price-desc'); setShowSortDropdown(false); }}
-                className={`w-full text-left px-4 py-2 text-xs hover:bg-blue-50 cursor-pointer ${sortBy === 'price-desc' ? 'text-lucky-magenta font-semibold' : 'text-gray-700'}`}
-              >
-                Price: High to Low
-              </button>
-              <button
-                onClick={() => { setSortBy('discount'); setShowSortDropdown(false); }}
-                className={`w-full text-left px-4 py-2 text-xs hover:bg-blue-50 cursor-pointer ${sortBy === 'discount' ? 'text-lucky-magenta font-semibold' : 'text-gray-700'}`}
-              >
-                Highest Discount
-              </button>
-              <button
-                onClick={() => { setSortBy('rating'); setShowSortDropdown(false); }}
-                className={`w-full text-left px-4 py-2 text-xs hover:bg-blue-50 cursor-pointer ${sortBy === 'rating' ? 'text-lucky-magenta font-semibold' : 'text-gray-700'}`}
-              >
-                Customer Rating
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Gender Filter */}
-        <div className="relative">
-          <button
-            onClick={() => {
-              setShowGenderDropdown(!showGenderDropdown);
-              setShowSortDropdown(false);
-            }}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition-colors ${
-              selectedGender !== 'All' ? 'border-lucky-magenta text-lucky-magenta bg-blue-50' : 'border-gray-200 text-gray-700 hover:bg-gray-50'
-            }`}
-            id="gender-filter-btn"
-          >
-            <span>Gender: {selectedGender}</span>
-            <ChevronDown className="w-3 h-3" />
-          </button>
-
-          {showGenderDropdown && (
-            <div className="absolute left-0 mt-1.5 w-36 bg-white border border-gray-200 rounded-lg shadow-lg z-30 py-1" id="gender-dropdown">
-              {['All', 'Men', 'Women', 'Kids'].map((g) => (
+            {showSortDropdown && (
+              <div className="absolute left-0 mt-1.5 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-30 py-1" id="sort-dropdown">
                 <button
-                  key={g}
-                  onClick={() => { setSelectedGender(g); setShowGenderDropdown(false); }}
-                  className={`w-full text-left px-4 py-2 text-xs hover:bg-blue-50 cursor-pointer ${selectedGender === g ? 'text-lucky-magenta font-semibold bg-blue-50/50' : 'text-gray-700'}`}
+                  onClick={() => { setSortBy('popular'); setShowSortDropdown(false); }}
+                  className={`w-full text-left px-4 py-2 text-xs hover:bg-blue-50 cursor-pointer ${sortBy === 'popular' ? 'text-lucky-magenta font-semibold' : 'text-gray-700'}`}
                 >
-                  {g}
+                  Relevance / Popular
                 </button>
-              ))}
-            </div>
-          )}
+                <button
+                  onClick={() => { setSortBy('price-asc'); setShowSortDropdown(false); }}
+                  className={`w-full text-left px-4 py-2 text-xs hover:bg-blue-50 cursor-pointer ${sortBy === 'price-asc' ? 'text-lucky-magenta font-semibold' : 'text-gray-700'}`}
+                >
+                  Price: Low to High
+                </button>
+                <button
+                  onClick={() => { setSortBy('price-desc'); setShowSortDropdown(false); }}
+                  className={`w-full text-left px-4 py-2 text-xs hover:bg-blue-50 cursor-pointer ${sortBy === 'price-desc' ? 'text-lucky-magenta font-semibold' : 'text-gray-700'}`}
+                >
+                  Price: High to Low
+                </button>
+                <button
+                  onClick={() => { setSortBy('discount'); setShowSortDropdown(false); }}
+                  className={`w-full text-left px-4 py-2 text-xs hover:bg-blue-50 cursor-pointer ${sortBy === 'discount' ? 'text-lucky-magenta font-semibold' : 'text-gray-700'}`}
+                >
+                  Highest Discount
+                </button>
+                <button
+                  onClick={() => { setSortBy('rating'); setShowSortDropdown(false); }}
+                  className={`w-full text-left px-4 py-2 text-xs hover:bg-blue-50 cursor-pointer ${sortBy === 'rating' ? 'text-lucky-magenta font-semibold' : 'text-gray-700'}`}
+                >
+                  Customer Rating
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Gender Filter */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setShowGenderDropdown(!showGenderDropdown);
+                setShowSortDropdown(false);
+                setShowBudgetDropdown(false);
+                setShowRatingDropdown(false);
+              }}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition-colors ${
+                selectedGender !== 'All' ? 'border-lucky-magenta text-lucky-magenta bg-blue-50' : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+              }`}
+              id="gender-filter-btn"
+            >
+              <span>Gender: {selectedGender}</span>
+              <ChevronDown className="w-3 h-3" />
+            </button>
+
+            {showGenderDropdown && (
+              <div className="absolute left-0 mt-1.5 w-36 bg-white border border-gray-200 rounded-lg shadow-lg z-30 py-1" id="gender-dropdown">
+                {['All', 'Men', 'Women', 'Kids'].map((g) => (
+                  <button
+                    key={g}
+                    onClick={() => { setSelectedGender(g); setShowGenderDropdown(false); }}
+                    className={`w-full text-left px-4 py-2 text-xs hover:bg-blue-50 cursor-pointer ${selectedGender === g ? 'text-lucky-magenta font-semibold bg-blue-50/50' : 'text-gray-700'}`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Max Budget Filter */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setShowBudgetDropdown(!showBudgetDropdown);
+                setShowSortDropdown(false);
+                setShowGenderDropdown(false);
+                setShowRatingDropdown(false);
+              }}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition-colors ${
+                maxPrice !== null ? 'border-[#143C6B] text-[#143C6B] bg-blue-50 font-bold' : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+              }`}
+              id="budget-filter-btn"
+            >
+              <span>{maxPrice ? `Budget: Under ₹${maxPrice}` : 'Max Budget'}</span>
+              <ChevronDown className="w-3 h-3" />
+            </button>
+
+            {showBudgetDropdown && (
+              <div className="absolute left-0 mt-1.5 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-30 py-1" id="budget-dropdown">
+                {[
+                  { label: 'Any Budget', value: null },
+                  { label: 'Under ₹299', value: 299 },
+                  { label: 'Under ₹499', value: 499 },
+                  { label: 'Under ₹999', value: 999 },
+                  { label: 'Under ₹1,999', value: 1999 },
+                  { label: 'Under ₹4,999', value: 4999 },
+                ].map((option) => (
+                  <button
+                    key={option.label}
+                    onClick={() => { setMaxPrice(option.value); setShowBudgetDropdown(false); }}
+                    className={`w-full text-left px-4 py-2 text-xs hover:bg-blue-50 cursor-pointer flex items-center justify-between ${
+                      maxPrice === option.value ? 'text-[#143C6B] font-bold bg-blue-50/50' : 'text-gray-700'
+                    }`}
+                  >
+                    <span>{option.label}</span>
+                    {maxPrice === option.value && <Check className="w-3.5 h-3.5 text-[#143C6B]" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Rating Filter */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setShowRatingDropdown(!showRatingDropdown);
+                setShowSortDropdown(false);
+                setShowGenderDropdown(false);
+                setShowBudgetDropdown(false);
+              }}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition-colors ${
+                minRating > 0 ? 'border-amber-600 text-amber-700 bg-amber-50 font-bold' : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+              }`}
+              id="rating-filter-btn"
+            >
+              <Star className={`w-3.5 h-3.5 ${minRating > 0 ? 'fill-amber-500 text-amber-500' : 'text-gray-400'}`} />
+              <span>{minRating > 0 ? `${minRating}★ & above` : 'Rating'}</span>
+              <ChevronDown className="w-3 h-3" />
+            </button>
+
+            {showRatingDropdown && (
+              <div className="absolute left-0 mt-1.5 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-30 py-1" id="rating-dropdown">
+                {[
+                  { label: 'All Ratings', value: 0 },
+                  { label: '4.5★ & above', value: 4.5 },
+                  { label: '4.0★ & above', value: 4.0 },
+                  { label: '3.5★ & above', value: 3.5 },
+                ].map((option) => (
+                  <button
+                    key={option.label}
+                    onClick={() => { setMinRating(option.value); setShowRatingDropdown(false); }}
+                    className={`w-full text-left px-4 py-2 text-xs hover:bg-amber-50 cursor-pointer flex items-center justify-between ${
+                      minRating === option.value ? 'text-amber-800 font-bold bg-amber-50/60' : 'text-gray-700'
+                    }`}
+                  >
+                    <span className="flex items-center gap-1">
+                      <span className="text-amber-500 font-bold">★</span>
+                      <span>{option.label}</span>
+                    </span>
+                    {minRating === option.value && <Check className="w-3.5 h-3.5 text-amber-600" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Quick Clear Filter if active */}
-        {(selectedCategory !== 'All' || selectedGender !== 'All') && (
+        {/* Filter Drawer Toggle Button */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setShowFilterModal(true)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition-colors ${
+              maxPrice !== null || minRating > 0 || codOnly || minDiscount > 0
+                ? 'border-[#143C6B] text-white bg-[#143C6B] shadow-xs'
+                : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+            }`}
+            id="filters-sidebar-btn"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span>Filters</span>
+            {(maxPrice !== null || minRating > 0 || codOnly || minDiscount > 0) && (
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Active Filter Badges */}
+      {(selectedCategory !== 'All' || selectedGender !== 'All' || maxPrice !== null || minRating > 0 || codOnly || minDiscount > 0) && (
+        <div className="bg-slate-50 px-3 py-2 text-xs font-medium flex items-center gap-2 border-b border-slate-200/80 overflow-x-auto scrollbar-hide" id="active-filters-info">
+          <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider flex-shrink-0">Active:</span>
+          
+          {selectedCategory !== 'All' && (
+            <span className="inline-flex items-center gap-1 bg-white border border-slate-200 text-slate-800 px-2.5 py-1 rounded-full text-[11px] font-bold shadow-3xs flex-shrink-0">
+              <span>{selectedCategory}</span>
+              <button onClick={() => onSelectCategory('All')} className="text-slate-400 hover:text-red-500 cursor-pointer">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+
+          {selectedGender !== 'All' && (
+            <span className="inline-flex items-center gap-1 bg-white border border-slate-200 text-slate-800 px-2.5 py-1 rounded-full text-[11px] font-bold shadow-3xs flex-shrink-0">
+              <span>Gender: {selectedGender}</span>
+              <button onClick={() => setSelectedGender('All')} className="text-slate-400 hover:text-red-500 cursor-pointer">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+
+          {maxPrice !== null && (
+            <span className="inline-flex items-center gap-1 bg-blue-50 border border-blue-200 text-[#143C6B] px-2.5 py-1 rounded-full text-[11px] font-bold shadow-3xs flex-shrink-0">
+              <span>Under ₹{maxPrice}</span>
+              <button onClick={() => setMaxPrice(null)} className="text-blue-400 hover:text-red-500 cursor-pointer">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+
+          {minRating > 0 && (
+            <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-900 px-2.5 py-1 rounded-full text-[11px] font-bold shadow-3xs flex-shrink-0">
+              <span>★ {minRating}+</span>
+              <button onClick={() => setMinRating(0)} className="text-amber-500 hover:text-red-500 cursor-pointer">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+
+          {codOnly && (
+            <span className="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-800 px-2.5 py-1 rounded-full text-[11px] font-bold shadow-3xs flex-shrink-0">
+              <span>COD Only</span>
+              <button onClick={() => setCodOnly(false)} className="text-emerald-500 hover:text-red-500 cursor-pointer">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+
+          {minDiscount > 0 && (
+            <span className="inline-flex items-center gap-1 bg-pink-50 border border-pink-200 text-pink-800 px-2.5 py-1 rounded-full text-[11px] font-bold shadow-3xs flex-shrink-0">
+              <span>{minDiscount}%+ OFF</span>
+              <button onClick={() => setMinDiscount(0)} className="text-pink-400 hover:text-red-500 cursor-pointer">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+
           <button
             onClick={() => {
               onSelectCategory('All');
               setSelectedGender('All');
+              setMaxPrice(null);
+              setMinRating(0);
+              setCodOnly(false);
+              setMinDiscount(0);
             }}
-            className="text-[10px] text-blue-600 font-bold hover:underline cursor-pointer"
-            id="clear-filters-btn"
+            className="text-[10.5px] font-bold text-red-600 hover:underline cursor-pointer flex-shrink-0 ml-1"
+            id="clear-all-filters-btn"
           >
             Clear All
           </button>
-        )}
+        </div>
+      )}
 
-        {/* Static Filters Button to mimic UI */}
-        <button className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer" id="filters-sidebar-btn">
-          <SlidersHorizontal className="w-3.5 h-3.5" />
-          <span>Filters</span>
-        </button>
-      </div>
+      {/* Attribute Filter Modal / Drawer */}
+      {showFilterModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex justify-end animate-fadeIn" id="attribute-filter-modal">
+          <div className="bg-white w-full max-w-md h-full flex flex-col justify-between shadow-2xl animate-slideLeft">
+            {/* Modal Header */}
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="w-5 h-5 text-[#143C6B]" />
+                <h3 className="text-sm font-extrabold text-slate-900 tracking-tight">Filter Products</h3>
+              </div>
+              <button
+                onClick={() => setShowFilterModal(false)}
+                className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-      {/* active filters info */}
-      {(selectedCategory !== 'All' || selectedGender !== 'All') && (
-        <div className="bg-blue-50/40 px-4 py-1.5 text-[11px] text-gray-500 font-medium flex items-center gap-2 border-b border-gray-100" id="active-filters-info">
-          <span>Active filter:</span>
-          {selectedCategory !== 'All' && <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-sm">{selectedCategory}</span>}
-          {selectedGender !== 'All' && <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-sm">Gender: {selectedGender}</span>}
+            {/* Modal Body */}
+            <div className="p-5 overflow-y-auto space-y-6 flex-1">
+              {/* Max Budget Slider */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    Max Budget Price
+                  </label>
+                  <span className="text-xs font-black text-[#143C6B] bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-100">
+                    {maxPrice !== null ? `Under ₹${maxPrice}` : 'Any Budget'}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="100"
+                  max="10000"
+                  step="100"
+                  value={maxPrice || 10000}
+                  onChange={(e) => setMaxPrice(Number(e.target.value))}
+                  className="w-full accent-[#143C6B] cursor-pointer"
+                />
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {[
+                    { label: 'Under ₹299', val: 299 },
+                    { label: 'Under ₹499', val: 499 },
+                    { label: 'Under ₹999', val: 999 },
+                    { label: 'Under ₹1,999', val: 1999 },
+                    { label: 'Clear Limit', val: null },
+                  ].map((preset) => (
+                    <button
+                      key={preset.label}
+                      onClick={() => setMaxPrice(preset.val)}
+                      className={`text-xs px-2.5 py-1 rounded-lg border font-bold cursor-pointer transition-colors ${
+                        maxPrice === preset.val
+                          ? 'bg-[#143C6B] text-white border-[#143C6B]'
+                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Minimum Customer Rating */}
+              <div className="space-y-3 pt-4 border-t border-slate-150">
+                <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
+                  Minimum Customer Rating
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { label: 'All', val: 0 },
+                    { label: '3.5★+', val: 3.5 },
+                    { label: '4.0★+', val: 4.0 },
+                    { label: '4.5★+', val: 4.5 },
+                  ].map((r) => (
+                    <button
+                      key={r.label}
+                      onClick={() => setMinRating(r.val)}
+                      className={`py-2 px-2 rounded-xl text-xs font-bold border text-center transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                        minRating === r.val
+                          ? 'bg-amber-500 text-white border-amber-500 shadow-xs'
+                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span>{r.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Minimum Discount % */}
+              <div className="space-y-3 pt-4 border-t border-slate-150">
+                <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
+                  Minimum Discount %
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: 'All Discounts', val: 0 },
+                    { label: '10%+ OFF', val: 10 },
+                    { label: '20%+ OFF', val: 20 },
+                    { label: '30%+ OFF', val: 30 },
+                    { label: '50%+ OFF', val: 50 },
+                  ].map((d) => (
+                    <button
+                      key={d.label}
+                      onClick={() => setMinDiscount(d.val)}
+                      className={`text-xs px-3 py-1.5 rounded-xl border font-bold cursor-pointer transition-colors ${
+                        minDiscount === d.val
+                          ? 'bg-pink-600 text-white border-pink-600'
+                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Cash on Delivery Only Toggle */}
+              <div className="pt-4 border-t border-slate-150 flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900">Cash on Delivery Available</h4>
+                  <p className="text-[11px] text-slate-500 font-medium">Show items that support COD payment at doorstep</p>
+                </div>
+                <button
+                  onClick={() => setCodOnly(!codOnly)}
+                  className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer ${
+                    codOnly ? 'bg-emerald-600' : 'bg-slate-300'
+                  }`}
+                >
+                  <div
+                    className={`w-5 h-5 rounded-full bg-white transition-transform absolute top-0.5 left-0.5 shadow-xs ${
+                      codOnly ? 'translate-x-6' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center gap-3">
+              <button
+                onClick={() => {
+                  setMaxPrice(null);
+                  setMinRating(0);
+                  setCodOnly(false);
+                  setMinDiscount(0);
+                }}
+                className="w-1/2 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset All</span>
+              </button>
+              <button
+                onClick={() => setShowFilterModal(false)}
+                className="w-1/2 py-2.5 bg-[#143C6B] text-white rounded-xl text-xs font-black hover:bg-opacity-90 transition-colors cursor-pointer shadow-md"
+              >
+                Apply Filters ({filteredProducts.length})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Active Search Query Header */}
+      {searchQuery && (
+        <div className="bg-[#E8EEF5] border-y border-blue-100 px-4 py-2.5 flex items-center justify-between text-xs animate-fadeIn" id="search-active-bar">
+          <div className="flex items-center gap-2">
+            <Search className="w-4 h-4 text-[#143C6B]" />
+            <span className="font-medium text-slate-700">
+              Showing matching products for: <strong className="text-slate-900 font-bold">"{searchQuery}"</strong>
+            </span>
+            <span className="bg-[#143C6B] text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+              {filteredProducts.length} items found
+            </span>
+          </div>
+          <button
+            onClick={() => {
+              const searchInput = document.getElementById('search-input') as HTMLInputElement;
+              if (searchInput) {
+                searchInput.value = '';
+                const event = new Event('input', { bubbles: true });
+                searchInput.dispatchEvent(event);
+              }
+            }}
+            className="text-xs font-bold text-slate-500 hover:text-red-600 transition-colors cursor-pointer flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-slate-200"
+            id="clear-search-btn"
+          >
+            <span>Clear Search</span>
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
@@ -514,136 +922,221 @@ export default function HomeFeed({
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-[6px] md:gap-4 p-[6px] md:p-4 bg-gray-100 md:bg-transparent" id="product-grid">
-          {filteredProducts.map((product) => {
-            const isWishlisted = wishlist.includes(product.id);
-            return (
-              <div
-                key={product.id}
-                className="bg-white rounded-md overflow-hidden shadow-xs hover:shadow-md transition-shadow cursor-pointer flex flex-col relative"
-                id={`product-card-${product.id}`}
-                onClick={() => onSelectProduct(product)}
-              >
-                {/* Wishlist Icon Overlay */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!currentUser && onRequireLogin) {
-                      onRequireLogin('Save to Wishlist', 'Sign in to add items to your personal wishlist and track prices.');
-                      return;
-                    }
-                    onToggleWishlist(product.id);
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-[6px] md:gap-4 p-[6px] md:p-4 bg-gray-100 md:bg-transparent" id="product-grid">
+            {visibleProducts.map((product, idx) => {
+              const isWishlisted = wishlist.includes(product.id);
+              const isTrigger = idx === triggerIndex;
+              return (
+                <div
+                  key={product.id}
+                  data-product-id={product.id}
+                  ref={isTrigger ? triggerRef : undefined}
+                  className="bg-white rounded-md overflow-hidden shadow-xs hover:shadow-md transition-shadow cursor-pointer flex flex-col relative"
+                  id={`product-card-${product.id}`}
+                  onClick={() => {
+                    trackProductView(product.id);
+                    onSelectProduct(product);
                   }}
-                  className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center shadow-xs cursor-pointer hover:scale-110 active:scale-95 transition-transform"
-                  id={`wishlist-btn-${product.id}`}
                 >
-                  <Heart
-                    className={`w-4 h-4 transition-all ${
-                      isWishlisted ? 'fill-red-500 text-red-500 scale-110' : 'text-gray-400 hover:text-red-500'
-                    }`}
-                  />
-                </button>
+                  {/* Wishlist Icon Overlay */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!currentUser && onRequireLogin) {
+                        onRequireLogin('Save to Wishlist', 'Sign in to add items to your personal wishlist and track prices.');
+                        return;
+                      }
+                      onToggleWishlist(product.id);
+                    }}
+                    className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center shadow-xs cursor-pointer hover:scale-110 active:scale-95 transition-transform"
+                    id={`wishlist-btn-${product.id}`}
+                  >
+                    <Heart
+                      className={`w-4 h-4 transition-all ${
+                        isWishlisted ? 'fill-red-500 text-red-500 scale-110' : 'text-gray-400 hover:text-red-500'
+                      }`}
+                    />
+                  </button>
 
-                {/* Main Product Image Container */}
-                <div className="relative aspect-square w-full bg-gray-50 flex items-center justify-center overflow-hidden">
-                  <img
-                    src={product.images[0]}
-                    alt={product.title}
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    referrerPolicy="no-referrer"
-                  />
+                  {/* Main Product Image Container */}
+                  <div className="relative aspect-square w-full bg-gray-50 flex items-center justify-center overflow-hidden">
+                    <img
+                      src={product.images[0]}
+                      alt={product.title}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                      referrerPolicy="no-referrer"
+                    />
 
-                  {/* Ad tag indicator */}
-                  {product.isAd && (
-                    <span className="absolute bottom-2 left-2 bg-black/60 text-white text-[9px] px-1 rounded-xs font-semibold tracking-wider">
-                      Ad
-                    </span>
-                  )}
-
-                  {/* Countdown deal banner if available */}
-                  {product.timeLeftText && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-amber-500/90 text-white py-1 px-1.5 text-[10px] font-semibold flex items-center justify-between whitespace-nowrap overflow-hidden">
-                      <span className="flex items-center gap-0.5 truncate flex-shrink min-w-0">⏱️ {timerText}</span>
-                      <span className="text-[8px] sm:text-[9px] uppercase tracking-wider font-extrabold text-amber-50 animate-pulse flex-shrink-0 ml-1">Flash Deal</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Details Section */}
-                <div className="p-2.5 flex-1 flex flex-col justify-between overflow-hidden">
-                  <div>
-                    {/* ID and Sponsored Indicators */}
-                    <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                      {product.numericId && (
-                        <span className="bg-slate-100 text-slate-700 font-mono font-black text-[9px] px-1.5 py-0.2 rounded-sm border border-slate-200/55">
-                          ID: {product.numericId}
-                        </span>
-                      )}
-                      {product.sponsoredUntil && new Date(product.sponsoredUntil) > new Date() && (
-                        <span className="bg-amber-50 text-amber-700 font-black text-[9px] px-1.5 py-0.2 rounded-sm border border-amber-200/55 uppercase tracking-wide">
-                          ⭐ Sponsored
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Title */}
-                    <h3 className="text-xs font-medium text-gray-500 line-clamp-1 leading-tight tracking-tight mb-1 break-words overflow-hidden" title={product.title}>
-                      {product.title}
-                    </h3>
-
-                    {/* Vendor Name Display */}
-                    <div className="text-[10px] font-extrabold text-[#C49B48] mb-1.5 flex items-center gap-1 truncate">
-                      <span>🏪</span>
-                      <span className="truncate">{product.soldBy || 'Jaipur Wholesale'}</span>
-                    </div>
-
-                    {/* Price and Strikethrough Row */}
-                    <div className="flex items-baseline gap-1.5 flex-wrap overflow-hidden">
-                      <span className="text-[16px] font-black text-slate-900 premium-rupee">
-                        ₹{product.price}
-                      </span>
-                      <span className="text-xs text-gray-400 line-through font-medium">
-                        ₹{product.originalPrice}
-                      </span>
-                      <span className="text-xs text-lucky-green font-extrabold tracking-tight">
-                        {product.discountPercent}% off
-                      </span>
-                      {product.hasUpiOffer && (
-                        <span className="text-[9px] bg-emerald-50 text-emerald-700 font-extrabold px-1.5 py-0.2 rounded-sm border border-emerald-200/50 uppercase tracking-wider">
-                          UPI
-                        </span>
-                      )}
-                    </div>
-
-                    {/* COD Info - True Lucky Style */}
-                    <div className="text-[11px] text-slate-500 font-bold mt-1 flex items-center gap-1">
-                      <span className="text-emerald-600 text-[10px]">✔</span>
-                      <span>₹{product.codPrice} with COD</span>
-                    </div>
-                  </div>
-
-                  {/* Bottom Stats Row */}
-                  <div className="mt-2.5 flex items-center justify-between pt-2 border-t border-slate-50">
-                    <div className="flex items-center gap-1.5">
-                      {/* Star Rating pill */}
-                      <span className="bg-emerald-600 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full flex items-center gap-0.5 shadow-3xs">
-                        {product.rating} <span className="gold-star-glow text-[9px]">★</span>
-                      </span>
-                    </div>
-
-                    {/* Top Rated Check badge */}
-                    {product.tag && (
-                      <span className="text-[9px] badge-gradient-magenta font-extrabold px-2 py-0.5 rounded-sm flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3 text-lucky-magenta" />
-                        {product.tag}
+                    {/* Ad tag indicator */}
+                    {product.isAd && (
+                      <span className="absolute bottom-2 left-2 bg-black/60 text-white text-[9px] px-1 rounded-xs font-semibold tracking-wider">
+                        Ad
                       </span>
                     )}
+
+                    {/* Countdown deal banner if available */}
+                    {product.timeLeftText && (
+                      <div className="absolute bottom-0 left-0 right-0 bg-amber-500/90 text-white py-1 px-1.5 text-[10px] font-semibold flex items-center justify-between whitespace-nowrap overflow-hidden">
+                        <span className="flex items-center gap-0.5 truncate flex-shrink min-w-0">⏱️ {timerText}</span>
+                        <span className="text-[8px] sm:text-[9px] uppercase tracking-wider font-extrabold text-amber-50 animate-pulse flex-shrink-0 ml-1">Flash Deal</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Details Section */}
+                  <div className="p-2.5 flex-1 flex flex-col justify-between overflow-hidden">
+                    <div>
+                      {/* ID and Sponsored Indicators */}
+                      <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                        {product.numericId && (
+                          <span className="bg-slate-100 text-slate-700 font-mono font-black text-[9px] px-1.5 py-0.2 rounded-sm border border-slate-200/55">
+                            ID: {product.numericId}
+                          </span>
+                        )}
+                        {product.sponsoredUntil && new Date(product.sponsoredUntil) > new Date() && (
+                          <span className="bg-amber-50 text-amber-700 font-black text-[9px] px-1.5 py-0.2 rounded-sm border border-amber-200/55 uppercase tracking-wide">
+                            ⭐ Sponsored
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Title */}
+                      <h3 className="text-xs font-medium text-gray-500 line-clamp-1 leading-tight tracking-tight mb-1 break-words overflow-hidden" title={product.title}>
+                        <HighlightedText text={product.title} query={searchQuery} />
+                      </h3>
+
+                      {/* Vendor Name Display */}
+                      <div className="text-[10px] font-extrabold text-[#C49B48] mb-1.5 flex items-center gap-1 truncate">
+                        <span>🏪</span>
+                        <span className="truncate">
+                          <HighlightedText text={product.soldBy || 'Jaipur Wholesale'} query={searchQuery} />
+                        </span>
+                      </div>
+
+                      {/* Price and Strikethrough Row */}
+                      <div className="flex items-baseline gap-1.5 flex-wrap overflow-hidden">
+                        <span className="text-[16px] font-black text-slate-900 premium-rupee">
+                          ₹{product.price}
+                        </span>
+                        <span className="text-xs text-gray-400 line-through font-medium">
+                          ₹{product.originalPrice}
+                        </span>
+                        <span className="text-xs text-lucky-green font-extrabold tracking-tight">
+                          {product.discountPercent}% off
+                        </span>
+                        {product.hasUpiOffer && (
+                          <span className="text-[9px] bg-emerald-50 text-emerald-700 font-extrabold px-1.5 py-0.2 rounded-sm border border-emerald-200/50 uppercase tracking-wider">
+                            UPI
+                          </span>
+                        )}
+                      </div>
+
+                      {/* COD Info - True Lucky Style */}
+                      <div className="text-[11px] text-slate-500 font-bold mt-1 flex items-center gap-1">
+                        <span className="text-emerald-600 text-[10px]">✔</span>
+                        <span>₹{product.codPrice} with COD</span>
+                      </div>
+                    </div>
+
+                    {/* Bottom Stats Row */}
+                    <div className="mt-2.5 flex items-center justify-between pt-2 border-t border-slate-50">
+                      <div className="flex items-center gap-1.5">
+                        {/* Star Rating pill */}
+                        <span className="bg-emerald-600 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full flex items-center gap-0.5 shadow-3xs">
+                          {product.rating} <span className="gold-star-glow text-[9px]">★</span>
+                        </span>
+                      </div>
+
+                      {/* Top Rated Check badge */}
+                      {product.tag && (
+                        <span className="text-[9px] badge-gradient-magenta font-extrabold px-2 py-0.5 rounded-sm flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-lucky-magenta" />
+                          {product.tag}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+
+          {/* Loading Animation Row underneath last product row when fast scrolling or loading next batch */}
+          {isLoadingMore && (
+            <div className="w-full py-8 flex flex-col items-center justify-center gap-2 text-slate-500 animate-fadeIn" id="feed-loading-spinner">
+              <Loader2 className="w-7 h-7 text-[#143C6B] animate-spin" />
+              <span className="text-xs font-bold text-slate-600">Loading next 50 products...</span>
+            </div>
+          )}
+
+          {/* End of results message: Switch Category or Search option */}
+          {!hasMore && processedProducts.length > 0 && (
+            <div className="w-full px-4 py-6">
+              {searchQuery ? (
+                <div className="bg-white border border-blue-100 rounded-2xl p-6 text-center max-w-lg mx-auto shadow-xs animate-fadeIn" id="search-end-card">
+                  <div className="w-12 h-12 bg-blue-50 text-[#143C6B] rounded-full flex items-center justify-center mx-auto mb-3 border border-blue-100">
+                    <CheckCircle2 className="w-6 h-6 text-[#143C6B]" />
+                  </div>
+                  <h3 className="text-sm font-black text-slate-900 tracking-tight">
+                    All {processedProducts.length} related products loaded for "{searchQuery}"
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 font-medium leading-relaxed">
+                    No more matching items for this search query. Try switching to another category or clearing search.
+                  </p>
+
+                  <div className="mt-5 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-center gap-2.5">
+                    <button
+                      onClick={() => {
+                        const searchInput = document.getElementById('search-input') as HTMLInputElement;
+                        if (searchInput) {
+                          searchInput.value = '';
+                          const event = new Event('input', { bubbles: true });
+                          searchInput.dispatchEvent(event);
+                        }
+                      }}
+                      className="w-full sm:w-auto px-5 py-2.5 bg-[#143C6B] hover:bg-[#0c2340] active:scale-95 text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+                      id="clear-search-switch-btn"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>Clear Search & View Feed</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        const searchInput = document.getElementById('search-input') as HTMLInputElement;
+                        if (searchInput) {
+                          searchInput.value = '';
+                          const event = new Event('input', { bubbles: true });
+                          searchInput.dispatchEvent(event);
+                        }
+                        onSelectCategory('All');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="w-full sm:w-auto px-5 py-2.5 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+                      id="switch-category-btn"
+                    >
+                      <Tag className="w-3.5 h-3.5" />
+                      <span>Switch Category</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white border border-gray-150 rounded-2xl p-5 text-center max-w-lg mx-auto shadow-3xs animate-fadeIn" id="home-end-card">
+                  <div className="w-10 h-10 bg-amber-50 text-[#C89D1F] rounded-full flex items-center justify-center mx-auto mb-2 border border-amber-100">
+                    <Sparkles className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <h3 className="text-xs font-bold text-slate-800">
+                    You've viewed all {processedProducts.length} top performing products!
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Select a category above or search to discover more collections.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

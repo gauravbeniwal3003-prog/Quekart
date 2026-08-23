@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Heart, ShoppingCart, Mic, Camera, Gift, Sparkles, TrendingUp, Tag, ArrowRight, User, LogOut, LogIn, ChevronDown, Package, ShieldCheck, Store } from 'lucide-react';
+import { Search, Heart, ShoppingCart, Mic, Camera, Gift, Sparkles, TrendingUp, Tag, ArrowRight, User, LogOut, LogIn, ChevronDown, Package, ShieldCheck, Store, History, Trash2, X } from 'lucide-react';
 import { CartItem, Product } from '../types';
 import Logo, { BrandLogo } from './Logo';
+import { HighlightedText } from './HighlightedText';
 
 interface HeaderProps {
   cart: CartItem[];
@@ -34,8 +35,56 @@ export default function Header({
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  
+  // Search History from LocalStorage
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('quekart_search_history');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.warn('Could not read search history:', e);
+    }
+    return ['Kurtis', 'Watches', 'Sarees', 'Shoes'];
+  });
+
   const containerRef = useRef<HTMLDivElement>(null);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
+
+  const saveSearchToHistory = (term: string) => {
+    const trimmed = term.trim();
+    if (!trimmed) return;
+    setRecentSearches((prev) => {
+      const filtered = prev.filter((item) => item.toLowerCase() !== trimmed.toLowerCase());
+      const updated = [trimmed, ...filtered].slice(0, 8);
+      try {
+        localStorage.setItem('quekart_search_history', JSON.stringify(updated));
+      } catch (err) {
+        console.warn('Could not save search history:', err);
+      }
+      return updated;
+    });
+  };
+
+  const clearSearchHistory = () => {
+    setRecentSearches([]);
+    try {
+      localStorage.removeItem('quekart_search_history');
+    } catch (err) {}
+  };
+
+  const removeFromSearchHistory = (termToRemove: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRecentSearches((prev) => {
+      const updated = prev.filter((item) => item.toLowerCase() !== termToRemove.toLowerCase());
+      try {
+        localStorage.setItem('quekart_search_history', JSON.stringify(updated));
+      } catch (err) {}
+      return updated;
+    });
+  };
 
   // Close dropdowns on click outside
   useEffect(() => {
@@ -92,7 +141,11 @@ export default function Header({
   }
 
   const handleSuggestionClick = (text: string) => {
+    saveSearchToHistory(text);
     onSearch(text);
+    if (activeTab !== 'home') {
+      onSelectTab('home');
+    }
     setShowSuggestions(false);
     setActiveSuggestionIndex(-1);
   };
@@ -116,6 +169,12 @@ export default function Header({
           : TRENDING_SEARCHES[activeSuggestionIndex];
         handleSuggestionClick(selectedText);
       } else {
+        if (searchQuery.trim()) {
+          saveSearchToHistory(searchQuery.trim());
+        }
+        if (activeTab !== 'home') {
+          onSelectTab('home');
+        }
         setShowSuggestions(false);
       }
     } else if (e.key === 'Escape') {
@@ -218,25 +277,66 @@ export default function Header({
 
             {/* Smart Suggestions Dropdown */}
             {showSuggestions && (
-              <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-gray-150 rounded-xl shadow-xl z-50 overflow-hidden animate-scaleIn divide-y divide-gray-100 max-h-96 overflow-y-auto">
+              <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-gray-150 rounded-xl shadow-xl z-50 overflow-hidden animate-scaleIn divide-y divide-gray-100 max-h-96 overflow-y-auto" id="search-suggestions-dropdown">
                 {!query ? (
-                  <div className="p-4 space-y-3">
-                    <div className="flex items-center gap-1.5 text-gray-400 text-[11px] font-bold tracking-wider uppercase">
-                      <TrendingUp className="w-3.5 h-3.5 text-blue-500" />
-                      <span>Trending Searches</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {TRENDING_SEARCHES.map((term, index) => (
-                        <button
-                          key={term}
-                          onClick={() => handleSuggestionClick(term)}
-                          className={`text-xs px-3 py-1.5 rounded-full border border-gray-100 bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-lucky-magenta hover:border-blue-200 cursor-pointer font-semibold transition-all ${
-                            activeSuggestionIndex === index ? 'bg-blue-50 text-lucky-magenta border-blue-200' : ''
-                          }`}
-                        >
-                          {term}
-                        </button>
-                      ))}
+                  <div className="p-4 space-y-4">
+                    {/* Recent Searches Section */}
+                    {recentSearches.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-[11px] font-bold tracking-wider uppercase text-gray-400">
+                          <div className="flex items-center gap-1.5">
+                            <History className="w-3.5 h-3.5 text-[#143C6B]" />
+                            <span>Recent Searches</span>
+                          </div>
+                          <button
+                            onClick={clearSearchHistory}
+                            className="text-[10px] text-gray-400 hover:text-red-500 font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                            id="clear-recent-searches-btn"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>Clear</span>
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {recentSearches.map((term) => (
+                            <div
+                              key={term}
+                              onClick={() => handleSuggestionClick(term)}
+                              className="group inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border border-slate-200 bg-slate-50 text-slate-700 hover:bg-[#143C6B]/10 hover:text-[#143C6B] hover:border-[#143C6B]/30 cursor-pointer font-semibold transition-all shadow-3xs"
+                            >
+                              <span>{term}</span>
+                              <button
+                                onClick={(e) => removeFromSearchHistory(term, e)}
+                                className="text-slate-400 hover:text-red-500 p-0.5 rounded-full hover:bg-slate-200/60 transition-colors cursor-pointer"
+                                title="Remove search"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Trending Searches Section */}
+                    <div className="space-y-2 pt-1 border-t border-gray-100">
+                      <div className="flex items-center gap-1.5 text-gray-400 text-[11px] font-bold tracking-wider uppercase">
+                        <TrendingUp className="w-3.5 h-3.5 text-blue-500" />
+                        <span>Trending Searches</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {TRENDING_SEARCHES.map((term, index) => (
+                          <button
+                            key={term}
+                            onClick={() => handleSuggestionClick(term)}
+                            className={`text-xs px-3 py-1.5 rounded-full border border-gray-100 bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-lucky-magenta hover:border-blue-200 cursor-pointer font-semibold transition-all ${
+                              activeSuggestionIndex === index ? 'bg-blue-50 text-lucky-magenta border-blue-200' : ''
+                            }`}
+                          >
+                            {term}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -266,10 +366,12 @@ export default function Header({
                                   <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
                                 )}
                                 <div>
-                                  <span className="text-xs font-bold text-gray-800 break-words">{item.text}</span>
+                                  <span className="text-xs font-bold text-gray-800 break-words">
+                                    <HighlightedText text={item.text} query={searchQuery} />
+                                  </span>
                                   {item.subText && (
                                     <span className="text-[10px] text-gray-400 font-bold ml-2 uppercase tracking-wide bg-gray-100 px-1.5 py-0.5 rounded-sm">
-                                      {item.subText}
+                                      <HighlightedText text={item.subText} query={searchQuery} />
                                     </span>
                                   )}
                                 </div>
@@ -506,10 +608,8 @@ export default function Header({
       {/* Logout Confirmation Dialog for Header */}
       {showLogoutConfirm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fadeIn" id="header-logout-overlay">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-gray-100 text-center animate-scaleIn space-y-4">
-            <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto shadow-inner">
-              <LogOut className="w-6 h-6 stroke-[2]" />
-            </div>
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-gray-100 text-center animate-scaleIn space-y-3">
+            <BrandLogo size="md" layout="col" className="mx-auto" />
             
             <div>
               <h3 className="text-sm font-black text-gray-900">Are you sure you want to log out?</h3>

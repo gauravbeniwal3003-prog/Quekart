@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import Logo, { BrandLogo } from './Logo';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -39,6 +40,7 @@ import {
 import { Product, Review, Order, CartItem } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { getColorHexFromName } from '../utils/colorUtils';
+import { trackProductView, trackProductCartAdd } from '../utils/analytics';
 
 interface ProductDetailProps {
   product: Product;
@@ -186,11 +188,19 @@ export default function ProductDetail({
     }
   };
 
+  // Track product detail view when component mounts or product ID changes
+  useEffect(() => {
+    if (product && product.id) {
+      trackProductView(product.id);
+    }
+  }, [product?.id]);
+
   const handleAddToCartClick = () => {
     if (!currentUser && onRequireLogin) {
       onRequireLogin('Add to Cart', 'Sign in to add items to your shopping cart and enjoy member discounts.');
       return;
     }
+    trackProductCartAdd(product.id);
     onAddToCart(product, selectedSize, selectedVariantIndex, quantity);
     triggerToast(`Added ${quantity} ${quantity === 1 ? 'item' : 'items'} to Cart!`);
   };
@@ -1711,16 +1721,14 @@ export default function ProductDetail({
       {/* SPECIAL OFFER MODAL */}
       {showSpecialOfferModal && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl relative">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl relative text-center">
             <button
               onClick={() => setShowSpecialOfferModal(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1"
             >
               <X className="w-5 h-5" />
             </button>
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-[#059669] flex items-center justify-center mb-3">
-              <Sparkles className="w-5 h-5" />
-            </div>
+            <BrandLogo size="md" layout="col" className="mx-auto mb-2" />
             <h3 className="text-base font-bold text-slate-900">Quekart Special Offer</h3>
             <p className="text-xs text-slate-600 mt-2 leading-relaxed">
               Get an instant ₹{specialOfferDiscount} discount on UPI/Online Prepaid payments or member first-purchase coupon!
@@ -1734,7 +1742,7 @@ export default function ProductDetail({
                 setShowSpecialOfferModal(false);
                 handleBuyNowClick();
               }}
-              className="w-full mt-4 bg-[#143C6B] text-white font-bold text-xs py-3 rounded-xl shadow-md"
+              className="w-full mt-4 bg-[#143C6B] text-white font-bold text-xs py-3 rounded-xl shadow-md cursor-pointer"
             >
               Apply & Buy Now
             </button>
@@ -1749,9 +1757,12 @@ export default function ProductDetail({
             
             {/* Header */}
             <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">Verified Customer Reviews</h3>
-                <p className="text-[11px] text-slate-500">{displayReviews.length} original customer reviews</p>
+              <div className="flex items-center gap-3">
+                <BrandLogo size="sm" showText={false} />
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Verified Customer Reviews</h3>
+                  <p className="text-[11px] text-slate-500">{displayReviews.length} original customer reviews</p>
+                </div>
               </div>
               <button
                 onClick={() => setShowAllReviewsModal(false)}
@@ -1933,10 +1944,8 @@ export default function ProductDetail({
             
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-[#E8EEF5] text-[#143C6B] flex items-center justify-center font-bold">
-                  <Edit3 className="w-4 h-4" />
-                </div>
+              <div className="flex items-center gap-3">
+                <BrandLogo size="sm" showText={false} />
                 <div>
                   <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-tight">
                     {editingReview ? 'Edit Your Review' : 'Write a Customer Review'}

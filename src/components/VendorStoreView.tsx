@@ -17,10 +17,16 @@ import {
   Share2,
   ChevronDown,
   Sparkles,
-  Award
+  Award,
+  Loader2,
+  Tag
 } from 'lucide-react';
 import { Product } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
+import { useInfiniteProductPagination } from '../hooks/useInfiniteProductPagination';
+import { HighlightedText } from './HighlightedText';
+import { useProductImpressionObserver } from '../hooks/useProductImpressionObserver';
+import { trackProductView } from '../utils/analytics';
 
 interface VendorStoreViewProps {
   storeIdentifier: string; // vendor ID or soldBy name
@@ -51,6 +57,9 @@ export default function VendorStoreView({
   onOpenCart,
   onOpenWishlist
 }: VendorStoreViewProps) {
+  // Activate automatic product impression tracking (1 count per 3 hours per IP)
+  useProductImpressionObserver();
+
   const [activeTab, setActiveTab] = useState<'overview' | 'all-products'>('all-products');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -149,6 +158,15 @@ export default function VendorStoreView({
         return result;
     }
   }, [vendorProducts, searchQuery, selectedCategory, sortBy]);
+
+  // Infinite scroll pagination hook (50 items max per batch, prefetch at last 10 items)
+  const {
+    visibleProducts,
+    isLoadingMore,
+    hasMore,
+    triggerIndex,
+    triggerRef,
+  } = useInfiniteProductPagination(displayedProducts, { batchSize: 50, triggerThreshold: 10 });
 
   const handleShareStore = () => {
     if (navigator.share) {
@@ -458,107 +476,143 @@ export default function VendorStoreView({
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4" id="store-products-grid">
-                {displayedProducts.map((p) => {
-                  const isWishlisted = wishlist.includes(p.id);
-                  const firstImg = p.images && p.images.length > 0 ? p.images[0] : 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400';
-                  
-                  return (
-                    <motion.div
-                      key={p.id}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      onClick={() => onSelectProduct(p.id)}
-                      className="group bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-3xs hover:shadow-md transition-all duration-200 flex flex-col justify-between cursor-pointer relative"
-                      id={`vendor-product-card-${p.id}`}
-                    >
-                      {/* Top Thumbnail Image */}
-                      <div className="relative aspect-[3/4] w-full bg-slate-100 overflow-hidden">
-                        <img
-                          src={firstImg}
-                          alt={p.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          referrerPolicy="no-referrer"
-                          loading="lazy"
-                        />
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4" id="store-products-grid">
+                  {visibleProducts.map((p, idx) => {
+                    const isWishlisted = wishlist.includes(p.id);
+                    const firstImg = p.images && p.images.length > 0 ? p.images[0] : 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400';
+                    const isTrigger = idx === triggerIndex;
+                    
+                    return (
+                      <motion.div
+                        key={p.id}
+                        data-product-id={p.id}
+                        ref={isTrigger ? triggerRef : undefined}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        onClick={() => {
+                          trackProductView(p.id);
+                          onSelectProduct(p.id);
+                        }}
+                        className="group bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-3xs hover:shadow-md transition-all duration-200 flex flex-col justify-between cursor-pointer relative"
+                        id={`vendor-product-card-${p.id}`}
+                      >
+                        {/* Top Thumbnail Image */}
+                        <div className="relative aspect-[3/4] w-full bg-slate-100 overflow-hidden">
+                          <img
+                            src={firstImg}
+                            alt={p.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            referrerPolicy="no-referrer"
+                            loading="lazy"
+                          />
 
-                        {/* Discount Tag Top-Left */}
-                        {p.discountPercent > 0 && (
-                          <div className="absolute top-2 left-2 bg-emerald-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-md shadow-xs">
-                            {p.discountPercent}% OFF
+                          {/* Discount Tag Top-Left */}
+                          {p.discountPercent > 0 && (
+                            <div className="absolute top-2 left-2 bg-emerald-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-md shadow-xs">
+                              {p.discountPercent}% OFF
+                            </div>
+                          )}
+
+                          {/* Wishlist Heart Top-Right */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!currentUser && onRequireLogin) {
+                                onRequireLogin('Save to Wishlist', 'Sign in to save items to your wishlist.');
+                                return;
+                              }
+                              onToggleWishlist(p.id);
+                            }}
+                            className={`absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xs ${
+                              isWishlisted
+                                ? 'bg-pink-50 text-pink-600'
+                                : 'bg-white/90 text-slate-500 hover:text-slate-800'
+                            }`}
+                            title="Save to Wishlist"
+                          >
+                            <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-pink-600' : ''}`} />
+                          </button>
+
+                          {/* Rating pill bottom-left */}
+                          <div className="absolute bottom-2 left-2 bg-white/95 backdrop-blur-xs text-slate-900 px-1.5 py-0.5 rounded-md text-[10.5px] font-black flex items-center gap-1 shadow-3xs border border-slate-200/60">
+                            <span className="text-amber-500 font-bold">★</span>
+                            <span>{p.rating || 4.2}</span>
+                            <span className="text-[9px] text-slate-400 font-normal">({p.ratingCount || 1})</span>
                           </div>
-                        )}
-
-                        {/* Wishlist Heart Top-Right */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!currentUser && onRequireLogin) {
-                              onRequireLogin('Save to Wishlist', 'Sign in to save items to your wishlist.');
-                              return;
-                            }
-                            onToggleWishlist(p.id);
-                          }}
-                          className={`absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xs ${
-                            isWishlisted
-                              ? 'bg-pink-50 text-pink-600'
-                              : 'bg-white/90 text-slate-500 hover:text-slate-800'
-                          }`}
-                          title="Save to Wishlist"
-                        >
-                          <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-pink-600' : ''}`} />
-                        </button>
-
-                        {/* Rating pill bottom-left */}
-                        <div className="absolute bottom-2 left-2 bg-white/95 backdrop-blur-xs text-slate-900 px-1.5 py-0.5 rounded-md text-[10.5px] font-black flex items-center gap-1 shadow-3xs border border-slate-200/60">
-                          <span className="text-amber-500 font-bold">★</span>
-                          <span>{p.rating || 4.2}</span>
-                          <span className="text-[9px] text-slate-400 font-normal">({p.ratingCount || 1})</span>
-                        </div>
-                      </div>
-
-                      {/* Card Body */}
-                      <div className="p-3 space-y-1.5 flex-1 flex flex-col justify-between">
-                        <div>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">
-                            {p.category}
-                          </p>
-                          <h3 className="text-xs font-bold text-slate-800 line-clamp-2 leading-snug group-hover:text-[#143C6B] transition-colors">
-                            {p.title}
-                          </h3>
                         </div>
 
-                        {/* Price & Savings */}
-                        <div className="pt-1">
-                          <div className="flex items-baseline gap-1.5 flex-wrap">
-                            <span className="text-sm font-black text-slate-950">₹{p.price}</span>
-                            {p.originalPrice > p.price && (
-                              <span className="text-[11px] text-slate-400 line-through">₹{p.originalPrice}</span>
+                        {/* Card Body */}
+                        <div className="p-3 space-y-1.5 flex-1 flex flex-col justify-between">
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">
+                              <HighlightedText text={p.category} query={searchQuery} />
+                            </p>
+                            <h3 className="text-xs font-bold text-slate-800 line-clamp-2 leading-snug group-hover:text-[#143C6B] transition-colors">
+                              <HighlightedText text={p.title} query={searchQuery} />
+                            </h3>
+                            {searchQuery.trim() && p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()) && !p.title.toLowerCase().includes(searchQuery.toLowerCase()) && (
+                              <p className="text-[10.5px] text-slate-500 line-clamp-1 mt-1 bg-amber-50/80 p-1 rounded-sm border border-amber-100">
+                                <HighlightedText text={p.description} query={searchQuery} />
+                              </p>
                             )}
                           </div>
-                          
-                          {p.isCodAvailable && (
-                            <span className="text-[9.5px] font-bold text-emerald-700 block mt-0.5">
-                              ✔ Cash on Delivery
-                            </span>
-                          )}
-                        </div>
 
-                        {/* View Product / Add CTA */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onSelectProduct(p.id);
-                          }}
-                          className="w-full mt-2 py-1.5 bg-slate-50 hover:bg-[#143C6B] text-slate-700 hover:text-white border border-slate-200 hover:border-[#143C6B] rounded-xl text-[11px] font-black transition-all cursor-pointer flex items-center justify-center gap-1"
-                        >
-                          <span>View Product</span>
-                        </button>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
+                          {/* Price & Savings */}
+                          <div className="pt-1">
+                            <div className="flex items-baseline gap-1.5 flex-wrap">
+                              <span className="text-sm font-black text-slate-950">₹{p.price}</span>
+                              {p.originalPrice > p.price && (
+                                <span className="text-[11px] text-slate-400 line-through">₹{p.originalPrice}</span>
+                              )}
+                            </div>
+                            
+                            {p.isCodAvailable && (
+                              <span className="text-[9.5px] font-bold text-emerald-700 block mt-0.5">
+                                ✔ Cash on Delivery
+                              </span>
+                            )}
+                          </div>
+
+                          {/* View Product / Add CTA */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectProduct(p.id);
+                            }}
+                            className="w-full mt-2 py-1.5 bg-slate-50 hover:bg-[#143C6B] text-slate-700 hover:text-white border border-slate-200 hover:border-[#143C6B] rounded-xl text-[11px] font-black transition-all cursor-pointer flex items-center justify-center gap-1"
+                          >
+                            <span>View Product</span>
+                          </button>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+
+                {/* Loading indicator */}
+                {isLoadingMore && (
+                  <div className="w-full py-8 flex flex-col items-center justify-center gap-2 text-slate-500 animate-fadeIn" id="store-loading-spinner">
+                    <Loader2 className="w-7 h-7 text-[#143C6B] animate-spin" />
+                    <span className="text-xs font-bold text-slate-600">Loading next 50 products...</span>
+                  </div>
+                )}
+
+                {/* End of products card */}
+                {!hasMore && displayedProducts.length > 0 && (
+                  <div className="my-8 bg-white border border-slate-200/80 rounded-2xl p-6 text-center max-w-lg mx-auto shadow-xs animate-fadeIn" id="vendor-all-loaded-card">
+                    <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3 border border-emerald-100">
+                      <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                    </div>
+                    <h3 className="text-sm font-black text-slate-900 tracking-tight">
+                      All {displayedProducts.length} items loaded for {storeName}
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1 font-medium leading-relaxed">
+                      You have viewed all listed items from this seller.
+                    </p>
+                  </div>
+                )}
+              </>
             )}
 
           </div>

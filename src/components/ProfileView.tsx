@@ -1,4 +1,5 @@
 import React from 'react';
+import Logo, { BrandLogo } from './Logo';
 import { 
   ChevronLeft, 
   Search, 
@@ -2170,10 +2171,8 @@ export default function ProfileView({
       {/* Logout Confirmation Modal Overlay */}
       {showLogoutModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fadeIn" id="logout-confirm-overlay">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-lg border border-gray-100 text-center animate-scaleIn space-y-4">
-            <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto shadow-inner">
-              <LogOut className="w-6 h-6 stroke-[2]" />
-            </div>
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-lg border border-gray-100 text-center animate-scaleIn space-y-3">
+            <BrandLogo size="md" layout="col" className="mx-auto" />
             
             <div>
               <h3 className="text-sm font-black text-gray-900">Are you sure you want to log out?</h3>

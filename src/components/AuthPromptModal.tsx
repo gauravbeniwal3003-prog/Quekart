@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, ShieldCheck, Zap, Heart, ShoppingBag, ArrowRight } from 'lucide-react';
-import Logo from './Logo';
+import Logo, { BrandLogo } from './Logo';
 
 interface AuthPromptModalProps {
   isOpen: boolean;
@@ -33,13 +33,8 @@ export default function AuthPromptModal({
         </button>
 
         {/* Brand Header */}
-        <div className="flex flex-col items-center text-center pt-2 pb-4">
-          <div className="w-14 h-14 rounded-2xl bg-lucky-gold flex items-center justify-center shadow-md p-1 border border-amber-300 mb-3">
-            <div className="text-center font-black tracking-tight leading-none">
-              <span className="text-[#143C6B] text-base font-black block">Que</span>
-              <span className="text-white text-[9px] font-black uppercase tracking-wider block">Kart</span>
-            </div>
-          </div>
+        <div className="flex flex-col items-center text-center pt-1 pb-3">
+          <BrandLogo size="lg" layout="col" className="mb-3" />
 
           <h3 className="text-lg font-black text-slate-900 tracking-tight font-display" id="auth-modal-title">
             {actionTitle}

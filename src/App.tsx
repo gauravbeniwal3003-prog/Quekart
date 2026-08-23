@@ -28,6 +28,7 @@ import UserAuthView from './components/UserAuthView';
 import AuthPromptModal from './components/AuthPromptModal';
 import CategoryProductsView from './components/CategoryProductsView';
 import LandingGateway from './components/LandingGateway';
+import { smartSearchFilter } from './utils/search';
 
 const initialCoupons: Coupon[] = [
   {
@@ -621,13 +622,8 @@ export default function App() {
   // Buyer view filtered products (only approved or default legacy products)
   const approvedProducts = products.filter((p) => p.approvalStatus === 'approved' || !p.approvalStatus);
 
-  // Filtered products for Search query based only on approved ones
-  const searchedProducts = approvedProducts.filter((p) => {
-    const titleMatch = p.title.toLowerCase().includes(searchQuery.toLowerCase());
-    const catMatch = p.category.toLowerCase().includes(searchQuery.toLowerCase());
-    const subMatch = p.subCategory.toLowerCase().includes(searchQuery.toLowerCase());
-    return titleMatch || catMatch || subMatch;
-  });
+  // Filtered products for Search query based on title, description, category, subcategory, tags, etc.
+  const searchedProducts = smartSearchFilter(approvedProducts, searchQuery);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans" id="applet-root">
