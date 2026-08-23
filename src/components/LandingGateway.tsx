@@ -29,22 +29,77 @@ interface LandingGatewayProps {
 // Interactive detailed policy modal states
 type ModalType = 'contact' | 'refund' | 'terms' | 'privacy' | null;
 
-const LANDING_TILES_1 = [
-  { id: 1, name: 'Designer Anarkali Kurti', img: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
-  { id: 2, name: 'Royal Banarasi Silk Saree', img: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
-  { id: 3, name: 'Amoled Smartwatch Pro', img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
-  { id: 4, name: 'Wireless Active Earbuds', img: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
-  { id: 5, name: 'Denim Trucker Jacket', img: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
-  { id: 6, name: 'Urban Street Sneakers', img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' }
+// 8 Distinct product row datasets ensuring every row in the animation has unique products
+const LANDING_ROW_1 = [
+  { id: 101, name: 'Designer Anarkali Kurti', img: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 102, name: 'Royal Banarasi Silk Saree', img: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 103, name: 'Embroidered Sherwani', img: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
+  { id: 104, name: 'Bridal Chikankari Lehenga', img: 'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 105, name: 'Handloom Silk Dupatta', img: 'https://images.unsplash.com/photo-1609357605129-26f69add5d6e?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
+  { id: 106, name: 'Royal Bandhgala Suit', img: 'https://images.unsplash.com/photo-1617137968427-85924c800a22?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' }
 ];
 
-const LANDING_TILES_2 = [
-  { id: 7, name: 'Luxury Leather Handbag', img: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
-  { id: 8, name: 'Signature Oud Perfume', img: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
-  { id: 9, name: 'Polarized Sunglasses', img: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
-  { id: 10, name: 'Linen Slim Fit Shirt', img: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
-  { id: 11, name: 'Velvet Matte Beauty Set', img: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
-  { id: 12, name: 'Classic Gold Ring', img: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' }
+const LANDING_ROW_2 = [
+  { id: 201, name: 'Amoled Smartwatch Pro', img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
+  { id: 202, name: 'Wireless Active Earbuds', img: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 203, name: 'Chronograph Steel Watch', img: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 204, name: 'Pro Noise Cancelling Headphones', img: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 205, name: 'Portable Bass Speaker', img: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
+  { id: 206, name: '4K Action Cam', img: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' }
+];
+
+const LANDING_ROW_3 = [
+  { id: 301, name: 'Urban Street Sneakers', img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 302, name: 'Performance Running Shoes', img: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 303, name: 'Leather Chelsea Boots', img: 'https://images.unsplash.com/photo-1638247025967-b4e38f787b76?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 304, name: 'High-Top Basketball Kicks', img: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
+  { id: 305, name: 'Handcrafted Loafers', img: 'https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
+  { id: 306, name: 'Canvas Skate Sneakers', img: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' }
+];
+
+const LANDING_ROW_4 = [
+  { id: 401, name: 'Denim Trucker Jacket', img: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
+  { id: 402, name: 'Linen Slim Fit Shirt', img: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 403, name: 'Distressed Denim Jeans', img: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 404, name: 'Evening Cocktail Dress', img: 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 405, name: 'Black Leather Biker Jacket', img: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
+  { id: 406, name: 'Oversized Streetwear Hoodie', img: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' }
+];
+
+const LANDING_ROW_5 = [
+  { id: 501, name: 'Luxury Leather Tote Bag', img: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 502, name: 'Urban Utility Backpack', img: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 503, name: 'Designer Crossbody Bag', img: 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 504, name: 'Vintage Leather Travel Duffle', img: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
+  { id: 505, name: 'Slim Bifold Wallet', img: 'https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
+  { id: 506, name: 'Minimalist Evening Clutch', img: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' }
+];
+
+const LANDING_ROW_6 = [
+  { id: 601, name: 'Signature Oud Perfume', img: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 602, name: 'Velvet Matte Beauty Set', img: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
+  { id: 603, name: 'Botanical Skincare Serum', img: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 604, name: 'French Cologne Spray', img: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
+  { id: 605, name: 'Hydrating Face Cream', img: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 606, name: 'Luxury Lipstick Kit', img: 'https://images.unsplash.com/photo-1617897903246-719242758050?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' }
+];
+
+const LANDING_ROW_7 = [
+  { id: 701, name: 'Polarized Aviator Sunglasses', img: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
+  { id: 702, name: 'Vintage Square Eyewear', img: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 703, name: 'Genuine Leather Waist Belt', img: 'https://images.unsplash.com/photo-1624222247344-550fb60583dc?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 704, name: 'Classic Wool Fedora Hat', img: 'https://images.unsplash.com/photo-1514327605112-b887c0e61c0a?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 705, name: 'Cashmere Winter Scarf', img: 'https://images.unsplash.com/photo-1520903920243-00d872a2d1c9?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
+  { id: 706, name: 'Retro Round Sunglasses', img: 'https://images.unsplash.com/photo-1508296695146-257a814070b4?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' }
+];
+
+const LANDING_ROW_8 = [
+  { id: 801, name: 'Classic Gold Ring', img: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 802, name: 'Kundan Choker Necklace', img: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 803, name: 'Pearl Drop Earrings', img: 'https://images.unsplash.com/photo-1630019852942-f89202989a59?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 804, name: 'Sterling Silver Chain', img: 'https://images.unsplash.com/photo-1611591475179-62cd3c2f2353?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
+  { id: 805, name: 'Gemstone Pendant', img: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
+  { id: 806, name: 'Rose Gold Bangles', img: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' }
 ];
 
 export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
@@ -128,12 +183,12 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
             <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 w-2/3 h-6 bg-gradient-to-r from-transparent via-[#FBBF24]/20 to-transparent blur-md pointer-events-none" />
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1E4E8C]/25 via-transparent to-transparent pointer-events-none" />
 
-            {/* Inner Content flex container */}
-            <div className="relative z-10 flex items-center justify-center gap-2.5 sm:gap-3.5 w-full">
+            {/* Inner Content flex container - Left-aligned with icon near left corner */}
+            <div className="relative z-10 flex items-center justify-start gap-2.5 sm:gap-3.5 w-full">
               
-              {/* Golden Shopping Bag with Heart Icon */}
-              <div className="flex-shrink-0 flex items-center justify-center">
-                <div className="relative w-7 h-8 min-[375px]:w-8 min-[375px]:h-9 sm:w-10 sm:h-11 flex items-center justify-center drop-shadow-[0_2px_8px_rgba(245,166,35,0.4)]">
+              {/* Golden Shopping Bag with Heart Icon - Near Left Corner */}
+              <div className="flex-shrink-0 flex items-center justify-center pl-0.5 sm:pl-1">
+                <div className="relative w-8 h-9 min-[375px]:w-9 min-[375px]:h-10 sm:w-11 sm:h-12 flex items-center justify-center drop-shadow-[0_2px_8px_rgba(245,166,35,0.4)]">
                   <svg 
                     viewBox="0 0 100 115" 
                     fill="none" 
@@ -183,10 +238,10 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
                 </div>
               </div>
 
-              {/* Banner Text Block */}
-              <div className="flex flex-col justify-center text-left min-w-0">
-                {/* Main Heading - Guaranteed strictly single line on every screen */}
-                <h1 className="text-[12.5px] min-[360px]:text-[14px] min-[400px]:text-[15.5px] sm:text-lg md:text-xl font-black tracking-wide uppercase leading-tight font-sans whitespace-nowrap">
+              {/* Banner Text Block - w-fit ensures container exactly matches top heading width */}
+              <div className="w-fit inline-flex flex-col justify-center text-left min-w-0">
+                {/* Main Heading - Defines the width of the block */}
+                <h1 className="w-full text-[17.5px] min-[360px]:text-[20px] min-[400px]:text-[22px] sm:text-[25.5px] md:text-[28.5px] font-black uppercase leading-tight font-sans whitespace-nowrap tracking-[0.01em]">
                   <span className="text-white drop-shadow-sm font-black">
                     A NEW ERA OF{' '}
                   </span>
@@ -195,10 +250,12 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
                   </span>
                 </h1>
 
-                {/* Subtitle - Guaranteed strictly single line on every screen */}
-                <p className="text-[8.5px] min-[360px]:text-[10px] min-[400px]:text-[11px] sm:text-xs md:text-sm font-medium text-slate-200 tracking-tight sm:tracking-normal mt-0.5 font-sans whitespace-nowrap">
-                  Great Products. Best Prices. Surprise Rewards.
-                </p>
+                {/* Subtitle - Flex justify-between forces 'Great Products.' to start under 'A' and 'Surprise Rewards.' to end directly under 'G' on all screens */}
+                <div className="w-full flex justify-between items-center text-[9.5px] min-[360px]:text-[10.8px] min-[400px]:text-[11.8px] sm:text-[13.8px] md:text-[15.2px] font-extrabold text-slate-200 mt-0.5 font-sans whitespace-nowrap">
+                  <span>Great Products.</span>
+                  <span>Best Prices.</span>
+                  <span>Surprise Rewards.</span>
+                </div>
               </div>
 
             </div>
@@ -217,7 +274,7 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
             {/* ROW 1 (Clear 100%) - Moving Left */}
             <div className="overflow-hidden w-full flex items-center opacity-100">
               <div className="animate-marquee-left-slow flex gap-3 px-2">
-                {[...LANDING_TILES_1, ...LANDING_TILES_1, ...LANDING_TILES_1, ...LANDING_TILES_1].map((item, idx) => (
+                {[...LANDING_ROW_1, ...LANDING_ROW_1, ...LANDING_ROW_1, ...LANDING_ROW_1].map((item, idx) => (
                   <div
                     key={`showcase-r1-${item.id}-${idx}`}
                     className={`${item.bg} w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-2 flex items-center justify-center shadow-3xs border border-slate-100 flex-shrink-0`}
@@ -231,7 +288,7 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
             {/* ROW 2 (Clear 100%) - Moving Right */}
             <div className="overflow-hidden w-full flex items-center opacity-100">
               <div className="animate-marquee-right-slow flex gap-3 px-2">
-                {[...LANDING_TILES_2, ...LANDING_TILES_2, ...LANDING_TILES_2, ...LANDING_TILES_2].map((item, idx) => (
+                {[...LANDING_ROW_2, ...LANDING_ROW_2, ...LANDING_ROW_2, ...LANDING_ROW_2].map((item, idx) => (
                   <div
                     key={`showcase-r2-${item.id}-${idx}`}
                     className={`${item.bg} w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-2 flex items-center justify-center shadow-3xs border border-slate-100 flex-shrink-0`}
@@ -245,7 +302,7 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
             {/* ROW 3 (Clear 100%) - Moving Left */}
             <div className="overflow-hidden w-full flex items-center opacity-100">
               <div className="animate-marquee-left-slow flex gap-3 px-2">
-                {[...LANDING_TILES_2.slice().reverse(), ...LANDING_TILES_2.slice().reverse(), ...LANDING_TILES_2.slice().reverse(), ...LANDING_TILES_2.slice().reverse()].map((item, idx) => (
+                {[...LANDING_ROW_3, ...LANDING_ROW_3, ...LANDING_ROW_3, ...LANDING_ROW_3].map((item, idx) => (
                   <div
                     key={`showcase-r3-${item.id}-${idx}`}
                     className={`${item.bg} w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-2 flex items-center justify-center shadow-3xs border border-slate-100 flex-shrink-0`}
@@ -259,7 +316,7 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
             {/* ROW 4 (Clear 100%) - Moving Right */}
             <div className="overflow-hidden w-full flex items-center opacity-100">
               <div className="animate-marquee-right-slow flex gap-3 px-2">
-                {[...LANDING_TILES_1.slice().reverse(), ...LANDING_TILES_1.slice().reverse(), ...LANDING_TILES_1.slice().reverse(), ...LANDING_TILES_1.slice().reverse()].map((item, idx) => (
+                {[...LANDING_ROW_4, ...LANDING_ROW_4, ...LANDING_ROW_4, ...LANDING_ROW_4].map((item, idx) => (
                   <div
                     key={`showcase-r4-${item.id}-${idx}`}
                     className={`${item.bg} w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-2 flex items-center justify-center shadow-3xs border border-slate-100 flex-shrink-0`}
@@ -276,7 +333,7 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
               {/* ROW 5 (Translucent 75%) - Moving Left */}
               <div className="overflow-hidden w-full flex items-center opacity-75">
                 <div className="animate-marquee-left-slow flex gap-3 px-2">
-                  {[...LANDING_TILES_1, ...LANDING_TILES_1, ...LANDING_TILES_1, ...LANDING_TILES_1].map((item, idx) => (
+                  {[...LANDING_ROW_5, ...LANDING_ROW_5, ...LANDING_ROW_5, ...LANDING_ROW_5].map((item, idx) => (
                     <div
                       key={`showcase-r5-${item.id}-${idx}`}
                       className={`${item.bg} w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-2 flex items-center justify-center border border-slate-100 flex-shrink-0`}
@@ -290,7 +347,7 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
               {/* ROW 6 (Translucent 55%) - Moving Right */}
               <div className="overflow-hidden w-full flex items-center opacity-55 my-2.5">
                 <div className="animate-marquee-right-slow flex gap-3 px-2">
-                  {[...LANDING_TILES_2, ...LANDING_TILES_2, ...LANDING_TILES_2, ...LANDING_TILES_2].map((item, idx) => (
+                  {[...LANDING_ROW_6, ...LANDING_ROW_6, ...LANDING_ROW_6, ...LANDING_ROW_6].map((item, idx) => (
                     <div
                       key={`showcase-r6-${item.id}-${idx}`}
                       className={`${item.bg} w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-2 flex items-center justify-center border border-slate-100 flex-shrink-0`}
@@ -304,7 +361,7 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
               {/* ROW 7 (Translucent 35%) - Moving Left */}
               <div className="overflow-hidden w-full flex items-center opacity-35">
                 <div className="animate-marquee-left-slow flex gap-3 px-2">
-                  {[...LANDING_TILES_2.slice().reverse(), ...LANDING_TILES_2.slice().reverse(), ...LANDING_TILES_2.slice().reverse(), ...LANDING_TILES_2.slice().reverse()].map((item, idx) => (
+                  {[...LANDING_ROW_7, ...LANDING_ROW_7, ...LANDING_ROW_7, ...LANDING_ROW_7].map((item, idx) => (
                     <div
                       key={`showcase-r7-${item.id}-${idx}`}
                       className={`${item.bg} w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-2 flex items-center justify-center border border-slate-100 flex-shrink-0`}
@@ -318,7 +375,7 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
               {/* ROW 8 (Translucent 20%) - Moving Right */}
               <div className="overflow-hidden w-full flex items-center opacity-20 my-2.5">
                 <div className="animate-marquee-right-slow flex gap-3 px-2">
-                  {[...LANDING_TILES_1.slice().reverse(), ...LANDING_TILES_1.slice().reverse(), ...LANDING_TILES_1.slice().reverse(), ...LANDING_TILES_1.slice().reverse()].map((item, idx) => (
+                  {[...LANDING_ROW_8, ...LANDING_ROW_8, ...LANDING_ROW_8, ...LANDING_ROW_8].map((item, idx) => (
                     <div
                       key={`showcase-r8-${item.id}-${idx}`}
                       className={`${item.bg} w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-2 flex items-center justify-center border border-slate-100 flex-shrink-0`}

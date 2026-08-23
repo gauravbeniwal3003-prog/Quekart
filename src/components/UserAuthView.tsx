@@ -10,24 +10,50 @@ interface UserAuthViewProps {
   navigateTo?: (path: string) => void;
 }
 
-// Curated high-fashion clothing, gadgets, footwear and lifestyle accessories
-const FASHION_TILES = [
-  { id: 1, name: 'Designer Anarkali Kurti', img: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
-  { id: 2, name: 'Royal Banarasi Silk Saree', img: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
-  { id: 3, name: 'Amoled Smartwatch Pro', img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
-  { id: 4, name: 'Wireless Active Earbuds', img: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
-  { id: 5, name: 'Denim Trucker Jacket', img: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
-  { id: 6, name: 'Urban Street Sneakers', img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
-  { id: 7, name: 'Luxury Leather Handbag', img: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
-  { id: 8, name: 'Signature Oud Perfume', img: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
-  { id: 9, name: 'Polarized Sunglasses', img: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
-  { id: 10, name: 'Linen Slim Fit Shirt', img: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
-  { id: 11, name: 'Velvet Matte Beauty Set', img: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
-  { id: 12, name: 'Distressed Slim Jeans', img: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
-  { id: 13, name: 'Party Western Dress', img: 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
-  { id: 14, name: 'Bluetooth Sound Speaker', img: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
-  { id: 15, name: 'Urban Utility Backpack', img: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
-  { id: 16, name: 'Classic Gold Ring', img: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' }
+// 5 Distinct tile datasets for User Login Page ensuring every row in the animation has unique products
+const FASHION_ROW_1 = [
+  { id: 101, name: 'Designer Anarkali Kurti', img: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 102, name: 'Royal Banarasi Silk Saree', img: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 103, name: 'Chikankari Kurti', img: 'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
+  { id: 104, name: 'Sherwani Suit', img: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 105, name: 'Handloom Silk Dupatta', img: 'https://images.unsplash.com/photo-1609357605129-26f69add5d6e?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
+  { id: 106, name: 'Bandhgala Jacket', img: 'https://images.unsplash.com/photo-1617137968427-85924c800a22?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' }
+];
+
+const FASHION_ROW_2 = [
+  { id: 201, name: 'Amoled Smartwatch Pro', img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
+  { id: 202, name: 'Wireless Active Earbuds', img: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 203, name: 'Bluetooth Sound Speaker', img: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 204, name: 'Noise Cancelling Headphones', img: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 205, name: '4K Action Camera', img: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
+  { id: 206, name: 'Chronograph Steel Watch', img: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' }
+];
+
+const FASHION_ROW_3 = [
+  { id: 301, name: 'Denim Trucker Jacket', img: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
+  { id: 302, name: 'Linen Slim Fit Shirt', img: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 303, name: 'Distressed Slim Jeans', img: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 304, name: 'Party Western Dress', img: 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 305, name: 'Biker Leather Jacket', img: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
+  { id: 306, name: 'Streetwear Hoodie', img: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' }
+];
+
+const FASHION_ROW_4 = [
+  { id: 401, name: 'Urban Street Sneakers', img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 402, name: 'Running Sport Shoes', img: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 403, name: 'Leather Chelsea Boots', img: 'https://images.unsplash.com/photo-1638247025967-b4e38f787b76?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 404, name: 'Basketball Kicks', img: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
+  { id: 405, name: 'Handcrafted Casual Loafers', img: 'https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
+  { id: 406, name: 'Canvas Skate Shoes', img: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' }
+];
+
+const FASHION_ROW_5 = [
+  { id: 501, name: 'Luxury Leather Handbag', img: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 502, name: 'Signature Oud Perfume', img: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 503, name: 'Polarized Sunglasses', img: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
+  { id: 504, name: 'Velvet Matte Beauty Set', img: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
+  { id: 505, name: 'Urban Utility Backpack', img: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 506, name: 'Classic Gold Ring', img: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' }
 ];
 
 export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: UserAuthViewProps) {
@@ -382,7 +408,7 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
               {/* Row 1: Moving Left */}
               <div className="overflow-hidden w-full flex items-center">
                 <div className="animate-marquee-l flex gap-2.5 px-2">
-                  {[...FASHION_TILES, ...FASHION_TILES, ...FASHION_TILES].map((item, idx) => (
+                  {[...FASHION_ROW_1, ...FASHION_ROW_1, ...FASHION_ROW_1].map((item, idx) => (
                     <div
                       key={`l1-${item.id}-${idx}`}
                       className={`${item.bg} w-14 h-14 rounded-2xl p-1.5 flex items-center justify-center shadow-3xs border border-slate-100 flex-shrink-0`}
@@ -396,7 +422,7 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
               {/* Row 2: Moving Right */}
               <div className="overflow-hidden w-full flex items-center">
                 <div className="animate-marquee-r flex gap-2.5 px-2">
-                  {[...FASHION_TILES.slice().reverse(), ...FASHION_TILES.slice().reverse(), ...FASHION_TILES.slice().reverse()].map((item, idx) => (
+                  {[...FASHION_ROW_2, ...FASHION_ROW_2, ...FASHION_ROW_2].map((item, idx) => (
                     <div
                       key={`l2-${item.id}-${idx}`}
                       className={`${item.bg} w-14 h-14 rounded-2xl p-1.5 flex items-center justify-center shadow-3xs border border-slate-100 flex-shrink-0`}
@@ -410,7 +436,7 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
               {/* Row 3: Moving Left */}
               <div className="overflow-hidden w-full flex items-center">
                 <div className="animate-marquee-l flex gap-2.5 px-2">
-                  {[...FASHION_TILES.slice().reverse(), ...FASHION_TILES.slice().reverse(), ...FASHION_TILES.slice().reverse()].map((item, idx) => (
+                  {[...FASHION_ROW_3, ...FASHION_ROW_3, ...FASHION_ROW_3].map((item, idx) => (
                     <div
                       key={`l3-${item.id}-${idx}`}
                       className={`${item.bg} w-14 h-14 rounded-2xl p-1.5 flex items-center justify-center shadow-3xs border border-slate-100 flex-shrink-0`}
@@ -424,7 +450,7 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
               {/* Row 4: Moving Right */}
               <div className="overflow-hidden w-full flex items-center">
                 <div className="animate-marquee-r flex gap-2.5 px-2">
-                  {[...FASHION_TILES, ...FASHION_TILES, ...FASHION_TILES].map((item, idx) => (
+                  {[...FASHION_ROW_4, ...FASHION_ROW_4, ...FASHION_ROW_4].map((item, idx) => (
                     <div
                       key={`l4-${item.id}-${idx}`}
                       className={`${item.bg} w-14 h-14 rounded-2xl p-1.5 flex items-center justify-center shadow-3xs border border-slate-100 flex-shrink-0`}
@@ -438,7 +464,7 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
               {/* Row 5: Moving Left (Translucent row passing behind 50% logo mark) */}
               <div className="overflow-hidden w-full flex items-center opacity-80">
                 <div className="animate-marquee-l flex gap-2.5 px-2">
-                  {[...FASHION_TILES, ...FASHION_TILES, ...FASHION_TILES].map((item, idx) => (
+                  {[...FASHION_ROW_5, ...FASHION_ROW_5, ...FASHION_ROW_5].map((item, idx) => (
                     <div
                       key={`l5-${item.id}-${idx}`}
                       className={`${item.bg} w-14 h-14 rounded-2xl p-1.5 flex items-center justify-center shadow-3xs border border-slate-100 flex-shrink-0`}
