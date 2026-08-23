@@ -65,60 +65,65 @@ export default function HomeFeed({
 
   // Apply filters and sort (hoisted above useEffects to prevent temporal dead zone)
   // Shoppers should only see verified/approved items
-  let filteredProducts = products.filter(
-    (p) => !p.approvalStatus || p.approvalStatus === 'approved'
-  );
-
-  // 1. Category Filter
-  if (selectedCategory !== 'All') {
-    filteredProducts = filteredProducts.filter(
-      (p) => p.category === selectedCategory || p.subCategory === selectedCategory
+  const filteredProducts = useMemo(() => {
+    let list = products.filter(
+      (p) => !p.approvalStatus || p.approvalStatus === 'approved'
     );
-  }
 
-  // 2. Gender Filter
-  if (selectedGender !== 'All') {
-    if (selectedGender === 'Men') {
-      filteredProducts = filteredProducts.filter((p) => p.category === 'Men');
-    } else if (selectedGender === 'Women') {
-      filteredProducts = filteredProducts.filter(
-        (p) => p.category === 'Kurti, Saree & Lehenga' || p.category === 'Women Western' || p.category === 'Lingerie'
+    // 1. Category Filter
+    if (selectedCategory !== 'All') {
+      list = list.filter(
+        (p) => p.category === selectedCategory || p.subCategory === selectedCategory
       );
-    } else if (selectedGender === 'Kids') {
-      filteredProducts = filteredProducts.filter((p) => p.category === 'Kids & Toys');
     }
-  }
 
-  // 3. Max Budget Filter
-  if (maxPrice !== null && maxPrice > 0) {
-    filteredProducts = filteredProducts.filter((p) => p.price <= maxPrice);
-  }
+    // 2. Gender Filter
+    if (selectedGender !== 'All') {
+      if (selectedGender === 'Men') {
+        list = list.filter((p) => p.category === 'Men');
+      } else if (selectedGender === 'Women') {
+        list = list.filter(
+          (p) => p.category === 'Kurti, Saree & Lehenga' || p.category === 'Women Western' || p.category === 'Lingerie'
+        );
+      } else if (selectedGender === 'Kids') {
+        list = list.filter((p) => p.category === 'Kids & Toys');
+      }
+    }
 
-  // 4. Minimum Rating Filter
-  if (minRating > 0) {
-    filteredProducts = filteredProducts.filter((p) => (p.rating || 0) >= minRating);
-  }
+    // 3. Max Budget Filter
+    if (maxPrice !== null && maxPrice > 0) {
+      list = list.filter((p) => p.price <= maxPrice);
+    }
 
-  // 5. COD Available Filter
-  if (codOnly) {
-    filteredProducts = filteredProducts.filter((p) => p.isCodAvailable);
-  }
+    // 4. Minimum Rating Filter
+    if (minRating > 0) {
+      list = list.filter((p) => (p.rating || 0) >= minRating);
+    }
 
-  // 6. Minimum Discount Filter
-  if (minDiscount > 0) {
-    filteredProducts = filteredProducts.filter((p) => (p.discountPercent || 0) >= minDiscount);
-  }
+    // 5. COD Available Filter
+    if (codOnly) {
+      list = list.filter((p) => p.isCodAvailable);
+    }
 
-  // 7. Sorting
-  if (sortBy === 'price-asc') {
-    filteredProducts.sort((a, b) => a.price - b.price);
-  } else if (sortBy === 'price-desc') {
-    filteredProducts.sort((a, b) => b.price - a.price);
-  } else if (sortBy === 'discount') {
-    filteredProducts.sort((a, b) => b.discountPercent - a.discountPercent);
-  } else if (sortBy === 'rating') {
-    filteredProducts.sort((a, b) => b.rating - a.rating);
-  }
+    // 6. Minimum Discount Filter
+    if (minDiscount > 0) {
+      list = list.filter((p) => (p.discountPercent || 0) >= minDiscount);
+    }
+
+    // 7. Sorting
+    const sorted = [...list];
+    if (sortBy === 'price-asc') {
+      sorted.sort((a, b) => a.price - b.price);
+    } else if (sortBy === 'price-desc') {
+      sorted.sort((a, b) => b.price - a.price);
+    } else if (sortBy === 'discount') {
+      sorted.sort((a, b) => (b.discountPercent || 0) - (a.discountPercent || 0));
+    } else if (sortBy === 'rating') {
+      sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    }
+
+    return sorted;
+  }, [products, selectedCategory, selectedGender, maxPrice, minRating, codOnly, minDiscount, sortBy]);
 
   // Processed products for home feed (performance weighted random order when browsing home without active search)
   const processedProducts = useMemo(() => {

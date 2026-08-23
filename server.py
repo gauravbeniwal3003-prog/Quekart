@@ -1270,12 +1270,15 @@ def send_sms_otp_dispatch(mobile: str, otp_code: str) -> bool:
         if len(clean_mobile) == 10:
             clean_mobile = "91" + clean_mobile
             
+        auth_key = os.getenv("SMS_OTP_AUTH_KEY", "TpHpbUBBumiTj7Ayqn1Ty8BixlhtZO63adHE-Wx45ZI")
+        api_url = os.getenv("SMS_OTP_API_URL", "https://apitxt.com/api/sendOTP")
+
         params = urllib.parse.urlencode({
-            "authkey": SMS_OTP_AUTH_KEY,
+            "authkey": auth_key,
             "mobile": clean_mobile,
             "otp": otp_code
         })
-        request_url = f"{SMS_OTP_API_URL}?{params}"
+        request_url = f"{api_url}?{params}"
         req = urllib.request.Request(request_url, headers={"User-Agent": "Mozilla/5.0"})
         
         with urllib.request.urlopen(req, timeout=10) as resp:
@@ -1361,10 +1364,6 @@ async def verify_otp(payload: VerifyOtpInput):
         if stored.get("otp") == otp_code.strip():
             is_valid = True
             
-    # Dev bypass for quick testing
-    if not is_valid and otp_code.strip() in ["123456", "4892"]:
-        is_valid = True
-        
     if not is_valid:
         raise HTTPException(status_code=400, detail="Invalid or expired verification OTP code. Please enter the correct 6-digit code.")
         

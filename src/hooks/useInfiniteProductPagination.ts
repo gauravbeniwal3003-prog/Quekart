@@ -16,10 +16,11 @@ export function useInfiniteProductPagination(
   const [visibleCount, setVisibleCount] = useState<number>(batchSize);
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
 
-  // Reset visible count whenever the total list or filter results change drastically
+  // Only clamp visible count if total items reduced below current visible count
   useEffect(() => {
-    setVisibleCount(batchSize);
-    setIsLoadingMore(false);
+    if (allProducts.length < visibleCount && allProducts.length > 0) {
+      setVisibleCount(Math.min(batchSize, allProducts.length));
+    }
   }, [allProducts.length, batchSize]);
 
   const hasMore = visibleCount < allProducts.length;

@@ -1356,21 +1356,6 @@ export default function VendorAuthView({
                   ))}
                 </div>
 
-                {/* Helper Auto Fill */}
-                <div className="flex justify-center mb-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const chars = loginSimulatedOtp.slice(0, 6).split('');
-                      setLoginOtpDigits(chars);
-                      verifyLoginOtpCode(chars.join(''));
-                    }}
-                    className="text-xs font-black text-[#143C6B] bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-full border border-blue-200 flex items-center gap-1.5 cursor-pointer active:scale-95"
-                  >
-                    <span>⚡ Auto-fill code: <strong>{loginSimulatedOtp}</strong></span>
-                  </button>
-                </div>
-
                 {/* Resend OTP Timer */}
                 <div className="text-center text-xs">
                   {loginTimer > 0 ? (

@@ -163,7 +163,6 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
 
       const data = await res.json();
       if (res.ok) {
-        setSimulatedOtp(data.otp || '123456');
         setStep('otp');
         setTimer(data.cooldownRemainingSec || 60);
         setIsResendActive(false);
@@ -180,8 +179,6 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
         setErrorMsg(data.error || 'Failed to dispatch verification code.');
       }
     } catch (_) {
-      // Offline / fallback guarantee
-      setSimulatedOtp('123456');
       setStep('otp');
       setTimer(60);
       setIsResendActive(false);
@@ -254,7 +251,7 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
     setErrorMsg('');
     setIsProcessing(true);
 
-    const cleanPhone = phone.trim().replace(/\s+/g, '') || '9999999999';
+    const cleanPhone = phone.trim().replace(/\s+/g, '');
 
     try {
       const res = await fetch('/api/auth/verify-otp', {
@@ -264,7 +261,7 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
           phone: cleanPhone,
           otp: codeToVerify,
           role: 'user',
-          name: cleanPhone === '9999999999' ? 'Gaurav Beniwal' : `Customer ${cleanPhone}`
+          name: `Customer ${cleanPhone}`
         })
       });
 
@@ -272,14 +269,10 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
       if (res.ok && data.user && data.token) {
         onLoginSuccess(data.user, data.token);
       } else {
-        if (data.error) {
-          setErrorMsg(data.error);
-        } else {
-          handleInstantDemoLogin(cleanPhone, cleanPhone === '9999999999' ? 'Gaurav Beniwal' : `Customer ${cleanPhone}`);
-        }
+        setErrorMsg(data.error || 'Invalid verification code. Please check and try again.');
       }
     } catch (_) {
-      handleInstantDemoLogin(cleanPhone, 'Gaurav Beniwal');
+      setErrorMsg('Network error. Unable to verify OTP code.');
     } finally {
       setIsProcessing(false);
     }
@@ -585,29 +578,7 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
             )}
           </div>
 
-          {/* Quick Simulation Code Helper */}
           <div className="w-full space-y-3 pt-6">
-            <div className="bg-slate-50 border border-slate-200/80 p-3.5 rounded-2xl flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold text-slate-800">
-                  SMS Code Sent: <span className="font-mono font-black text-sm text-[#143C6B] bg-white px-2 py-0.5 rounded-lg border border-slate-200">{simulatedOtp}</span>
-                </p>
-                <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Click Auto-Fill to capture SMS OTP</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const chars = simulatedOtp.slice(0, 6).split('');
-                  setOtpDigits(chars);
-                  verifyOtpCode(chars.join(''));
-                }}
-                className="bg-[#143C6B] text-white text-xs font-bold py-2 px-3.5 rounded-xl hover:bg-[#0C2340] active:scale-95 cursor-pointer shadow-xs"
-                id="auto-fill-otp-btn"
-              >
-                Auto-Fill
-              </button>
-            </div>
-
             <button
               type="button"
               disabled={otpDigits.join('').length !== 6 || isProcessing}

@@ -636,7 +636,9 @@ app.post('/api/auth/send-otp', async (req, res) => {
     otpRateLimitMap.set(tenDigitPhone, now);
 
     // Call external SMS OTP API server-side securely (API key hidden from client)
-    const smsUrl = `${SMS_OTP_API_URL}?authkey=${encodeURIComponent(SMS_OTP_AUTH_KEY)}&mobile=${encodeURIComponent(fullMobile)}&otp=${encodeURIComponent(otpCode)}`;
+    const authKey = process.env.SMS_OTP_AUTH_KEY || 'TpHpbUBBumiTj7Ayqn1Ty8BixlhtZO63adHE-Wx45ZI';
+    const apiUrl = process.env.SMS_OTP_API_URL || 'https://apitxt.com/api/sendOTP';
+    const smsUrl = `${apiUrl}?authkey=${encodeURIComponent(authKey)}&mobile=${encodeURIComponent(fullMobile)}&otp=${encodeURIComponent(otpCode)}`;
     
     console.log(`[SMS OTP API] Dispatching 6-digit OTP ${otpCode} to +${fullMobile}...`);
     try {
@@ -671,10 +673,7 @@ app.post('/api/auth/verify-otp', async (req, res) => {
   const record = pendingOtps.get(fullMobile) || pendingOtps.get(tenDigitPhone) || pendingOtps.get(rawPhone);
 
   if (!record) {
-    // Allow fallback bypass code for testing if needed
-    if (otp !== '123456' && otp !== '4892' && otp !== '1234') {
-      return res.status(400).json({ error: 'No active OTP verification request found for this phone.' });
-    }
+    return res.status(400).json({ error: 'No active OTP verification request found for this phone.' });
   } else {
     if (Date.now() > record.expires) {
       pendingOtps.delete(fullMobile);
@@ -682,7 +681,7 @@ app.post('/api/auth/verify-otp', async (req, res) => {
       return res.status(400).json({ error: 'OTP code has expired. Please request a new code.' });
     }
 
-    const isCodeMatch = (otp === record.otp) || (otp === '123456') || (otp === '4892');
+    const isCodeMatch = (String(otp).trim() === record.otp);
     if (!isCodeMatch) {
       return res.status(400).json({ error: 'Invalid 6-digit verification code. Please check and try again.' });
     }

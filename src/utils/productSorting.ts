@@ -47,22 +47,13 @@ export function sortHomeFeedByPerformance(products: Product[]): Product[] {
     score: calculateProductPerformanceScore(p),
   }));
 
-  // Sort by score descending
-  scored.sort((a, b) => b.score - a.score);
-
-  // Group into tiers of 5 to introduce subtle random variation among similar performing items
-  const result: Product[] = [];
-  const chunkSize = 5;
-
-  for (let i = 0; i < scored.length; i += chunkSize) {
-    const chunk = scored.slice(i, i + chunkSize);
-    // Semi-random shuffle within the small tier chunk
-    for (let j = chunk.length - 1; j > 0; j--) {
-      const k = Math.floor(Math.random() * (j + 1));
-      [chunk[j], chunk[k]] = [chunk[k], chunk[j]];
+  // Sort deterministically by score descending, then by product ID ascending as tie-breaker
+  scored.sort((a, b) => {
+    if (b.score !== a.score) {
+      return b.score - a.score;
     }
-    chunk.forEach((item) => result.push(item.product));
-  }
+    return String(a.product.id).localeCompare(String(b.product.id));
+  });
 
-  return result;
+  return scored.map((item) => item.product);
 }
