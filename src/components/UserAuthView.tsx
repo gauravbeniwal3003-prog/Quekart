@@ -230,6 +230,9 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
         setTimer(data.cooldownRemainingSec || 60);
         setIsResendActive(false);
         setOtpDigits(['', '', '', '', '', '']);
+        if (data.otp) {
+          setSimulatedOtp(data.otp);
+        }
         setTimeout(() => {
           otpInputRefs[0].current?.focus();
         }, 100);

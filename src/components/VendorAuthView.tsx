@@ -287,6 +287,9 @@ export default function VendorAuthView({
         setLoginTimer(data.cooldownRemainingSec || 60);
         setIsLoginResendActive(false);
         setLoginOtpDigits(['', '', '', '', '', '']);
+        if (data.otp) {
+          setLoginSimulatedOtp(data.otp);
+        }
         setTimeout(() => {
           loginOtpInputRefs[0].current?.focus();
         }, 100);
@@ -496,6 +499,9 @@ export default function VendorAuthView({
         setSignUpTimer(data.cooldownRemainingSec || 60);
         setIsSignUpResendActive(false);
         setSignUpOtpDigits(['', '', '', '', '', '']);
+        if (data.otp) {
+          setSignUpSimulatedOtp(data.otp);
+        }
         setTimeout(() => {
           signUpInlineOtpRefs[0].current?.focus();
         }, 150);
