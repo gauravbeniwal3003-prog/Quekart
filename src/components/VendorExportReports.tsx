@@ -307,11 +307,11 @@ export default function VendorExportReports({
     <div className="space-y-5 animate-fadeIn" id="vendor-export-reports-root">
       
       {/* 1. TOP HEADER & SINGLE CLICK EXPORT CONTROLS */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 sm:p-6 space-y-4">
+      <div className="liquid-glass-card rounded-2xl border border-white/90 shadow-sm p-4 sm:p-6 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
           <div>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#143C6B] flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-[#143C6B]/10 border border-[#143C6B]/20 text-[#143C6B] flex items-center justify-center">
                 <FileSpreadsheet className="w-5 h-5" />
               </div>
               <h2 className="text-lg font-black text-slate-900 tracking-tight">
@@ -329,31 +329,31 @@ export default function VendorExportReports({
               type="button"
               onClick={handleDownloadCsv}
               disabled={exportRows.length === 0}
-              className={`h-10 px-4 rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-xs transition-all cursor-pointer active:scale-95 ${
+              className={`h-10 px-4 rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-sm transition-all cursor-pointer active:scale-95 border ${
                 exportRows.length > 0
-                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  ? 'bg-[#143C6B] hover:bg-[#0D2C4E] text-white border-[#C89D1F]/40 shadow-md'
+                  : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'
               }`}
               id="vendor-download-csv-btn"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-4 h-4 text-[#C89D1F]" />
               <span>Download Excel / CSV ({exportRows.length})</span>
             </button>
 
             <button
               type="button"
               onClick={() => window.print()}
-              className="h-10 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
+              className="h-10 px-3.5 bg-white/80 hover:bg-white text-slate-800 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors border border-slate-200"
               id="vendor-print-report-btn"
             >
-              <Printer className="w-4 h-4" />
+              <Printer className="w-4 h-4 text-[#143C6B]" />
               <span className="hidden sm:inline">Print Dispatch Slip</span>
             </button>
 
             <button
               type="button"
               onClick={handleCopyJson}
-              className="h-10 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors"
+              className="h-10 px-3 bg-white/80 hover:bg-white text-slate-700 rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors border border-slate-200"
               title="Copy as JSON"
             >
               <FileText className="w-4 h-4" />
@@ -386,8 +386,8 @@ export default function VendorExportReports({
                   onClick={() => setTimeRange(pill.id as TimeRangeFilter)}
                   className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer border ${
                     active
-                      ? 'bg-[#143C6B] text-white border-[#143C6B] shadow-xs'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
+                      ? 'bg-[#143C6B] text-white border-[#143C6B] shadow-md ring-2 ring-[#C89D1F]/40'
+                      : 'bg-white/80 text-slate-700 border-slate-200 hover:bg-white hover:border-slate-300'
                   }`}
                   id={`vendor-time-pill-${pill.id}`}
                 >
@@ -434,7 +434,7 @@ export default function VendorExportReports({
 
       {/* 4. KPI SUMMARY CARDS */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="liquid-glass-card p-3.5 sm:p-4 rounded-2xl border border-white/90 shadow-xs hover:scale-[1.01] transition-transform">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-500 uppercase">Filtered Orders</span>
             <Package className="w-4 h-4 text-[#143C6B]" />
@@ -443,7 +443,7 @@ export default function VendorExportReports({
           <p className="text-[10px] text-slate-400 font-medium">{summaryMetrics.totalUnits} items sold</p>
         </div>
 
-        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="liquid-glass-card p-3.5 sm:p-4 rounded-2xl border border-white/90 shadow-xs hover:scale-[1.01] transition-transform">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-500 uppercase">Gross Wholesale Value</span>
             <IndianRupee className="w-4 h-4 text-emerald-600" />
@@ -452,27 +452,27 @@ export default function VendorExportReports({
           <p className="text-[10px] text-emerald-600 font-bold">100% Payout (₹0 Commission)</p>
         </div>
 
-        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="liquid-glass-card p-3.5 sm:p-4 rounded-2xl border border-white/90 shadow-xs hover:scale-[1.01] transition-transform">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-500 uppercase">Delivered Orders</span>
-            <CheckCircle2 className="w-4 h-4 text-blue-600" />
+            <CheckCircle2 className="w-4 h-4 text-[#143C6B]" />
           </div>
-          <p className="text-xl font-black text-blue-800 mt-1">{summaryMetrics.deliveredCount}</p>
+          <p className="text-xl font-black text-[#143C6B] mt-1">{summaryMetrics.deliveredCount}</p>
           <p className="text-[10px] text-slate-400 font-medium">{summaryMetrics.inTransitCount} in transit</p>
         </div>
 
-        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="liquid-glass-card p-3.5 sm:p-4 rounded-2xl border border-white/90 shadow-xs hover:scale-[1.01] transition-transform">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-500 uppercase">Commission Retained</span>
-            <ShieldCheck className="w-4 h-4 text-amber-600" />
+            <ShieldCheck className="w-4 h-4 text-[#C89D1F]" />
           </div>
-          <p className="text-xl font-black text-amber-700 mt-1">₹{summaryMetrics.commissionSaved.toLocaleString('en-IN')}</p>
-          <p className="text-[10px] text-amber-600 font-bold">Saved vs 15% marketplace fee</p>
+          <p className="text-xl font-black text-[#8C6A0A] mt-1">₹{summaryMetrics.commissionSaved.toLocaleString('en-IN')}</p>
+          <p className="text-[10px] text-[#8C6A0A] font-bold">Saved vs 15% marketplace fee</p>
         </div>
       </div>
 
       {/* 5. PROPER INDEXED CUSTOMER & ORDER DATA TABLE */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" id="vendor-export-table-container">
+      <div className="liquid-glass-card rounded-2xl border border-white/90 shadow-sm overflow-hidden" id="vendor-export-table-container">
         
         {/* Table Title Bar */}
         <div className="p-4 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between gap-2">

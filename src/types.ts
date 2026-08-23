@@ -115,6 +115,13 @@ export interface Vendor {
   address?: string;
   avatar?: string;
   description?: string;
+  bankAccount?: {
+    accountNumber: string;
+    ifscCode: string;
+    accountHolderName?: string;
+    bankName?: string;
+  };
+  upiId?: string;
 }
 
 export interface AppUser {
@@ -159,7 +166,7 @@ export interface Order {
   items: CartItem[];
   orderDate: string;
   deliveryDate: string;
-  status: 'Delivered Early' | 'Out for Delivery' | 'Shipped' | 'Ordered' | 'Cancelled';
+  status: 'Delivered Early' | 'Delivered' | 'Out for Delivery' | 'Shipped' | 'Ordered' | 'Cancelled' | 'Returned';
   totalPrice: number;
   shippingAddress: {
     name: string;
@@ -169,6 +176,73 @@ export interface Order {
     pincode: string;
     state: string;
   };
+}
+
+export interface VendorPayoutRequest {
+  id: string;
+  vendorId: string;
+  method: 'bank' | 'upi';
+  accountNumber?: string;
+  ifscCode?: string;
+  accountHolderName?: string;
+  bankName?: string;
+  upiId?: string;
+  amount: number;
+  status: 'Processing' | 'Completed' | 'Rejected';
+  referenceId: string;
+  requestedAt: string;
+  processedAt?: string;
+  utrNumber?: string;
+  notes?: string;
+}
+
+export interface VendorLedgerTransaction {
+  id: string;
+  vendorId: string;
+  transactionType: 'order_credit' | 'payout_withdrawal' | 'return_deduction' | 'opening_balance' | 'bonus_credit';
+  typeLabel: string;
+  referenceId: string;
+  orderId?: string;
+  productTitle?: string;
+  quantity?: number;
+  description: string;
+  credit: number;
+  debit: number;
+  runningBalance: number;
+  status: 'Settled' | 'Processing' | 'Completed';
+  timestamp: string;
+  date: string;
+}
+
+export interface VendorFinancialSummary {
+  availableBalance: number;
+  totalEarnings: number;
+  deliveredSales: number;
+  pendingBalance: number;
+  totalWithdrawn: number;
+  totalRefunded: number;
+  transactionsCount: number;
+}
+
+export interface UserWalletTransaction {
+  id: string;
+  type: 'refund_credit' | 'order_payment' | 'referral_bonus' | 'cashback';
+  title: string;
+  orderId?: string;
+  amount: number;
+  isCredit: boolean;
+  runningBalance: number;
+  date: string;
+  status: string;
+}
+
+export interface UserWallet {
+  userId?: string;
+  phone: string;
+  balance: number;
+  totalRefunds: number;
+  totalCashback: number;
+  transactions: UserWalletTransaction[];
 }
 
 export interface Category {

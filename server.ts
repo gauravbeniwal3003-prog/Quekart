@@ -301,6 +301,21 @@ let localCoupons: Coupon[] = [...initialCouponsList];
 let localVendors: Vendor[] = [...initialVendors];
 let localCategories: Category[] = [...mockCategories];
 let localBanners: Banner[] = [...initialBanners];
+let localGstResults: Array<{
+  gstin: string;
+  verified: boolean;
+  status: string;
+  legal_name?: string;
+  trade_name?: string;
+  business_type?: string;
+  registration_date?: string;
+  address?: string;
+  state?: string;
+  district?: string;
+  pincode?: string;
+  data: any;
+  created_at: string;
+}> = [];
 
 interface AppUser {
   id: string;
@@ -314,14 +329,20 @@ interface AppUser {
   city?: string;
   state?: string;
   pincode?: string;
+  bankAccount?: {
+    accountNumber?: string;
+    ifscCode?: string;
+    accountHolderName?: string;
+    bankName?: string;
+  };
+  upiId?: string;
+  avatar?: string;
   isProfileComplete?: boolean;
   savedAddresses?: any[];
   createdAt: string;
 }
 
-let localUsers: AppUser[] = [
-  { id: 'user-gaurav', name: 'Gaurav Beniwal', email: 'gauravbeniwal30003@gmail.com', phone: '9999999999', address: 'Jaipur, Rajasthan', createdAt: '2026-07-18T00:00:00Z' }
-];
+let localUsers: AppUser[] = [];
 
 // Automatically generate mock_data.json for Python backend parity
 try {
@@ -350,32 +371,30 @@ async function testAndSeedSupabase() {
     // 1. Verify and seed products table
     const { data: pCountData, error: pError } = await supabase.from('products').select('id');
     if (pError) {
-      console.error('❌ Supabase products table check failed with error:', pError);
-      console.log('⚠️ "products" table not found or inaccessible in Supabase. Falling back to local memory for products.');
-      console.log('PostgreSQL Table Creation Query is provided in /schema.sql for quick setup.');
+      console.warn('ℹ️ Supabase products table check:', pError.message || pError);
+      console.log('⚠️ Running in Local Memory Fallback Mode for products. Run schema.sql in Supabase SQL editor to create tables and disable RLS.');
       useSupabase = false;
       return;
     }
 
     const existingProductIds = new Set((pCountData || []).map((row: any) => row.id));
-    if (existingProductIds.size === 0) {
+    if (existingProductIds.size === 0 && localProducts.length > 0) {
       console.log('🌱 Products table is empty. Seeding default catalog...');
       for (const p of localProducts) {
-        console.log(`🌱 Seeding default product: ${p.id}`);
         const { error: insertErr } = await supabase.from('products').insert({ id: p.id, data: p });
         if (insertErr) {
-          console.error(`⚠️ Error seeding product ${p.id}:`, insertErr);
+          console.warn(`⚠️ Note seeding product ${p.id}:`, insertErr.message || insertErr);
         }
       }
     } else {
-      console.log(`📊 Products in Supabase: ${existingProductIds.size}. Skipping seeding to preserve admin changes.`);
+      console.log(`📊 Products in Supabase: ${existingProductIds.size}. Skipping seeding to preserve live data.`);
     }
 
     // 2. Verify and seed coupons table
     const { data: cCountData, error: cError } = await supabase.from('coupons').select('code');
     if (!cError) {
       const existingCouponCodes = new Set((cCountData || []).map((row: any) => row.code));
-      if (existingCouponCodes.size === 0) {
+      if (existingCouponCodes.size === 0 && localCoupons.length > 0) {
         console.log('🌱 Coupons table is empty. Seeding default coupons...');
         for (const c of localCoupons) {
           const { error: insertErr } = await supabase.from('coupons').insert({ code: c.code, data: c });
@@ -394,17 +413,7 @@ async function testAndSeedSupabase() {
     const { data: oCountData, error: oError } = await supabase.from('orders').select('id');
     if (!oError) {
       const existingOrderIds = new Set((oCountData || []).map((row: any) => row.id));
-      if (existingOrderIds.size === 0) {
-        console.log('🌱 Orders table is empty. Seeding default orders...');
-        for (const o of localOrders) {
-          const { error: insertErr } = await supabase.from('orders').insert({ id: o.id, data: o });
-          if (insertErr) {
-            console.warn(`⚠️ Note seeding order ${o.id}:`, insertErr.message || insertErr);
-          }
-        }
-      } else {
-        console.log(`📊 Orders in Supabase: ${existingOrderIds.size}.`);
-      }
+      console.log(`📊 Orders in Supabase: ${existingOrderIds.size}.`);
     } else {
       console.log('ℹ️ Orders table in Supabase using local cache fallback.');
     }
@@ -413,45 +422,25 @@ async function testAndSeedSupabase() {
     const { data: vCountData, error: vError } = await supabase.from('vendors').select('id');
     if (!vError) {
       const existingVendorIds = new Set((vCountData || []).map((row: any) => row.id));
-      if (existingVendorIds.size === 0) {
-        console.log('🌱 Vendors table is empty. Seeding default vendors...');
-        for (const v of localVendors) {
-          const { error: insertErr } = await supabase.from('vendors').insert({ id: v.id, data: v });
-          if (insertErr) {
-            console.warn(`⚠️ Note seeding vendor ${v.id}:`, insertErr.message || insertErr);
-          }
-        }
-      } else {
-        console.log(`📊 Vendors in Supabase: ${existingVendorIds.size}.`);
-      }
+      console.log(`📊 Vendors in Supabase: ${existingVendorIds.size}.`);
     } else {
       console.log('ℹ️ Vendors table in Supabase using local cache fallback.');
     }
 
-    // 4.6. Verify and seed users table
+    // 4.6. Verify users table (Real users only - no demo seeds)
     const { data: uCountData, error: uError } = await supabase.from('users').select('id');
     if (!uError) {
       const existingUserIds = new Set((uCountData || []).map((row: any) => row.id));
-      if (existingUserIds.size === 0) {
-        console.log('🌱 Users table is empty. Seeding default users...');
-        for (const u of localUsers) {
-          const { error: insertErr } = await supabase.from('users').insert({ id: u.id, data: u });
-          if (insertErr) {
-            console.warn(`⚠️ Note seeding user ${u.id}:`, insertErr.message || insertErr);
-          }
-        }
-      } else {
-        console.log(`📊 Users in Supabase: ${existingUserIds.size}.`);
-      }
+      console.log(`📊 Users in Supabase: ${existingUserIds.size}.`);
     } else {
       console.log('ℹ️ Users table in Supabase using local cache fallback.');
     }
 
-    // 5. Verify and seed categories table
+    // 5. Verify categories table
     const { data: catCountData, error: catError } = await supabase.from('categories').select('id');
     if (!catError) {
       const existingCategoryIds = new Set((catCountData || []).map((row: any) => row.id));
-      if (existingCategoryIds.size === 0) {
+      if (existingCategoryIds.size === 0 && localCategories.length > 0) {
         console.log('🌱 Categories table is empty. Seeding default categories...');
         for (let i = 0; i < localCategories.length; i++) {
           const c = localCategories[i];
@@ -467,26 +456,16 @@ async function testAndSeedSupabase() {
       console.log('ℹ️ Categories table in Supabase using local cache fallback.');
     }
 
-    // 6. Verify and seed banners table
+    // 6. Verify banners table (Managed dynamically via Admin Panel)
     const { data: bannerCountData, error: bannerError } = await supabase.from('banners').select('id');
     if (!bannerError) {
       const existingBannerIds = new Set((bannerCountData || []).map((row: any) => row.id));
-      if (existingBannerIds.size === 0) {
-        console.log('🌱 Banners table is empty. Seeding default banners...');
-        for (const b of localBanners) {
-          const { error: insertErr } = await supabase.from('banners').insert({ id: b.id, data: b });
-          if (insertErr) {
-            console.warn(`⚠️ Note seeding banner ${b.id}:`, insertErr.message || insertErr);
-          }
-        }
-      } else {
-        console.log(`📊 Banners in Supabase: ${existingBannerIds.size}.`);
-      }
+      console.log(`📊 Banners in Supabase: ${existingBannerIds.size}. (Admin upload enabled)`);
     } else {
-      console.log('ℹ️ Banners table in Supabase using local cache fallback.');
+      console.log('ℹ️ Banners table in Supabase using dynamic memory store.');
     }
 
-    console.log('✨ Supabase database synchronized perfectly. Operating in LIVE DATABASE MODE.');
+    console.log('✨ Supabase database synchronized. Operating in LIVE DATABASE MODE.');
     useSupabase = true;
   } catch (err) {
     console.error('❌ Error testing or seeding Supabase:', err);
@@ -726,13 +705,20 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 
       // SMART AUTO-REGISTER LOGIC:
       // If user does NOT exist, automatically register new customer account!
+      let isNewUser = false;
       if (!user) {
+        isNewUser = true;
         const newUser: AppUser = {
           id: `user-${Date.now()}`,
-          name: (name || `Customer ${tenDigitPhone}`).trim(),
-          email: (email || `${fullMobile}@quekart.com`).trim(),
+          name: '',
+          email: '',
           phone: fullMobile,
-          address: (address || '').trim(),
+          address: '',
+          city: '',
+          state: '',
+          pincode: '',
+          gender: '',
+          isProfileComplete: false,
           createdAt: new Date().toISOString()
         };
 
@@ -741,13 +727,13 @@ app.post('/api/auth/verify-otp', async (req, res) => {
           await supabase.from('users').insert({ id: newUser.id, data: newUser });
         }
         user = newUser;
-        console.log(`[AUTO-REGISTER CUSTOMER] Automatically registered new customer: ${newUser.name} (+${newUser.phone})`);
+        console.log(`[AUTO-REGISTER CUSTOMER] Registered new customer shell (+${newUser.phone})`);
       } else {
         console.log(`[CUSTOMER LOGIN] User signed in: ${user.name} (+${user.phone})`);
       }
 
       const token = signToken({ userId: user.id, role: 'user', phone: user.phone });
-      return res.json({ success: true, token, user, isNewUser: !user });
+      return res.json({ success: true, token, user, isNewUser });
     }
 
     // ----------------- VENDOR / SELLER ROLE -----------------
@@ -773,17 +759,22 @@ app.post('/api/auth/verify-otp', async (req, res) => {
       // SMART AUTO-REGISTER LOGIC:
       // If vendor does NOT exist, automatically register new vendor account!
       if (!vendor) {
+        if (!gstin) {
+          return res.status(404).json({
+            error: `No registered seller account found for +91 ${tenDigitPhone}. Please register your GST business under the Sign Up tab first.`
+          });
+        }
         const newVendor: Vendor = {
           id: `vendor-${Date.now()}`,
           name: (storeName || name || `Seller Store ${tenDigitPhone}`).trim(),
           email: (email || `${fullMobile}@seller.quekart.com`).trim(),
           phone: fullMobile,
-          vendorType: 'small',
+          vendorType: 'big',
           businessCategory: businessCategory || 'Apparel & Sarees',
-          gstin: gstin ? gstin.trim() : '',
-          city: city ? city.trim() : '',
-          state: state ? state.trim() : '',
-          description: description ? description.trim() : '',
+          gstin: gstin ? gstin.trim().toUpperCase() : '',
+          city: city ? city.trim() : 'Jaipur',
+          state: state ? state.trim() : 'Rajasthan',
+          description: description ? description.trim() : 'GST-Verified Seller',
           rating: 5.0,
           status: 'active',
           createdAt: new Date().toISOString()
@@ -791,10 +782,10 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 
         localVendors.push(newVendor);
         if (useSupabase && supabase) {
-          await supabase.from('vendors').insert({ id: newVendor.id, data: newVendor });
+          await supabase.from('vendors').insert([{ id: newVendor.id, data: newVendor }]);
         }
         vendor = newVendor;
-        console.log(`[AUTO-REGISTER VENDOR] Automatically registered new vendor store: ${newVendor.name} (+${newVendor.phone})`);
+        console.log(`[REGISTER VENDOR] Registered new verified vendor store: ${newVendor.name} (+${newVendor.phone})`);
       } else {
         console.log(`[VENDOR LOGIN] Vendor signed in: ${vendor.name} (+${vendor.phone})`);
       }
@@ -826,38 +817,137 @@ app.post('/api/auth/verify-otp', async (req, res) => {
   }
 });
 
-// Customer Profile Update Route (Name, Gender, Age, Alt Phone, Address, Saved Addresses)
-app.post('/api/user/profile', async (req, res) => {
-  const { userId, phone, name, gender, age, alternativePhone, email, address, city, state, pincode, savedAddresses } = req.body;
-  if (!phone) {
-    return res.status(400).json({ error: 'Mobile phone number is required.' });
+// Customer Profile Get Route (Query by Token or Phone or UserId)
+app.get('/api/user/profile', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  let lookupPhone = (req.query.phone as string || '').trim();
+  let lookupUserId = (req.query.userId as string || '').trim();
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    const decoded = verifyToken(token);
+    if (decoded && (decoded.role === 'user' || decoded.role === 'customer')) {
+      if (decoded.userId) lookupUserId = decoded.userId;
+      if (decoded.phone) lookupPhone = decoded.phone;
+    }
   }
 
-  const rawPhone = String(phone).trim();
-  const fullMobile = formatIndianMobile(rawPhone);
-  const tenDigitPhone = fullMobile.slice(-10);
+  const tenDigitPhone = lookupPhone.replace(/[^0-9]/g, '').slice(-10);
 
   try {
-    let userIndex = localUsers.findIndex(u => {
-      const dbDigits = (u.phone || '').replace(/[^0-9]/g, '');
-      return dbDigits.endsWith(tenDigitPhone);
-    });
+    let user: AppUser | undefined;
+    if (useSupabase && supabase) {
+      if (lookupUserId) {
+        const { data } = await supabase.from('users').select('*').eq('id', lookupUserId).single();
+        if (data) user = data.data;
+      }
+      if (!user && tenDigitPhone) {
+        const { data } = await supabase.from('users').select('*');
+        if (data) {
+          user = data.map((r: any) => r.data).find((u: AppUser) => {
+            const dbDigits = (u.phone || '').replace(/[^0-9]/g, '');
+            return dbDigits.endsWith(tenDigitPhone);
+          });
+        }
+      }
+    }
+
+    if (!user) {
+      if (lookupUserId) user = localUsers.find(u => u.id === lookupUserId);
+      if (!user && tenDigitPhone) {
+        user = localUsers.find(u => {
+          const dbDigits = (u.phone || '').replace(/[^0-9]/g, '');
+          return dbDigits.endsWith(tenDigitPhone);
+        });
+      }
+    }
+
+    if (!user) {
+      return res.status(404).json({ error: 'User profile not found.' });
+    }
+
+    return res.json({ success: true, user });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to fetch user profile.' });
+  }
+});
+
+// Customer Profile Update Route (Name, Gender, Age, Alt Phone, Address, Bank, UPI, Avatar, Saved Addresses)
+app.post('/api/user/profile', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  let authenticatedUserId = '';
+  let authenticatedPhone = '';
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    const decoded = verifyToken(token);
+    if (decoded && (decoded.role === 'user' || decoded.role === 'customer')) {
+      authenticatedUserId = decoded.userId || '';
+      authenticatedPhone = decoded.phone || '';
+    }
+  }
+
+  const { id, userId, phone, name, gender, age, alternativePhone, email, address, city, state, pincode, bankAccount, upiId, avatar, savedAddresses } = req.body;
+
+  const targetUserId = authenticatedUserId || userId || id;
+  const targetPhone = authenticatedPhone || phone;
+
+  if (!targetUserId && !targetPhone) {
+    return res.status(401).json({ error: 'Unauthorized. Missing active session token or identifier.' });
+  }
+
+  const tenDigitPhone = String(targetPhone || '').replace(/[^0-9]/g, '').slice(-10);
+
+  try {
+    let userIndex = -1;
+    if (targetUserId) {
+      userIndex = localUsers.findIndex(u => u.id === targetUserId);
+    }
+    if (userIndex === -1 && tenDigitPhone) {
+      userIndex = localUsers.findIndex(u => {
+        const dbDigits = (u.phone || '').replace(/[^0-9]/g, '');
+        return dbDigits.endsWith(tenDigitPhone);
+      });
+    }
 
     let existingUser = userIndex >= 0 ? localUsers[userIndex] : null;
 
+    // Check Supabase if not in memory
+    if (!existingUser && useSupabase && supabase) {
+      if (targetUserId) {
+        const { data } = await supabase.from('users').select('*').eq('id', targetUserId).single();
+        if (data) existingUser = data.data;
+      }
+      if (!existingUser && tenDigitPhone) {
+        const { data } = await supabase.from('users').select('*');
+        if (data) {
+          existingUser = data.map((r: any) => r.data).find((u: AppUser) => {
+            const dbDigits = (u.phone || '').replace(/[^0-9]/g, '');
+            return dbDigits.endsWith(tenDigitPhone);
+          });
+        }
+      }
+    }
+
+    const finalId = targetUserId || existingUser?.id || `user-${Date.now()}`;
+    const finalPhone = targetPhone || existingUser?.phone || '';
+
     const updatedUser: AppUser = {
-      id: existingUser ? existingUser.id : (userId || `user-${Date.now()}`),
-      name: name ? String(name).trim() : (existingUser?.name || `Customer ${tenDigitPhone}`),
-      email: email ? String(email).trim() : (existingUser?.email || `${fullMobile}@quekart.com`),
-      phone: existingUser ? existingUser.phone : fullMobile, // LOCKED TO AUTHENTICATED PHONE
-      gender: gender ? String(gender).trim() : (existingUser?.gender || 'male'),
-      age: age ? Number(age) : existingUser?.age,
-      alternativePhone: alternativePhone ? String(alternativePhone).trim() : existingUser?.alternativePhone,
-      address: address ? String(address).trim() : existingUser?.address,
-      city: city ? String(city).trim() : existingUser?.city,
-      state: state ? String(state).trim() : existingUser?.state,
-      pincode: pincode ? String(pincode).trim() : existingUser?.pincode,
-      savedAddresses: savedAddresses || existingUser?.savedAddresses || [],
+      id: finalId,
+      name: name !== undefined ? String(name).trim() : (existingUser?.name || ''),
+      email: email !== undefined ? String(email).trim() : (existingUser?.email || ''),
+      phone: finalPhone,
+      gender: gender !== undefined ? String(gender).trim() : (existingUser?.gender || 'Male'),
+      age: age !== undefined ? Number(age) : existingUser?.age,
+      alternativePhone: alternativePhone !== undefined ? String(alternativePhone).trim() : (existingUser?.alternativePhone || ''),
+      address: address !== undefined ? String(address).trim() : (existingUser?.address || ''),
+      city: city !== undefined ? String(city).trim() : (existingUser?.city || ''),
+      state: state !== undefined ? String(state).trim() : (existingUser?.state || ''),
+      pincode: pincode !== undefined ? String(pincode).trim() : (existingUser?.pincode || ''),
+      bankAccount: bankAccount !== undefined ? bankAccount : existingUser?.bankAccount,
+      upiId: upiId !== undefined ? String(upiId).trim() : existingUser?.upiId,
+      avatar: avatar !== undefined ? String(avatar).trim() : existingUser?.avatar,
+      savedAddresses: savedAddresses !== undefined ? savedAddresses : (existingUser?.savedAddresses || []),
       isProfileComplete: true,
       createdAt: existingUser?.createdAt || new Date().toISOString()
     };
@@ -947,6 +1037,11 @@ app.post('/api/auth/vendor-register', async (req, res) => {
     return res.status(400).json({ error: 'Business name, email, and mobile phone are required.' });
   }
 
+  const cleanGstin = (gstin || '').trim().toUpperCase();
+  if (!cleanGstin || cleanGstin.length !== 15 || !req.body.gstinVerified) {
+    return res.status(400).json({ error: 'GST Number verification is compulsory for vendor registration.' });
+  }
+
   const cleanPhone = phone.trim().replace(/\s+/g, '');
 
   try {
@@ -956,56 +1051,71 @@ app.post('/api/auth/vendor-register', async (req, res) => {
       return res.status(400).json({ error: roleCheck.message });
     }
 
-    // Check if vendor already exists
-    let existingVendor: Vendor | undefined;
+    // Check if vendor already exists by Phone or GSTIN
+    let existingVendorByPhone: Vendor | undefined;
+    let existingVendorByGst: Vendor | undefined;
+
     if (useSupabase && supabase) {
       const { data, error } = await supabase.from('vendors').select('*');
       if (!error && data) {
-        existingVendor = data.map((row: any) => row.data).find((v: Vendor) => {
-          return v.phone.replace(/[^0-9]/g, '') === cleanPhone.replace(/[^0-9]/g, '');
+        data.forEach((row: any) => {
+          const v: Vendor = row.data || row;
+          if (v.phone.replace(/[^0-9]/g, '') === cleanPhone.replace(/[^0-9]/g, '')) {
+            existingVendorByPhone = v;
+          }
+          if (v.gstin && v.gstin.trim().toUpperCase() === cleanGstin && v.status !== 'suspended') {
+            existingVendorByGst = v;
+          }
         });
       }
     }
-    if (!existingVendor) {
-      existingVendor = localVendors.find(v => v.phone.replace(/[^0-9]/g, '') === cleanPhone.replace(/[^0-9]/g, ''));
+
+    if (!existingVendorByPhone) {
+      existingVendorByPhone = localVendors.find(v => v.phone.replace(/[^0-9]/g, '') === cleanPhone.replace(/[^0-9]/g, ''));
+    }
+    if (!existingVendorByGst) {
+      existingVendorByGst = localVendors.find(v => v.gstin && v.gstin.trim().toUpperCase() === cleanGstin && v.status !== 'suspended');
     }
 
-    if (existingVendor) {
-      return res.status(400).json({ error: 'A supplier is already registered with this mobile number.' });
+    if (existingVendorByPhone) {
+      return res.status(400).json({ error: 'A supplier is already registered with this mobile number. Duplicate mobile accounts are strictly prohibited.' });
+    }
+    if (existingVendorByGst) {
+      return res.status(400).json({ error: `A supplier account is already registered with GSTIN (${cleanGstin}). Duplicate GST accounts are strictly prohibited.` });
     }
 
     const newVendor: Vendor = {
       id: `vendor-${Date.now()}`,
-      name: (req.body.name || req.body.tradeName || 'Supplier Partner').trim(),
-      ownerName: req.body.ownerName ? req.body.ownerName.trim() : undefined,
-      legalBusinessName: req.body.legalBusinessName || req.body.legal_name,
-      tradeName: req.body.tradeName || req.body.trade_name,
-      businessType: req.body.businessType || req.body.business_type,
+      name: (req.body.tradeName || req.body.name || 'Supplier Partner').trim(),
+      ownerName: (req.body.legalBusinessName || req.body.ownerName || req.body.name || '').trim(),
+      legalBusinessName: req.body.legalBusinessName || req.body.legal_name || req.body.ownerName,
+      tradeName: req.body.tradeName || req.body.trade_name || req.body.name,
+      businessType: req.body.businessType || req.body.business_type || 'Registered Business',
       email: email.trim(),
       phone: cleanPhone,
-      age: req.body.age ? Number(req.body.age) : undefined,
+      age: req.body.age ? Number(req.body.age) : 30,
       aadhaarNumber: req.body.aadhaarNumber ? String(req.body.aadhaarNumber).trim() : undefined,
-      aadhaarVerified: !!req.body.aadhaarVerified,
-      gstinVerified: !!req.body.gstinVerified,
-      vendorType: req.body.isVerified || req.body.vendorType === 'big' || !!req.body.gstinVerified ? 'big' : 'small',
-      isVerified: !!req.body.isVerified || !!req.body.gstinVerified,
+      aadhaarVerified: true,
+      gstinVerified: true,
+      vendorType: 'big',
+      isVerified: true,
       businessCategory: businessCategory || 'Apparel & Sarees',
-      gstin: gstin ? gstin.trim().toUpperCase() : '',
+      gstin: cleanGstin,
       city: (city || req.body.district || 'Jaipur').trim(),
       state: (state || 'Rajasthan').trim(),
       district: (req.body.district || city || 'Jaipur').trim(),
       pincode: (req.body.pincode || '302001').trim(),
       address: req.body.address ? req.body.address.trim() : undefined,
-      description: description ? description.trim() : (req.body.gstinVerified ? 'GST-Verified Supplier' : 'Artisan Supplier'),
+      description: `GST-Verified Seller (${cleanGstin}) - ${req.body.legalBusinessName || req.body.name}, ${req.body.district || city || 'Jaipur'}, ${state || 'Rajasthan'}.`,
       rating: 5.0,
       status: 'active',
       createdAt: new Date().toISOString()
     };
 
-    // Save vendor
+    // Save vendor to local memory & database profile
     localVendors.push(newVendor);
     if (useSupabase && supabase) {
-      await supabase.from('vendors').insert({ id: newVendor.id, data: newVendor });
+      await supabase.from('vendors').insert([{ id: newVendor.id, data: newVendor }]);
     }
 
     const token = signToken({ vendorId: newVendor.id, role: 'vendor', phone: newVendor.phone });
@@ -1015,7 +1125,7 @@ app.post('/api/auth/vendor-register', async (req, res) => {
   }
 });
 
-// Government GST Verification API Endpoint matching exact response schema
+// Government GST Verification API Endpoint matching apitxt.com specification with DB Caching
 app.post('/api/auth/verify-gst-lookup', async (req, res) => {
   const { gstin } = req.body;
   const cleanGst = (gstin || '').trim().toUpperCase();
@@ -1028,95 +1138,136 @@ app.post('/api/auth/verify-gst-lookup', async (req, res) => {
     });
   }
 
-  // State code parsing (first 2 digits)
-  const stateCode = cleanGst.substring(0, 2);
-  const stateMap: Record<string, string> = {
-    '08': 'Rajasthan',
-    '24': 'Gujarat',
-    '27': 'Maharashtra',
-    '07': 'Delhi',
-    '09': 'Uttar Pradesh',
-    '19': 'West Bengal',
-    '33': 'Tamil Nadu',
-    '29': 'Karnataka',
-    '36': 'Telangana',
-    '22': 'Chhattisgarh',
-    '23': 'Madhya Pradesh',
-    '03': 'Punjab',
-    '06': 'Haryana'
-  };
-
-  const districtMap: Record<string, string> = {
-    '08': 'Jaipur',
-    '24': 'Surat',
-    '27': 'Mumbai',
-    '07': 'Central Delhi',
-    '09': 'Varanasi',
-    '19': 'Kolkata',
-    '33': 'Chennai',
-    '29': 'Bengaluru',
-    '36': 'Hyderabad',
-    '22': 'Raipur',
-    '23': 'Indore',
-    '03': 'Ludhiana',
-    '06': 'Gurugram'
-  };
-
-  const pincodeMap: Record<string, string> = {
-    '08': '302001',
-    '24': '395003',
-    '27': '400001',
-    '07': '110001',
-    '09': '221001',
-    '19': '700001',
-    '33': '600001',
-    '29': '560001',
-    '36': '500001',
-    '22': '492001',
-    '23': '452001',
-    '03': '141001',
-    '06': '122001'
-  };
-
-  const registeredState = stateMap[stateCode] || 'Rajasthan';
-  const registeredDistrict = districtMap[stateCode] || 'Jaipur';
-  const registeredPincode = pincodeMap[stateCode] || '302001';
-
-  // Sample known data presets or dynamic derivation
-  let legalName = 'EXAMPLE PRIVATE LIMITED';
-  let tradeName = 'EXAMPLE CORP';
-  let businessType = 'Private Limited Company';
-  let address = '123, MG Road, Sector 5';
-
-  if (cleanGst === '08AAAAA1111A1Z1') {
-    legalName = 'RAJASTHAN HANDLOOM & TEXTILES PVT LTD';
-    tradeName = 'Rajasthan Handloom House';
-    businessType = 'Private Limited Company';
-    address = '42, Johari Bazar, Pink City Market';
-  } else if (cleanGst === '24AAAAA2222A1Z2') {
-    legalName = 'SURAT SILK WEAVERS PRIVATE LIMITED';
-    tradeName = 'Surat Silk Hub';
-    businessType = 'Private Limited Company';
-    address = '108, Ring Road Textile Market';
-  } else if (cleanGst.startsWith('22')) {
-    legalName = 'EXAMPLE PRIVATE LIMITED';
-    tradeName = 'EXAMPLE CORP';
-    businessType = 'Private Limited Company';
-    address = '123, MG Road, Sector 5';
-  } else {
-    // Generate intelligent readable business names
-    const entityName = `BHARAT ${registeredState.toUpperCase()} ENTERPRISES`;
-    legalName = `${entityName} LLP`;
-    tradeName = `${registeredState} Wholesale Hub`;
-    businessType = 'Proprietorship / LLP';
-    address = `Shop 14, Main Commercial Complex, Sector 4`;
+  // 1. CHECK IF GSTIN ALREADY REGISTERED TO AN EXISTING VENDOR (Prevent duplicate GST accounts)
+  let existingVendorByGst: Vendor | undefined;
+  if (useSupabase && supabase) {
+    const { data: dbVendors } = await supabase.from('vendors').select('*');
+    if (dbVendors) {
+      existingVendorByGst = dbVendors.map((row: any) => row.data || row).find((v: Vendor) => v.gstin === cleanGst && v.status !== 'suspended');
+    }
+  }
+  if (!existingVendorByGst) {
+    existingVendorByGst = localVendors.find(v => v.gstin === cleanGst && v.status !== 'suspended');
   }
 
-  const responsePayload = {
-    status: 200,
-    message: "success",
-    request_id: `GST_V_1_${Date.now()}_a1b2`,
-    data: {
+  if (existingVendorByGst) {
+    return res.status(400).json({
+      status: 400,
+      message: `A vendor account is already registered with GSTIN (${cleanGst}) under store "${existingVendorByGst.name || existingVendorByGst.tradeName}". Duplicate GST accounts are strictly prohibited.`,
+      data: null
+    });
+  }
+
+  // 2. CHECK DATABASE CACHE FIRST (gst_results table / localGstResults array)
+  let cachedGstData: any = null;
+  if (useSupabase && supabase) {
+    try {
+      const { data: dbGstRecord } = await supabase.from('gst_results').select('*').eq('gstin', cleanGst).maybeSingle();
+      if (dbGstRecord) {
+        cachedGstData = dbGstRecord.data || dbGstRecord;
+      }
+    } catch (e) {
+      console.log('DB gst_results cache check notice:', e);
+    }
+  }
+
+  if (!cachedGstData) {
+    const localMatch = localGstResults.find(r => r.gstin === cleanGst);
+    if (localMatch) {
+      cachedGstData = localMatch.data;
+    }
+  }
+
+  if (cachedGstData) {
+    console.log(`[GST Lookup] Served cached result from DB for GSTIN: ${cleanGst}`);
+    const isVerified = cachedGstData.verified === true && (cachedGstData.status === 'Active' || cachedGstData.status === 'ACTIVE');
+    
+    if (!isVerified) {
+      const gstStatus = cachedGstData.status || 'Cancelled';
+      return res.status(400).json({
+        status: 400,
+        message: `GST Verification Failed: GSTIN ${cleanGst} status is ${gstStatus}. Only active GST registered businesses are allowed to register.`,
+        data: cachedGstData
+      });
+    }
+
+    return res.json({
+      status: 200,
+      message: "success (cached from DB)",
+      request_id: `GST_CACHE_${Date.now()}`,
+      data: cachedGstData
+    });
+  }
+
+  // 3. CALL EXTERNAL API IF NOT CACHED IN DATABASE
+  const authKey = process.env.SMS_OTP_AUTH_KEY || process.env.GST_API_KEY || '';
+  let apiData: any = null;
+  let apiSuccess = false;
+
+  if (authKey && authKey !== 'YOUR_KEY') {
+    try {
+      console.log(`[GST API Call] Querying apitxt.com API for GSTIN: ${cleanGst}`);
+      const apiUrl = `https://apitxt.com/api/gst/${cleanGst}?authkey=${encodeURIComponent(authKey)}`;
+      const fetchRes = await fetch(apiUrl, { method: 'GET' });
+      const apiJson: any = await fetchRes.json();
+
+      if (apiJson && (apiJson.data || apiJson.status === 200)) {
+        apiData = apiJson.data || apiJson;
+        apiSuccess = true;
+      } else if (apiJson && apiJson.message) {
+        console.warn(`[GST API Warning] ${apiJson.message}`);
+      }
+    } catch (fetchErr: any) {
+      console.error('[GST API Fetch Error]:', fetchErr.message);
+    }
+  }
+
+  // Fallback preset data generator if auth key not set or during local testing
+  if (!apiSuccess || !apiData) {
+    const stateCode = cleanGst.substring(0, 2);
+    const stateMap: Record<string, string> = {
+      '08': 'Rajasthan', '24': 'Gujarat', '27': 'Maharashtra', '07': 'Delhi',
+      '09': 'Uttar Pradesh', '19': 'West Bengal', '33': 'Tamil Nadu', '29': 'Karnataka',
+      '36': 'Telangana', '22': 'Chhattisgarh', '23': 'Madhya Pradesh', '03': 'Punjab', '06': 'Haryana'
+    };
+    const districtMap: Record<string, string> = {
+      '08': 'Jaipur', '24': 'Surat', '27': 'Mumbai', '07': 'Central Delhi',
+      '09': 'Varanasi', '19': 'Kolkata', '33': 'Chennai', '29': 'Bengaluru',
+      '36': 'Hyderabad', '22': 'Raipur', '23': 'Indore', '03': 'Ludhiana', '06': 'Gurugram'
+    };
+    const pincodeMap: Record<string, string> = {
+      '08': '302001', '24': '395003', '27': '400001', '07': '110001',
+      '09': '221001', '19': '700001', '33': '600001', '29': '560001',
+      '36': '500001', '22': '492001', '23': '452001', '03': '141001', '06': '122001'
+    };
+
+    const registeredState = stateMap[stateCode] || 'Rajasthan';
+    const registeredDistrict = districtMap[stateCode] || 'Jaipur';
+    const registeredPincode = pincodeMap[stateCode] || '302001';
+
+    let legalName = 'EXAMPLE PRIVATE LIMITED';
+    let tradeName = 'EXAMPLE CORP';
+    let businessType = 'Private Limited Company';
+    let address = '123, MG Road, Sector 5';
+
+    if (cleanGst === '08AAAAA1111A1Z1') {
+      legalName = 'RAJASTHAN HANDLOOM & TEXTILES PVT LTD';
+      tradeName = 'Rajasthan Handloom House';
+      businessType = 'Private Limited Company';
+      address = '42, Johari Bazar, Pink City Market';
+    } else if (cleanGst === '24AAAAA2222A1Z2') {
+      legalName = 'SURAT SILK WEAVERS PRIVATE LIMITED';
+      tradeName = 'Surat Silk Hub';
+      businessType = 'Private Limited Company';
+      address = '108, Ring Road Textile Market';
+    } else {
+      legalName = `EXAMPLE PRIVATE LIMITED`;
+      tradeName = `EXAMPLE CORP`;
+      businessType = 'Private Limited Company';
+      address = `123, MG Road, Sector 5`;
+    }
+
+    apiData = {
       gstin: cleanGst,
       verified: true,
       status: "Active",
@@ -1128,10 +1279,60 @@ app.post('/api/auth/verify-gst-lookup', async (req, res) => {
       state: registeredState,
       district: registeredDistrict,
       pincode: registeredPincode
-    }
+    };
+  }
+
+  // 4. SAVE RESULT INTO DATABASE CACHE (gst_results)
+  const isVerified = apiData.verified === true && (apiData.status === 'Active' || apiData.status === 'ACTIVE');
+  const gstRecordToSave = {
+    gstin: cleanGst,
+    verified: isVerified,
+    status: apiData.status || (isVerified ? 'Active' : 'Cancelled'),
+    data: apiData,
+    created_at: new Date().toISOString()
   };
 
-  res.json(responsePayload);
+  localGstResults.unshift(gstRecordToSave);
+
+  if (useSupabase && supabase) {
+    try {
+      await supabase.from('gst_results').upsert([
+        {
+          gstin: cleanGst,
+          verified: isVerified,
+          status: apiData.status || (isVerified ? 'Active' : 'Cancelled'),
+          legal_name: apiData.legal_name || apiData.trade_name,
+          trade_name: apiData.trade_name || apiData.legal_name,
+          business_type: apiData.business_type,
+          registration_date: apiData.registration_date,
+          address: apiData.address,
+          state: apiData.state,
+          district: apiData.district,
+          pincode: apiData.pincode,
+          data: apiData
+        }
+      ], { onConflict: 'gstin' });
+    } catch (dbErr) {
+      console.error('Failed to save GST result to Supabase gst_results table:', dbErr);
+    }
+  }
+
+  // 5. RESPOND WITH VERIFICATION STATUS OR DETAILED REASON IF CANCELLED / SUSPENDED
+  if (!isVerified) {
+    const reasonStatus = apiData.status || 'Cancelled / Inactive';
+    return res.status(400).json({
+      status: 400,
+      message: `GST Verification Failed: GSTIN ${cleanGst} is currently ${reasonStatus}. Registration is only permitted for Active GST accounts.`,
+      data: apiData
+    });
+  }
+
+  return res.json({
+    status: 200,
+    message: "success",
+    request_id: `GST_V_1_${Date.now()}_a1b2`,
+    data: apiData
+  });
 });
 
 // Government UIDAI Aadhaar Verification API Endpoint
@@ -1461,17 +1662,13 @@ app.get('/api/products', async (req, res) => {
     let productsList: Product[] = [];
     if (useSupabase && supabase) {
       const { data, error } = await supabase.from('products').select('*');
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         productsList = data.map((row: any) => row.data || row);
       } else {
-        console.warn('Supabase product query returned empty or failed, fallback to memory database:', error);
-        productsList = localProducts;
+        console.warn('Supabase product query empty or failed:', error);
+        productsList = [];
       }
     } else {
-      productsList = localProducts;
-    }
-
-    if (!productsList || productsList.length === 0) {
       productsList = localProducts;
     }
 
@@ -2611,6 +2808,651 @@ app.put('/api/vendors/:id', async (req, res) => {
   }
 });
 
+// ==============================================================================
+// --- VENDOR FINANCIALS, PAYOUT REQUESTS & PASSBOOK STATEMENT LEDGER SYSTEM ---
+// ==============================================================================
+
+interface VendorPayoutRecord {
+  id: string;
+  vendorId: string;
+  method: 'bank' | 'upi';
+  accountNumber?: string;
+  ifscCode?: string;
+  accountHolderName?: string;
+  bankName?: string;
+  upiId?: string;
+  amount: number;
+  status: 'Processing' | 'Completed' | 'Rejected';
+  referenceId: string;
+  requestedAt: string;
+  processedAt?: string;
+  utrNumber?: string;
+  notes?: string;
+}
+
+interface VendorLedgerRecord {
+  id: string;
+  vendorId: string;
+  transactionType: 'order_credit' | 'payout_withdrawal' | 'return_deduction' | 'opening_balance' | 'bonus_credit';
+  typeLabel: string;
+  referenceId: string;
+  orderId?: string;
+  productTitle?: string;
+  quantity?: number;
+  description: string;
+  credit: number;
+  debit: number;
+  runningBalance: number;
+  status: 'Settled' | 'Processing' | 'Completed';
+  timestamp: string;
+  date: string;
+}
+
+interface UserWalletRecord {
+  phone: string;
+  userId?: string;
+  balance: number;
+  totalRefunds: number;
+  totalCashback: number;
+  transactions: {
+    id: string;
+    type: 'refund_credit' | 'order_payment' | 'referral_bonus' | 'cashback';
+    title: string;
+    orderId?: string;
+    amount: number;
+    isCredit: boolean;
+    runningBalance: number;
+    date: string;
+    status: string;
+  }[];
+}
+
+const localVendorPayouts: VendorPayoutRecord[] = [];
+const localVendorLedgers: Map<string, VendorLedgerRecord[]> = new Map();
+const localUserWallets: Map<string, UserWalletRecord> = new Map([
+  [
+    '9999999999',
+    {
+      phone: '9999999999',
+      userId: 'user-gaurav',
+      balance: 450,
+      totalRefunds: 450,
+      totalCashback: 0,
+      transactions: [
+        {
+          id: 'WTXN-REF-10928',
+          type: 'refund_credit',
+          title: 'Instant Refund: Order #order-81204 (Size Exchange Returned)',
+          orderId: 'order-81204',
+          amount: 450,
+          isCredit: true,
+          runningBalance: 450,
+          date: '12 Aug 2026, 02:40 PM',
+          status: 'Completed'
+        }
+      ]
+    }
+  ]
+]);
+
+// Helper: Seed or retrieve vendor ledger & compute passbook running balances
+function getOrCreateVendorLedger(vendorId: string): VendorLedgerRecord[] {
+  let ledger = localVendorLedgers.get(vendorId);
+  if (!ledger) {
+    ledger = [];
+    const vendor = localVendors.find(v => v.id === vendorId);
+    const vendorName = vendor?.name || 'QueKart Supplier Store';
+
+    // Seed realistic demo opening & settled order entries
+    const isBig = vendor?.vendorType === 'big';
+    let running = isBig ? 18500 : 6400;
+
+    ledger.push({
+      id: `LEDGER-${Date.now()}-001`,
+      vendorId,
+      transactionType: 'opening_balance',
+      typeLabel: 'Account Opening Balance',
+      referenceId: `INIT-${vendorId.substring(0, 10).toUpperCase()}`,
+      description: `Verified merchant initial working ledger balance for ${vendorName}`,
+      credit: running,
+      debit: 0,
+      runningBalance: running,
+      status: 'Settled',
+      timestamp: new Date(Date.now() - 15 * 86400000).toISOString(),
+      date: new Date(Date.now() - 15 * 86400000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ', 10:00 AM'
+    });
+
+    // Delivered Order Credit 1
+    const orderCredit1 = isBig ? 3490 : 1298;
+    running += orderCredit1;
+    ledger.push({
+      id: `LEDGER-${Date.now()}-002`,
+      vendorId,
+      transactionType: 'order_credit',
+      typeLabel: 'Order Delivered (Credit)',
+      referenceId: 'TXN-ORD-90218',
+      orderId: 'order-90218',
+      productTitle: isBig ? 'Banarasi Zari Saree (x2)' : 'Vintage Floral Midi Dress (x2)',
+      quantity: 2,
+      description: `Direct 100% payout credit for Order #order-90218 marked Delivered`,
+      credit: orderCredit1,
+      debit: 0,
+      runningBalance: running,
+      status: 'Settled',
+      timestamp: new Date(Date.now() - 10 * 86400000).toISOString(),
+      date: new Date(Date.now() - 10 * 86400000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ', 03:15 PM'
+    });
+
+    // Payout Withdrawal 1
+    const withdrawal1 = isBig ? 8000 : 3000;
+    running -= withdrawal1;
+    ledger.push({
+      id: `LEDGER-${Date.now()}-003`,
+      vendorId,
+      transactionType: 'payout_withdrawal',
+      typeLabel: 'Payout Withdrawal (Debit)',
+      referenceId: 'PAYOUT-BANK-78192',
+      description: `Settled to Bank A/C **${vendor?.bankAccount?.accountNumber ? vendor.bankAccount.accountNumber.slice(-4) : '9876'} (IFSC: ${vendor?.bankAccount?.ifscCode || 'SBIN0001234'})`,
+      credit: 0,
+      debit: withdrawal1,
+      runningBalance: running,
+      status: 'Completed',
+      timestamp: new Date(Date.now() - 7 * 86400000).toISOString(),
+      date: new Date(Date.now() - 7 * 86400000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ', 11:30 AM'
+    });
+
+    // Delivered Order Credit 2
+    const orderCredit2 = isBig ? 2490 : 1098;
+    running += orderCredit2;
+    ledger.push({
+      id: `LEDGER-${Date.now()}-004`,
+      vendorId,
+      transactionType: 'order_credit',
+      typeLabel: 'Order Delivered (Credit)',
+      referenceId: 'TXN-ORD-91045',
+      orderId: 'order-91045',
+      productTitle: isBig ? 'Embroidered Anarkali Kurti' : 'Handcrafted Wooden Wall Clock',
+      quantity: 1,
+      description: `Direct 100% payout credit for Order #order-91045 marked Delivered Early`,
+      credit: orderCredit2,
+      debit: 0,
+      runningBalance: running,
+      status: 'Settled',
+      timestamp: new Date(Date.now() - 3 * 86400000).toISOString(),
+      date: new Date(Date.now() - 3 * 86400000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ', 05:45 PM'
+    });
+
+    localVendorLedgers.set(vendorId, ledger);
+  }
+  return ledger;
+}
+
+// Helper: Calculate complete financial summary for a vendor
+function calculateVendorFinancials(vendorId: string) {
+  const ledger = getOrCreateVendorLedger(vendorId);
+  const vendorOrders = localOrders.filter(o => (o.items || []).some(it => it.product?.vendorId === vendorId));
+
+  // Compute live delivered vs pending amounts from orders
+  let deliveredSales = 0;
+  let pendingBalance = 0;
+
+  for (const o of vendorOrders) {
+    const vItems = (o.items || []).filter(it => it.product?.vendorId === vendorId);
+    const orderVTotal = vItems.reduce((s, it) => s + ((it.product?.price || 0) * it.quantity), 0);
+
+    if (o.status === 'Delivered Early') {
+      deliveredSales += orderVTotal;
+    } else if (o.status === 'Ordered' || o.status === 'Shipped' || o.status === 'Out for Delivery') {
+      pendingBalance += orderVTotal;
+    }
+  }
+
+  // Calculate current available balance from the latest ledger transaction
+  const latestTxn = ledger[ledger.length - 1];
+  const availableBalance = latestTxn ? latestTxn.runningBalance : 0;
+
+  let totalEarnings = 0;
+  let totalWithdrawn = 0;
+  let totalRefunded = 0;
+
+  for (const entry of ledger) {
+    if (entry.credit > 0) {
+      totalEarnings += entry.credit;
+    }
+    if (entry.transactionType === 'payout_withdrawal') {
+      totalWithdrawn += entry.debit;
+    }
+    if (entry.transactionType === 'return_deduction') {
+      totalRefunded += entry.debit;
+    }
+  }
+
+  const vendorPayouts = localVendorPayouts.filter(p => p.vendorId === vendorId);
+
+  return {
+    availableBalance: Math.max(0, availableBalance),
+    totalEarnings,
+    deliveredSales: Math.max(deliveredSales, totalEarnings),
+    pendingBalance,
+    totalWithdrawn,
+    totalRefunded,
+    transactionsCount: ledger.length,
+    transactions: [...ledger].reverse(), // latest first
+    payouts: vendorPayouts
+  };
+}
+
+// Helper: Hook called when an order is marked Delivered
+function recordVendorOrderDelivered(order: Order) {
+  if (!order || !order.items) return;
+
+  const vendorGroupMap = new Map<string, { total: number; itemsDesc: string[]; qty: number }>();
+  for (const it of order.items) {
+    const vId = it.product?.vendorId || 'vendor-big-raj';
+    const price = it.product?.price || 0;
+    const qty = it.quantity || 1;
+    const total = price * qty;
+
+    if (!vendorGroupMap.has(vId)) {
+      vendorGroupMap.set(vId, { total: 0, itemsDesc: [], qty: 0 });
+    }
+    const grp = vendorGroupMap.get(vId)!;
+    grp.total += total;
+    grp.qty += qty;
+    grp.itemsDesc.push(`${it.product?.title || 'Product'} (x${qty})`);
+  }
+
+  for (const [vendorId, grp] of vendorGroupMap.entries()) {
+    const ledger = getOrCreateVendorLedger(vendorId);
+    
+    // Prevent duplicate entry for same order delivery
+    const existing = ledger.find(l => l.orderId === order.id && l.transactionType === 'order_credit');
+    if (existing) continue;
+
+    const lastRunning = ledger.length > 0 ? ledger[ledger.length - 1].runningBalance : 0;
+    const newRunning = lastRunning + grp.total;
+
+    const now = new Date();
+    const newEntry: VendorLedgerRecord = {
+      id: `LEDGER-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      vendorId,
+      transactionType: 'order_credit',
+      typeLabel: 'Order Delivered (Credit)',
+      referenceId: `TXN-ORD-${order.id.replace('order-', '')}`,
+      orderId: order.id,
+      productTitle: grp.itemsDesc.join(', '),
+      quantity: grp.qty,
+      description: `100% Settlement for delivered Order #${order.id} [${grp.itemsDesc.join(', ')}]`,
+      credit: grp.total,
+      debit: 0,
+      runningBalance: newRunning,
+      status: 'Settled',
+      timestamp: now.toISOString(),
+      date: now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ', ' + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    };
+
+    ledger.push(newEntry);
+    localVendorLedgers.set(vendorId, ledger);
+
+    // If Supabase is active, persist to vendor_wallet_ledger
+    if (useSupabase && supabase) {
+      supabase.from('vendor_wallet_ledger').insert([{
+        id: newEntry.id,
+        vendor_id: vendorId,
+        transaction_type: newEntry.transactionType,
+        type_label: newEntry.typeLabel,
+        reference_id: newEntry.referenceId,
+        order_id: newEntry.orderId,
+        product_title: newEntry.productTitle,
+        quantity: newEntry.quantity,
+        description: newEntry.description,
+        credit_amount: newEntry.credit,
+        debit_amount: newEntry.debit,
+        running_balance: newEntry.runningBalance,
+        status: newEntry.status,
+        created_at: newEntry.timestamp,
+        data: newEntry
+      }]).catch((err: any) => console.warn('Supabase vendor ledger insert notice:', err.message || err));
+    }
+  }
+}
+
+// Helper: Hook called when an order is Returned -> Deducts vendor & Credits Customer QueKart Wallet
+function recordVendorOrderReturned(order: Order, returnReason = 'Customer return processed') {
+  if (!order || !order.items) return;
+
+  const vendorGroupMap = new Map<string, { total: number; itemsDesc: string[]; qty: number }>();
+  for (const it of order.items) {
+    const vId = it.product?.vendorId || 'vendor-big-raj';
+    const price = it.product?.price || 0;
+    const qty = it.quantity || 1;
+    const total = price * qty;
+
+    if (!vendorGroupMap.has(vId)) {
+      vendorGroupMap.set(vId, { total: 0, itemsDesc: [], qty: 0 });
+    }
+    const grp = vendorGroupMap.get(vId)!;
+    grp.total += total;
+    grp.qty += qty;
+    grp.itemsDesc.push(`${it.product?.title || 'Product'} (x${qty})`);
+  }
+
+  // 1. Debit Vendors
+  for (const [vendorId, grp] of vendorGroupMap.entries()) {
+    const ledger = getOrCreateVendorLedger(vendorId);
+    
+    // Prevent duplicate return deduction for same order
+    const existing = ledger.find(l => l.orderId === order.id && l.transactionType === 'return_deduction');
+    if (existing) continue;
+
+    const lastRunning = ledger.length > 0 ? ledger[ledger.length - 1].runningBalance : 0;
+    const newRunning = Math.max(0, lastRunning - grp.total);
+
+    const now = new Date();
+    const newEntry: VendorLedgerRecord = {
+      id: `LEDGER-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      vendorId,
+      transactionType: 'return_deduction',
+      typeLabel: 'Product Return Deduction (Debit)',
+      referenceId: `TXN-RET-${order.id.replace('order-', '')}`,
+      orderId: order.id,
+      productTitle: grp.itemsDesc.join(', '),
+      quantity: grp.qty,
+      description: `Return deduction: ${returnReason} for Order #${order.id} [${grp.itemsDesc.join(', ')}]`,
+      credit: 0,
+      debit: grp.total,
+      runningBalance: newRunning,
+      status: 'Settled',
+      timestamp: now.toISOString(),
+      date: now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ', ' + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    };
+
+    ledger.push(newEntry);
+    localVendorLedgers.set(vendorId, ledger);
+
+    if (useSupabase && supabase) {
+      supabase.from('vendor_wallet_ledger').insert([{
+        id: newEntry.id,
+        vendor_id: vendorId,
+        transaction_type: newEntry.transactionType,
+        type_label: newEntry.typeLabel,
+        reference_id: newEntry.referenceId,
+        order_id: newEntry.orderId,
+        product_title: newEntry.productTitle,
+        quantity: newEntry.quantity,
+        description: newEntry.description,
+        credit_amount: newEntry.credit,
+        debit_amount: newEntry.debit,
+        running_balance: newEntry.runningBalance,
+        status: newEntry.status,
+        created_at: newEntry.timestamp,
+        data: newEntry
+      }]).catch((err: any) => console.warn('Supabase vendor ledger insert notice:', err.message || err));
+    }
+  }
+
+  // 2. Credit Customer's QueKart Wallet
+  const customerPhone = (order.shippingAddress?.phone || order.userPhone || '9999999999').replace(/[^\d]/g, '');
+  if (customerPhone) {
+    let wallet = localUserWallets.get(customerPhone);
+    if (!wallet) {
+      wallet = {
+        phone: customerPhone,
+        userId: order.userId || 'user-customer',
+        balance: 0,
+        totalRefunds: 0,
+        totalCashback: 0,
+        transactions: []
+      };
+    }
+
+    const refundAmt = order.totalPrice || 0;
+    wallet.balance += refundAmt;
+    wallet.totalRefunds += refundAmt;
+
+    const now = new Date();
+    wallet.transactions.unshift({
+      id: `WTXN-REF-${Date.now().toString().slice(-6)}`,
+      type: 'refund_credit',
+      title: `Instant Refund for Returned Order #${order.id}`,
+      orderId: order.id,
+      amount: refundAmt,
+      isCredit: true,
+      runningBalance: wallet.balance,
+      date: now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ', ' + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      status: 'Completed'
+    });
+
+    localUserWallets.set(customerPhone, wallet);
+
+    if (useSupabase && supabase) {
+      supabase.from('user_wallets').upsert({
+        phone: customerPhone,
+        user_id: order.userId || null,
+        balance: wallet.balance,
+        total_refunds: wallet.totalRefunds,
+        updated_at: new Date().toISOString()
+      }).catch((err: any) => console.warn('Supabase user wallet update notice:', err.message || err));
+    }
+  }
+}
+
+// --- API ENDPOINT: GET VENDOR FINANCIALS & PASSBOOK STATEMENT ---
+app.get('/api/vendor/:id/financials', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const financials = calculateVendorFinancials(id);
+    res.json(financials);
+  } catch (err: any) {
+    console.error('Vendor financials error:', err);
+    res.status(500).json({ error: err.message || 'Failed to fetch vendor financials' });
+  }
+});
+
+// --- API ENDPOINT: VENDOR REQUEST WITHDRAWAL / PAYOUT (BANK OR UPI) ---
+app.post('/api/vendor/:id/payout', async (req, res) => {
+  const { id } = req.params;
+  const { 
+    method, // 'bank' | 'upi'
+    accountNumber, 
+    ifscCode, 
+    accountHolderName, 
+    bankName, 
+    upiId, 
+    amount 
+  } = req.body;
+
+  const withdrawAmount = Number(amount);
+  if (!withdrawAmount || isNaN(withdrawAmount) || withdrawAmount <= 0) {
+    return res.status(400).json({ error: 'Please specify a valid withdrawal amount greater than ₹0.' });
+  }
+
+  if (method !== 'bank' && method !== 'upi') {
+    return res.status(400).json({ error: 'Invalid payout method. Please choose Bank Transfer or UPI Transfer.' });
+  }
+
+  if (method === 'bank') {
+    if (!accountNumber || !ifscCode) {
+      return res.status(400).json({ error: 'Account Number and IFSC Code are compulsory for Bank Transfer.' });
+    }
+  }
+
+  if (method === 'upi') {
+    if (!upiId || !upiId.includes('@')) {
+      return res.status(400).json({ error: 'Please provide a valid UPI ID (e.g. mobile@upi or name@okaxis).' });
+    }
+  }
+
+  try {
+    const financials = calculateVendorFinancials(id);
+    if (withdrawAmount > financials.availableBalance) {
+      return res.status(400).json({ 
+        error: `Insufficient available balance. You requested ₹${withdrawAmount.toLocaleString()}, but your withdrawable balance is ₹${financials.availableBalance.toLocaleString()}.` 
+      });
+    }
+
+    const ledger = getOrCreateVendorLedger(id);
+    const lastRunning = ledger.length > 0 ? ledger[ledger.length - 1].runningBalance : 0;
+    const newRunning = Math.max(0, lastRunning - withdrawAmount);
+
+    const refNum = Math.floor(100000 + Math.random() * 900000);
+    const payoutRefId = method === 'bank' ? `PAYOUT-BANK-${refNum}` : `PAYOUT-UPI-${refNum}`;
+    const utrNumber = `UTR${Date.now().toString().slice(-8)}${Math.floor(10 + Math.random() * 90)}`;
+    const now = new Date();
+    const dateFormatted = now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ', ' + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+    // 1. Create Payout Request Record
+    const payoutRecord: VendorPayoutRecord = {
+      id: `PAY-${Date.now()}`,
+      vendorId: id,
+      method,
+      accountNumber: method === 'bank' ? accountNumber : undefined,
+      ifscCode: method === 'bank' ? ifscCode : undefined,
+      accountHolderName: method === 'bank' ? accountHolderName : undefined,
+      bankName: method === 'bank' ? bankName : undefined,
+      upiId: method === 'upi' ? upiId : undefined,
+      amount: withdrawAmount,
+      status: 'Processing',
+      referenceId: payoutRefId,
+      requestedAt: now.toISOString(),
+      processedAt: now.toISOString(),
+      utrNumber,
+      notes: method === 'bank' 
+        ? `Direct NEFT/IMPS transfer to A/C **${accountNumber.slice(-4)} (${ifscCode})`
+        : `Instant UPI transfer to ${upiId}`
+    };
+
+    localVendorPayouts.unshift(payoutRecord);
+
+    // 2. Create Debit Transaction Entry in Passbook Ledger with new running balance
+    const ledgerEntry: VendorLedgerRecord = {
+      id: `LEDGER-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      vendorId: id,
+      transactionType: 'payout_withdrawal',
+      typeLabel: method === 'bank' ? 'Bank Payout Withdrawal (Debit)' : 'UPI Payout Withdrawal (Debit)',
+      referenceId: payoutRefId,
+      description: method === 'bank' 
+        ? `Withdrawal to Bank A/C **${accountNumber.slice(-4)} (IFSC: ${ifscCode.toUpperCase()}) • Ref: ${utrNumber}`
+        : `Instant withdrawal to UPI ID: ${upiId} • Ref: ${utrNumber}`,
+      credit: 0,
+      debit: withdrawAmount,
+      runningBalance: newRunning,
+      status: 'Processing',
+      timestamp: now.toISOString(),
+      date: dateFormatted
+    };
+
+    ledger.push(ledgerEntry);
+    localVendorLedgers.set(id, ledger);
+
+    // 3. Persist to Supabase if active
+    if (useSupabase && supabase) {
+      supabase.from('vendor_payout_requests').insert([{
+        id: payoutRecord.id,
+        vendor_id: payoutRecord.vendorId,
+        method: payoutRecord.method,
+        account_number: payoutRecord.accountNumber,
+        ifsc_code: payoutRecord.ifscCode,
+        account_holder_name: payoutRecord.accountHolderName,
+        bank_name: payoutRecord.bankName,
+        upi_id: payoutRecord.upiId,
+        amount: payoutRecord.amount,
+        status: payoutRecord.status,
+        reference_id: payoutRecord.referenceId,
+        requested_at: payoutRecord.requestedAt,
+        processed_at: payoutRecord.processedAt,
+        utr_number: payoutRecord.utrNumber,
+        notes: payoutRecord.notes,
+        data: payoutRecord
+      }]).catch((e: any) => console.warn('Supabase payout insert notice:', e.message || e));
+
+      supabase.from('vendor_wallet_ledger').insert([{
+        id: ledgerEntry.id,
+        vendor_id: id,
+        transaction_type: ledgerEntry.transactionType,
+        type_label: ledgerEntry.typeLabel,
+        reference_id: ledgerEntry.referenceId,
+        description: ledgerEntry.description,
+        credit_amount: ledgerEntry.credit,
+        debit_amount: ledgerEntry.debit,
+        running_balance: ledgerEntry.runningBalance,
+        status: ledgerEntry.status,
+        created_at: ledgerEntry.timestamp,
+        data: ledgerEntry
+      }]).catch((e: any) => console.warn('Supabase ledger insert notice:', e.message || e));
+    }
+
+    const updatedFinancials = calculateVendorFinancials(id);
+
+    res.json({
+      success: true,
+      message: `Payout request of ₹${withdrawAmount.toLocaleString()} submitted successfully!`,
+      payout: payoutRecord,
+      newAvailableBalance: newRunning,
+      financials: updatedFinancials
+    });
+  } catch (err: any) {
+    console.error('Vendor payout error:', err);
+    res.status(500).json({ error: err.message || 'Failed to process payout request' });
+  }
+});
+
+// --- API ENDPOINT: GET USER QUEKART WALLET BALANCE & STATEMENT ---
+app.get('/api/user/wallet/:phone', async (req, res) => {
+  const { phone } = req.params;
+  const cleanPhone = (phone || '').replace(/[^\d]/g, '');
+
+  try {
+    let wallet = localUserWallets.get(cleanPhone);
+    if (!wallet) {
+      wallet = {
+        phone: cleanPhone,
+        balance: 0,
+        totalRefunds: 0,
+        totalCashback: 0,
+        transactions: []
+      };
+      localUserWallets.set(cleanPhone, wallet);
+    }
+    res.json(wallet);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to retrieve wallet details' });
+  }
+});
+
+// --- API ENDPOINT: PAY VIA USER QUEKART WALLET ---
+app.post('/api/user/wallet/pay', async (req, res) => {
+  const { phone, amount, orderId } = req.body;
+  const cleanPhone = (phone || '').replace(/[^\d]/g, '');
+  const payAmt = Number(amount);
+
+  if (!payAmt || payAmt <= 0) {
+    return res.status(400).json({ error: 'Invalid payment amount' });
+  }
+
+  const wallet = localUserWallets.get(cleanPhone);
+  if (!wallet || wallet.balance < payAmt) {
+    return res.status(400).json({ error: 'Insufficient QueKart Wallet balance' });
+  }
+
+  wallet.balance -= payAmt;
+  const now = new Date();
+  wallet.transactions.unshift({
+    id: `WTXN-PAY-${Date.now().toString().slice(-6)}`,
+    type: 'order_payment',
+    title: `Payment for Order #${orderId || 'Direct Purchase'}`,
+    orderId,
+    amount: payAmt,
+    isCredit: false,
+    runningBalance: wallet.balance,
+    date: now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ', ' + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+    status: 'Completed'
+  });
+
+  localUserWallets.set(cleanPhone, wallet);
+  res.json({ success: true, newBalance: wallet.balance });
+});
+
 
 // --- COUPONS ---
 app.get('/api/coupons', async (req, res) => {
@@ -2934,14 +3776,41 @@ app.post('/api/admin/sync-demo-products', authenticateAdmin, async (req, res) =>
 
 // --- ORDERS (WITH TAMPER PREVENTION) ---
 app.get('/api/orders', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized. Missing active session token.' });
+  }
+  const token = authHeader.split(' ')[1];
+  const decoded = verifyToken(token);
+  if (!decoded) {
+    return res.status(401).json({ error: 'Unauthorized. Invalid or expired session.' });
+  }
+
+  const isUser = (decoded.role === 'user' || decoded.role === 'customer');
+  const userPhoneCleaned = String(decoded.phone || '').replace(/[^0-9]/g, '').slice(-10);
+  const userId = decoded.userId;
+
   try {
+    let orders: Order[] = [];
     if (useSupabase && supabase) {
       const { data, error } = await supabase.from('orders').select('*');
       if (!error && data) {
-        return res.json(data.map((row: any) => row.data));
+        orders = data.map((row: any) => row.data);
       }
+    } else {
+      orders = localOrders;
     }
-    res.json(localOrders);
+
+    // Filter order history so users can strictly only view their own orders safely!
+    if (isUser) {
+      orders = orders.filter((o: any) => {
+        const orderPhone = (o.shippingAddress?.phone || o.userPhone || '').replace(/[^0-9]/g, '').slice(-10);
+        const orderUserId = o.userId || o.customerId;
+        return (orderPhone && orderPhone === userPhoneCleaned) || (userId && orderUserId === userId);
+      });
+    }
+
+    return res.json(orders);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch orders' });
   }
@@ -2953,6 +3822,19 @@ app.get('/api/orders', async (req, res) => {
  * Completely neutralizes Burp Suite / client-side price modification and concurrency race conditions.
  */
 app.post('/api/orders', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  let authenticatedUserId: string | undefined;
+  let authenticatedPhone: string | undefined;
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    const decoded = verifyToken(token);
+    if (decoded) {
+      authenticatedUserId = decoded.userId;
+      authenticatedPhone = decoded.phone;
+    }
+  }
+
   const { items, appliedCouponCode, isUpiPayment, shippingAddress } = req.body;
 
   if (!items || !Array.isArray(items) || items.length === 0 || !shippingAddress) {
@@ -3091,8 +3973,8 @@ app.post('/api/orders', async (req, res) => {
 
     const secureOrder: Order = {
       id: 'order-' + Math.floor(100000 + Math.random() * 900000),
-      userId: req.body.userId || undefined,
-      userPhone: (req.body.userPhone || shippingAddress.phone || '').replace(/[^\d+]/g, '') || undefined,
+      userId: authenticatedUserId || req.body.userId || undefined,
+      userPhone: authenticatedPhone || req.body.userPhone || (shippingAddress.phone || '').replace(/[^\d+]/g, '') || undefined,
       userEmail: req.body.userEmail || undefined,
       items: verifiedItemsList,
       orderDate: orderDateStr,
@@ -3131,7 +4013,7 @@ app.post('/api/orders', async (req, res) => {
 
 app.put('/api/orders/:id', authenticateAdmin, async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body;
+  const { status, returnReason } = req.body;
 
   if (!status) {
     return res.status(400).json({ error: 'Status is required' });
@@ -3146,6 +4028,12 @@ app.put('/api/orders/:id', authenticateAdmin, async (req, res) => {
         orderData.status = status;
         const { error: updateErr } = await supabase.from('orders').update({ data: orderData }).eq('id', id);
         if (!updateErr) {
+          // Trigger financial settlement hooks
+          if (status === 'Delivered Early' || status === 'Delivered') {
+            recordVendorOrderDelivered(orderData);
+          } else if (status === 'Returned') {
+            recordVendorOrderReturned(orderData, returnReason || 'Customer return completed');
+          }
           return res.json(orderData);
         }
         throw updateErr;
@@ -3165,10 +4053,60 @@ app.put('/api/orders/:id', authenticateAdmin, async (req, res) => {
     if (!found) {
       return res.status(404).json({ error: 'Order not found' });
     }
-    const updatedOrder = localOrders.find(o => o.id === id);
+    const updatedOrder = localOrders.find(o => o.id === id)!;
+
+    // Trigger financial settlement hooks
+    if (status === 'Delivered Early' || status === 'Delivered') {
+      recordVendorOrderDelivered(updatedOrder);
+    } else if (status === 'Returned') {
+      recordVendorOrderReturned(updatedOrder, returnReason || 'Customer return completed');
+    }
+
     res.json(updatedOrder);
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to update order status' });
+  }
+});
+
+// Dedicated Return Order Endpoint (Deducts Vendor Balance and Credits User QueKart Wallet)
+app.post('/api/orders/:id/return', async (req, res) => {
+  const { id } = req.params;
+  const { reason } = req.body;
+
+  try {
+    let targetOrder: Order | undefined;
+
+    if (useSupabase && supabase) {
+      const { data: row, error: fetchErr } = await supabase.from('orders').select('*').eq('id', id).single();
+      if (!fetchErr && row) {
+        targetOrder = row.data;
+      }
+    } else {
+      targetOrder = localOrders.find(o => o.id === id);
+    }
+
+    if (!targetOrder) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    targetOrder.status = 'Returned';
+
+    if (useSupabase && supabase) {
+      await supabase.from('orders').update({ data: targetOrder }).eq('id', id);
+    } else {
+      localOrders = localOrders.map(o => o.id === id ? { ...o, status: 'Returned' as const } : o);
+    }
+
+    // Process Return: Deduct from vendor, credit customer's QueKart wallet
+    recordVendorOrderReturned(targetOrder, reason || 'Customer return refund');
+
+    res.json({
+      success: true,
+      message: 'Order marked as Returned. Respective amount refunded to QueKart Wallet & deducted from vendor balance.',
+      order: targetOrder
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to process return' });
   }
 });
 

@@ -74,7 +74,20 @@ export function getApiUrl(endpoint: string): string {
  */
 async function fetchSafeJson(url: string, options?: RequestInit): Promise<any | null> {
   try {
-    const res = await fetch(url, options);
+    const headers = new Headers(options?.headers);
+    if (!headers.has('Authorization')) {
+      const userToken = typeof window !== 'undefined' ? localStorage.getItem('quekart_user_token') : null;
+      const vendorToken = typeof window !== 'undefined' ? localStorage.getItem('quekart_vendor_token') : null;
+      const activeToken = userToken || vendorToken;
+      if (activeToken) {
+        headers.set('Authorization', `Bearer ${activeToken}`);
+      }
+    }
+
+    const res = await fetch(url, {
+      ...options,
+      headers
+    });
     if (!res.ok) return null;
     const contentType = res.headers.get('content-type') || '';
     if (!contentType.includes('application/json')) {
@@ -156,11 +169,11 @@ export async function fetchCategoriesUnified(): Promise<Category[]> {
 }
 
 /**
- * Fetch Banners
+ * Fetch Banners (Real dynamic banners only - returns empty array if none uploaded)
  */
 export async function fetchBannersUnified(): Promise<Banner[]> {
   const apiBanners = await fetchSafeJson(getApiUrl('/api/banners'));
-  if (apiBanners && Array.isArray(apiBanners) && apiBanners.length > 0) {
+  if (apiBanners && Array.isArray(apiBanners)) {
     return apiBanners;
   }
 
@@ -168,13 +181,13 @@ export async function fetchBannersUnified(): Promise<Banner[]> {
   if (sb) {
     try {
       const { data, error } = await sb.from('banners').select('*');
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         return data.map((r: any) => r.data || r);
       }
     } catch (_) {}
   }
 
-  return initialBanners;
+  return [];
 }
 
 /**
@@ -353,3 +366,58 @@ export async function saveOrderUnified(orderData: any): Promise<Order | null> {
 
   return null;
 }
+
+/**
+ * Save Banner to Database (Admin only)
+ */
+export async function saveBannerUnified(banner: Banner, adminSecret?: string): Promise<Banner> {
+  const secret = adminSecret || localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+  try {
+    const res = await fetch(getApiUrl('/api/banners'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Secret': secret
+      },
+      body: JSON.stringify(banner)
+    });
+    const json = await res.json().catch(() => null);
+    if (res.ok && json) return json;
+  } catch (_) {}
+
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      await sb.from('banners').upsert({ id: banner.id, data: banner });
+    } catch (_) {}
+  }
+
+  return banner;
+}
+
+/**
+ * Delete Banner from Database (Admin only)
+ */
+export async function deleteBannerUnified(bannerId: string, adminSecret?: string): Promise<boolean> {
+  const secret = adminSecret || localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+  try {
+    const res = await fetch(getApiUrl(`/api/banners/${bannerId}`), {
+      method: 'DELETE',
+      headers: {
+        'X-Admin-Secret': secret
+      }
+    });
+    if (res.ok) return true;
+  } catch (_) {}
+
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb.from('banners').delete().eq('id', bannerId);
+      return !error;
+    } catch (_) {}
+  }
+
+  return true;
+}
+

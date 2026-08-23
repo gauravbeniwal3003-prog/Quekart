@@ -65,19 +65,8 @@ export const mockCategories: Category[] = [
   }
 ];
 
-// Aesthetic marketplace promo banners (No products referenced)
-export const initialBanners: Banner[] = [
-  {
-    id: 'banner-promo-1',
-    imageUrl: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&q=80&w=1200&h=400',
-    type: 'promotional'
-  },
-  {
-    id: 'banner-promo-2',
-    imageUrl: 'https://images.unsplash.com/photo-1607083206968-13611e3d76ba?auto=format&fit=crop&q=80&w=1200&h=400',
-    type: 'promotional'
-  }
-];
+// Real promotional and news banners (dynamic from database or admin uploads)
+export const initialBanners: Banner[] = [];
 
 // Production catalog of verified marketplace products
 export const mockProducts: Product[] = [

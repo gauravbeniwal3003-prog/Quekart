@@ -52,13 +52,19 @@ import {
   Ban,
   Eye,
   MousePointerClick,
-  ShieldAlert
+  ShieldAlert,
+  Menu,
+  Copy,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Wallet
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, Order, Vendor } from '../types';
 import Logo, { BrandLogo, QueKartLogoText } from './Logo';
 import VendorAuthView from './VendorAuthView';
 import VendorExportReports from './VendorExportReports';
+import { VendorAnalyticsView } from './VendorAnalyticsView';
 import { MASTER_CATEGORIES, MasterCategory, getSubcategoriesForCategory } from '../data/categoriesData';
 import { fetchVendorAnalytics } from '../utils/analytics';
 
@@ -94,6 +100,9 @@ export default function VendorDashboard({
     const saved = localStorage.getItem('quekart_current_vendor');
     return saved ? JSON.parse(saved) : null;
   });
+
+  // Left sidebar drawer navigation state
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Custom dialog confirmation state
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -320,57 +329,171 @@ export default function VendorDashboard({
   const [isSavingBank, setIsSavingBank] = useState<boolean>(false);
   const [bankSaveSuccess, setBankSaveSuccess] = useState<boolean>(false);
 
-  // B2B Wholesale Bulk Quote Requests
-  const [b2bQuotes, setB2bQuotes] = useState<Array<{
-    id: string;
-    buyerName: string;
-    city: string;
-    productTitle: string;
-    quantityRequested: number;
-    targetPricePerUnit: number;
-    date: string;
-    status: 'Pending' | 'Quoted' | 'Accepted' | 'Declined';
-    vendorOfferedPrice?: number;
-    note?: string;
-  }>>([
-    {
-      id: 'Q-9821',
-      buyerName: 'Surat Textiles Boutique',
-      city: 'Surat, Gujarat',
-      productTitle: 'Pure Banarasi Silk Zari Saree',
-      quantityRequested: 150,
-      targetPricePerUnit: 1450,
-      date: '2026-08-20',
-      status: 'Pending'
-    },
-    {
-      id: 'Q-9822',
-      buyerName: 'Jaipur Craft Collections',
-      city: 'Jaipur, Rajasthan',
-      productTitle: 'Handblock Printed Cotton Kurti Set',
-      quantityRequested: 300,
-      targetPricePerUnit: 420,
-      date: '2026-08-19',
-      status: 'Quoted',
-      vendorOfferedPrice: 435,
-      note: 'Express dispatch within 48 hours with GST bill.'
-    },
-    {
-      id: 'Q-9823',
-      buyerName: 'Delhi Wholesale Traders',
-      city: 'Chandni Chowk, Delhi',
-      productTitle: 'Embroidered Salwar Suit Material',
-      quantityRequested: 500,
-      targetPricePerUnit: 890,
-      date: '2026-08-18',
-      status: 'Accepted',
-      vendorOfferedPrice: 890,
-      note: 'Wholesale order confirmed for 500 sets.'
+  // Vendor Financials & Passbook Ledger State
+  const [vendorFinancials, setVendorFinancials] = useState<{
+    availableBalance: number;
+    totalEarnings: number;
+    deliveredSales: number;
+    pendingBalance: number;
+    totalWithdrawn: number;
+    totalRefunded: number;
+    transactionsCount: number;
+    transactions: Array<{
+      id: string;
+      vendorId: string;
+      transactionType: string;
+      typeLabel: string;
+      referenceId: string;
+      orderId?: string;
+      productTitle?: string;
+      quantity?: number;
+      description: string;
+      credit: number;
+      debit: number;
+      runningBalance: number;
+      status: string;
+      timestamp: string;
+      date: string;
+    }>;
+    payouts: any[];
+  } | null>(null);
+  const [isLoadingFinancials, setIsLoadingFinancials] = useState(false);
+
+  // Payout Request Form State (Bank vs UPI with full validation)
+  const [payoutMethod, setPayoutMethod] = useState<'bank' | 'upi'>('bank');
+  const [payoutAmount, setPayoutAmount] = useState<string>('');
+  const [payoutUpi, setPayoutUpi] = useState<string>(() => `${(currentVendor?.phone || '9876543210')}@upi`);
+  const [payoutAccNo, setPayoutAccNo] = useState<string>('98765432109876');
+  const [payoutIfsc, setPayoutIfsc] = useState<string>('SBIN0001234');
+  const [payoutHolder, setPayoutHolder] = useState<string>(() => currentVendor?.name || '');
+  const [payoutBankTitle, setPayoutBankTitle] = useState<string>('State Bank of India');
+  const [isSubmittingPayout, setIsSubmittingPayout] = useState(false);
+  const [payoutSuccessData, setPayoutSuccessData] = useState<any | null>(null);
+  const [payoutErrorMsg, setPayoutErrorMsg] = useState<string>('');
+
+  // Passbook Transaction Ledger Filters
+  const [ledgerFilter, setLedgerFilter] = useState<'all' | 'credit' | 'debit'>('all');
+  const [ledgerSearch, setLedgerSearch] = useState<string>('');
+  const [copiedRefId, setCopiedRefId] = useState<string | null>(null);
+
+  // Load Vendor Financial Summary & Passbook
+  const loadVendorFinancials = async () => {
+    if (!currentVendor?.id) return;
+    setIsLoadingFinancials(true);
+    try {
+      const res = await fetch(getApiUrl(`/api/vendor/${currentVendor.id}/financials`));
+      if (res.ok) {
+        const data = await res.json();
+        setVendorFinancials(data);
+      }
+    } catch (e) {
+      console.warn('Failed to load vendor financials:', e);
+    } finally {
+      setIsLoadingFinancials(false);
     }
-  ]);
-  const [activeQuoteModal, setActiveQuoteModal] = useState<any | null>(null);
-  const [quoteOfferPrice, setQuoteOfferPrice] = useState<number>(0);
-  const [quoteNote, setQuoteNote] = useState<string>('');
+  };
+
+  useEffect(() => {
+    if (currentVendor?.id && (activeTabKey === 'payouts' || activeTabKey === 'dashboard')) {
+      loadVendorFinancials();
+    }
+  }, [currentVendor?.id, activeTabKey]);
+
+  // Handle Payout Submission (Bank A/C or UPI)
+  const handleRequestPayout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPayoutErrorMsg('');
+    const amt = Number(payoutAmount);
+    if (!amt || isNaN(amt) || amt <= 0) {
+      setPayoutErrorMsg('Please enter a valid withdrawal amount greater than ₹0.');
+      return;
+    }
+
+    const available = vendorFinancials?.availableBalance ?? 0;
+    if (amt > available) {
+      setPayoutErrorMsg(`Withdrawal amount ₹${amt.toLocaleString()} exceeds your available balance of ₹${available.toLocaleString()}.`);
+      return;
+    }
+
+    if (payoutMethod === 'bank') {
+      if (!payoutAccNo.trim() || !payoutIfsc.trim()) {
+        setPayoutErrorMsg('Please provide your Bank Account Number and IFSC Code.');
+        return;
+      }
+    } else {
+      if (!payoutUpi.trim() || !payoutUpi.includes('@')) {
+        setPayoutErrorMsg('Please provide a valid UPI ID (e.g. mobile@upi or name@okaxis).');
+        return;
+      }
+    }
+
+    setIsSubmittingPayout(true);
+    try {
+      const res = await fetch(getApiUrl(`/api/vendor/${currentVendor.id}/payout`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          method: payoutMethod,
+          accountNumber: payoutMethod === 'bank' ? payoutAccNo.trim() : undefined,
+          ifscCode: payoutMethod === 'bank' ? payoutIfsc.trim().toUpperCase() : undefined,
+          accountHolderName: payoutMethod === 'bank' ? (payoutHolder.trim() || currentVendor.name) : undefined,
+          bankName: payoutMethod === 'bank' ? (payoutBankTitle.trim() || 'Bank Account') : undefined,
+          upiId: payoutMethod === 'upi' ? payoutUpi.trim() : undefined,
+          amount: amt
+        })
+      });
+
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setPayoutSuccessData(result.payout);
+        if (result.financials) {
+          setVendorFinancials(result.financials);
+        } else {
+          loadVendorFinancials();
+        }
+        setPayoutAmount('');
+      } else {
+        setPayoutErrorMsg(result.error || 'Failed to process payout. Please try again.');
+      }
+    } catch (e: any) {
+      setPayoutErrorMsg(e.message || 'Network error while requesting payout.');
+    } finally {
+      setIsSubmittingPayout(false);
+    }
+  };
+
+  // Export Financial Passbook Statement as CSV
+  const handleExportStatementCsv = () => {
+    if (!vendorFinancials?.transactions || vendorFinancials.transactions.length === 0) return;
+    
+    const headers = ['Date & Time', 'Transaction Reference ID', 'Type', 'Description', 'Related Order/Product', 'Credit (+)', 'Debit (-)', 'Running Balance (Closing)', 'Status'];
+    const rows = vendorFinancials.transactions.map(t => [
+      `"${t.date || t.timestamp}"`,
+      `"${t.referenceId || t.id}"`,
+      `"${t.typeLabel}"`,
+      `"${(t.description || '').replace(/"/g, '""')}"`,
+      `"${t.orderId || t.productTitle || '-'}"`,
+      t.credit > 0 ? `₹${t.credit}` : '0',
+      t.debit > 0 ? `₹${t.debit}` : '0',
+      `₹${t.runningBalance}`,
+      `"${t.status}"`
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `QueKart_Vendor_Passbook_${currentVendor?.id || 'store'}_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard?.writeText(text);
+    setCopiedRefId(text);
+    setTimeout(() => setCopiedRefId(null), 2000);
+  };
 
   // Available subcategories for the selected category
   const availableSubcategories = useMemo(() => {
@@ -647,7 +770,7 @@ export default function VendorDashboard({
       reviewCount: existingProduct ? existingProduct.reviewCount : 0,
       images: finalImages,
       variants: [],
-      soldBy: currentVendor?.name || 'QueKart Verified Wholesale',
+      soldBy: currentVendor?.name || 'QueKart Verified Store',
       soldByRating: currentVendor?.rating || 4.8,
       productHighlights: [
         { label: 'Fabric / Material', value: '100% Premium Grade' },
@@ -750,26 +873,6 @@ export default function VendorDashboard({
     }, 600);
   };
 
-  // B2B Quote Response Handler
-  const handleSendB2bQuote = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activeQuoteModal || quoteOfferPrice <= 0) return;
-    
-    setB2bQuotes(prev => prev.map(q => {
-      if (q.id === activeQuoteModal.id) {
-        return {
-          ...q,
-          status: 'Quoted',
-          vendorOfferedPrice: quoteOfferPrice,
-          note: quoteNote.trim() || 'Custom wholesale quote submitted.'
-        };
-      }
-      return q;
-    }));
-    setActiveQuoteModal(null);
-    alert(`Wholesale quote submitted to ${activeQuoteModal.buyerName} at ₹${quoteOfferPrice}/unit!`);
-  };
-
   // Filter vendor items & orders
   const vendorProducts = products.filter(p => p.vendorId === currentVendor?.id);
   const filteredProducts = vendorProducts.filter(p => {
@@ -803,16 +906,6 @@ export default function VendorDashboard({
     return sum + (order.status !== 'Cancelled' ? vendorItemsPrice : 0);
   }, 0);
 
-  // Bottom Navigation Tabs for Mobile
-  const navTabs = [
-    { id: 'dashboard', label: 'Home', icon: Home, path: 'dashboard' },
-    { id: 'products', label: 'Catalog', icon: Package, path: 'products', badge: vendorProducts.length },
-    { id: 'add-product', label: 'Add Item', icon: Plus, path: 'products/add', isAction: true },
-    { id: 'orders', label: 'Orders', icon: ShoppingBag, path: 'orders', badge: vendorOrders.filter(o => o.status === 'Ordered' || o.status === 'Shipped').length },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3, path: 'analytics' },
-    { id: 'profile', label: 'Profile', icon: Building2, path: 'profile' }
-  ];
-
   if (!currentVendor) {
     return (
       <VendorAuthView 
@@ -824,79 +917,63 @@ export default function VendorDashboard({
   }
 
   return (
-    <div className="bg-slate-50 min-h-screen text-slate-900 flex flex-col font-sans selection:bg-[#143C6B]/10 selection:text-[#143C6B]" id="vendor-portal-root">
+    <div className="bg-gradient-to-b from-slate-50 via-blue-50/20 to-slate-100/60 min-h-screen text-slate-900 flex flex-col font-sans selection:bg-[#143C6B]/15 selection:text-[#143C6B] overflow-x-hidden" id="vendor-portal-root">
       
-      {/* 1. TOP HEADER (Identical Clean Style as Shop Header) */}
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-200/80 shadow-xs px-3 sm:px-6 py-2.5 sm:py-3" id="vendor-top-header">
-        <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-3">
+      {/* 1. TOP HEADER (With Liquid Glass & Official QueKart Brand Logo) */}
+      <header className="sticky top-0 z-40 liquid-glass border-b border-white/80 backdrop-blur-xl shadow-xs px-3 sm:px-6 py-2.5 sm:py-3" id="vendor-top-header">
+        <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-2.5">
           
-          {/* Logo & Brand matching Shop */}
-          <div 
-            className="flex items-center gap-2 cursor-pointer select-none" 
-            onClick={() => goToVendorRoute('dashboard')}
-            id="vendor-header-logo"
-          >
-            <BrandLogo size="md" showText={false} animated={true} />
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5">
-                <QueKartLogoText sizeClassName="text-base sm:text-lg" />
-                <span className="text-[9px] uppercase font-black tracking-wider bg-pink-50 text-lucky-magenta border border-pink-200 px-1.5 py-0.5 rounded-md">
-                  Seller Hub
-                </span>
+          {/* Left: 3-Lines Hamburger Menu Button + Logo & Brand */}
+          <div className="flex items-center gap-2 sm:gap-3.5 min-w-0">
+            {currentVendor && (
+              <button
+                onClick={() => setIsSidebarOpen(true)}
+                className="p-2 -ml-1 sm:-ml-0.5 rounded-xl liquid-glass hover:bg-white/80 text-slate-800 transition-all flex items-center justify-center cursor-pointer border border-white/90 shadow-3xs active:scale-95"
+                id="vendor-sidebar-hamburger-btn"
+                aria-label="Open Navigation Menu"
+                title="Open Navigation Menu"
+              >
+                <Menu className="w-5 h-5 stroke-[2.3] text-[#143C6B]" />
+              </button>
+            )}
+
+            <div 
+              className="flex items-center gap-2.5 cursor-pointer select-none min-w-0 group" 
+              onClick={() => goToVendorRoute('dashboard')}
+              id="vendor-header-logo"
+            >
+              <BrandLogo size="md" animated={true} />
+              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full liquid-glass-pill border border-[#143C6B]/20 text-[#143C6B] text-[10px] font-black uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#C89D1F] animate-pulse" />
+                <span>Supplier Hub</span>
               </div>
-              <p className="text-[9.5px] text-slate-500 font-medium hidden xs:block">
-                0% Commission Wholesale Portal
-              </p>
             </div>
           </div>
 
-          {/* User / Vendor Quick Bar */}
+          {/* Right: Profile Pill & Live Status */}
           {currentVendor ? (
-            <div className="flex items-center gap-2 sm:gap-3">
-              {/* Verified Badge */}
-              <div className={`hidden sm:flex items-center gap-1 text-[10px] font-black uppercase px-2.5 py-1 rounded-full border ${
-                isGstLocked 
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                  : 'bg-amber-50 text-amber-700 border-amber-200'
-              }`}>
-                {isGstLocked ? (
-                  <>
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Verified GST Store</span>
-                  </>
-                ) : (
-                  <>
-                    <Clock className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Small Business</span>
-                  </>
-                )}
-              </div>
-
-              {/* Vendor Store Name */}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {/* Vendor Store Name on larger screens */}
               <div 
                 onClick={() => goToVendorRoute('profile')}
-                className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200/80 px-2.5 py-1.5 rounded-xl cursor-pointer transition-colors max-w-[140px] sm:max-w-[200px]"
+                className="hidden sm:flex items-center gap-2.5 liquid-glass hover:bg-white/90 border border-white/90 px-3 py-1.5 rounded-2xl cursor-pointer transition-all shadow-3xs group"
               >
-                <div className="w-6 h-6 rounded-lg bg-[#143C6B] text-white flex items-center justify-center text-xs font-black shrink-0">
-                  {currentVendor.name.charAt(0)}
+                <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-[#143C6B] to-[#1E4E8C] text-white flex items-center justify-center text-xs font-black shadow-xs ring-2 ring-[#C89D1F]/40 shrink-0">
+                  {(currentVendor.name || 'V').charAt(0).toUpperCase()}
                 </div>
-                <span className="text-xs font-bold text-slate-800 truncate">{currentVendor.name}</span>
+                <div className="text-left min-w-0">
+                  <span className="text-xs font-extrabold text-slate-800 group-hover:text-[#143C6B] truncate block max-w-[130px] leading-tight">
+                    {currentVendor.name}
+                  </span>
+                  <span className="text-[9.5px] font-bold text-[#C89D1F] block uppercase tracking-wider leading-none">
+                    Verified Seller
+                  </span>
+                </div>
               </div>
-
-              {/* Sign Out Button */}
-              <button 
-                onClick={handleLogoutVendor} 
-                className="text-xs text-red-600 font-bold p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl hover:bg-red-50 cursor-pointer transition-colors border border-transparent hover:border-red-100 flex items-center gap-1"
-                id="vendor-logout-btn"
-                title="Sign out of seller portal"
-              >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden md:inline text-[11px]">Logout</span>
-              </button>
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-[#143C6B] bg-blue-50 border border-blue-200 px-3 py-1 rounded-full">
+              <span className="text-[11px] font-bold text-[#143C6B] bg-[#143C6B]/10 border border-[#143C6B]/20 px-3.5 py-1 rounded-full liquid-glass-pill">
                 Supplier Registration
               </span>
             </div>
@@ -905,64 +982,181 @@ export default function VendorDashboard({
         </div>
       </header>
 
-      {/* 2. DESKTOP SUB-NAV TABS (Hidden on Mobile) */}
-      {currentVendor && (
-        <nav className="hidden md:block bg-white border-b border-slate-200/80 sticky top-[57px] z-30 px-6 py-2 shadow-3xs" id="vendor-desktop-nav">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-1.5 overflow-x-auto">
-              {[
-                { id: 'dashboard', label: 'Overview', icon: Home, path: 'dashboard' },
-                { id: 'products', label: 'Catalog', icon: Package, path: 'products', count: vendorProducts.length },
-                { id: 'add-product', label: '+ Add Product', icon: Plus, path: 'products/add' },
-                { id: 'orders', label: 'Orders & Dispatch', icon: ShoppingBag, path: 'orders', count: vendorOrders.length },
-                { id: 'quotes', label: 'B2B Quotes', icon: Tag, path: 'quotes', count: b2bQuotes.filter(q => q.status === 'Pending').length },
-                { id: 'export', label: 'Export & Reports', icon: FileSpreadsheet, path: 'export' },
-                { id: 'analytics', label: 'Sales & Analytics', icon: BarChart3, path: 'analytics' },
-                { id: 'payouts', label: 'Settlement (0%)', icon: Coins, path: 'payouts' },
-                { id: 'profile', label: 'Store Profile', icon: Building2, path: 'profile' }
-              ].map(tab => {
-                const Icon = tab.icon;
-                const isActive = activeTabKey === tab.id || 
-                  (tab.id === 'products' && activeTabKey === 'edit-product') ||
-                  (tab.id === 'orders' && activeTabKey === 'order-details') ||
-                  (tab.id === 'profile' && activeTabKey === 'edit-profile');
+      {/* LEFT SIDEBAR DRAWER (Sliding from Left via 3-Lines Hamburger Menu) */}
+      <AnimatePresence>
+        {isSidebarOpen && currentVendor && (
+          <div className="fixed inset-0 z-50 overflow-hidden" id="vendor-sidebar-drawer-container">
+            {/* Backdrop Blur Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setIsSidebarOpen(false)}
+              className="fixed inset-0 bg-[#0B2544]/60 backdrop-blur-sm transition-opacity cursor-pointer"
+              id="vendor-sidebar-backdrop"
+            />
 
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => goToVendorRoute(tab.path)}
-                    className={`flex items-center gap-2 py-1.5 px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      isActive 
-                        ? 'bg-[#143C6B] text-white shadow-xs' 
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                    }`}
-                  >
-                    <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                    <span>{tab.label}</span>
-                    {tab.count !== undefined && (
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                        isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                      }`}>
-                        {tab.count}
+            {/* Sidebar Drawer Panel */}
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 27, stiffness: 300 }}
+              className="fixed top-0 left-0 bottom-0 w-[85vw] max-w-[340px] bg-white/95 backdrop-blur-2xl shadow-2xl z-50 flex flex-col h-[100dvh] overflow-hidden border-r border-white/80"
+              id="vendor-sidebar-drawer"
+            >
+              {/* Drawer Top Header with Brand Logo */}
+              <div className="px-4 py-3.5 border-b border-slate-100/90 flex items-center justify-between shrink-0 liquid-glass">
+                <div className="flex items-center gap-2">
+                  <BrandLogo size="sm" animated={true} />
+                </div>
+                <button
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  id="vendor-sidebar-close-btn"
+                  aria-label="Close sidebar"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Vendor Profile Card in Drawer */}
+              <div className="px-4 pt-3.5 pb-2 shrink-0">
+                <div className="p-3.5 liquid-glass-card rounded-2xl border border-white/90 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#143C6B] to-[#1E4E8C] text-white font-black text-base flex items-center justify-center shadow-xs ring-2 ring-[#C89D1F]/50 shrink-0">
+                    {(currentVendor.name || 'V').charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <h4 className="text-xs font-black text-slate-900 truncate">
+                        {currentVendor.name}
+                      </h4>
+                      <span className="text-[9px] bg-[#C89D1F]/15 text-[#8C6A0A] font-black px-1.5 py-0.2 rounded-sm uppercase">
+                        PRO
                       </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+                    </div>
+                    <p className="text-[10.5px] text-slate-500 font-medium truncate mt-0.5">
+                      {currentVendor.email || (currentVendor.phone ? `+91 ${currentVendor.phone}` : 'vendor@quekart.com')}
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Live Wholesale Node
-              </span>
-            </div>
+              {/* Scrollable Navigation List */}
+              <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4 font-sans">
+                {/* Section 1: Main Navigation */}
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-wider text-[#143C6B] px-2 mb-1.5">
+                    MAIN MENU
+                  </div>
+                  <div className="space-y-1">
+                    {[
+                      { id: 'dashboard', label: 'Home (Overview)', icon: Home, path: 'dashboard' },
+                      { id: 'products', label: 'My Products (Items)', icon: Package, path: 'products', count: vendorProducts.length },
+                      { id: 'orders', label: 'Customer Orders', icon: ShoppingBag, path: 'orders', count: vendorOrders.filter(o => o.status === 'Ordered' || o.status === 'Shipped').length },
+                      { id: 'analytics', label: 'Analytics & Traffic', icon: BarChart3, path: 'analytics' },
+                      { id: 'payouts', label: 'Payments & Bank Payouts', icon: Coins, path: 'payouts' }
+                    ].map(item => {
+                      const Icon = item.icon;
+                      const isActive = activeTabKey === item.id || 
+                        (item.id === 'products' && activeTabKey === 'edit-product') ||
+                        (item.id === 'orders' && activeTabKey === 'order-details');
+
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            goToVendorRoute(item.path);
+                            setIsSidebarOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            isActive
+                              ? 'bg-gradient-to-r from-[#143C6B] to-[#1E4E8C] text-white shadow-md shadow-[#143C6B]/25 border-l-3 border-[#C89D1F]'
+                              : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#C89D1F]' : 'text-slate-400'}`} />
+                            <span className="truncate">{item.label}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {item.count !== undefined && item.count > 0 && (
+                              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                                isActive ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-700'
+                              }`}>
+                                {item.count}
+                              </span>
+                            )}
+                            <ChevronRight className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Section 2: Store & Inventory Tools */}
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-wider text-[#143C6B] px-2 mb-1.5">
+                    STORE TOOLS
+                  </div>
+                  <div className="space-y-1">
+                    {[
+                      { id: 'add-product', label: '+ Add New Product', icon: Plus, path: 'products/add' },
+                      { id: 'export', label: 'Download Reports (Excel)', icon: FileSpreadsheet, path: 'export' },
+                      { id: 'profile', label: 'Store & Bank Details', icon: Building2, path: 'profile' }
+                    ].map(item => {
+                      const Icon = item.icon;
+                      const isActive = activeTabKey === item.id ||
+                        (item.id === 'profile' && activeTabKey === 'edit-profile');
+
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            goToVendorRoute(item.path);
+                            setIsSidebarOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            isActive
+                              ? 'bg-gradient-to-r from-[#143C6B] to-[#1E4E8C] text-white shadow-md shadow-[#143C6B]/25 border-l-3 border-[#C89D1F]'
+                              : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#C89D1F]' : 'text-slate-400'}`} />
+                            <span className="truncate">{item.label}</span>
+                          </div>
+                          <ChevronRight className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Pinned Sign Out Action */}
+              <div className="p-4 border-t border-slate-100 liquid-glass shrink-0">
+                <button
+                  onClick={() => {
+                    setIsSidebarOpen(false);
+                    handleLogoutVendor();
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl border border-red-200 bg-red-50/80 hover:bg-red-100 text-red-600 font-black text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-3xs"
+                  id="vendor-sidebar-logout-btn"
+                >
+                  <LogOut className="w-4 h-4 stroke-[2.2]" />
+                  <span>Log Out (Exit Store)</span>
+                </button>
+              </div>
+            </motion.aside>
           </div>
-        </nav>
-      )}
+        )}
+      </AnimatePresence>
 
-      {/* 3. MAIN CONTENT BODY */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-3.5 sm:p-6 pb-24 md:pb-10 flex flex-col">
+      {/* 2. MAIN CONTENT BODY */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-3.5 sm:p-6 pb-12 sm:pb-12 flex flex-col">
         {/* AUTHENTICATED VENDOR VIEWS */}
         <div className="space-y-4 sm:space-y-6" id="vendor-dashboard-content">
             
@@ -978,25 +1172,25 @@ export default function VendorDashboard({
                   exit={{ opacity: 0, y: -6 }}
                   className="space-y-4 sm:space-y-6"
                 >
-                  {/* Top Welcome Banner */}
-                  <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  {/* Top Welcome Banner (Liquid Glass) */}
+                  <div className="liquid-glass-card rounded-2xl border border-white/90 p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-2xl bg-[#143C6B] text-white flex items-center justify-center font-black text-lg shadow-xs">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#143C6B] to-[#1E4E8C] text-white flex items-center justify-center font-black text-xl shadow-md ring-2 ring-[#C89D1F]/50">
                         {currentVendor.name.charAt(0)}
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h2 className="text-sm sm:text-base font-black text-slate-900">{currentVendor.name}</h2>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                          <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
                             isGstLocked
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : 'bg-amber-50 text-amber-700 border-amber-200'
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                              : 'bg-[#C89D1F]/15 text-[#8C6A0A] border-[#C89D1F]/40'
                           }`}>
-                            {isGstLocked ? '👑 GST Verified Store' : '🌱 Small Business'}
+                            {isGstLocked ? '👑 GST Verified Seller' : '⭐ Registered Merchant'}
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-500 font-medium">
-                          {currentVendor.city || 'Jaipur'}, {currentVendor.state || 'Rajasthan'} • {currentVendor.businessCategory || 'General Wholesale'}
+                        <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                          {currentVendor.city || 'Jaipur'}, {currentVendor.state || 'Rajasthan'} • {currentVendor.businessCategory || 'Direct Manufacturer / Seller'}
                         </p>
                       </div>
                     </div>
@@ -1004,62 +1198,62 @@ export default function VendorDashboard({
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                       <button
                         onClick={() => goToVendorRoute('products/add')}
-                        className="flex-1 sm:flex-none bg-[#143C6B] hover:bg-[#0D2C4E] text-white text-xs font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+                        className="flex-1 sm:flex-none bg-[#143C6B] hover:bg-[#0D2C4E] text-white text-xs font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-[#143C6B]/20 border border-[#C89D1F]/30 cursor-pointer active:scale-98 transition-all"
                       >
-                        <Plus className="w-4 h-4" />
+                        <Plus className="w-4 h-4 text-[#C89D1F]" />
                         <span>+ List New Product</span>
                       </button>
                     </div>
                   </div>
 
-                  {/* KPI Metric Cards */}
+                  {/* KPI Metric Cards (Liquid Glass Cards with Brand Colors) */}
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4" id="vendor-kpi-grid">
-                    <div className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 shadow-xs flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#143C6B] shrink-0">
+                    <div className="liquid-glass-card rounded-2xl p-4 border border-white/90 shadow-xs flex items-center gap-3.5 hover:scale-[1.01] transition-transform">
+                      <div className="w-11 h-11 rounded-xl bg-[#143C6B]/10 border border-[#143C6B]/20 flex items-center justify-center text-[#143C6B] shrink-0 shadow-3xs">
                         <Coins className="w-5 h-5" />
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Net Sales</span>
+                        <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Net Sales</span>
                         <p className="text-base sm:text-lg font-black text-slate-900">₹{totalRevenue.toLocaleString()}</p>
                       </div>
                     </div>
 
                     <div 
                       onClick={() => goToVendorRoute('products')}
-                      className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 shadow-xs flex items-center gap-3 cursor-pointer hover:border-[#143C6B] transition-colors"
+                      className="liquid-glass-card rounded-2xl p-4 border border-white/90 shadow-xs flex items-center gap-3.5 cursor-pointer hover:border-[#143C6B] hover:scale-[1.01] transition-all"
                     >
-                      <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-700 shrink-0">
+                      <div className="w-11 h-11 rounded-xl bg-[#C89D1F]/15 border border-[#C89D1F]/30 flex items-center justify-center text-[#8C6A0A] shrink-0 shadow-3xs">
                         <Package className="w-5 h-5" />
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Catalog Items</span>
+                        <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Catalog Items</span>
                         <p className="text-base sm:text-lg font-black text-slate-900">{vendorProducts.length}</p>
                       </div>
                     </div>
 
                     <div 
                       onClick={() => goToVendorRoute('orders')}
-                      className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 shadow-xs flex items-center gap-3 cursor-pointer hover:border-pink-500 transition-colors"
+                      className="liquid-glass-card rounded-2xl p-4 border border-white/90 shadow-xs flex items-center gap-3.5 cursor-pointer hover:border-[#143C6B] hover:scale-[1.01] transition-all"
                     >
-                      <div className="w-10 h-10 rounded-xl bg-pink-50 border border-pink-100 flex items-center justify-center text-lucky-magenta shrink-0">
+                      <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[#143C6B] shrink-0 shadow-3xs">
                         <ShoppingBag className="w-5 h-5" />
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Client Orders</span>
-                        <p className="text-base sm:text-lg font-black text-lucky-magenta">{vendorOrders.length}</p>
+                        <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Client Orders</span>
+                        <p className="text-base sm:text-lg font-black text-[#143C6B]">{vendorOrders.length}</p>
                       </div>
                     </div>
 
                     <div 
                       onClick={() => goToVendorRoute('export')}
-                      className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 shadow-xs flex items-center gap-3 cursor-pointer hover:border-emerald-500 transition-colors"
+                      className="liquid-glass-card rounded-2xl p-4 border border-white/90 shadow-xs flex items-center gap-3.5 cursor-pointer hover:border-emerald-500 hover:scale-[1.01] transition-all"
                     >
-                      <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
+                      <div className="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0 shadow-3xs">
                         <FileSpreadsheet className="w-5 h-5" />
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Customer Export</span>
-                        <p className="text-xs sm:text-sm font-black text-emerald-700">Indexed Ledger</p>
+                        <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Reports</span>
+                        <p className="text-xs sm:text-sm font-black text-emerald-700">Financial Ledger</p>
                       </div>
                     </div>
                   </div>
@@ -1068,19 +1262,19 @@ export default function VendorDashboard({
                   <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
                     
                     {/* Left 2 Cols: Recent Orders */}
-                    <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs space-y-4">
-                      <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                    <div className="lg:col-span-2 liquid-glass rounded-2xl border border-white/90 p-4 sm:p-5 shadow-xs space-y-4">
+                      <div className="flex justify-between items-center pb-3 border-b border-slate-100/80">
                         <div className="flex items-center gap-2">
                           <ShoppingBag className="w-4 h-4 text-[#143C6B]" />
                           <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">Recent Dispatch Orders</h3>
-                          <span className="text-[10px] bg-blue-50 text-[#143C6B] font-bold px-2 py-0.5 rounded-full">
+                          <span className="text-[10px] bg-[#143C6B]/10 text-[#143C6B] font-bold px-2 py-0.5 rounded-full">
                             {vendorOrders.length}
                           </span>
                         </div>
 
                         <button 
                           onClick={() => goToVendorRoute('orders')}
-                          className="text-xs font-bold text-[#143C6B] hover:underline flex items-center gap-1 cursor-pointer"
+                          className="text-xs font-bold text-[#143C6B] hover:text-[#0D2C4E] flex items-center gap-1 cursor-pointer"
                         >
                           <span>View All</span>
                           <ChevronRight className="w-3.5 h-3.5" />
@@ -1093,22 +1287,22 @@ export default function VendorDashboard({
                           <p className="text-xs text-slate-500 font-medium">No customer orders yet. List attractive products to start receiving dispatch requests!</p>
                         </div>
                       ) : (
-                        <div className="divide-y divide-slate-100">
+                        <div className="divide-y divide-slate-100/90">
                           {vendorOrders.slice(0, 4).map(order => (
                             <div 
                               key={order.id} 
                               onClick={() => goToVendorRoute('orders/details', `id=${order.id}`)}
-                              className="py-3 flex items-center justify-between gap-3 hover:bg-slate-50/80 -mx-2 px-2 rounded-xl cursor-pointer transition-colors"
+                              className="py-3 flex items-center justify-between gap-3 hover:bg-white/60 -mx-2 px-2 rounded-xl cursor-pointer transition-colors"
                             >
                               <div className="space-y-0.5">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-xs font-black text-slate-900">#{order.id.slice(0, 8)}</span>
+                                  <span className="text-xs font-black text-slate-900 font-mono">#{order.id.slice(0, 8)}</span>
                                   <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full uppercase ${
                                     order.status === 'Delivered Early'
-                                      ? 'bg-emerald-50 text-emerald-700'
+                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                       : order.status === 'Shipped' || order.status === 'Out for Delivery'
-                                      ? 'bg-blue-50 text-blue-700'
-                                      : 'bg-amber-50 text-amber-700'
+                                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                      : 'bg-amber-50 text-amber-700 border border-amber-200'
                                   }`}>
                                     {order.status}
                                   </span>
@@ -1133,15 +1327,15 @@ export default function VendorDashboard({
                     {/* Right 1 Col: Store Health & Quick Actions */}
                     <div className="space-y-4">
                       {/* GST Status Card */}
-                      <div className={`rounded-2xl border p-4 sm:p-5 shadow-xs space-y-3 ${
+                      <div className={`rounded-2xl border p-4 sm:p-5 shadow-xs space-y-3 liquid-glass ${
                         isGstLocked 
-                          ? 'bg-emerald-50/50 border-emerald-200' 
-                          : 'bg-amber-50/50 border-amber-200'
+                          ? 'border-emerald-200/90' 
+                          : 'border-[#C89D1F]/30'
                       }`}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <ShieldCheck className={`w-5 h-5 ${isGstLocked ? 'text-emerald-600' : 'text-amber-600'}`} />
-                            <h4 className="text-xs font-black text-slate-900 uppercase">GST Status</h4>
+                            <ShieldCheck className={`w-5 h-5 ${isGstLocked ? 'text-emerald-600' : 'text-[#C89D1F]'}`} />
+                            <h4 className="text-xs font-black text-slate-900 uppercase">GST Compliance</h4>
                           </div>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
                             isGstLocked ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
@@ -1156,7 +1350,7 @@ export default function VendorDashboard({
                               Your account is operating under verified GSTIN <strong>{currentVendor.gstin}</strong>.
                             </p>
                             <p className="text-[10.5px] text-emerald-700 font-bold flex items-center gap-1">
-                              <Lock className="w-3 h-3" /> Profile details permanently locked (GST compliant).
+                              <Lock className="w-3 h-3" /> Profile details locked (GST compliant).
                             </p>
                           </div>
                         ) : (
@@ -1166,7 +1360,7 @@ export default function VendorDashboard({
                             </p>
                             <button
                               onClick={() => goToVendorRoute('profile')}
-                              className="w-full bg-[#143C6B] text-white text-xs font-bold py-2 rounded-xl cursor-pointer"
+                              className="w-full bg-[#143C6B] hover:bg-[#0D2C4E] text-white text-xs font-bold py-2 rounded-xl cursor-pointer transition-colors"
                             >
                               Verify GSTIN Now
                             </button>
@@ -1175,12 +1369,12 @@ export default function VendorDashboard({
                       </div>
 
                       {/* Quick Links Card */}
-                      <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs space-y-3">
-                        <h4 className="text-xs font-black text-slate-900 uppercase">Merchant Tools</h4>
+                      <div className="liquid-glass rounded-2xl border border-white/90 p-4 sm:p-5 shadow-xs space-y-3">
+                        <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Merchant Tools</h4>
                         <div className="space-y-1.5">
                           <button
                             onClick={() => goToVendorRoute('export')}
-                            className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 text-xs font-bold text-slate-700 border border-slate-100 cursor-pointer"
+                            className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-white/80 text-xs font-bold text-slate-700 border border-slate-200/50 cursor-pointer transition-colors"
                           >
                             <span className="flex items-center gap-2">
                               <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
@@ -1191,7 +1385,7 @@ export default function VendorDashboard({
 
                           <button
                             onClick={() => goToVendorRoute('products/add')}
-                            className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 text-xs font-bold text-slate-700 border border-slate-100 cursor-pointer"
+                            className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-white/80 text-xs font-bold text-slate-700 border border-slate-200/50 cursor-pointer transition-colors"
                           >
                             <span className="flex items-center gap-2">
                               <Plus className="w-4 h-4 text-[#143C6B]" />
@@ -1202,10 +1396,10 @@ export default function VendorDashboard({
 
                           <button
                             onClick={() => goToVendorRoute('profile')}
-                            className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 text-xs font-bold text-slate-700 border border-slate-100 cursor-pointer"
+                            className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-white/80 text-xs font-bold text-slate-700 border border-slate-200/50 cursor-pointer transition-colors"
                           >
                             <span className="flex items-center gap-2">
-                              <Building2 className="w-4 h-4 text-purple-600" />
+                              <Building2 className="w-4 h-4 text-[#143C6B]" />
                               <span>Business Profile & Tax Info</span>
                             </span>
                             <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
@@ -2739,6 +2933,34 @@ export default function VendorDashboard({
                               Mark {statusOpt}
                             </button>
                           ))}
+                          <button
+                            onClick={async () => {
+                              if (confirm('Process return for this order? The item amount will be deducted from vendor balance and refunded to customer QueKart wallet.')) {
+                                try {
+                                  const res = await fetch(`/api/orders/${selectedOrderForDetail.id}/return`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ reason: 'Vendor marked as Returned' })
+                                  });
+                                  if (res.ok) {
+                                    if (onUpdateOrderStatus) {
+                                      onUpdateOrderStatus(selectedOrderForDetail.id, 'Returned');
+                                    }
+                                    alert('Order marked as Returned and refunded to customer wallet.');
+                                  }
+                                } catch (e) {
+                                  console.error(e);
+                                }
+                              }
+                            }}
+                            className={`px-3 py-1.5 text-xs font-bold rounded-lg cursor-pointer transition-all uppercase ${
+                              selectedOrderForDetail.status === 'Returned'
+                                ? 'bg-purple-700 text-white shadow-3xs'
+                                : 'bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100'
+                            }`}
+                          >
+                            Mark Returned
+                          </button>
                         </div>
                       </div>
 
@@ -3041,485 +3263,549 @@ export default function VendorDashboard({
                 </motion.div>
               )}
 
-              {/* 10. ANALYTICS PAGE */}
+              {/* 10. REAL-TIME STORE ANALYTICS */}
               {activeTabKey === 'analytics' && (
                 <motion.div
                   key="vendor-analytics-tab"
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
-                  className="space-y-4"
                 >
-                  <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-5">
-                    {/* Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-base font-black text-slate-900 uppercase">Product Traffic & Funnel Analytics</h3>
-                          <span className="bg-blue-50 text-[#143C6B] border border-blue-200 text-[10px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                            <span>Anti-Spam Active</span>
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-500 font-medium mt-0.5">
-                          Track product impressions (scrolled into view), detail clicks (views), and cart additions with 3-hour IP anti-spam protection.
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          onClick={() => {
-                            if (currentVendor?.id) {
-                              setIsLoadingAnalytics(true);
-                              fetchVendorAnalytics(currentVendor.id)
-                                .then(data => setVendorAnalyticsData(data))
-                                .finally(() => setIsLoadingAnalytics(false));
-                            }
-                          }}
-                          className="bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold py-2 px-3 rounded-xl flex items-center gap-1.5 cursor-pointer"
-                          id="refresh-analytics-btn"
-                        >
-                          <RefreshCw className={`w-3.5 h-3.5 ${isLoadingAnalytics ? 'animate-spin' : ''}`} />
-                          <span>Refresh</span>
-                        </button>
-
-                        <button
-                          onClick={() => goToVendorRoute('export')}
-                          className="bg-[#143C6B] text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs"
-                        >
-                          <FileSpreadsheet className="w-3.5 h-3.5" />
-                          <span>Export Data</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Smart Anti-Spam Notice Banner */}
-                    <div className="bg-gradient-to-r from-blue-50 via-slate-50 to-emerald-50 border border-blue-200/70 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-3xs">
-                      <div className="flex items-start gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-[#143C6B] text-white flex items-center justify-center shrink-0 shadow-3xs">
-                          <ShieldAlert className="w-5 h-5 text-amber-300" />
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-black text-slate-900 flex items-center gap-1.5">
-                            <span>Smart Anti-Spam Protection Active</span>
-                            <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.2 rounded-md">
-                              1 Count / 3 Hours per IP
-                            </span>
-                          </h4>
-                          <p className="text-[11px] text-slate-600 font-medium mt-0.5 leading-normal">
-                            To ensure 100% authentic vendor metrics, duplicate page reloads, refresh bots, and rapid clicks from the same IP address within a 3-hour window are rejected automatically.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-4 bg-white/80 backdrop-blur-xs px-3.5 py-2 rounded-xl border border-slate-200/80 shrink-0 text-center">
-                        <div>
-                          <span className="text-[9.5px] font-bold text-slate-400 uppercase block">Blocked Spam Views</span>
-                          <span className="text-xs font-black text-amber-700">
-                            {vendorAnalyticsData?.totalBlockedViews || 0} Rejections
-                          </span>
-                        </div>
-                        <div className="w-px h-6 bg-slate-200"></div>
-                        <div>
-                          <span className="text-[9.5px] font-bold text-slate-400 uppercase block">Blocked Spam Impressions</span>
-                          <span className="text-xs font-black text-slate-700">
-                            {vendorAnalyticsData?.totalBlockedImpressions || 0} Rejections
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* 5 Funnel Performance Cards */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                      {/* Card 1: Impressions */}
-                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-slate-400 font-extrabold uppercase">Impressions</span>
-                          <Eye className="w-4 h-4 text-[#143C6B]" />
-                        </div>
-                        <p className="text-xl font-black text-slate-900">
-                          {(vendorAnalyticsData?.totalImpressions || 0).toLocaleString()}
-                        </p>
-                        <p className="text-[10px] text-slate-500 font-medium">Times scrolled in feed</p>
-                      </div>
-
-                      {/* Card 2: Views / Clicks */}
-                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-slate-400 font-extrabold uppercase">Detail Views</span>
-                          <MousePointerClick className="w-4 h-4 text-blue-600" />
-                        </div>
-                        <p className="text-xl font-black text-blue-900">
-                          {(vendorAnalyticsData?.totalViews || 0).toLocaleString()}
-                        </p>
-                        <p className="text-[10px] text-slate-500 font-medium">Product page clicks</p>
-                      </div>
-
-                      {/* Card 3: Cart Additions */}
-                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-slate-400 font-extrabold uppercase">Cart Additions</span>
-                          <ShoppingBag className="w-4 h-4 text-purple-600" />
-                        </div>
-                        <p className="text-xl font-black text-purple-900">
-                          {(vendorAnalyticsData?.totalCartAdds || 0).toLocaleString()}
-                        </p>
-                        <p className="text-[10px] text-slate-500 font-medium">Items added to cart</p>
-                      </div>
-
-                      {/* Card 4: CTR % */}
-                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-slate-400 font-extrabold uppercase">Click Rate (CTR)</span>
-                          <TrendingUp className="w-4 h-4 text-emerald-600" />
-                        </div>
-                        <p className="text-xl font-black text-emerald-700">
-                          {vendorAnalyticsData?.overallCtr || 0}%
-                        </p>
-                        <p className="text-[10px] text-slate-500 font-medium">Views per impression</p>
-                      </div>
-
-                      {/* Card 5: Conversion Rate */}
-                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-1 col-span-2 sm:col-span-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-slate-400 font-extrabold uppercase">Cart Conversion</span>
-                          <Sparkles className="w-4 h-4 text-[#C89D1F]" />
-                        </div>
-                        <p className="text-xl font-black text-[#8C6A0A]">
-                          {vendorAnalyticsData?.overallConversionRate || 0}%
-                        </p>
-                        <p className="text-[10px] text-slate-500 font-medium">Carts per detail view</p>
-                      </div>
-                    </div>
-
-                    {/* Per-Product Analytics Table */}
-                    <div className="space-y-3 pt-2">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                          Catalog Item Analytics Breakdown ({vendorAnalyticsData?.products?.length || vendorProducts.length})
-                        </h4>
-                        <span className="text-[11px] text-slate-400 font-bold">
-                          Sorted by highest traffic
-                        </span>
-                      </div>
-
-                      <div className="border border-slate-200/80 rounded-2xl overflow-x-auto bg-white shadow-3xs">
-                        <table className="w-full text-left text-xs">
-                          <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-black text-[10px] tracking-wider">
-                            <tr>
-                              <th className="p-3">Product Item</th>
-                              <th className="p-3 text-center">Wholesale Price</th>
-                              <th className="p-3 text-center">Impressions</th>
-                              <th className="p-3 text-center">Views</th>
-                              <th className="p-3 text-center">Cart Adds</th>
-                              <th className="p-3 text-center">CTR %</th>
-                              <th className="p-3 text-center">Orders</th>
-                              <th className="p-3 text-center">Spam Rejections</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
-                            {(vendorAnalyticsData?.products || vendorProducts.map(p => ({
-                              id: p.id,
-                              title: p.title,
-                              price: p.price,
-                              image: p.images[0] || '',
-                              impressions: p.analytics?.impressions || 120,
-                              views: p.analytics?.views || 35,
-                              cartAdds: p.analytics?.cartAdds || 8,
-                              blockedViews: p.analytics?.blockedViews || 2,
-                              ctr: p.analytics?.impressions ? Number(((p.analytics.views / p.analytics.impressions) * 100).toFixed(1)) : 15,
-                              ordersCount: 2
-                            }))).map((item: any) => (
-                              <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                                <td className="p-3 min-w-[220px]">
-                                  <div className="flex items-center gap-2.5">
-                                    <div className="w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0">
-                                      <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
-                                    </div>
-                                    <div>
-                                      <h5 className="font-bold text-slate-900 line-clamp-1 text-xs" title={item.title}>{item.title}</h5>
-                                      <span className="text-[10px] text-slate-400 font-mono">ID: #{item.id}</span>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="p-3 text-center font-black text-slate-900 whitespace-nowrap">
-                                  ₹{item.price}
-                                </td>
-                                <td className="p-3 text-center font-bold text-slate-700 whitespace-nowrap">
-                                  {item.impressions}
-                                </td>
-                                <td className="p-3 text-center font-bold text-blue-800 whitespace-nowrap">
-                                  {item.views}
-                                </td>
-                                <td className="p-3 text-center font-bold text-purple-800 whitespace-nowrap">
-                                  {item.cartAdds}
-                                </td>
-                                <td className="p-3 text-center whitespace-nowrap">
-                                  <span className="inline-block px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-black text-[11px] border border-emerald-200">
-                                    {item.ctr}%
-                                  </span>
-                                </td>
-                                <td className="p-3 text-center font-black text-[#143C6B] whitespace-nowrap">
-                                  {item.ordersCount || 0}
-                                </td>
-                                <td className="p-3 text-center text-[10.5px] text-amber-700 font-bold whitespace-nowrap">
-                                  {item.blockedViews || 0} blocked
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
+                  <VendorAnalyticsView
+                    currentVendor={currentVendor}
+                    vendorProducts={vendorProducts}
+                    vendorOrders={vendorOrders}
+                    analyticsData={vendorAnalyticsData}
+                    isLoading={isLoadingAnalytics}
+                    onRefresh={() => {
+                      if (currentVendor?.id) {
+                        setIsLoadingAnalytics(true);
+                        fetchVendorAnalytics(currentVendor.id)
+                          .then(data => setVendorAnalyticsData(data))
+                          .finally(() => setIsLoadingAnalytics(false));
+                      }
+                    }}
+                    onExport={() => goToVendorRoute('export')}
+                  />
                 </motion.div>
               )}
 
-              {/* 11. B2B BULK QUOTES PAGE */}
-              {activeTabKey === 'quotes' && (
-                <motion.div
-                  key="vendor-quotes-tab"
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  className="space-y-4"
-                >
-                  <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-black text-slate-900 uppercase">B2B Wholesale Inquiries & Bulk Quotes</h3>
-                          <span className="text-[10px] bg-[#C89D1F]/15 text-[#8C6A0A] border border-[#C89D1F]/30 font-bold px-2 py-0.5 rounded-md uppercase">
-                            Direct Buyers
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-500 font-medium">Boutiques, shop owners, and resellers requesting volume pricing.</p>
-                      </div>
-
-                      <div className="text-right">
-                        <span className="text-xs font-black text-[#143C6B] block">0% Commission Guaranteed</span>
-                        <span className="text-[10px] text-slate-400 font-medium">Keep 100% of agreed wholesale rate</span>
-                      </div>
-                    </div>
-
-                    <div className="divide-y divide-slate-100 border border-slate-200/80 rounded-2xl overflow-hidden">
-                      {b2bQuotes.map(quote => (
-                        <div key={quote.id} className="p-4 bg-white hover:bg-slate-50/80 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-black font-mono text-[#143C6B]">{quote.id}</span>
-                              <span className={`text-[9.5px] font-black uppercase px-2 py-0.5 rounded-full border ${
-                                quote.status === 'Accepted' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                quote.status === 'Quoted' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                'bg-amber-50 text-amber-700 border-amber-200'
-                              }`}>
-                                {quote.status}
-                              </span>
-                              <span className="text-[10.5px] text-slate-400">{quote.date}</span>
-                            </div>
-                            <h4 className="text-xs font-bold text-slate-900">{quote.productTitle}</h4>
-                            <p className="text-[11px] text-slate-500">
-                              Buyer: <strong>{quote.buyerName}</strong> ({quote.city}) • Quantity: <strong className="text-slate-900">{quote.quantityRequested} units</strong>
-                            </p>
-                            {quote.vendorOfferedPrice && (
-                              <p className="text-[11px] text-emerald-700 font-bold">
-                                Your Offer: ₹{quote.vendorOfferedPrice}/unit • {quote.note}
-                              </p>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-3 justify-between sm:justify-end shrink-0">
-                            <div className="text-right">
-                              <span className="text-[10px] text-slate-400 uppercase font-bold block">Target Unit Price</span>
-                              <span className="text-xs font-black text-slate-900">₹{quote.targetPricePerUnit}</span>
-                            </div>
-
-                            <button
-                              onClick={() => {
-                                setActiveQuoteModal(quote);
-                                setQuoteOfferPrice(quote.targetPricePerUnit);
-                                setQuoteNote('Fast dispatch within 48 hours with GST invoice.');
-                              }}
-                              className="bg-[#143C6B] hover:bg-[#0D2C4E] text-white text-xs font-bold py-2 px-3.5 rounded-xl cursor-pointer shadow-3xs flex items-center gap-1.5"
-                            >
-                              <Tag className="w-3.5 h-3.5 text-[#C89D1F]" />
-                              <span>{quote.status === 'Quoted' ? 'Update Quote' : 'Send Quote'}</span>
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* 12. PAYOUTS & BANK SETTLEMENT PAGE */}
+              {/* 12. PAYOUTS, EARNINGS & PASSBOOK STATEMENT PAGE */}
               {activeTabKey === 'payouts' && (
                 <motion.div
                   key="vendor-payouts-tab"
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
-                  className="space-y-4"
+                  className="space-y-5"
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Left 2 Cols: Settlement Form & History */}
-                    <div className="md:col-span-2 space-y-4">
-                      {/* Bank Details Form */}
-                      <form onSubmit={handleSaveBankDetails} className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-4">
-                        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                          <div>
-                            <h3 className="text-sm font-black text-slate-900 uppercase">Direct Bank Settlement Account</h3>
-                            <p className="text-xs text-slate-500 font-medium">Earnings are deposited directly to your bank account with 0% platform deductions.</p>
-                          </div>
-                          <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-2 py-0.5 rounded-md uppercase">
-                            0% Commission
-                          </span>
+                  {/* Top Financial Overview Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+                    {/* Card 1: Available Balance */}
+                    <div className="bg-gradient-to-br from-[#143C6B] via-[#10355F] to-[#0B2544] text-white rounded-2xl p-5 shadow-lg space-y-3 relative overflow-hidden ring-1 ring-[#C89D1F]/40 backdrop-blur-md">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-black text-[#C89D1F] tracking-wider">Available Balance</span>
+                        <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-[#C89D1F] border border-white/10">
+                          <Wallet className="w-4 h-4" />
                         </div>
-
-                        {bankSaveSuccess && (
-                          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-bold flex items-center gap-2">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                            <span>Bank Account Details updated & verified successfully!</span>
-                          </div>
-                        )}
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
-                              Account Holder Name *
-                            </label>
-                            <input
-                              type="text"
-                              required
-                              value={bankAccountName}
-                              onChange={e => setBankAccountName(e.target.value)}
-                              className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
-                              Bank Name *
-                            </label>
-                            <input
-                              type="text"
-                              required
-                              value={bankName}
-                              onChange={e => setBankName(e.target.value)}
-                              className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
-                              Account Number *
-                            </label>
-                            <input
-                              type="text"
-                              required
-                              value={bankAccountNumber}
-                              onChange={e => setBankAccountNumber(e.target.value)}
-                              className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 font-mono focus:outline-hidden focus:border-[#143C6B]"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
-                              IFSC Code *
-                            </label>
-                            <input
-                              type="text"
-                              required
-                              value={bankIfscCode}
-                              onChange={e => setBankIfscCode(e.target.value.toUpperCase())}
-                              className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 font-mono focus:outline-hidden focus:border-[#143C6B]"
-                            />
-                          </div>
-
-                          <div className="sm:col-span-2">
-                            <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
-                              UPI ID (Instant Auto Payouts)
-                            </label>
-                            <input
-                              type="text"
-                              value={bankUpiId}
-                              onChange={e => setBankUpiId(e.target.value)}
-                              className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 font-mono focus:outline-hidden focus:border-[#143C6B]"
-                              placeholder="mobile@upi or name@okaxis"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="pt-3 border-t border-slate-100 flex justify-end">
-                          <button
-                            type="submit"
-                            disabled={isSavingBank}
-                            className="bg-[#143C6B] hover:bg-[#0D2C4E] text-white text-xs font-bold py-2.5 px-5 rounded-xl cursor-pointer shadow-xs uppercase tracking-wider"
-                          >
-                            {isSavingBank ? 'Saving Bank Details...' : 'Save & Verify Bank Details'}
-                          </button>
-                        </div>
-                      </form>
-
-                      {/* Recent Payout Ledger */}
-                      <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-3">
-                        <h4 className="text-xs font-black text-slate-900 uppercase">Settlement History Ledger</h4>
-                        <div className="divide-y divide-slate-100">
-                          <div className="py-2.5 flex items-center justify-between text-xs">
-                            <div>
-                              <p className="font-bold text-slate-900">Weekly Tuesday Settlement</p>
-                              <span className="text-[10px] text-slate-400">Ref: SETT-9921804 • State Bank of India</span>
-                            </div>
-                            <div className="text-right">
-                              <span className="font-black text-emerald-600 block">₹{Math.max(12450, totalRevenue)}</span>
-                              <span className="text-[9.5px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.2 rounded">TRANSFERRED</span>
-                            </div>
-                          </div>
-
-                          <div className="py-2.5 flex items-center justify-between text-xs">
-                            <div>
-                              <p className="font-bold text-slate-900">Friday Automated Settlement</p>
-                              <span className="text-[10px] text-slate-400">Ref: SETT-9910482 • SBI (**9876)</span>
-                            </div>
-                            <div className="text-right">
-                              <span className="font-black text-emerald-600 block">₹8,920</span>
-                              <span className="text-[9.5px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.2 rounded">TRANSFERRED</span>
-                            </div>
-                          </div>
-                        </div>
+                      </div>
+                      <div>
+                        <p className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+                          ₹{(vendorFinancials?.availableBalance ?? 0).toLocaleString()}
+                        </p>
+                        <span className="text-[11px] text-emerald-300 font-bold flex items-center gap-1 mt-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Ready for Immediate Withdrawal
+                        </span>
                       </div>
                     </div>
 
-                    {/* Right 1 Col: Summary Card */}
-                    <div className="space-y-4">
-                      <div className="bg-gradient-to-br from-[#143C6B] to-[#0D2C4E] text-white rounded-2xl p-5 shadow-md space-y-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] uppercase font-bold text-[#C89D1F] tracking-wider">0% Commission Hub</span>
-                          <Coins className="w-5 h-5 text-[#C89D1F]" />
+                    {/* Card 2: Total Lifetime Earnings */}
+                    <div className="liquid-glass-card rounded-2xl border border-white/90 p-5 shadow-xs space-y-3 hover:scale-[1.01] transition-transform">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Lifetime Earnings</span>
+                        <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center">
+                          <TrendingUp className="w-4 h-4" />
                         </div>
+                      </div>
+                      <div>
+                        <p className="text-2xl sm:text-3xl font-black text-slate-900">
+                          ₹{(vendorFinancials?.totalEarnings ?? totalRevenue).toLocaleString()}
+                        </p>
+                        <span className="text-[11px] text-slate-500 font-medium">Delivered order sales credited</span>
+                      </div>
+                    </div>
 
+                    {/* Card 3: In-Transit / Pending Delivery */}
+                    <div className="liquid-glass-card rounded-2xl border border-white/90 p-5 shadow-xs space-y-3 hover:scale-[1.01] transition-transform">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Pending Orders</span>
+                        <div className="w-8 h-8 rounded-xl bg-[#C89D1F]/15 border border-[#C89D1F]/30 text-[#8C6A0A] flex items-center justify-center">
+                          <Clock className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-2xl sm:text-3xl font-black text-[#8C6A0A]">
+                          ₹{(vendorFinancials?.pendingBalance ?? 0).toLocaleString()}
+                        </p>
+                        <span className="text-[11px] text-slate-500 font-medium">Credits to wallet upon delivery</span>
+                      </div>
+                    </div>
+
+                    {/* Card 4: Total Withdrawn */}
+                    <div className="liquid-glass-card rounded-2xl border border-white/90 p-5 shadow-xs space-y-3 hover:scale-[1.01] transition-transform">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Total Withdrawn</span>
+                        <div className="w-8 h-8 rounded-xl bg-[#143C6B]/10 border border-[#143C6B]/20 text-[#143C6B] flex items-center justify-center">
+                          <ArrowUpRight className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-2xl sm:text-3xl font-black text-slate-900">
+                          ₹{(vendorFinancials?.totalWithdrawn ?? 0).toLocaleString()}
+                        </p>
+                        <span className="text-[11px] text-slate-500 font-medium">Transferred to Bank / UPI</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payout Withdrawal Section & Form */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    {/* Left 2 Cols: Request Payout Form */}
+                    <div className="lg:col-span-2 liquid-glass-card rounded-2xl border border-white/90 p-5 sm:p-6 shadow-xs space-y-4">
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                         <div>
-                          <span className="text-xs text-slate-300 block">Next Scheduled Settlement</span>
-                          <p className="text-2xl font-black text-white mt-1">₹{totalRevenue.toLocaleString()}</p>
-                          <span className="text-[10.5px] text-emerald-300 font-medium">Automatic payout every Tuesday & Friday</span>
+                          <h3 className="text-sm font-black text-slate-900 uppercase">Request Payout Withdrawal</h3>
+                          <p className="text-xs text-slate-500 font-medium">Enter your payout details to transfer funds directly to your Bank Account or UPI.</p>
+                        </div>
+                        <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-2 py-0.5 rounded-md uppercase">
+                          0% Fee Instant Settlement
+                        </span>
+                      </div>
+
+                      {/* Success Alert */}
+                      {payoutSuccessData && (
+                        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-2">
+                          <div className="flex items-center gap-2 text-emerald-800 font-black text-xs">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>Payout Request Submitted Successfully!</span>
+                          </div>
+                          <p className="text-xs text-emerald-700">
+                            Reference ID: <strong>{payoutSuccessData.id}</strong> • Amount: <strong>₹{payoutSuccessData.amount.toLocaleString()}</strong> ({payoutSuccessData.method.toUpperCase()}). Funds will be transferred to your account.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Error Alert */}
+                      {payoutErrorMsg && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-bold flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                          <span>{payoutErrorMsg}</span>
+                        </div>
+                      )}
+
+                      {/* Payout Method Toggle: Bank Account vs UPI */}
+                      <div className="space-y-2">
+                        <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block">
+                          Choose Withdrawal Method *
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setPayoutMethod('bank')}
+                            className={`p-3 rounded-xl border text-xs font-black flex items-center justify-center gap-2 cursor-pointer transition-all ${
+                              payoutMethod === 'bank'
+                                ? 'bg-[#143C6B] text-white border-[#143C6B] shadow-md ring-2 ring-[#C89D1F]/40'
+                                : 'bg-white/80 text-slate-700 border-slate-200 hover:bg-white'
+                            }`}
+                          >
+                            <Building2 className="w-4 h-4" />
+                            <span>Bank Account (NEFT/IMPS)</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setPayoutMethod('upi')}
+                            className={`p-3 rounded-xl border text-xs font-black flex items-center justify-center gap-2 cursor-pointer transition-all ${
+                              payoutMethod === 'upi'
+                                ? 'bg-[#143C6B] text-white border-[#143C6B] shadow-md ring-2 ring-[#C89D1F]/40'
+                                : 'bg-white/80 text-slate-700 border-slate-200 hover:bg-white'
+                            }`}
+                          >
+                            <Coins className="w-4 h-4" />
+                            <span>Instant UPI ID</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Form inputs */}
+                      <form onSubmit={handleRequestPayout} className="space-y-4">
+                        {payoutMethod === 'bank' ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white/60 p-4 rounded-2xl border border-slate-200/80">
+                            <div>
+                              <label className="text-[10.5px] text-slate-600 font-extrabold uppercase block mb-1">
+                                Bank Account Number *
+                              </label>
+                              <input
+                                type="text"
+                                required
+                                value={payoutAccNo}
+                                onChange={e => setPayoutAccNo(e.target.value)}
+                                placeholder="Enter account number"
+                                className="w-full text-xs font-mono font-bold bg-white border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-[10.5px] text-slate-600 font-extrabold uppercase block mb-1">
+                                IFSC Code *
+                              </label>
+                              <input
+                                type="text"
+                                required
+                                value={payoutIfsc}
+                                onChange={e => setPayoutIfsc(e.target.value.toUpperCase())}
+                                placeholder="e.g. SBIN0001234"
+                                className="w-full text-xs font-mono font-bold uppercase bg-white border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-[10.5px] text-slate-600 font-extrabold uppercase block mb-1">
+                                Account Holder Name
+                              </label>
+                              <input
+                                type="text"
+                                value={payoutHolder}
+                                onChange={e => setPayoutHolder(e.target.value)}
+                                placeholder="Name as per bank record"
+                                className="w-full text-xs font-bold bg-white border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-[10.5px] text-slate-600 font-extrabold uppercase block mb-1">
+                                Bank Name
+                              </label>
+                              <input
+                                type="text"
+                                value={payoutBankTitle}
+                                onChange={e => setPayoutBankTitle(e.target.value)}
+                                placeholder="e.g. State Bank of India"
+                                className="w-full text-xs font-bold bg-white border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-white/60 p-4 rounded-2xl border border-slate-200/80 space-y-2">
+                            <label className="text-[10.5px] text-slate-600 font-extrabold uppercase block mb-1">
+                              UPI ID (VPA) *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={payoutUpi}
+                              onChange={e => setPayoutUpi(e.target.value)}
+                              placeholder="mobile@upi or name@okhdfcbank"
+                              className="w-full text-xs font-mono font-bold bg-white border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                            />
+                            <p className="text-[10.5px] text-slate-500">
+                              Instant direct credit via Google Pay, PhonePe, Paytm, BHIM, or any UPI app.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Amount & Quick Presets */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block">
+                              Withdrawal Amount (₹) *
+                            </label>
+                            <span className="text-xs text-slate-500 font-medium">
+                              Available: <strong className="text-emerald-700">₹{(vendorFinancials?.availableBalance ?? 0).toLocaleString()}</strong>
+                            </span>
+                          </div>
+
+                          <div className="relative">
+                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">₹</span>
+                            <input
+                              type="number"
+                              min="1"
+                              max={vendorFinancials?.availableBalance || undefined}
+                              required
+                              value={payoutAmount}
+                              onChange={e => setPayoutAmount(e.target.value)}
+                              placeholder="Enter amount to withdraw"
+                              className="w-full pl-8 pr-4 py-2.5 text-sm font-black border border-slate-300 rounded-xl focus:outline-hidden focus:border-[#143C6B] bg-white"
+                            />
+                          </div>
+
+                          {/* Quick Presets */}
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            {[500, 1000, 2500, 5000].map(val => (
+                              <button
+                                key={val}
+                                type="button"
+                                onClick={() => setPayoutAmount(String(val))}
+                                className="px-3 py-1 bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-bold rounded-lg cursor-pointer border border-slate-200 transition-colors"
+                              >
+                                ₹{val.toLocaleString()}
+                              </button>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => setPayoutAmount(String(vendorFinancials?.availableBalance || 0))}
+                              className="px-3 py-1 bg-blue-50 hover:bg-blue-100 text-[#143C6B] text-[11px] font-black rounded-lg cursor-pointer border border-blue-200 transition-colors"
+                            >
+                              Withdraw Full Balance (₹{(vendorFinancials?.availableBalance || 0).toLocaleString()})
+                            </button>
+                          </div>
                         </div>
 
-                        <div className="pt-3 border-t border-white/10 space-y-1.5 text-xs">
+                        <div className="pt-2 flex justify-end">
+                          <button
+                            type="submit"
+                            disabled={isSubmittingPayout || (vendorFinancials?.availableBalance ?? 0) <= 0}
+                            className="w-full sm:w-auto bg-[#143C6B] hover:bg-[#0D2C4E] disabled:opacity-50 text-white text-xs font-black py-2.5 px-6 rounded-xl cursor-pointer shadow-md border border-[#C89D1F]/30 flex items-center justify-center gap-2 uppercase tracking-wider transition-all"
+                          >
+                            <ArrowUpRight className="w-4 h-4 text-[#C89D1F]" />
+                            <span>{isSubmittingPayout ? 'Processing Withdrawal...' : 'Withdraw Funds Now'}</span>
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+
+                    {/* Right 1 Col: Settlement Info & Policy */}
+                    <div className="space-y-4">
+                      <div className="bg-gradient-to-br from-[#143C6B] to-[#0D2C4E] text-white rounded-2xl p-5 shadow-md space-y-4 border border-[#C89D1F]/30">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] uppercase font-bold text-[#C89D1F] tracking-wider">Settlement Policy</span>
+                          <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                        </div>
+
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-black text-white">Guaranteed Direct Credit</h4>
+                          <p className="text-xs text-slate-300 leading-relaxed">
+                            Every order marked as <strong>Delivered</strong> is credited immediately to your running balance. You can withdraw anytime with zero delays.
+                          </p>
+                        </div>
+
+                        <div className="pt-3 border-t border-white/10 space-y-2 text-xs">
                           <div className="flex justify-between text-slate-300">
-                            <span>QueKart Fee (0%):</span>
-                            <span className="font-bold text-white">₹0</span>
+                            <span>QueKart Platform Fee:</span>
+                            <span className="font-black text-emerald-300">0% (Free)</span>
                           </div>
                           <div className="flex justify-between text-slate-300">
-                            <span>Payment Gateway Charges:</span>
-                            <span className="font-bold text-white">₹0 (Waived)</span>
+                            <span>Transfer Mode:</span>
+                            <span className="font-bold text-white">IMPS / UPI / NEFT</span>
                           </div>
-                          <div className="flex justify-between text-emerald-300 font-bold pt-1 border-t border-white/10">
-                            <span>Total Savings vs Other Platforms:</span>
-                            <span>₹{Math.round(totalRevenue * 0.18).toLocaleString()}</span>
+                          <div className="flex justify-between text-slate-300">
+                            <span>Settlement Speed:</span>
+                            <span className="font-bold text-white">Instant / Same Day</span>
                           </div>
                         </div>
                       </div>
+
+                      {/* Export Bank Statement Quick Button */}
+                      <button
+                        onClick={handleExportStatementCsv}
+                        className="w-full p-4 liquid-glass-card rounded-2xl border border-white/90 hover:border-emerald-500 shadow-xs flex items-center justify-between cursor-pointer transition-all text-left"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
+                            <FileSpreadsheet className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-400 font-extrabold uppercase block">Bank Statement</span>
+                            <span className="text-xs font-black text-slate-900">Download Passbook Excel/CSV</span>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-slate-400" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* FINANCIAL PASSBOOK & TRANSACTION LEDGER TABLE */}
+                  <div className="liquid-glass-card rounded-2xl border border-white/90 p-5 sm:p-6 shadow-xs space-y-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-black text-slate-900 uppercase">Vendor Financial Passbook & Transaction Ledger</h3>
+                          <span className="text-[10px] bg-blue-50 text-[#143C6B] font-bold px-2 py-0.5 rounded-full">
+                            {vendorFinancials?.transactions?.length || 0} Records
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 font-medium">Complete running balance record of every credit from delivered sales and payout debit.</p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Search Input */}
+                        <div className="relative">
+                          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            value={ledgerSearch}
+                            onChange={e => setLedgerSearch(e.target.value)}
+                            placeholder="Search Ref / Order / Item..."
+                            className="text-xs pl-8 pr-3 py-1.5 border border-slate-200 rounded-xl w-48 focus:outline-hidden focus:border-[#143C6B]"
+                          />
+                        </div>
+
+                        {/* Filter Tabs */}
+                        <div className="flex bg-slate-100 p-0.5 rounded-xl text-xs font-bold">
+                          <button
+                            type="button"
+                            onClick={() => setLedgerFilter('all')}
+                            className={`px-3 py-1 rounded-lg cursor-pointer transition-all ${
+                              ledgerFilter === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            All
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setLedgerFilter('credit')}
+                            className={`px-3 py-1 rounded-lg cursor-pointer transition-all ${
+                              ledgerFilter === 'credit' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            Credits (+)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setLedgerFilter('debit')}
+                            className={`px-3 py-1 rounded-lg cursor-pointer transition-all ${
+                              ledgerFilter === 'debit' ? 'bg-red-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            Debits (-)
+                          </button>
+                        </div>
+
+                        {/* Export Button */}
+                        <button
+                          onClick={handleExportStatementCsv}
+                          className="bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold py-1.5 px-3 rounded-xl flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Export CSV</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Table */}
+                    <div className="border border-slate-200/80 rounded-2xl overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-black text-[10px] tracking-wider">
+                          <tr>
+                            <th className="p-3">Date & Time</th>
+                            <th className="p-3">Reference ID</th>
+                            <th className="p-3">Type & Description</th>
+                            <th className="p-3 text-right">Credit (+)</th>
+                            <th className="p-3 text-right">Debit (-)</th>
+                            <th className="p-3 text-right font-black">Closing Balance</th>
+                            <th className="p-3 text-center">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+                          {(() => {
+                            const list = (vendorFinancials?.transactions || []).filter(t => {
+                              if (ledgerFilter === 'credit' && t.credit <= 0) return false;
+                              if (ledgerFilter === 'debit' && t.debit <= 0) return false;
+                              if (ledgerSearch.trim()) {
+                                const q = ledgerSearch.toLowerCase();
+                                return (
+                                  (t.referenceId || '').toLowerCase().includes(q) ||
+                                  (t.orderId || '').toLowerCase().includes(q) ||
+                                  (t.description || '').toLowerCase().includes(q) ||
+                                  (t.productTitle || '').toLowerCase().includes(q)
+                                );
+                              }
+                              return true;
+                            });
+
+                            if (list.length === 0) {
+                              return (
+                                <tr>
+                                  <td colSpan={7} className="p-8 text-center text-slate-400">
+                                    <FileText className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                                    <p className="text-xs font-bold">No financial transactions matching current filter.</p>
+                                  </td>
+                                </tr>
+                              );
+                            }
+
+                            return list.map(t => (
+                              <tr key={t.id} className="hover:bg-slate-50/80 transition-colors">
+                                <td className="p-3 text-slate-500 whitespace-nowrap text-[11px]">
+                                  {t.date || t.timestamp}
+                                </td>
+
+                                <td className="p-3 whitespace-nowrap">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-mono font-bold text-slate-900 text-xs">
+                                      {t.referenceId || t.id}
+                                    </span>
+                                    <button
+                                      onClick={() => copyToClipboard(t.referenceId || t.id)}
+                                      className="p-1 text-slate-400 hover:text-slate-700 rounded cursor-pointer"
+                                      title="Copy Reference ID"
+                                    >
+                                      <Copy className="w-3 h-3" />
+                                    </button>
+                                    {copiedRefId === (t.referenceId || t.id) && (
+                                      <span className="text-[9.5px] bg-slate-800 text-white px-1.5 py-0.2 rounded">Copied</span>
+                                    )}
+                                  </div>
+                                </td>
+
+                                <td className="p-3 min-w-[220px]">
+                                  <div className="space-y-0.5">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className={`text-[9.5px] font-black uppercase px-2 py-0.2 rounded-md ${
+                                        t.transactionType === 'order_credit'
+                                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                                          : t.transactionType === 'payout_debit'
+                                          ? 'bg-blue-50 text-blue-800 border border-blue-200'
+                                          : t.transactionType === 'return_debit'
+                                          ? 'bg-red-50 text-red-800 border border-red-200'
+                                          : 'bg-slate-100 text-slate-700'
+                                      }`}>
+                                        {t.typeLabel}
+                                      </span>
+                                      {t.orderId && (
+                                        <span className="text-[10px] text-slate-400 font-mono">Order #{t.orderId.slice(0, 8)}</span>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-slate-700 font-bold">{t.description}</p>
+                                  </div>
+                                </td>
+
+                                <td className="p-3 text-right whitespace-nowrap font-black text-emerald-700">
+                                  {t.credit > 0 ? `+ ₹${t.credit.toLocaleString()}` : '-'}
+                                </td>
+
+                                <td className="p-3 text-right whitespace-nowrap font-black text-red-600">
+                                  {t.debit > 0 ? `- ₹${t.debit.toLocaleString()}` : '-'}
+                                </td>
+
+                                <td className="p-3 text-right whitespace-nowrap font-black text-slate-900 bg-slate-50/50">
+                                  ₹{t.runningBalance.toLocaleString()}
+                                </td>
+
+                                <td className="p-3 text-center whitespace-nowrap">
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                                    t.status === 'Settled' || t.status === 'Completed'
+                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                      : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                  }`}>
+                                    {t.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ));
+                          })()}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 </motion.div>
@@ -3713,126 +3999,7 @@ export default function VendorDashboard({
         )}
       </AnimatePresence>
 
-      {/* MODAL 3: B2B BULK QUOTE RESPONSE MODAL */}
-      <AnimatePresence>
-        {activeQuoteModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-slate-100 space-y-4"
-            >
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <Tag className="w-5 h-5 text-[#C89D1F]" />
-                  <h3 className="text-sm font-black text-slate-900">Submit Wholesale Price Quote</h3>
-                </div>
-                <button
-                  onClick={() => setActiveQuoteModal(null)}
-                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <form onSubmit={handleSendB2bQuote} className="space-y-3">
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 text-xs space-y-1">
-                  <p className="font-bold text-slate-900">Buyer: {activeQuoteModal.buyerName} ({activeQuoteModal.city})</p>
-                  <p className="text-slate-600">Product: {activeQuoteModal.productTitle}</p>
-                  <p className="text-[#143C6B] font-bold">Volume Requested: {activeQuoteModal.quantityRequested} units (Target: ₹{activeQuoteModal.targetPricePerUnit}/unit)</p>
-                </div>
-
-                <div>
-                  <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
-                    Your Wholesale Offer Price (Per Unit ₹) *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min={1}
-                    value={quoteOfferPrice}
-                    onChange={e => setQuoteOfferPrice(Number(e.target.value))}
-                    className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
-                    Wholesale Terms / Dispatch SLA *
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={quoteNote}
-                    onChange={e => setQuoteNote(e.target.value)}
-                    className="w-full text-xs font-medium border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
-                    placeholder="e.g. Express dispatch within 48 hours with GST bill."
-                  />
-                </div>
-
-                <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setActiveQuoteModal(null)}
-                    className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="bg-[#143C6B] hover:bg-[#0D2C4E] text-white font-black text-xs py-2 px-5 rounded-xl cursor-pointer shadow-xs uppercase"
-                  >
-                    Submit Quote
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* 4. MOBILE BOTTOM NAVIGATION (Fixed at bottom for mobile screens) */}
-      {currentVendor && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200/90 shadow-lg px-2 py-1 flex justify-around items-center" id="vendor-mobile-bottom-nav">
-          {navTabs.map(tab => {
-            const Icon = tab.icon;
-            const isActive = activeTabKey === tab.id || 
-              (tab.id === 'products' && activeTabKey === 'edit-product') ||
-              (tab.id === 'orders' && activeTabKey === 'order-details') ||
-              (tab.id === 'profile' && activeTabKey === 'edit-profile');
-
-            return (
-              <button
-                key={tab.id}
-                onClick={() => goToVendorRoute(tab.path)}
-                className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all cursor-pointer relative min-w-[50px] ${
-                  isActive ? 'text-[#143C6B]' : 'text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                {tab.isAction ? (
-                  <div className="w-8 h-8 rounded-full bg-[#143C6B] text-white flex items-center justify-center shadow-xs -mt-2">
-                    <Plus className="w-5 h-5 stroke-[2.5]" />
-                  </div>
-                ) : (
-                  <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-[1.8]'}`} />
-                )}
-
-                <span className={`text-[10px] mt-0.5 ${isActive ? 'font-black' : 'font-semibold'}`}>
-                  {tab.label}
-                </span>
-
-                {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className="absolute top-0 right-1 w-4 h-4 rounded-full bg-lucky-magenta text-white text-[9px] font-black flex items-center justify-center shadow-xs">
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* 5. CONFIRMATION MODAL */}
+      {/* 4. CONFIRMATION MODAL */}
       <AnimatePresence>
         {confirmDialog && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">

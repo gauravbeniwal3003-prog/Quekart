@@ -186,6 +186,11 @@ export default function App() {
     navigateTo('/shop'); // Redirects to mobile number OTP verification
   };
 
+  const handleUpdateUser = (updatedUser: any) => {
+    setCurrentUser(updatedUser);
+    localStorage.setItem('quekart_current_user', JSON.stringify(updatedUser));
+  };
+
   // Database-driven products state (initialized with cached or mock products to prevent blank flash)
   const [products, setProducts] = useState<Product[]>(() => {
     try {
@@ -244,8 +249,31 @@ export default function App() {
         console.warn('⚠️ Data loading notice:', err);
       }
     };
+
+    const fetchUserProfile = async () => {
+      const token = localStorage.getItem('quekart_user_token');
+      const savedUser = localStorage.getItem('quekart_current_user');
+      if (token || savedUser) {
+        try {
+          const parsed = savedUser ? JSON.parse(savedUser) : null;
+          const phone = parsed?.phone;
+          const url = phone ? `/api/user/profile?phone=${encodeURIComponent(phone)}` : '/api/user/profile';
+          const res = await fetch(getApiUrl(url), {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+          });
+          if (res.ok && isMounted) {
+            const data = await res.json();
+            if (data.user) {
+              setCurrentUser(data.user);
+              localStorage.setItem('quekart_current_user', JSON.stringify(data.user));
+            }
+          }
+        } catch (_) {}
+      }
+    };
     
     fetchInitialData();
+    fetchUserProfile();
     return () => { isMounted = false; };
   }, []);
 
@@ -507,6 +535,33 @@ export default function App() {
       }
     } catch (e) {
       console.warn('Network issue: keeping local order status update', e);
+    }
+  };
+
+  const handleReturnOrder = async (orderId: string, reason?: string) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}/return`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: reason || 'Customer requested return' })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.order) {
+          setOrders((prev) => prev.map((o) => (o.id === orderId ? data.order : o)));
+        }
+        if (data.user && currentUser && data.user.id === currentUser.id) {
+          setCurrentUser(data.user);
+          localStorage.setItem('quekart_user_session', JSON.stringify(data.user));
+        }
+        return { success: true, refundAmount: data.refundAmount };
+      } else {
+        const err = await res.json().catch(() => ({}));
+        return { success: false, error: err.error || 'Failed to process return' };
+      }
+    } catch (e: any) {
+      console.error('Error processing return:', e);
+      return { success: false, error: e.message || 'Network error' };
     }
   };
 
@@ -789,6 +844,7 @@ export default function App() {
                     onSelectProduct={(id) => navigateTo('/shop/product/' + id)}
                     onSelectTab={(tab) => navigateTo(tab === 'home' ? '/shop' : '/shop/' + tab)}
                     currentUser={currentUser}
+                    onReturnOrder={handleReturnOrder}
                   />
                 )}
 
@@ -894,6 +950,7 @@ export default function App() {
                     activeSubPage={activeSubPage}
                     setActiveSubPage={(sub) => navigateTo(sub ? `/shop/profile/${sub}` : '/shop/profile')}
                     currentUser={currentUser}
+                    onUpdateUser={handleUpdateUser}
                     onLogout={handleLogoutUser}
                   />
                 )}

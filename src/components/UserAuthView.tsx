@@ -57,7 +57,7 @@ const FASHION_ROW_5 = [
 ];
 
 export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: UserAuthViewProps) {
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [step, setStep] = useState<'phone' | 'otp' | 'profile_complete'>('phone');
   const [phone, setPhone] = useState('');
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [timer, setTimer] = useState(60);
@@ -65,6 +65,17 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [simulatedOtp, setSimulatedOtp] = useState('123456');
+
+  // New profile completion state variables
+  const [profileName, setProfileName] = useState('');
+  const [profileEmail, setProfileEmail] = useState('');
+  const [profileGender, setProfileGender] = useState('Male');
+  const [profileCity, setProfileCity] = useState('');
+  const [profilePincode, setProfilePincode] = useState('');
+  const [profileState, setProfileState] = useState('');
+  const [profileAltPhone, setProfileAltPhone] = useState('');
+  const [tempToken, setTempToken] = useState('');
+  const [tempUserId, setTempUserId] = useState('');
 
   const otpInputRefs = [
     useRef<HTMLInputElement>(null),
@@ -322,7 +333,15 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
         // Trigger smooth green tick animation
         setShowSuccessTick(true);
         setTimeout(() => {
-          onLoginSuccess(data.user, data.token);
+          setShowSuccessTick(false);
+          const needsProfileComplete = data.isNewUser || !data.user.isProfileComplete || !data.user.name || data.user.name.startsWith('Customer');
+          if (needsProfileComplete) {
+            setTempToken(data.token);
+            setTempUserId(data.user.id);
+            setStep('profile_complete');
+          } else {
+            onLoginSuccess(data.user, data.token);
+          }
         }, 1100);
       } else {
         // Mobile vibration on incorrect OTP
@@ -340,6 +359,67 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
         } catch (_) {}
       }
       setErrorMsg('Network error. Unable to verify OTP code.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Profile Completion submit handler
+  const handleCompleteProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profileName.trim()) {
+      setErrorMsg('Full Name is required');
+      return;
+    }
+    if (!profilePincode.trim() || profilePincode.trim().length !== 6) {
+      setErrorMsg('Please enter a valid 6-digit PIN code');
+      return;
+    }
+    if (!profileCity.trim()) {
+      setErrorMsg('City is required');
+      return;
+    }
+    if (!profileState.trim()) {
+      setErrorMsg('State is required');
+      return;
+    }
+    if (!profileEmail.trim() || !profileEmail.includes('@')) {
+      setErrorMsg('Please enter a valid email address');
+      return;
+    }
+
+    setIsProcessing(true);
+    setErrorMsg('');
+
+    try {
+      const res = await fetch(getApiUrl('/api/user/profile'), {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tempToken}`
+        },
+        body: JSON.stringify({
+          userId: tempUserId,
+          phone: phone,
+          name: profileName,
+          email: profileEmail,
+          gender: profileGender,
+          city: profileCity,
+          state: profileState,
+          pincode: profilePincode,
+          alternativePhone: profileAltPhone,
+          isProfileComplete: true
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.user) {
+        onLoginSuccess(data.user, tempToken);
+      } else {
+        setErrorMsg(data.error || 'Failed to complete profile. Please try again.');
+      }
+    } catch (_) {
+      setErrorMsg('Network error. Unable to complete profile.');
     } finally {
       setIsProcessing(false);
     }
@@ -661,6 +741,187 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
             </button>
           </div>
 
+        </div>
+      )}
+
+      {/* ----------------- STEP 3: PROFILE COMPLETION ----------------- */}
+      {step === 'profile_complete' && (
+        <div className="flex-1 flex flex-col justify-between max-w-md mx-auto w-full px-5 pt-4 pb-8 overflow-y-auto animate-fadeIn animate-duration-300" id="profile-completion-view">
+          <div className="space-y-4">
+            {/* Top Bar / Header */}
+            <div className="space-y-1 pt-2 pb-3 border-b border-slate-100 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setStep('phone');
+                  setErrorMsg('');
+                }}
+                className="w-8 h-8 rounded-full border border-slate-200/80 flex items-center justify-center text-slate-700 hover:bg-slate-100 transition-colors active:scale-95 cursor-pointer"
+              >
+                <ArrowLeft className="w-4 h-4 stroke-[2.2]" />
+              </button>
+              <div>
+                <h2 className="text-lg font-black text-slate-900 tracking-tight font-display">
+                  Complete registration
+                </h2>
+                <p className="text-[11px] font-bold text-slate-400">
+                  Please provide your details to access your account
+                </p>
+              </div>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleCompleteProfileSubmit} className="space-y-3.5">
+              
+              {/* Full Name */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Lakhwinder Singh"
+                  value={profileName}
+                  onChange={(e) => {
+                    setProfileName(e.target.value);
+                    setErrorMsg('');
+                  }}
+                  className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:border-slate-800 focus:outline-hidden transition-all"
+                />
+              </div>
+
+              {/* Email Address */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="e.g. name@quekart.com"
+                  value={profileEmail}
+                  onChange={(e) => {
+                    setProfileEmail(e.target.value);
+                    setErrorMsg('');
+                  }}
+                  className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:border-slate-800 focus:outline-hidden transition-all"
+                />
+              </div>
+
+              {/* Gender Select buttons */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                  Gender *
+                </label>
+                <div className="flex gap-2">
+                  {['Male', 'Female', 'Other'].map((g) => (
+                    <button
+                      type="button"
+                      key={g}
+                      onClick={() => setProfileGender(g)}
+                      className={`flex-1 h-10 rounded-xl border text-xs font-black transition-all cursor-pointer ${
+                        profileGender === g
+                          ? 'bg-[#143C6B] text-white border-[#143C6B] shadow-2xs'
+                          : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      {g}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* City & PIN Code */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                    City *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Jaipur"
+                    value={profileCity}
+                    onChange={(e) => {
+                      setProfileCity(e.target.value);
+                      setErrorMsg('');
+                    }}
+                    className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:border-slate-800 focus:outline-hidden transition-all"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                    PIN Code *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    maxLength={6}
+                    placeholder="e.g. 302001"
+                    value={profilePincode}
+                    onChange={(e) => {
+                      setProfilePincode(e.target.value.replace(/[^0-9]/g, ''));
+                      setErrorMsg('');
+                    }}
+                    className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:border-slate-800 focus:outline-hidden transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* State */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                  State *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Rajasthan"
+                  value={profileState}
+                  onChange={(e) => {
+                    setProfileState(e.target.value);
+                    setErrorMsg('');
+                  }}
+                  className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:border-slate-800 focus:outline-hidden transition-all"
+                />
+              </div>
+
+              {/* Alternative Phone Number (Optional) */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                  Alternative Phone Number (Optional)
+                </label>
+                <input
+                  type="tel"
+                  maxLength={10}
+                  placeholder="e.g. 9876543210"
+                  value={profileAltPhone}
+                  onChange={(e) => {
+                    setProfileAltPhone(e.target.value.replace(/[^0-9]/g, ''));
+                    setErrorMsg('');
+                  }}
+                  className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:border-slate-800 focus:outline-hidden transition-all"
+                />
+              </div>
+
+              {/* Error Message */}
+              {errorMsg && (
+                <div className="bg-red-50 border border-red-200 text-red-600 text-xs font-bold py-2 px-3 rounded-xl text-center">
+                  {errorMsg}
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isProcessing}
+                className="w-full h-12 mt-2 rounded-2xl bg-[#143C6B] hover:bg-[#0C2340] text-white font-black text-sm tracking-wide transition-all cursor-pointer flex items-center justify-center shadow-md active:scale-[0.99] disabled:opacity-50"
+              >
+                {isProcessing ? 'Saving Details...' : 'Complete & Enter App'}
+              </button>
+            </form>
+          </div>
         </div>
       )}
 

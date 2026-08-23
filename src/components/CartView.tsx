@@ -30,12 +30,12 @@ export default function CartDrawer({
   const [name, setName] = useState(() => currentUser?.name || '');
   const phone = currentUser?.phone || ''; // FIXED & LOCKED TO LOGGED-IN MOBILE
   const [gender, setGender] = useState<'Male' | 'Female' | 'Other'>(() => (currentUser?.gender as any) || 'Male');
-  const [age, setAge] = useState<string>(() => currentUser?.age ? String(currentUser.age) : '25');
+  const [age, setAge] = useState<string>(() => currentUser?.age ? String(currentUser.age) : '');
   const [alternativePhone, setAlternativePhone] = useState(() => currentUser?.alternativePhone || '');
   const [addressLine, setAddressLine] = useState(() => currentUser?.address || '');
-  const [city, setCity] = useState(() => currentUser?.city || 'Jaipur');
-  const [pincode, setPincode] = useState(() => currentUser?.pincode || '302001');
-  const [state, setState] = useState(() => currentUser?.state || 'Rajasthan');
+  const [city, setCity] = useState(() => currentUser?.city || '');
+  const [pincode, setPincode] = useState(() => currentUser?.pincode || '');
+  const [state, setState] = useState(() => currentUser?.state || '');
 
   // Local Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -134,9 +134,13 @@ export default function CartDrawer({
 
     // Persist complete customer profile & address to server database
     try {
+      const token = localStorage.getItem('quekart_user_token');
       await fetch(getApiUrl('/api/user/profile'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
         body: JSON.stringify({
           userId: currentUser?.id,
           phone: phone,

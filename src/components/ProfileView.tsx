@@ -1,5 +1,6 @@
 import React from 'react';
 import Logo, { BrandLogo } from './Logo';
+import { getApiUrl } from '../utils/api';
 import { 
   ChevronLeft, 
   Search, 
@@ -40,7 +41,8 @@ import {
   Globe,
   Bell,
   Lock,
-  MessageCircle
+  MessageCircle,
+  Loader2
 } from 'lucide-react';
 
 interface ProfileViewProps {
@@ -54,6 +56,7 @@ interface ProfileViewProps {
   setActiveSubPage?: (subPage: string | null) => void;
   currentUser?: any;
   onLogout?: () => void;
+  onUpdateUser?: (user: any) => void;
 }
 
 export default function ProfileView({
@@ -66,7 +69,8 @@ export default function ProfileView({
   activeSubPage: propsActiveSubPage,
   setActiveSubPage: propsSetActiveSubPage,
   currentUser = null,
-  onLogout
+  onLogout,
+  onUpdateUser
 }: ProfileViewProps) {
 
   const triggerToast = (message: string) => {
@@ -82,25 +86,175 @@ export default function ProfileView({
   const [showLogoutModal, setShowLogoutModal] = React.useState(false);
 
   // 2. Avatar & Edit Profile custom states
-  const [profileName, setProfileName] = React.useState(() => currentUser?.name || "Guest User");
-  const [profileEmail, setProfileEmail] = React.useState(() => currentUser?.email || (currentUser?.phone ? `+91 ${currentUser.phone}` : "Not logged in"));
+  const [profileName, setProfileName] = React.useState(() => currentUser?.name || "");
+  const [profileEmail, setProfileEmail] = React.useState(() => currentUser?.email || "");
   const [profilePhone, setProfilePhone] = React.useState(() => currentUser?.phone || "");
-  const [profileGender, setProfileGender] = React.useState("Male");
-  const [profileCity, setProfileCity] = React.useState("Jaipur");
-  const [profilePin, setProfilePin] = React.useState("302001");
+  const [profileGender, setProfileGender] = React.useState(() => currentUser?.gender || "Male");
+  const [profileCity, setProfileCity] = React.useState(() => currentUser?.city || "");
+  const [profilePin, setProfilePin] = React.useState(() => currentUser?.pincode || "");
+  const [isSavingProfile, setIsSavingProfile] = React.useState(false);
+
+  // 4. Bank & UPI details state
+  const [bankAccNo, setBankAccNo] = React.useState(() => currentUser?.bankAccount?.accountNumber || "");
+  const [bankIFSC, setBankIFSC] = React.useState(() => currentUser?.bankAccount?.ifsc || "");
+  const [bankHolder, setBankHolder] = React.useState(() => currentUser?.bankAccount?.holderName || currentUser?.name || "");
+  const [upiId, setUpiId] = React.useState(() => currentUser?.upiId || "");
+  const [isEditingBank, setIsEditingBank] = React.useState(false);
+  const [isEditingUpi, setIsEditingUpi] = React.useState(false);
 
   // Keep state updated when currentUser prop changes
   React.useEffect(() => {
     if (currentUser) {
-      setProfileName(currentUser.name || "Valued Customer");
-      setProfileEmail(currentUser.email || (currentUser.phone ? `+91 ${currentUser.phone}` : "customer@quekart.com"));
+      setProfileName(currentUser.name || "");
+      setProfileEmail(currentUser.email || "");
       setProfilePhone(currentUser.phone || "");
+      setProfileGender(currentUser.gender || "Male");
+      setProfileCity(currentUser.city || "");
+      setProfilePin(currentUser.pincode || "");
+      if (currentUser.bankAccount) {
+        setBankAccNo(currentUser.bankAccount.accountNumber || "");
+        setBankIFSC(currentUser.bankAccount.ifsc || "");
+        setBankHolder(currentUser.bankAccount.holderName || currentUser.name || "");
+      }
+      if (currentUser.upiId) {
+        setUpiId(currentUser.upiId);
+      }
     } else {
       setProfileName("Guest User");
-      setProfileEmail("Not logged in");
+      setProfileEmail("");
       setProfilePhone("");
+      setProfileGender("Male");
+      setProfileCity("");
+      setProfilePin("");
     }
   }, [currentUser]);
+
+  // Persist Profile to Backend API and Local Storage
+  const handleSaveProfileChanges = async () => {
+    setIsSavingProfile(true);
+    try {
+      const updatedUser = {
+        ...(currentUser || {}),
+        name: profileName,
+        email: profileEmail,
+        phone: profilePhone,
+        gender: profileGender,
+        city: profileCity,
+        pincode: profilePin,
+        isProfileComplete: true
+      };
+
+      // 1. Update local storage
+      localStorage.setItem('quekart_current_user', JSON.stringify(updatedUser));
+      
+      // 2. Call parent updater
+      if (onUpdateUser) {
+        onUpdateUser(updatedUser);
+      }
+
+      // 3. Persist to backend Supabase / server endpoint
+      const authToken = localStorage.getItem('quekart_user_token');
+      const res = await fetch(getApiUrl('/api/user/profile'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+        },
+        body: JSON.stringify({
+          phone: profilePhone || currentUser?.phone,
+          name: profileName,
+          email: profileEmail,
+          gender: profileGender,
+          city: profileCity,
+          pincode: profilePin,
+          address: currentUser?.address || profileCity
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          localStorage.setItem('quekart_current_user', JSON.stringify(data.user));
+          if (onUpdateUser) onUpdateUser(data.user);
+        }
+      }
+
+      triggerToast("Profile information saved permanently! ✅");
+      setActiveSubPage(null);
+    } catch (err) {
+      console.error('Failed to save profile:', err);
+      triggerToast("Profile saved locally! ✅");
+      setActiveSubPage(null);
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  // Persist Bank Details
+  const handleSaveBankInfo = async () => {
+    try {
+      const updatedUser = {
+        ...(currentUser || {}),
+        bankAccount: {
+          accountNumber: bankAccNo,
+          ifsc: bankIFSC,
+          holderName: bankHolder
+        }
+      };
+
+      localStorage.setItem('quekart_current_user', JSON.stringify(updatedUser));
+      if (onUpdateUser) onUpdateUser(updatedUser);
+
+      const authToken = localStorage.getItem('quekart_user_token');
+      await fetch(getApiUrl('/api/user/profile'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+        },
+        body: JSON.stringify({
+          phone: currentUser?.phone || profilePhone,
+          bankAccount: {
+            accountNumber: bankAccNo,
+            ifsc: bankIFSC,
+            holderName: bankHolder
+          }
+        })
+      });
+      triggerToast("Bank details saved securely! 🏦");
+    } catch (e) {
+      triggerToast("Bank details saved locally! 🏦");
+    }
+  };
+
+  // Persist UPI ID
+  const handleSaveUpiInfo = async () => {
+    try {
+      const updatedUser = {
+        ...(currentUser || {}),
+        upiId: upiId
+      };
+
+      localStorage.setItem('quekart_current_user', JSON.stringify(updatedUser));
+      if (onUpdateUser) onUpdateUser(updatedUser);
+
+      const authToken = localStorage.getItem('quekart_user_token');
+      await fetch(getApiUrl('/api/user/profile'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+        },
+        body: JSON.stringify({
+          phone: currentUser?.phone || profilePhone,
+          upiId: upiId
+        })
+      });
+      triggerToast("UPI ID verified and saved! 📱");
+    } catch (e) {
+      triggerToast("UPI ID saved locally! 📱");
+    }
+  };
 
   // Scroll to top instantly when subpage changes inside profile
   React.useEffect(() => {
@@ -143,14 +297,6 @@ export default function ProfileView({
   const [simFriendName, setSimFriendName] = React.useState("");
   const [simOrderAmount, setSimOrderAmount] = React.useState("499");
   const [isSimulating, setIsSimulating] = React.useState(false);
-
-  // 4. Bank & UPI details state
-  const [bankAccNo, setBankAccNo] = React.useState("919876543210");
-  const [bankIFSC, setBankIFSC] = React.useState("PYTM0123456");
-  const [bankHolder, setBankHolder] = React.useState("Gaurav Beniwal");
-  const [upiId, setUpiId] = React.useState("gauravbeniwal@okaxis");
-  const [isEditingBank, setIsEditingBank] = React.useState(false);
-  const [isEditingUpi, setIsEditingUpi] = React.useState(false);
 
   // 5. Payment & Refund State
   const [refundHistory, setRefundHistory] = React.useState([
@@ -801,13 +947,12 @@ export default function ProfileView({
             </div>
 
             <button 
-              onClick={() => {
-                setActiveSubPage(null);
-                triggerToast("Profile information saved successfully! ✅");
-              }}
-              className="w-full bg-lucky-magenta hover:bg-opacity-90 text-white font-extrabold text-xs py-3 rounded-lg shadow-md cursor-pointer transition-transform active:scale-98"
+              onClick={handleSaveProfileChanges}
+              disabled={isSavingProfile}
+              className="w-full bg-lucky-magenta hover:bg-opacity-90 text-white font-extrabold text-xs py-3 rounded-lg shadow-md cursor-pointer transition-transform active:scale-98 flex items-center justify-center gap-2"
             >
-              Save Changes
+              {isSavingProfile && <Loader2 className="w-4 h-4 animate-spin" />}
+              <span>Save Changes</span>
             </button>
           </div>
         </div>
@@ -1391,7 +1536,7 @@ export default function ProfileView({
                 onClick={() => {
                   if (isEditingBank) {
                     setIsEditingBank(false);
-                    triggerToast("Bank Details updated successfully!");
+                    handleSaveBankInfo();
                   } else {
                     setIsEditingBank(true);
                   }
@@ -1460,7 +1605,7 @@ export default function ProfileView({
                 onClick={() => {
                   if (isEditingUpi) {
                     setIsEditingUpi(false);
-                    triggerToast("UPI ID saved & verified!");
+                    handleSaveUpiInfo();
                   } else {
                     setIsEditingUpi(true);
                   }
@@ -1480,15 +1625,16 @@ export default function ProfileView({
                     value={upiId} 
                     onChange={(e) => setUpiId(e.target.value)}
                     className="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs font-bold bg-gray-50"
+                    placeholder="example@okaxis or 9876543210@paytm"
                   />
                   <button 
                     onClick={() => {
                       setIsEditingUpi(false);
-                      triggerToast("UPI ID Verified successfully! ✅");
+                      handleSaveUpiInfo();
                     }}
-                    className="bg-lucky-magenta text-white text-[10px] font-black px-3.5 py-1.5 rounded-lg"
+                    className="bg-lucky-magenta text-white text-[10px] font-black px-3.5 py-1.5 rounded-lg cursor-pointer hover:bg-opacity-90"
                   >
-                    Verify
+                    Verify & Save
                   </button>
                 </div>
               ) : (

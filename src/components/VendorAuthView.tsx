@@ -175,89 +175,6 @@ export default function VendorAuthView({
     return () => clearInterval(interval);
   }, [authMode, isOtpSent, isMobileVerified, signUpTimer]);
 
-  // Fast 1-Click Demo Login
-  const handleFastDemoLogin = async (vendorType: 'verified' | 'small' = 'verified') => {
-    setIsProcessing(true);
-    setErrorMsg('');
-
-    let demoVendor: Vendor;
-    if (vendorType === 'verified') {
-      const existing = systemVendors.find(v => v.isVerified || v.vendorType === 'big');
-      demoVendor = existing || {
-        id: 'vendor-big-raj',
-        name: 'Rajasthan Handloom House',
-        ownerName: 'Gaurav Beniwal',
-        email: 'raj.handloom@seller.quekart.com',
-        phone: '9876543210',
-        age: 34,
-        aadhaarNumber: '5482 9102 3847',
-        aadhaarVerified: true,
-        gstinVerified: true,
-        vendorType: 'big',
-        isVerified: true,
-        businessCategory: 'Apparel & Sarees',
-        gstin: '08AAAAA1111A1Z1',
-        rating: 4.9,
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        city: 'Jaipur',
-        district: 'Jaipur',
-        state: 'Rajasthan',
-        pincode: '302001',
-        address: '42, Johari Bazar, Pink City Market',
-        description: 'Direct manufacturer and wholesale supplier of traditional Banarasi sarees.'
-      };
-    } else {
-      const existing = systemVendors.find(v => !v.isVerified || v.vendorType === 'small');
-      demoVendor = existing || {
-        id: 'vendor-small-surat',
-        name: 'Surat Silk Hub',
-        ownerName: 'Sunil Kumar',
-        email: 'surat.silk@seller.quekart.com',
-        phone: '9812345678',
-        age: 29,
-        aadhaarNumber: '8821 4432 9901',
-        aadhaarVerified: true,
-        gstinVerified: false,
-        vendorType: 'small',
-        isVerified: false,
-        businessCategory: 'Apparel & Sarees',
-        rating: 4.7,
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        city: 'Surat',
-        district: 'Surat',
-        state: 'Gujarat',
-        pincode: '395003',
-        description: 'Local boutique artisan collective with 0% commission.'
-      };
-    }
-
-    try {
-      const res = await fetch(getApiUrl('/api/auth/vendor-login'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: demoVendor.phone })
-      });
-      const data = await res.json();
-      if (res.ok && data.vendor) {
-        onLoginSuccess(data.vendor, data.token || 'demo-vendor-jwt-token');
-        return;
-      }
-    } catch (_) {
-      // Fallback
-    }
-
-    onLoginSuccess(demoVendor, 'demo-vendor-jwt-token');
-    setIsProcessing(false);
-  };
-
-  const handleAutoFillSample = () => {
-    setGstin('22AAAAA0000A1Z5');
-    setSignUpPhone('9876543210');
-    setErrorMsg('');
-  };
-
   // ----------------- GST VERIFICATION BUTTON HANDLER -----------------
   // Does NOT automatically fire on typing; triggers only on button click
   const handleVerifyGstClick = async () => {
@@ -283,7 +200,7 @@ export default function VendorAuthView({
         setGstData(d);
         setIsGstVerified(true);
 
-        // Sync details from GST API Response
+        // Sync details from GST API Response and lock fields
         if (d.legal_name) {
           setOwnerName(d.legal_name);
         }
@@ -305,32 +222,12 @@ export default function VendorAuthView({
           setPincode(d.pincode);
         }
       } else {
-        setErrorMsg(json.message || 'Invalid GSTIN or record not found.');
+        setErrorMsg(json.message || json.error || 'GST Number verification failed. Only active GST registered sellers are eligible.');
         setIsGstVerified(false);
       }
     } catch (err: any) {
-      // Fallback simulation for offline/preview
-      const simulated: GstData = {
-        gstin: cleanGst,
-        verified: true,
-        status: "Active",
-        legal_name: "EXAMPLE PRIVATE LIMITED",
-        trade_name: "EXAMPLE CORP",
-        business_type: "Private Limited Company",
-        registration_date: "01/07/2017",
-        address: "123, MG Road, Sector 5",
-        state: "Rajasthan",
-        district: "Jaipur",
-        pincode: "302001"
-      };
-      setGstData(simulated);
-      setIsGstVerified(true);
-      setOwnerName(simulated.legal_name);
-      setStoreName(simulated.trade_name);
-      setAddress(simulated.address);
-      setStateName(simulated.state);
-      setDistrict(simulated.district);
-      setPincode(simulated.pincode);
+      setErrorMsg('Network error connecting to GST verification service. Please try again.');
+      setIsGstVerified(false);
     } finally {
       setIsGstVerifying(false);
     }
@@ -676,6 +573,16 @@ export default function VendorAuthView({
     e.preventDefault();
     setErrorMsg('');
 
+    const cleanGstin = gstin.trim().toUpperCase();
+    if (!cleanGstin || cleanGstin.length !== 15) {
+      setErrorMsg('A valid 15-character GST Number is compulsory for vendor registration.');
+      return;
+    }
+    if (!isGstVerified) {
+      setErrorMsg('GST number verification is compulsory. Please click "Verify GST" to verify your GSTIN.');
+      return;
+    }
+
     const cleanOwnerName = ownerName.trim();
     const cleanStoreName = storeName.trim();
     if (!cleanOwnerName) {
@@ -693,34 +600,31 @@ export default function VendorAuthView({
 
     setIsProcessing(true);
     const cleanPhone = signUpPhone.trim().replace(/\s+/g, '');
-    const cleanGstin = gstin.trim().toUpperCase();
     const isGstVerifiedSeller = isGstVerified && cleanGstin.length === 15;
 
     const newVendor: Vendor = {
       id: `vendor-${Date.now()}`,
       name: cleanStoreName,
       ownerName: cleanOwnerName,
-      legalBusinessName: gstData?.legal_name || (isGstVerifiedSeller ? cleanOwnerName : undefined),
+      legalBusinessName: gstData?.legal_name || cleanOwnerName,
       tradeName: gstData?.trade_name || cleanStoreName,
-      businessType: gstData?.business_type || (isGstVerifiedSeller ? 'Registered Business' : 'Artisan Individual'),
+      businessType: gstData?.business_type || 'Registered Business',
       email: `${cleanPhone}@seller.quekart.com`,
       phone: cleanPhone,
       age: 28,
       aadhaarNumber: 'XXXX-XXXX-3847',
       aadhaarVerified: true,
-      gstinVerified: isGstVerifiedSeller,
-      vendorType: isGstVerifiedSeller ? 'big' : 'small',
-      isVerified: isGstVerifiedSeller,
+      gstinVerified: true,
+      vendorType: 'big',
+      isVerified: true,
       businessCategory: 'Apparel & Sarees',
-      gstin: cleanGstin || undefined,
+      gstin: cleanGstin,
       city: district || 'Jaipur',
       district: district || 'Jaipur',
       state: stateName || 'Rajasthan',
       pincode: pincode || '302001',
-      address: address || (isGstVerifiedSeller ? `${district}, ${stateName}` : undefined),
-      description: isGstVerifiedSeller 
-        ? `GST-Verified Seller (${cleanGstin}) - ${gstData?.legal_name || cleanOwnerName}, ${district}, ${stateName}.`
-        : `Artisan supplier (0% Commission) - ${cleanOwnerName}.`,
+      address: address || `${district}, ${stateName}`,
+      description: `GST-Verified Seller (${cleanGstin}) - ${gstData?.legal_name || cleanOwnerName}, ${district}, ${stateName}.`,
       rating: 5.0,
       status: 'active',
       createdAt: new Date().toISOString()
@@ -750,6 +654,8 @@ export default function VendorAuthView({
   const isGstValidLength = gstin.trim().length === 15;
   const isSignUpSubmitReady = ownerName.trim().length > 0 && 
                              storeName.trim().length > 0 && 
+                             isGstVerified &&
+                             gstin.trim().length === 15 &&
                              isMobileVerified;
 
   return (
@@ -875,27 +781,11 @@ export default function VendorAuthView({
         {/* ================= TOP SECTION: LOGO + TOP TAB SWITCHER ================= */}
         <div className="pt-2 px-4 flex flex-col items-center flex-shrink-0">
           
-          {/* Top Row: Fast Demo Button & Brand Logo */}
-          <div className="w-full flex items-center justify-between pb-1">
-            <button
-              type="button"
-              onClick={() => handleFastDemoLogin('verified')}
-              className={`text-[11px] font-extrabold px-2.5 py-1 rounded-full shadow-md transition-all active:scale-95 cursor-pointer flex items-center gap-1 border ${
-                authMode === 'signup'
-                  ? 'bg-slate-800/90 text-amber-300 border-slate-700 backdrop-blur-md'
-                  : 'bg-[#143C6B]/90 text-amber-300 border-blue-800/80'
-              }`}
-              id="vendor-instant-demo-btn"
-            >
-              <Zap className="w-3 h-3 text-amber-400 fill-amber-400" />
-              <span>1-Click Demo</span>
-            </button>
-
+          {/* Top Row: Brand Logo */}
+          <div className="w-full flex items-center justify-center pb-1">
             <div className="scale-90">
               <BrandLogo size="md" animated={true} />
             </div>
-
-            <div className="w-16" /> {/* spacer */}
           </div>
 
           {/* TOP TAB SWITCHER (PINNED AT THE VERY TOP) */}
@@ -963,15 +853,6 @@ export default function VendorAuthView({
                     Verify GSTIN or register as 0% Commission artisan seller
                   </p>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={handleAutoFillSample}
-                  className="text-[10px] font-extrabold bg-blue-50 text-[#143C6B] hover:bg-blue-100 px-2 py-1 rounded-lg border border-blue-200 transition-all cursor-pointer flex items-center gap-1 active:scale-95"
-                >
-                  <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
-                  <span>Sample GST</span>
-                </button>
               </div>
 
               {/* Error Message */}
@@ -990,19 +871,21 @@ export default function VendorAuthView({
                   <div className="flex items-center justify-between">
                     <label className="text-[10.5px] font-extrabold text-slate-700 flex items-center gap-1">
                       <FileText className="w-3 h-3 text-[#143C6B]" />
-                      GST No. <span className="text-slate-400 font-semibold">(Optional)</span>
+                      GST No. <span className="text-red-500 font-bold">* Compulsory</span>
                     </label>
                     <div className="flex items-center gap-1">
                       {isGstVerified ? (
-                        <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[9.5px] font-black px-1.5 py-0.2 rounded-md flex items-center gap-0.5">
-                          <BadgeCheck className="w-3 h-3 text-amber-600" />
-                          Verified Seller
+                        <span className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[9.5px] font-black px-1.5 py-0.2 rounded-md flex items-center gap-0.5">
+                          <BadgeCheck className="w-3 h-3 text-emerald-600" />
+                          GST Verified
                         </span>
                       ) : isGstEntered ? (
-                        <span className="text-slate-500 text-[9.5px] font-semibold">Click Verify to sync details</span>
+                        <span className="text-amber-700 text-[9.5px] font-bold bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+                          Verification Pending
+                        </span>
                       ) : (
-                        <span className="bg-slate-100 text-slate-600 text-[9.5px] font-bold px-1.5 py-0.2 rounded-md">
-                          Unverified Seller
+                        <span className="bg-red-50 text-red-600 border border-red-200 text-[9.5px] font-bold px-1.5 py-0.2 rounded-md">
+                          * GST Required
                         </span>
                       )}
                     </div>
@@ -1014,16 +897,21 @@ export default function VendorAuthView({
                       <input
                         type="text"
                         maxLength={15}
+                        readOnly={isGstVerified}
                         placeholder="15-digit GSTIN (e.g. 22AAAAA0000A1Z5)"
                         value={gstin}
                         onChange={(e) => {
-                          const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-                          setGstin(val);
-                          setIsGstVerified(false); // reset verification if user modifies text
-                          setGstData(null);
-                          setErrorMsg('');
+                          if (!isGstVerified) {
+                            const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                            setGstin(val);
+                            setIsGstVerified(false);
+                            setGstData(null);
+                            setErrorMsg('');
+                          }
                         }}
-                        className="w-full text-xs font-mono font-bold text-slate-900 bg-transparent placeholder:text-slate-400 focus:outline-hidden uppercase placeholder:normal-case"
+                        className={`w-full text-xs font-mono font-bold uppercase placeholder:normal-case placeholder:text-slate-400 focus:outline-hidden ${
+                          isGstVerified ? 'text-slate-600 cursor-not-allowed' : 'text-slate-900 bg-transparent'
+                        }`}
                         id="vendor-reg-gstin"
                       />
                       {isGstVerified && (
@@ -1083,16 +971,23 @@ export default function VendorAuthView({
                   <input
                     type="text"
                     required
+                    readOnly={isGstVerified}
                     placeholder="e.g. Gaurav Beniwal"
                     value={ownerName}
                     onChange={(e) => {
-                      setOwnerName(e.target.value);
-                      if (!storeName && e.target.value) {
-                        setStoreName(`${e.target.value} Enterprises`);
+                      if (!isGstVerified) {
+                        setOwnerName(e.target.value);
+                        if (!storeName && e.target.value) {
+                          setStoreName(`${e.target.value} Enterprises`);
+                        }
+                        setErrorMsg('');
                       }
-                      setErrorMsg('');
                     }}
-                    className="w-full h-8.5 px-2.5 text-xs font-bold text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#143C6B] focus:ring-1 focus:ring-[#143C6B] focus:outline-hidden transition-all placeholder:text-slate-400"
+                    className={`w-full h-8.5 px-2.5 text-xs font-bold border rounded-xl transition-all placeholder:text-slate-400 ${
+                      isGstVerified 
+                        ? 'bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed font-semibold' 
+                        : 'bg-slate-50 text-slate-900 border-slate-200 focus:bg-white focus:border-[#143C6B] focus:ring-1 focus:ring-[#143C6B] focus:outline-hidden'
+                    }`}
                     id="vendor-reg-ownername"
                   />
                 </div>
@@ -1116,13 +1011,20 @@ export default function VendorAuthView({
                   <input
                     type="text"
                     required
+                    readOnly={isGstVerified}
                     placeholder="e.g. Jaipur Handloom Emporium"
                     value={storeName}
                     onChange={(e) => {
-                      setStoreName(e.target.value);
-                      setErrorMsg('');
+                      if (!isGstVerified) {
+                        setStoreName(e.target.value);
+                        setErrorMsg('');
+                      }
                     }}
-                    className="w-full h-8.5 px-2.5 text-xs font-bold text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#143C6B] focus:ring-1 focus:ring-[#143C6B] focus:outline-hidden transition-all placeholder:text-slate-400"
+                    className={`w-full h-8.5 px-2.5 text-xs font-bold border rounded-xl transition-all placeholder:text-slate-400 ${
+                      isGstVerified 
+                        ? 'bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed font-semibold' 
+                        : 'bg-slate-50 text-slate-900 border-slate-200 focus:bg-white focus:border-[#143C6B] focus:ring-1 focus:ring-[#143C6B] focus:outline-hidden'
+                    }`}
                     id="vendor-reg-storename"
                   />
                 </div>
@@ -1282,15 +1184,15 @@ export default function VendorAuthView({
                   >
                     {isProcessing 
                       ? 'Creating Account...' 
-                      : !isMobileVerified 
-                        ? 'Verify Mobile to Continue' 
-                        : isGstVerified
-                          ? 'Create Verified Seller Account'
-                          : 'Create Artisan Account (Unverified)'}
+                      : !isGstVerified
+                        ? 'Verify GST Number to Continue'
+                        : !isMobileVerified 
+                          ? 'Verify Mobile to Continue' 
+                          : 'Create Verified Seller Account'}
                   </button>
 
                   <p className="text-[9px] text-slate-400 font-semibold text-center mt-0.5">
-                    {isGstVerified ? '✓ GST Verified Seller' : '0% Commission Artisan'} &bull; Direct Buyer Wholesale Hub
+                    {isGstVerified ? '✓ GST Verified Seller' : '🔒 Compulsory GST Verification Required'} &bull; Direct Marketplace Hub
                   </p>
                 </div>
 
@@ -1366,17 +1268,6 @@ export default function VendorAuthView({
                   {isProcessing ? 'Sending Code...' : 'Continue to Dashboard'}
                 </button>
               </form>
-
-              {/* Verified Seller Demo Quick Button */}
-              <div className="text-center pt-1">
-                <button
-                  type="button"
-                  onClick={() => handleFastDemoLogin('verified')}
-                  className="text-[11px] font-bold text-[#143C6B] bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-full border border-blue-200 transition-colors cursor-pointer"
-                >
-                  ⚡ Try Verified Seller (Rajasthan Handloom)
-                </button>
-              </div>
 
               <p className="text-[10px] text-slate-400 font-medium text-center">
                 By continuing, you agree to QueKart's Terms of Service & Privacy Policy.

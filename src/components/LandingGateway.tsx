@@ -175,90 +175,123 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
         </header>
 
         {/* 2. Branded Headline Banner matching reference design */}
-        <div className="pt-3 sm:pt-6 pb-2 max-w-2xl mx-auto px-3 sm:px-6 w-full" id="landing-hero-banner-container">
-          <div className="relative group overflow-hidden rounded-2xl sm:rounded-[22px] bg-gradient-to-r from-[#07192F] via-[#0D284C] to-[#07192F] px-3.5 py-2.5 sm:px-6 sm:py-3.5 border-1.5 sm:border-2 border-[#D4AF37]/90 shadow-[0_8px_30px_rgba(7,25,47,0.4),0_0_15px_rgba(212,175,55,0.25)] flex items-center justify-center">
+        <div className="pt-2.5 sm:pt-5 pb-2 max-w-[620px] mx-auto px-3 sm:px-5 w-full" id="landing-hero-banner-container">
+          <div className="relative group overflow-hidden rounded-2xl sm:rounded-[26px] bg-[#07182E] px-3.5 py-2.5 sm:px-5 sm:py-3.5 border-[2px] border-[#D4AF37] shadow-[0_6px_25px_rgba(7,24,46,0.5),0_0_15px_rgba(212,175,55,0.25)] flex items-center gap-3 sm:gap-4.5">
             
             {/* Top and bottom subtle golden ambient glow flares */}
-            <div className="absolute -top-5 left-1/2 -translate-x-1/2 w-2/3 h-6 bg-gradient-to-r from-transparent via-[#FBBF24]/30 to-transparent blur-md pointer-events-none" />
-            <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 w-2/3 h-6 bg-gradient-to-r from-transparent via-[#FBBF24]/20 to-transparent blur-md pointer-events-none" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1E4E8C]/25 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-3/4 h-6 bg-gradient-to-r from-transparent via-[#FBBF24]/30 to-transparent blur-md pointer-events-none" />
+            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-3/4 h-6 bg-gradient-to-r from-transparent via-[#FBBF24]/20 to-transparent blur-md pointer-events-none" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1E4E8C]/20 via-transparent to-transparent pointer-events-none" />
 
-            {/* Inner Content flex container - Left-aligned with icon near left corner */}
-            <div className="relative z-10 flex items-center justify-start gap-2.5 sm:gap-3.5 w-full">
-              
-              {/* Golden Shopping Bag with Heart Icon - Near Left Corner */}
-              <div className="flex-shrink-0 flex items-center justify-center pl-0.5 sm:pl-1">
-                <div className="relative w-8 h-9 min-[375px]:w-9 min-[375px]:h-10 sm:w-11 sm:h-12 flex items-center justify-center drop-shadow-[0_2px_8px_rgba(245,166,35,0.4)]">
-                  <svg 
-                    viewBox="0 0 100 115" 
-                    fill="none" 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    className="w-full h-full"
-                  >
-                    {/* Bag Handle */}
-                    <path 
-                      d="M34 38V22C34 13.1634 41.1634 6 50 6C58.8366 6 66 13.1634 66 22V38" 
-                      stroke="#F5A623" 
-                      strokeWidth="8" 
-                      strokeLinecap="round" 
-                    />
-                    
-                    {/* Bag Body Gradient & Shape */}
-                    <defs>
-                      <linearGradient id="goldBagGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#FDE047" />
-                        <stop offset="35%" stopColor="#F5A623" />
-                        <stop offset="100%" stopColor="#D97706" />
-                      </linearGradient>
-                      <linearGradient id="bagShine" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4" />
-                        <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
-                    
-                    {/* Bag Body with rounded corners */}
-                    <path 
-                      d="M16 32H84C87.3137 32 89.8732 34.887 89.5168 38.1754L82.1472 106.175C81.8415 108.997 79.4674 111 76.6305 111H23.3695C20.5326 111 18.1585 108.997 17.8528 106.175L10.4832 38.1754C10.1268 34.887 12.6863 32 16 32Z" 
-                      fill="url(#goldBagGrad)" 
-                    />
-                    
-                    {/* Subtle highlights */}
-                    <path 
-                      d="M20 36H80L75 104H25L20 36Z" 
-                      fill="url(#bagShine)" 
-                      opacity="0.2" 
-                    />
+            {/* Golden Shopping Bag with Heart Icon */}
+            <div className="flex-shrink-0 flex items-center justify-center relative z-10 pl-0.5">
+              <div className="relative w-8 h-9 min-[360px]:w-9 min-[360px]:h-10 sm:w-11 sm:h-12 flex items-center justify-center drop-shadow-[0_2px_10px_rgba(245,166,35,0.45)]">
+                <svg 
+                  viewBox="0 0 100 115" 
+                  fill="none" 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  className="w-full h-full"
+                >
+                  {/* Bag Handle */}
+                  <path 
+                    d="M34 38V22C34 13.1634 41.1634 6 50 6C58.8366 6 66 13.1634 66 22V38" 
+                    stroke="#F5A623" 
+                    strokeWidth="8.5" 
+                    strokeLinecap="round" 
+                  />
+                  
+                  {/* Bag Body Gradient & Shape */}
+                  <defs>
+                    <linearGradient id="goldBagGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#FDE047" />
+                      <stop offset="35%" stopColor="#F5A623" />
+                      <stop offset="100%" stopColor="#D97706" />
+                    </linearGradient>
+                    <linearGradient id="bagShine" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4" />
+                      <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  
+                  {/* Bag Body with rounded corners */}
+                  <path 
+                    d="M16 32H84C87.3137 32 89.8732 34.887 89.5168 38.1754L82.1472 106.175C81.8415 108.997 79.4674 111 76.6305 111H23.3695C20.5326 111 18.1585 108.997 17.8528 106.175L10.4832 38.1754C10.1268 34.887 12.6863 32 16 32Z" 
+                    fill="url(#goldBagGrad)" 
+                  />
+                  
+                  {/* Subtle highlights */}
+                  <path 
+                    d="M20 36H80L75 104H25L20 36Z" 
+                    fill="url(#bagShine)" 
+                    opacity="0.2" 
+                  />
 
-                    {/* Dark Navy Heart in the center */}
-                    <path 
-                      d="M50 87.5C49.1 87.5 48.3 87.15 47.7 86.55L34.2 73.05C28.6 67.45 28.6 58.35 34.2 52.75C39.8 47.15 48.9 47.15 50 52.55C51.1 47.15 60.2 47.15 65.8 52.75C71.4 58.35 71.4 67.45 65.8 73.05L52.3 86.55C51.7 87.15 50.9 87.5 50 87.5Z" 
-                      fill="#07192F" 
-                    />
-                  </svg>
-                </div>
+                  {/* Dark Navy Heart in the center */}
+                  <path 
+                    d="M50 87.5C49.1 87.5 48.3 87.15 47.7 86.55L34.2 73.05C28.6 67.45 28.6 58.35 34.2 52.75C39.8 47.15 48.9 47.15 50 52.55C51.1 47.15 60.2 47.15 65.8 52.75C71.4 58.35 71.4 67.45 65.8 73.05L52.3 86.55C51.7 87.15 50.9 87.5 50 87.5Z" 
+                    fill="#07182E" 
+                  />
+                </svg>
               </div>
-
-              {/* Banner Text Block - w-fit ensures container exactly matches top heading width */}
-              <div className="w-fit inline-flex flex-col justify-center text-left min-w-0">
-                {/* Main Heading - Defines the width of the block */}
-                <h1 className="w-full text-[17.5px] min-[360px]:text-[20px] min-[400px]:text-[22px] sm:text-[25.5px] md:text-[28.5px] font-black uppercase leading-tight font-sans whitespace-nowrap tracking-[0.01em]">
-                  <span className="text-white drop-shadow-sm font-black">
-                    A NEW ERA OF{' '}
-                  </span>
-                  <span className="text-[#F5A623] sm:text-[#FBBF24] font-black drop-shadow-[0_2px_10px_rgba(245,166,35,0.4)]">
-                    SHOPPING
-                  </span>
-                </h1>
-
-                {/* Subtitle - Flex justify-between forces 'Great Products.' to start under 'A' and 'Surprise Rewards.' to end directly under 'G' on all screens */}
-                <div className="w-full flex justify-between items-center text-[9.5px] min-[360px]:text-[10.8px] min-[400px]:text-[11.8px] sm:text-[13.8px] md:text-[15.2px] font-extrabold text-slate-200 mt-0.5 font-sans whitespace-nowrap">
-                  <span>Great Products.</span>
-                  <span>Best Prices.</span>
-                  <span>Surprise Rewards.</span>
-                </div>
-              </div>
-
             </div>
+
+            {/* Banner Text Block - Start and End perfectly matched on the same horizontal points */}
+            <div className="flex-1 min-w-0 relative z-10 select-none py-0.5">
+              <svg 
+                viewBox="0 0 520 60" 
+                className="w-full h-auto block" 
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <defs>
+                  <style>{`
+                    .hero-txt-title {
+                      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                      font-weight: 900;
+                      paint-order: stroke fill;
+                    }
+                    .hero-txt-sub {
+                      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                      font-weight: 800;
+                    }
+                  `}</style>
+                  <filter id="goldGlow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="1.5" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                  </filter>
+                </defs>
+
+                {/* Line 1: A NEW ERA OF SHOPPING - Ultra Bold, Starts at x=0, Ends exactly at x=520 */}
+                <text 
+                  x="0" 
+                  y="24" 
+                  fill="#FFFFFF" 
+                  stroke="#FFFFFF"
+                  strokeWidth="0.8"
+                  fontSize="26.5" 
+                  fontWeight="900" 
+                  textLength="520" 
+                  lengthAdjust="spacing"
+                  className="hero-txt-title uppercase"
+                >
+                  A NEW ERA OF <tspan fill="#F5A623" stroke="#F5A623" strokeWidth="0.8" fontWeight="900" filter="url(#goldGlow)">SHOPPING</tspan>
+                </text>
+                
+                {/* Line 2: Great Products. Best Prices. Surprise Rewards. - Starts at x=0, Ends exactly at x=520 */}
+                <text 
+                  x="0" 
+                  y="53" 
+                  fill="#FFFFFF" 
+                  fontSize="15.8" 
+                  fontWeight="800" 
+                  textLength="520" 
+                  lengthAdjust="spacing"
+                  className="hero-txt-sub"
+                >
+                  Great Products.   Best Prices.   Surprise Rewards.
+                </text>
+              </svg>
+            </div>
+
           </div>
         </div>
 
