@@ -28,6 +28,7 @@ import LogoView from './components/LogoView';
 import UserAuthView from './components/UserAuthView';
 import AuthPromptModal from './components/AuthPromptModal';
 import CategoryProductsView from './components/CategoryProductsView';
+import VendorStoreView from './components/VendorStoreView';
 import LandingGateway from './components/LandingGateway';
 import { smartSearchFilter } from './utils/search';
 
@@ -124,9 +125,11 @@ export default function App() {
         tab = 'product';
       } else if (parts[1] === 'login' || parts[1] === 'auth' || parts[1] === 'user') {
         tab = 'user';
-      } else if (['categories', 'orders', 'wishlist', 'cart', 'profile', 'logo'].includes(parts[1])) {
+      } else if (['categories', 'orders', 'wishlist', 'cart', 'profile', 'logo', 'store'].includes(parts[1])) {
         tab = parts[1];
         if (parts[1] === 'categories' && parts[2]) {
+          subPage = parts[2];
+        } else if (parts[1] === 'store' && parts[2]) {
           subPage = parts[2];
         } else if (parts[1] === 'profile' && parts[2]) {
           subPage = parts.slice(2).join('/');
@@ -138,16 +141,22 @@ export default function App() {
       portal = 'shop';
       productId = parts[1];
       tab = 'product';
+    } else if (parts[0] === 'store' && parts[1]) {
+      portal = 'shop';
+      tab = 'store';
+      subPage = parts[1];
     } else if (parts[0] === 'user' || parts[0] === 'login' || parts[0] === 'auth') {
       portal = 'shop';
       tab = 'user';
       if (parts.length > 1) {
         subPage = parts.slice(1).join('/');
       }
-    } else if (['home', 'categories', 'orders', 'wishlist', 'cart', 'profile', 'logo'].includes(parts[0])) {
+    } else if (['home', 'categories', 'orders', 'wishlist', 'cart', 'profile', 'logo', 'store'].includes(parts[0])) {
       portal = 'shop';
       tab = parts[0];
       if (parts[0] === 'categories' && parts[1]) {
+        subPage = parts[1];
+      } else if (parts[0] === 'store' && parts[1]) {
         subPage = parts[1];
       } else if (parts[0] === 'profile' && parts[1]) {
         subPage = parts.slice(1).join('/');
@@ -760,9 +769,15 @@ export default function App() {
               /* PRODUCT DETAILS VIEW */
               <ProductDetail
                 product={selectedProduct}
-                suggestedProducts={approvedProducts.filter(p => p.category === selectedProduct.category && p.id !== selectedProduct.id).slice(0, 12)}
+                suggestedProducts={approvedProducts}
                 onSelectProduct={(id) => navigateTo('/shop/product/' + id)}
-                onBack={() => navigateTo('/shop')}
+                onBack={() => {
+                  if (window.history.length > 1) {
+                    window.history.back();
+                  } else {
+                    navigateTo('/shop');
+                  }
+                }}
                 onAddToCart={handleAddToCart}
                 onDirectBuy={handleDirectBuyNow}
                 wishlist={wishlist}
@@ -772,6 +787,10 @@ export default function App() {
                 onRequireLogin={triggerRequireLogin}
                 onProductUpdated={(updated) => {
                   setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
+                }}
+                onVisitStore={(vendorId, vendorName) => {
+                  const target = vendorId || vendorName || '';
+                  navigateTo('/shop/store/' + encodeURIComponent(target));
                 }}
                 cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
                 onOpenCart={() => navigateTo('/shop/cart')}
@@ -966,6 +985,29 @@ export default function App() {
                     coupons={coupons}
                     currentUser={currentUser}
                     onNavigate={(path) => navigateTo(path.startsWith('/shop') ? path : (path === '/user' ? '/shop/login' : `/shop${path}`))}
+                  />
+                )}
+
+                {activeTab === 'store' && (
+                  <VendorStoreView
+                    storeIdentifier={activeSubPage ? decodeURIComponent(activeSubPage) : ''}
+                    products={approvedProducts}
+                    onSelectProduct={(id) => navigateTo('/shop/product/' + id)}
+                    onBack={() => {
+                      if (window.history.length > 1) {
+                        window.history.back();
+                      } else {
+                        navigateTo('/shop');
+                      }
+                    }}
+                    wishlist={wishlist}
+                    onToggleWishlist={handleToggleWishlist}
+                    onAddToCart={handleAddToCart}
+                    currentUser={currentUser}
+                    onRequireLogin={triggerRequireLogin}
+                    cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
+                    onOpenCart={() => navigateTo('/shop/cart')}
+                    onOpenWishlist={() => navigateTo('/shop/wishlist')}
                   />
                 )}
 

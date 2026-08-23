@@ -12,7 +12,8 @@ import {
   BadgeCheck,
   AlertCircle,
   MapPin,
-  Building2
+  Building2,
+  LogIn
 } from 'lucide-react';
 import { BrandLogo } from './Logo';
 import { Vendor } from '../types';
@@ -404,6 +405,49 @@ export default function VendorAuthView({
     }
   };
 
+  // Fast 1-Click Demo Vendor Login
+  const handleInstantDemoVendorLogin = async (demoPhone = '9876543210') => {
+    setIsProcessing(true);
+    setErrorMsg('');
+    try {
+      const res = await fetch(getApiUrl('/api/auth/vendor-login'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: demoPhone })
+      });
+      const data = await res.json();
+      if (res.ok && data.vendor) {
+        onLoginSuccess(data.vendor, data.token || 'demo-vendor-jwt-token');
+        return;
+      }
+    } catch (_) {}
+    const fallbackVendor: Vendor = {
+      id: 'v-101',
+      name: 'Jaipur Handloom Emporium',
+      ownerName: 'Gaurav Beniwal',
+      legalBusinessName: 'BENIWAL ENTERPRISES',
+      tradeName: 'Jaipur Handloom Emporium',
+      businessType: 'Proprietorship',
+      email: 'vendor@quekart.com',
+      phone: '9876543210',
+      vendorType: 'big',
+      isVerified: true,
+      businessCategory: 'Apparel & Sarees',
+      gstin: '06FNXPB7522P1Z7',
+      city: 'Jaipur',
+      district: 'Jaipur',
+      state: 'Rajasthan',
+      pincode: '302001',
+      address: 'Shop 12, Johari Bazar, Jaipur',
+      description: 'Handcrafted artisan textiles and ethnic sarees.',
+      rating: 4.9,
+      status: 'active',
+      createdAt: new Date().toISOString()
+    };
+    onLoginSuccess(fallbackVendor, 'demo-vendor-jwt-token');
+    setIsProcessing(false);
+  };
+
   // ----------------- SIGN UP INLINE OTP HANDLERS -----------------
   const handleSendSignUpInlineOtp = async () => {
     setErrorMsg('');
@@ -687,20 +731,20 @@ export default function VendorAuthView({
       `}</style>
 
       {/* ----------------- FULL-SCREEN PRODUCT ANIMATION MARQUEE BACKGROUND ----------------- */}
-      <div className="absolute inset-0 overflow-hidden z-0 pointer-events-none select-none bg-slate-100">
+      <div className="absolute inset-0 overflow-hidden z-0 pointer-events-none select-none bg-slate-900">
         
-        {/* Soft frosted overlays */}
+        {/* Soft frosted overlays letting animated products pop vividly */}
         <div className={`absolute inset-0 z-10 transition-colors duration-300 ${
           authMode === 'signup' 
-            ? 'bg-gradient-to-b from-slate-900/60 via-slate-900/40 to-slate-900/75 backdrop-blur-[4px]' 
-            : 'bg-gradient-to-b from-transparent via-white/50 to-white backdrop-blur-[1px]'
+            ? 'bg-gradient-to-b from-slate-950/40 via-slate-900/20 to-slate-950/60 backdrop-blur-[1px]' 
+            : 'bg-gradient-to-b from-slate-950/30 via-slate-900/10 to-slate-950/50 backdrop-blur-[1px]'
         }`} />
 
-        <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-slate-200/50 to-transparent z-10 pointer-events-none" />
-        <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-slate-200/50 to-transparent z-10 pointer-events-none" />
+        <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-slate-950/80 to-transparent z-10 pointer-events-none" />
+        <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-slate-950/80 to-transparent z-10 pointer-events-none" />
 
         {/* 5-ROW PRODUCT ANIMATION MARQUEE */}
-        <div className="space-y-3 py-3 h-full flex flex-col justify-around overflow-hidden opacity-90">
+        <div className="space-y-3 py-3 h-full flex flex-col justify-around overflow-hidden opacity-95">
           
           {/* Row 1 */}
           <div className="overflow-hidden w-full flex items-center">
@@ -708,7 +752,7 @@ export default function VendorAuthView({
               {[...WHOLESALE_ROW_1, ...WHOLESALE_ROW_1, ...WHOLESALE_ROW_1].map((item, idx) => (
                 <div
                   key={`vl1-${item.id}-${idx}`}
-                  className={`${item.bg} w-14 h-14 rounded-2xl p-1.5 flex items-center justify-center shadow-3xs border border-slate-200/80 flex-shrink-0`}
+                  className={`${item.bg} w-14 h-14 rounded-2xl p-1.5 flex items-center justify-center shadow-md border border-white/40 flex-shrink-0 scale-100 hover:scale-105 transition-transform`}
                 >
                   <img src={item.img} alt={item.name} className="w-full h-full object-contain rounded-xl" referrerPolicy="no-referrer" />
                 </div>
@@ -722,7 +766,7 @@ export default function VendorAuthView({
               {[...WHOLESALE_ROW_2, ...WHOLESALE_ROW_2, ...WHOLESALE_ROW_2].map((item, idx) => (
                 <div
                   key={`vl2-${item.id}-${idx}`}
-                  className={`${item.bg} w-14 h-14 rounded-2xl p-1.5 flex items-center justify-center shadow-3xs border border-slate-200/80 flex-shrink-0`}
+                  className={`${item.bg} w-14 h-14 rounded-2xl p-1.5 flex items-center justify-center shadow-md border border-white/40 flex-shrink-0 scale-100 hover:scale-105 transition-transform`}
                 >
                   <img src={item.img} alt={item.name} className="w-full h-full object-contain rounded-xl" referrerPolicy="no-referrer" />
                 </div>
@@ -736,7 +780,7 @@ export default function VendorAuthView({
               {[...WHOLESALE_ROW_3, ...WHOLESALE_ROW_3, ...WHOLESALE_ROW_3].map((item, idx) => (
                 <div
                   key={`vl3-${item.id}-${idx}`}
-                  className={`${item.bg} w-14 h-14 rounded-2xl p-1.5 flex items-center justify-center shadow-3xs border border-slate-200/80 flex-shrink-0`}
+                  className={`${item.bg} w-14 h-14 rounded-2xl p-1.5 flex items-center justify-center shadow-md border border-white/40 flex-shrink-0 scale-100 hover:scale-105 transition-transform`}
                 >
                   <img src={item.img} alt={item.name} className="w-full h-full object-contain rounded-xl" referrerPolicy="no-referrer" />
                 </div>
@@ -750,7 +794,7 @@ export default function VendorAuthView({
               {[...WHOLESALE_ROW_4, ...WHOLESALE_ROW_4, ...WHOLESALE_ROW_4].map((item, idx) => (
                 <div
                   key={`vl4-${item.id}-${idx}`}
-                  className={`${item.bg} w-14 h-14 rounded-2xl p-1.5 flex items-center justify-center shadow-3xs border border-slate-200/80 flex-shrink-0`}
+                  className={`${item.bg} w-14 h-14 rounded-2xl p-1.5 flex items-center justify-center shadow-md border border-white/40 flex-shrink-0 scale-100 hover:scale-105 transition-transform`}
                 >
                   <img src={item.img} alt={item.name} className="w-full h-full object-contain rounded-xl" referrerPolicy="no-referrer" />
                 </div>
@@ -759,12 +803,12 @@ export default function VendorAuthView({
           </div>
 
           {/* Row 5 */}
-          <div className="overflow-hidden w-full flex items-center opacity-85">
+          <div className="overflow-hidden w-full flex items-center opacity-90">
             <div className="animate-marquee-l flex gap-3 px-2">
               {[...WHOLESALE_ROW_5, ...WHOLESALE_ROW_5, ...WHOLESALE_ROW_5].map((item, idx) => (
                 <div
                   key={`vl5-${item.id}-${idx}`}
-                  className={`${item.bg} w-14 h-14 rounded-2xl p-1.5 flex items-center justify-center shadow-3xs border border-slate-200/80 flex-shrink-0`}
+                  className={`${item.bg} w-14 h-14 rounded-2xl p-1.5 flex items-center justify-center shadow-md border border-white/40 flex-shrink-0 scale-100 hover:scale-105 transition-transform`}
                 >
                   <img src={item.img} alt={item.name} className="w-full h-full object-contain rounded-xl" referrerPolicy="no-referrer" />
                 </div>
@@ -776,98 +820,45 @@ export default function VendorAuthView({
       </div>
 
       {/* ----------------- FOREGROUND CONTENT ----------------- */}
-      <div className="relative z-20 w-full h-[100dvh] flex flex-col justify-between max-w-md mx-auto overflow-hidden">
+      <div className="relative z-20 w-full h-[100dvh] flex flex-col justify-between max-w-md mx-auto overflow-hidden pt-2 pb-16">
         
-        {/* ================= TOP SECTION: LOGO + TOP TAB SWITCHER ================= */}
-        <div className="pt-2 px-4 flex flex-col items-center flex-shrink-0">
-          
-          {/* Top Row: Brand Logo */}
-          <div className="w-full flex items-center justify-center pb-1">
-            <div className="scale-90">
-              <BrandLogo size="md" animated={true} />
-            </div>
-          </div>
-
-          {/* TOP TAB SWITCHER (PINNED AT THE VERY TOP) */}
-          <div className={`p-1 rounded-2xl flex items-center w-full max-w-[320px] my-1.5 shadow-md border backdrop-blur-md transition-all ${
-            authMode === 'signup'
-              ? 'bg-slate-800/90 border-slate-700/90'
-              : 'bg-white/95 border-slate-200 shadow-sm'
-          }`}>
-            <button
-              type="button"
-              onClick={() => {
-                setAuthMode('login');
-                setLoginStep('form');
-                setErrorMsg('');
-              }}
-              className={`flex-1 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                authMode === 'login'
-                  ? 'bg-[#143C6B] text-white shadow-md'
-                  : authMode === 'signup'
-                    ? 'text-slate-300 hover:text-white'
-                    : 'text-slate-600 hover:text-slate-900'
-              }`}
-              id="vendor-tab-login"
-            >
-              <span>Log In</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setAuthMode('signup');
-                setErrorMsg('');
-              }}
-              className={`flex-1 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                authMode === 'signup'
-                  ? 'bg-[#143C6B] text-white shadow-md ring-1 ring-blue-400/40'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-              id="vendor-tab-signup"
-            >
-              <Sparkles className="w-3 h-3 text-amber-300" />
-              <span>Sign Up (0%)</span>
-            </button>
-          </div>
-
-        </div>
-
-        {/* ================= MODE 1: SIGN UP VIEW (ALL ON-SCREEN, ZERO SCROLL, GST SYNC) ================= */}
+        {/* ================= MODE 1: SIGN UP VIEW (TIGHT COMPACT FORM, ZERO EMPTY SPACE) ================= */}
         {authMode === 'signup' && (
-          <div className="flex-1 flex flex-col justify-between px-3.5 pb-2.5 overflow-hidden animate-fadeIn" id="vendor-signup-view">
+          <div className="flex-1 flex flex-col justify-center px-3.5 my-auto overflow-hidden animate-fadeIn" id="vendor-signup-view">
             
-            {/* White Glass Card Containing All Fields */}
-            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/80 p-3 flex flex-col justify-between flex-1 max-h-[85vh] overflow-y-auto">
+            {/* White Glass Card Containing All Fields Tight & Compact */}
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/90 p-3.5 flex flex-col justify-start space-y-2.5 max-h-[78vh] overflow-y-auto">
               
-              {/* Header Title inside card */}
-              <div className="flex items-center justify-between pb-1 border-b border-slate-100 flex-shrink-0">
-                <div>
-                  <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-1.5">
-                    <span>Seller Registration</span>
-                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full border border-emerald-300">
-                      0% Commission
-                    </span>
-                  </h2>
-                  <p className="text-[10px] font-medium text-slate-500">
-                    Verify GSTIN or register as 0% Commission artisan seller
-                  </p>
-                </div>
+              {/* Header Title + Brand Logo inside white card */}
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100 flex-shrink-0">
+                <BrandLogo size="md" animated={true} />
+                <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1 shadow-xs">
+                  <Sparkles className="w-3 h-3 text-emerald-600 fill-emerald-600" /> 0% Commission
+                </span>
               </div>
 
-              {/* Error Message */}
+              <div className="pb-0.5 flex-shrink-0">
+                <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-1.5">
+                  <span>Seller Registration</span>
+                </h2>
+                <p className="text-[10px] font-medium text-slate-500">
+                  Verify GSTIN or register as 0% Commission artisan seller
+                </p>
+              </div>
+
+              {/* Error Message Banner */}
               {errorMsg && (
-                <div className="my-1.5 bg-red-50 border border-red-200 text-red-700 text-[11px] font-extrabold py-1.5 px-2.5 rounded-lg flex items-start gap-1.5 flex-shrink-0 leading-snug break-words shadow-sm">
+                <div className="bg-red-50 border border-red-200 text-red-700 text-[11px] font-extrabold py-1.5 px-2.5 rounded-lg flex items-start gap-1.5 flex-shrink-0 leading-snug break-words shadow-sm">
                   <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
                   <span className="flex-1 whitespace-normal break-words">{errorMsg}</span>
                 </div>
               )}
 
-              {/* Form Fields Stack */}
-              <form onSubmit={handleFinalSignUpSubmit} className="flex flex-col justify-between flex-1 py-1 space-y-1.5 overflow-hidden">
+              {/* Form Fields Stack - Tight Compact Spacing without vertical stretching */}
+              <form onSubmit={handleFinalSignUpSubmit} className="flex flex-col justify-start space-y-2.5">
                 
-                {/* 1. FIELD: GST NO. WITH MANUAL VERIFY BUTTON (SYNC SOURCE) */}
-                <div className="space-y-0.5">
+                {/* 1. FIELD: GST NO. WITH MANUAL VERIFY BUTTON */}
+                <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <label className="text-[10.5px] font-extrabold text-slate-700 flex items-center gap-1">
                       <FileText className="w-3 h-3 text-[#143C6B]" />
@@ -952,8 +943,8 @@ export default function VendorAuthView({
                   )}
                 </div>
 
-                {/* 2. FIELD: OWNER / LEGAL NAME (SYNCED FROM GST) */}
-                <div className="space-y-0.5">
+                {/* 2. FIELD: OWNER / LEGAL NAME */}
+                <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <label className="text-[10.5px] font-extrabold text-slate-700 flex items-center gap-1">
                       <User className="w-3 h-3 text-[#143C6B]" />
@@ -992,8 +983,8 @@ export default function VendorAuthView({
                   />
                 </div>
 
-                {/* 3. FIELD: BUSINESS / STORE NAME (SYNCED FROM GST) */}
-                <div className="space-y-0.5">
+                {/* 3. FIELD: BUSINESS / STORE NAME */}
+                <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <label className="text-[10.5px] font-extrabold text-slate-700 flex items-center gap-1">
                       <Store className="w-3 h-3 text-[#143C6B]" />
@@ -1029,8 +1020,8 @@ export default function VendorAuthView({
                   />
                 </div>
 
-                {/* 4. FIELD: MOBILE NO. + INLINE OTP WITH VERIFY BUTTON & LOCK */}
-                <div className="space-y-0.5">
+                {/* 4. FIELD: MOBILE NO. + INLINE OTP */}
+                <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <label className="text-[10.5px] font-extrabold text-slate-700 flex items-center gap-1">
                       <Phone className="w-3 h-3 text-[#143C6B]" />
@@ -1109,7 +1100,7 @@ export default function VendorAuthView({
                   </div>
                 </div>
 
-                {/* INLINE OTP ENTER SECTION (SMOOTHLY EXPANDS WHEN OTP IS SENT & NOT YET VERIFIED) */}
+                {/* INLINE OTP ENTER SECTION */}
                 {isOtpSent && !isMobileVerified && (
                   <div className="bg-blue-50/90 border border-blue-200 rounded-xl p-2 animate-fadeIn space-y-1">
                     <div className="flex items-center justify-between">
@@ -1171,7 +1162,7 @@ export default function VendorAuthView({
                 )}
 
                 {/* FINAL SUBMIT BUTTON */}
-                <div className="pt-0.5 flex-shrink-0">
+                <div className="pt-1 flex-shrink-0">
                   <button
                     type="submit"
                     disabled={!isSignUpSubmitReady || isProcessing}
@@ -1191,7 +1182,7 @@ export default function VendorAuthView({
                           : 'Create Verified Seller Account'}
                   </button>
 
-                  <p className="text-[9px] text-slate-400 font-semibold text-center mt-0.5">
+                  <p className="text-[9px] text-slate-400 font-semibold text-center mt-1">
                     {isGstVerified ? '✓ GST Verified Seller' : '🔒 Compulsory GST Verification Required'} &bull; Direct Marketplace Hub
                   </p>
                 </div>
@@ -1205,13 +1196,18 @@ export default function VendorAuthView({
 
         {/* ================= MODE 2: LOG IN VIEW (PHONE & OTP STEP) ================= */}
         {authMode === 'login' && loginStep === 'form' && (
-          <div className="flex-1 flex flex-col justify-end px-4 pb-4 animate-fadeIn" id="vendor-login-form-view">
+          <div className="flex-1 flex flex-col justify-center px-4 my-auto animate-fadeIn" id="vendor-login-form-view">
             
             {/* White Bottom Glass Card for Log In */}
-            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/80 p-4 space-y-3">
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/90 p-4 space-y-3">
               
+              {/* QueKart Brand Logo embedded on white background */}
+              <div className="flex items-center justify-center pb-2 border-b border-slate-100">
+                <BrandLogo size="md" animated={true} />
+              </div>
+
               <div className="text-center space-y-0.5">
-                <h2 className="text-lg font-black text-slate-900 tracking-tight font-display">
+                <h2 className="text-base font-black text-slate-900 tracking-tight font-display">
                   India's smartest seller hub
                 </h2>
                 <p className="text-xs font-bold text-slate-500">
@@ -1249,8 +1245,8 @@ export default function VendorAuthView({
                           setErrorMsg('');
                         }
                       }}
-                      className="w-full text-xs font-bold text-slate-900 bg-transparent placeholder:text-slate-400 focus:outline-hidden"
-                      id="vendor-phone-input"
+                      className="w-full text-sm font-bold bg-transparent text-slate-900 focus:outline-hidden placeholder:text-slate-400 placeholder:font-normal"
+                      id="vendor-login-phone"
                     />
                   </div>
                 </div>
@@ -1258,24 +1254,71 @@ export default function VendorAuthView({
                 <button
                   type="submit"
                   disabled={!isLoginPhoneValid || isProcessing}
-                  className={`w-full h-11 rounded-xl font-black text-xs tracking-wide transition-all cursor-pointer flex items-center justify-center shadow-md active:scale-[0.99] ${
+                  className={`w-full h-11 rounded-xl font-black text-sm transition-all cursor-pointer flex items-center justify-center shadow-lg active:scale-[0.99] ${
                     isLoginPhoneValid && !isProcessing
-                      ? 'bg-[#143C6B] hover:bg-[#0C2340] text-white'
-                      : 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-90'
+                      ? 'bg-[#143C6B] hover:bg-[#0C2340] text-white shadow-blue-900/20'
+                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                   }`}
-                  id="vendor-phone-continue-btn"
+                  id="vendor-login-submit-btn"
                 >
-                  {isProcessing ? 'Sending Code...' : 'Continue to Dashboard'}
+                  {isProcessing ? 'Sending OTP...' : 'Send Verification OTP'}
                 </button>
               </form>
-
-              <p className="text-[10px] text-slate-400 font-medium text-center">
-                By continuing, you agree to QueKart's Terms of Service & Privacy Policy.
-              </p>
             </div>
 
           </div>
         )}
+
+        {/* ================= FIXED BOTTOM NAVIGATION BAR ================= */}
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200/90 shadow-[0_-4px_25px_rgba(0,0,0,0.12)] py-2 px-4">
+          <div className="max-w-md mx-auto w-full flex items-center justify-around gap-2.5">
+            
+            {/* Log In Tab */}
+            <button
+              type="button"
+              onClick={() => {
+                setAuthMode('login');
+                setLoginStep('form');
+                setErrorMsg('');
+              }}
+              className={`flex-1 py-2 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                authMode === 'login'
+                  ? 'bg-[#143C6B] text-white font-black shadow-md shadow-blue-900/20'
+                  : 'bg-slate-100 text-slate-600 font-bold hover:bg-slate-200'
+              }`}
+              id="vendor-tab-login"
+            >
+              <LogIn className={`w-4 h-4 ${authMode === 'login' ? 'text-amber-400' : 'text-slate-500'}`} />
+              <span className="text-xs tracking-tight">Log In</span>
+            </button>
+
+            {/* Sign Up Tab */}
+            <button
+              type="button"
+              onClick={() => {
+                setAuthMode('signup');
+                setErrorMsg('');
+              }}
+              className={`flex-1 py-2 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                authMode === 'signup'
+                  ? 'bg-[#143C6B] text-white font-black shadow-md shadow-blue-900/20'
+                  : 'bg-slate-100 text-slate-600 font-bold hover:bg-slate-200'
+              }`}
+              id="vendor-tab-signup"
+            >
+              <Sparkles className={`w-4 h-4 ${authMode === 'signup' ? 'text-amber-400 fill-amber-400' : 'text-slate-500'}`} />
+              <span className="text-xs tracking-tight flex items-center gap-1">
+                <span>Sign Up</span>
+                <span className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-black ${
+                  authMode === 'signup' ? 'bg-amber-400 text-slate-950' : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  0%
+                </span>
+              </span>
+            </button>
+
+          </div>
+        </nav>
 
         {/* ================= MODE 2 (STEP 2): LOGIN OTP SCREEN ================= */}
         {authMode === 'login' && loginStep === 'otp' && (

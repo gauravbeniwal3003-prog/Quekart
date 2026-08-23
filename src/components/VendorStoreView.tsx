@@ -103,24 +103,26 @@ export default function VendorStoreView({
   // Calculate average vendor rating and review count from products
   const { avgRating, totalReviews, totalRatingCount } = useMemo(() => {
     if (vendorProducts.length === 0) {
-      return { avgRating: vendorDetails?.rating || 4.2, totalReviews: 12, totalRatingCount: 28 };
+      return { avgRating: vendorDetails?.rating ? Number(vendorDetails.rating).toFixed(1) : '4.5', totalReviews: 0, totalRatingCount: 0 };
     }
     let totalScore = 0;
     let count = 0;
     let revCount = 0;
     vendorProducts.forEach(p => {
-      if (p.rating && p.ratingCount) {
-        totalScore += p.rating * p.ratingCount;
-        count += p.ratingCount;
+      const pRevs = Array.isArray(p.reviews) ? p.reviews.length : (p.reviewCount || (p as any).reviewsCount || 0);
+      revCount += pRevs;
+      if (p.rating && p.rating > 0) {
+        const ratingWeight = p.ratingCount || (pRevs > 0 ? pRevs : 1);
+        totalScore += p.rating * ratingWeight;
+        count += ratingWeight;
       }
-      revCount += p.reviewCount || 0;
     });
 
-    const calculatedAvg = count > 0 ? Number((totalScore / count).toFixed(1)) : (vendorDetails?.rating || 4.2);
+    const calculatedAvg = count > 0 ? Number((totalScore / count).toFixed(1)) : (vendorDetails?.rating ? Number(vendorDetails.rating).toFixed(1) : 4.5);
     return {
       avgRating: calculatedAvg,
-      totalReviews: revCount > 0 ? revCount : (count > 0 ? count : 1),
-      totalRatingCount: count > 0 ? count : 1
+      totalReviews: revCount,
+      totalRatingCount: count
     };
   }, [vendorProducts, vendorDetails]);
 

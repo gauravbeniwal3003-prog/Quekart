@@ -417,6 +417,51 @@ export default function ProductDetail({
     };
   }, [displayReviews]);
 
+  // Dynamic Seller/Store metrics across catalog
+  const sellerStats = useMemo(() => {
+    const sellerName = product.soldBy || '';
+    const vendorId = product.vendorId || '';
+
+    const sellerProducts = (suggestedProducts || []).filter(p => {
+      const matchId = vendorId && p.vendorId && p.vendorId === vendorId;
+      const matchName = sellerName && p.soldBy && p.soldBy.toLowerCase() === sellerName.toLowerCase();
+      return matchId || matchName;
+    });
+
+    if (!sellerProducts.some(p => p.id === product.id)) {
+      sellerProducts.push(product);
+    }
+
+    let totalReviews = 0;
+    let totalScore = 0;
+    let ratedCount = 0;
+
+    sellerProducts.forEach(p => {
+      const revs = Array.isArray(p.reviews) ? p.reviews.length : (p.reviewCount || (p as any).reviewsCount || 0);
+      totalReviews += revs;
+      if (p.rating && p.rating > 0) {
+        totalScore += p.rating;
+        ratedCount++;
+      }
+    });
+
+    if (realRatingData.reviewCount > totalReviews) {
+      totalReviews = realRatingData.reviewCount;
+    }
+
+    const calculatedRating = realRatingData.hasRatings
+      ? realRatingData.avgRating
+      : (ratedCount > 0
+          ? Number((totalScore / ratedCount).toFixed(1))
+          : (product.rating ? Number(product.rating) : 4.5));
+
+    return {
+      productCount: sellerProducts.length,
+      reviewCount: totalReviews,
+      rating: calculatedRating.toFixed(1)
+    };
+  }, [product, suggestedProducts, realRatingData]);
+
   // Handle Photo Upload via ImgBB
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -831,7 +876,10 @@ export default function ProductDetail({
             {/* VENDOR STORE CARD ON DESKTOP (Hidden on mobile here, rendered on mobile below) */}
             <div className="hidden lg:block">
               <section className="bg-white p-4 border border-slate-100 rounded-2xl shadow-3xs" id="vendor-store-card-desktop">
-                <div className="flex items-center justify-between gap-3 mb-3">
+                <div 
+                  className="flex items-center justify-between gap-3 mb-3 cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => onVisitStore?.(product.vendorId, product.soldBy)}
+                >
                   <div className="flex items-center gap-3">
                     <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#143C6B] to-[#1E5696] text-white flex items-center justify-center shrink-0 shadow-3xs border border-blue-900/20">
                       <Store className="w-6 h-6" />
@@ -845,8 +893,8 @@ export default function ProductDetail({
                       </div>
                       <div className="flex items-center gap-1 text-[11px] text-slate-500 mt-0.5">
                         <span className="text-amber-500 font-bold">★</span>
-                        <span className="font-bold text-slate-700">{realRatingData.avgRating.toFixed(1)}</span>
-                        <span>({realRatingData.reviewCount} Reviews)</span>
+                        <span className="font-bold text-slate-700">{sellerStats.rating}</span>
+                        <span>({sellerStats.reviewCount} Reviews)</span>
                       </div>
                     </div>
                   </div>
@@ -856,15 +904,15 @@ export default function ProductDetail({
                 <div className="grid grid-cols-3 divide-x divide-slate-100 bg-slate-50 rounded-xl p-2.5 text-center mb-3.5 border border-slate-200/60">
                   <div>
                     <span className="text-[10px] text-slate-400 font-bold uppercase block">Reviews</span>
-                    <span className="text-xs font-black text-slate-800">{realRatingData.reviewCount || 12}</span>
+                    <span className="text-xs font-black text-slate-800">{sellerStats.reviewCount}</span>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 font-bold uppercase block">Products</span>
-                    <span className="text-xs font-black text-slate-800">Catalog</span>
+                    <span className="text-xs font-black text-slate-800">{sellerStats.productCount} Items</span>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 font-bold uppercase block">Rating</span>
-                    <span className="text-xs font-black text-emerald-700">★ {realRatingData.avgRating.toFixed(1)}</span>
+                    <span className="text-xs font-black text-emerald-700">★ {sellerStats.rating}</span>
                   </div>
                 </div>
 
@@ -1538,7 +1586,10 @@ export default function ProductDetail({
             {/* VENDOR / SELLER STORE CARD ON MOBILE (Hidden on desktop because rendered on left column) */}
             <div className="block lg:hidden">
               <section className="bg-white p-4 border-y sm:border border-slate-100 sm:rounded-2xl shadow-3xs" id="vendor-store-card-section">
-                <div className="flex items-center justify-between gap-3 mb-3">
+                <div 
+                  className="flex items-center justify-between gap-3 mb-3 cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => onVisitStore?.(product.vendorId, product.soldBy)}
+                >
                   <div className="flex items-center gap-3">
                     <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#143C6B] to-[#1E5696] text-white flex items-center justify-center shrink-0 shadow-3xs border border-blue-900/20">
                       <Store className="w-6 h-6" />
@@ -1552,8 +1603,8 @@ export default function ProductDetail({
                       </div>
                       <div className="flex items-center gap-1 text-[11px] text-slate-500 mt-0.5">
                         <span className="text-amber-500 font-bold">★</span>
-                        <span className="font-bold text-slate-700">{realRatingData.avgRating.toFixed(1)}</span>
-                        <span>({realRatingData.reviewCount} Reviews)</span>
+                        <span className="font-bold text-slate-700">{sellerStats.rating}</span>
+                        <span>({sellerStats.reviewCount} Reviews)</span>
                       </div>
                     </div>
                   </div>
@@ -1563,15 +1614,15 @@ export default function ProductDetail({
                 <div className="grid grid-cols-3 divide-x divide-slate-100 bg-slate-50 rounded-xl p-2.5 text-center mb-3.5 border border-slate-200/60">
                   <div>
                     <span className="text-[10px] text-slate-400 font-bold uppercase block">Reviews</span>
-                    <span className="text-xs font-black text-slate-800">{realRatingData.reviewCount || 12}</span>
+                    <span className="text-xs font-black text-slate-800">{sellerStats.reviewCount}</span>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 font-bold uppercase block">Products</span>
-                    <span className="text-xs font-black text-slate-800">Explore Catalog</span>
+                    <span className="text-xs font-black text-slate-800">{sellerStats.productCount} Items</span>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 font-bold uppercase block">Rating</span>
-                    <span className="text-xs font-black text-emerald-700">★ {realRatingData.avgRating.toFixed(1)}</span>
+                    <span className="text-xs font-black text-emerald-700">★ {sellerStats.rating}</span>
                   </div>
                 </div>
 
