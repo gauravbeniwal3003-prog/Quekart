@@ -282,7 +282,28 @@ interface AppUser {
 
 let localUsers: AppUser[] = [];
 
-// Automatically generate mock_data.json for Python backend parity
+// Load from mock_data.json if present for persistence across runs
+if (fs.existsSync('./mock_data.json')) {
+  try {
+    const raw = fs.readFileSync('./mock_data.json', 'utf8');
+    const parsed = JSON.parse(raw);
+    if (parsed.categories && parsed.categories.length > 0) localCategories = parsed.categories;
+    if (parsed.banners && parsed.banners.length > 0) localBanners = parsed.banners;
+    if (parsed.products && parsed.products.length > 0) localProducts = parsed.products;
+    if (parsed.orders && parsed.orders.length > 0) localOrders = parsed.orders;
+    if (parsed.coupons && parsed.coupons.length > 0) localCoupons = parsed.coupons;
+    if (parsed.vendors && parsed.vendors.length > 0) localVendors = parsed.vendors;
+    if (parsed.users && parsed.users.length > 0) localUsers = parsed.users;
+    console.log('✅ Loaded database state from ./mock_data.json');
+  } catch (err) {
+    console.warn('⚠️ Failed reading ./mock_data.json:', err);
+  }
+}
+
+if (localCategories.length === 0) localCategories = [...mockCategories];
+if (localBanners.length === 0) localBanners = [...initialBanners];
+
+// Sync and generate mock_data.json for Python backend parity
 try {
   const dumpData = {
     products: localProducts,
@@ -294,9 +315,9 @@ try {
     banners: localBanners
   };
   fs.writeFileSync('./mock_data.json', JSON.stringify(dumpData, null, 2), 'utf8');
-  console.log('✅ Generated ./mock_data.json successfully.');
+  console.log('✅ Synchronized ./mock_data.json successfully.');
 } catch (e) {
-  console.warn('⚠️ Failed to generate ./mock_data.json:', e);
+  console.warn('⚠️ Failed to sync ./mock_data.json:', e);
 }
 
 // -------------------------------------------------------------
@@ -388,7 +409,11 @@ async function testAndSeedSupabase() {
           }
         }
       } else {
-        console.log(`📊 Categories in Supabase: ${existingCategoryIds.size}.`);
+        console.log(`📊 Categories in Supabase: ${existingCategoryIds.size}. Upserting database records...`);
+        for (let i = 0; i < localCategories.length; i++) {
+          const c = localCategories[i];
+          await supabase.from('categories').upsert({ id: c.id, data: c, position: i });
+        }
       }
     } else {
       console.log('ℹ️ Categories table in Supabase using local cache fallback.');
@@ -398,7 +423,20 @@ async function testAndSeedSupabase() {
     const { data: bannerCountData, error: bannerError } = await supabase.from('banners').select('id');
     if (!bannerError) {
       const existingBannerIds = new Set((bannerCountData || []).map((row: any) => row.id));
-      console.log(`📊 Banners in Supabase: ${existingBannerIds.size}. (Admin upload enabled)`);
+      if (existingBannerIds.size === 0 && localBanners.length > 0) {
+        console.log('🌱 Banners table is empty. Seeding default banners...');
+        for (const b of localBanners) {
+          const { error: insertErr } = await supabase.from('banners').insert({ id: b.id, data: b });
+          if (insertErr) {
+            console.warn(`⚠️ Note seeding banner ${b.id}:`, insertErr.message || insertErr);
+          }
+        }
+      } else {
+        console.log(`📊 Banners in Supabase: ${existingBannerIds.size}. Upserting database records...`);
+        for (const b of localBanners) {
+          await supabase.from('banners').upsert({ id: b.id, data: b });
+        }
+      }
     } else {
       console.log('ℹ️ Banners table in Supabase using dynamic memory store.');
     }

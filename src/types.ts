@@ -254,6 +254,7 @@ export interface Category {
   id: string;
   name: string;
   icon: string; // Lucide icon name or emoji
+  image?: string;
   subCategories: {
     name: string;
     image: string;
@@ -265,6 +266,10 @@ export interface Banner {
   imageUrl: string;
   linkUrl?: string;
   type: 'promotional' | 'news';
+  title?: string;
+  subtitle?: string;
+  code?: string;
+  targetCategory?: string;
 }
 
 export interface Coupon {

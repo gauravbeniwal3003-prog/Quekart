@@ -84,6 +84,9 @@ export default function CategoriesView({
                   alt={sub.name}
                   className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300';
+                  }}
                 />
               </div>
 

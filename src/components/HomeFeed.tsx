@@ -199,9 +199,9 @@ export default function HomeFeed({
     ...dynamicCategories.map((cat, index) => {
       const colors = ['bg-pink-50', 'bg-blue-50', 'bg-yellow-50', 'bg-orange-50', 'bg-green-50', 'bg-purple-50', 'bg-teal-50'];
       const bg = colors[index % colors.length];
-      const img = cat.subCategories && cat.subCategories.length > 0 
+      const img = cat.image || (cat.subCategories && cat.subCategories.length > 0 && cat.subCategories[0].image
         ? cat.subCategories[0].image 
-        : 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150';
+        : 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150');
       return {
         label: cat.name,
         value: cat.name,
@@ -232,6 +232,9 @@ export default function HomeFeed({
                   alt={item.label}
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150';
+                  }}
                 />
               </div>
               <span className={`text-[10px] mt-1 text-center font-medium w-full truncate tracking-tight text-gray-700 px-0.5 ${
@@ -244,24 +247,51 @@ export default function HomeFeed({
         })}
       </div>
 
-      {/* Dynamic Banners Section */}
+      {/* Dynamic Banners Poster Section */}
       {banners && banners.length > 0 && (
         <div className="w-full bg-gray-50 py-3 md:py-4 px-3 md:px-4">
           <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-3 pb-2 -mb-2">
             {banners.map((banner) => (
               <div 
                 key={banner.id} 
-                className="relative snap-center shrink-0 w-full md:w-[85%] lg:w-[60%] rounded-xl overflow-hidden shadow-sm border border-gray-200 group cursor-pointer"
+                onClick={() => banner.targetCategory && onSelectCategory(banner.targetCategory)}
+                className="relative snap-center shrink-0 w-full md:w-[85%] lg:w-[65%] rounded-2xl overflow-hidden shadow-md border border-gray-200/80 group cursor-pointer bg-slate-900"
               >
-                <div className="aspect-[2.5/1] sm:aspect-[3/1] md:aspect-[4/1] w-full">
+                <div className="aspect-[2.1/1] sm:aspect-[2.5/1] md:aspect-[3.2/1] w-full relative">
                   <img 
                     src={banner.imageUrl} 
-                    alt={banner.type} 
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    alt={banner.title || banner.type} 
+                    className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
                     referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=1200';
+                    }}
                   />
-                  <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded">
-                    {banner.type === 'promotional' ? 'Promo' : 'News'}
+                  {/* Dark Gradient Overlay for Readability */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#143C6B]/90 via-[#143C6B]/60 to-transparent flex flex-col justify-between p-3.5 sm:p-5 md:p-6 text-white">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="bg-[#FF8C00] text-slate-950 text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shadow-xs">
+                        {banner.code ? `CODE: ${banner.code}` : (banner.type === 'promotional' ? 'FESTIVE PROMO' : 'NEWS')}
+                      </span>
+                      <span className="bg-white/20 backdrop-blur-md text-white text-[9px] font-bold tracking-tight px-2 py-0.5 rounded-md border border-white/30">
+                        QueKart Exclusive
+                      </span>
+                    </div>
+
+                    <div className="max-w-[80%] sm:max-w-[70%]">
+                      <h3 className="text-xs sm:text-base md:text-xl font-extrabold text-white tracking-tight leading-tight drop-shadow-xs line-clamp-2">
+                        {banner.title || 'Festive Offers & Deals'}
+                      </h3>
+                      {banner.subtitle && (
+                        <p className="text-[10px] sm:text-xs text-amber-200 font-medium mt-1 line-clamp-2 drop-shadow-xs">
+                          {banner.subtitle}
+                        </p>
+                      )}
+                      <div className="mt-2 sm:mt-3 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold text-[#FF8C00] group-hover:translate-x-1 transition-transform">
+                        <span>Explore Collection</span>
+                        <span>→</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
