@@ -127,6 +127,12 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
   }, [step]);
 
   const handleSkip = () => {
+    try {
+      sessionStorage.setItem('quekart_browsing_guest', 'true');
+      localStorage.setItem('quekart_browsing_guest', 'true');
+    } catch (e) {
+      console.log('Storage permission note:', e);
+    }
     if (onSkip) {
       onSkip();
     } else if (navigateTo) {
@@ -230,9 +236,6 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
         setTimer(data.cooldownRemainingSec || 60);
         setIsResendActive(false);
         setOtpDigits(['', '', '', '', '', '']);
-        if (data.otp) {
-          setSimulatedOtp(data.otp);
-        }
         setTimeout(() => {
           otpInputRefs[0].current?.focus();
         }, 100);

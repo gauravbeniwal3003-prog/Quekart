@@ -57,6 +57,19 @@ SMS_OTP_API_URL = os.getenv("SMS_OTP_API_URL", "https://apitxt.com/api/sendOTP")
 # In-memory OTP storage and rate-limiting
 pending_otps: Dict[str, Dict[str, Any]] = {}
 otp_rate_limit_map: Dict[str, float] = {}
+otp_ip_history: Dict[str, List[float]] = {}
+otp_phone_history: Dict[str, List[float]] = {}
+
+def get_client_ip(request: Request) -> str:
+    """Helper to safely retrieve client IP address through reverse proxies / Cloud Run / Render."""
+    if not request:
+        return "unknown"
+    x_forwarded_for = request.headers.get("x-forwarded-for")
+    if x_forwarded_for:
+        return x_forwarded_for.split(",")[0].strip()
+    if request.client and request.client.host:
+        return request.client.host
+    return "unknown"
 
 # --- SECURE JWT UTILITIES (Using native Python libraries for perfect reliability) ---
 def base64url_encode(payload: bytes) -> str:
@@ -311,140 +324,12 @@ import json
 
 local_products: List[Dict[str, Any]] = []
 local_orders: List[Dict[str, Any]] = []
-local_coupons: List[Dict[str, Any]] = [
-    {
-        "code": "LUCKY50",
-        "discountType": "flat",
-        "value": 50.0,
-        "minPurchase": 299.0,
-        "description": "Flat ₹50 OFF on orders above ₹299"
-    },
-    {
-        "code": "MEESHO15",
-        "discountType": "percentage",
-        "value": 15.0,
-        "minPurchase": 0.0,
-        "description": "15% OFF on all items (No minimum order)"
-    },
-    {
-        "code": "FESTIVE100",
-        "discountType": "flat",
-        "value": 100.0,
-        "minPurchase": 499.0,
-        "description": "Flat ₹100 OFF on orders above ₹499"
-    },
-    {
-        "code": "WELCOME20",
-        "discountType": "percentage",
-        "value": 20.0,
-        "minPurchase": 0.0,
-        "description": "Flat 20% OFF on all products"
-    }
-]
+local_coupons: List[Dict[str, Any]] = []
+local_categories: List[Dict[str, Any]] = []
+local_vendors: List[Dict[str, Any]] = []
+local_users: List[Dict[str, Any]] = []
+local_banners: List[Dict[str, Any]] = []
 
-local_categories: List[Dict[str, Any]] = [
-    {
-        "id": "cat-popular",
-        "name": "Popular",
-        "icon": "star",
-        "subCategories": [
-            {"name": "Top Brands", "image": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=200&h=200&fit=crop"},
-            {"name": "Premium Collection", "image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=200&h=200&fit=crop"}
-        ]
-    },
-    {
-        "id": "cat-kurti-saree",
-        "name": "Kurti, Saree & Lehenga",
-        "icon": "shirt",
-        "subCategories": [
-            {"name": "Kurtis & Dress", "image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=200&h=200&fit=crop"},
-            {"name": "Sarees", "image": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=200&h=200&fit=crop"}
-        ]
-    },
-    {
-        "id": "cat-women-western",
-        "name": "Women Western",
-        "icon": "sparkles",
-        "subCategories": [
-            {"name": "Westernwear", "image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=200&h=200&fit=crop"},
-            {"name": "Dresses", "image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=200&h=200&fit=crop"}
-        ]
-    },
-    {
-        "id": "cat-lingerie",
-        "name": "Lingerie",
-        "icon": "heart",
-        "subCategories": [
-            {"name": "Bras & Panties", "image": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=200&h=200&fit=crop"}
-        ]
-    },
-    {
-        "id": "cat-men",
-        "name": "Men",
-        "icon": "smile",
-        "subCategories": [
-            {"name": "Men Fashion", "image": "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=200&h=200&fit=crop"}
-        ]
-    },
-    {
-        "id": "cat-kids",
-        "name": "Kids & Toys",
-        "icon": "baby",
-        "subCategories": [
-            {"name": "Kids", "image": "https://images.unsplash.com/photo-1519689680058-324335c77ebe?w=200&h=200&fit=crop"}
-        ]
-    },
-    {
-        "id": "cat-home",
-        "name": "Home & Kitchen",
-        "icon": "home",
-        "subCategories": [
-            {"name": "Cookware", "image": "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=200&h=200&fit=crop"}
-        ]
-    }
-]
-
-local_vendors: List[Dict[str, Any]] = [
-    {
-        "id": "vendor-hdf",
-        "name": "HDFCREATION",
-        "email": "hdf.creation@quekart.com",
-        "phone": "9876543210",
-        "vendorType": "big",
-        "businessCategory": "Men",
-        "gstin": "08AAAAA1111A1Z1",
-        "rating": 4.1,
-        "status": "active"
-    }
-]
-
-local_users: List[Dict[str, Any]] = [
-    {
-        "id": "user-gaurav",
-        "name": "Gaurav Beniwal",
-        "email": "gauravbeniwal30003@gmail.com",
-        "phone": "9999999999",
-        "address": "Jaipur, Rajasthan"
-    }
-]
-
-local_banners: List[Dict[str, Any]] = [
-    {
-        "id": "banner-promo-1",
-        "imageUrl": "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&q=80&w=1200&h=400",
-        "type": "promotional"
-    },
-    {
-        "id": "banner-promo-2",
-        "imageUrl": "https://images.unsplash.com/photo-1607083206968-13611e3d76ba?auto=format&fit=crop&q=80&w=1200&h=400",
-        "type": "promotional"
-    },
-    {
-        "id": "banner-news-1",
-        "imageUrl": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=1200&h=400",
-        "type": "news"
-    }
-]
 
 # Load and synchronize from mock_data.json if present
 if os.path.exists("./mock_data.json"):
@@ -621,16 +506,74 @@ async def apply_rate_limiting_middleware(request: Request, call_next):
 # --- PRODUCTS ENDPOINTS ---
 
 @app.get("/api/products")
-async def get_products():
+async def get_products(all: Optional[bool] = False, vendorId: Optional[str] = None):
+    prods = []
     if use_supabase and supabase:
         try:
             res = supabase.table("products").select("*").execute()
             if res.data is not None and len(res.data) > 0:
-                return [row["data"] for row in res.data]
+                prods = [row["data"] for row in res.data]
         except Exception as e:
             print(f"Supabase products read warning: {e}")
-            
-    return local_products
+            prods = local_products
+    else:
+        prods = local_products
+
+    # Fetch vendors and users to apply smart filters
+    vendors = []
+    users = []
+    if use_supabase and supabase:
+        try:
+            v_res = supabase.table("vendors").select("*").execute()
+            if v_res.data:
+                vendors = [row["data"] for row in v_res.data]
+            u_res = supabase.table("users").select("*").execute()
+            if u_res.data:
+                users = [row["data"] for row in u_res.data]
+        except Exception as e:
+            print(f"Supabase vendor/user read warning: {e}")
+            vendors = local_vendors
+            users = local_users
+    else:
+        vendors = local_vendors
+        users = local_users
+
+    vendor_map = {v.get("id"): v for v in vendors if v.get("id")}
+    banned_user_ids = {u.get("id") for u in users if u.get("status") == "banned" or u.get("isBanned")}
+    banned_user_phones = {u.get("phone") for u in users if u.get("status") == "banned" or u.get("isBanned")}
+
+    filtered_prods = []
+    for p in prods:
+        v_id = p.get("vendorId")
+        if v_id:
+            v = vendor_map.get(v_id)
+            # Rule 1: If vendor is deleted (not found), hide product
+            if not v:
+                continue
+            # Rule 2: If vendor is banned/suspended, hide product for public users
+            if not all and (v.get("status") in ["banned", "suspended"] or v.get("isBanned")):
+                continue
+
+        # Rule 3: Filter reviews from banned users
+        reviews = p.get("reviews", [])
+        if reviews:
+            clean_reviews = [
+                r for r in reviews 
+                if r.get("userId") not in banned_user_ids and r.get("userPhone") not in banned_user_phones
+            ]
+            p["reviews"] = clean_reviews
+            p["reviewCount"] = len(clean_reviews)
+
+        if vendorId and v_id != vendorId:
+            continue
+        if not all and not vendorId:
+            if p.get("approvalStatus") and p.get("approvalStatus") != "approved":
+                continue
+
+        filtered_prods.append(p)
+
+    return filtered_prods
+
 
 @app.post("/api/products", status_code=201)
 async def create_product(product: Product, x_admin_secret: Optional[str] = Header(None)):
@@ -1295,8 +1238,21 @@ def send_sms_otp_dispatch(mobile: str, otp_code: str) -> bool:
         print(f"❌ Failed to dispatch SMS OTP via apitxt: {e}")
         return False
 
+# --- LIGHTWEIGHT HEALTH CHECK FOR RENDER & BETTER STACK UPTIME BOTS ---
+@app.get("/api/health")
+@app.get("/health")
+@app.get("/api/ping")
+@app.get("/ping")
+async def health_check():
+    """Ultra-fast, zero-overhead endpoint to keep Render active via Better Stack / Uptime bots."""
+    return {
+        "status": "ok",
+        "uptime": "active",
+        "timestamp": datetime.now().isoformat()
+    }
+
 @app.post("/api/auth/send-otp")
-async def send_otp(payload: SendOtpInput):
+async def send_otp(payload: SendOtpInput, request: Request):
     phone = payload.phone
     if not phone:
         raise HTTPException(status_code=400, detail="Mobile phone number is required.")
@@ -1308,8 +1264,28 @@ async def send_otp(payload: SendOtpInput):
     ten_digit = digits[-10:]
     full_mobile = "91" + ten_digit
     now = time.time()
+    cutoff_1h = now - 3600  # 1 hour window (3600 seconds)
+
+    # 1. IP Rate Limiting: Max 15 OTPs per hour per IP address
+    client_ip = get_client_ip(request)
+    ip_history = [t for t in otp_ip_history.get(client_ip, []) if t > cutoff_1h]
+    otp_ip_history[client_ip] = ip_history
+    if len(ip_history) >= 15:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Please try again after an hour"
+        )
+
+    # 2. Phone Number Rate Limiting: Max 15 OTPs per hour per mobile number (no matter the IP)
+    phone_history = [t for t in otp_phone_history.get(ten_digit, []) if t > cutoff_1h]
+    otp_phone_history[ten_digit] = phone_history
+    if len(phone_history) >= 15:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Please try again after an hour"
+        )
     
-    # Strict 60-second cooldown per mobile number
+    # 3. Short 60-second cooldown per mobile number
     last_sent = otp_rate_limit_map.get(ten_digit, 0)
     cooldown_sec = 60
     if now - last_sent < cooldown_sec:
@@ -1318,7 +1294,11 @@ async def send_otp(payload: SendOtpInput):
             status_code=429,
             detail=f"Only 1 OTP request allowed per 60 seconds. Please wait {remaining} seconds before requesting again."
         )
-        
+
+    # Record timestamp into IP and Phone histories
+    ip_history.append(now)
+    phone_history.append(now)
+    
     # Generate secure random 6-digit OTP
     generated_otp = str(random.randint(100000, 999999))
     
@@ -1803,6 +1783,58 @@ async def update_vendor(id: str, vendor: VendorInput):
             
     local_vendors = [vendor_dict if v["id"] == id else v for v in local_vendors]
     return vendor_dict
+
+@app.delete("/api/vendors/{id}")
+async def delete_vendor(id: str):
+    if use_supabase and supabase:
+        try:
+            supabase.table("vendors").delete().eq("id", id).execute()
+            supabase.table("products").delete().eq("data->>vendorId", id).execute()
+        except Exception as e:
+            print(f"Supabase delete vendor error: {e}")
+
+    global local_vendors, local_products
+    local_vendors = [v for v in local_vendors if v.get("id") != id]
+    local_products = [p for p in local_products if p.get("vendorId") != id]
+    return {"success": True, "message": "Vendor and all associated products deleted successfully."}
+
+# --- USERS / CUSTOMERS MANAGEMENT ---
+@app.get("/api/users")
+async def get_users():
+    if use_supabase and supabase:
+        try:
+            res = supabase.table("users").select("*").execute()
+            if res.data:
+                return [row["data"] for row in res.data]
+        except Exception as e:
+            print(f"Supabase users query warning: {e}")
+    return local_users
+
+@app.put("/api/users/{id}")
+async def update_user(id: str, user_data: Dict[str, Any]):
+    user_data["id"] = id
+    if use_supabase and supabase:
+        try:
+            supabase.table("users").update({"data": user_data}).eq("id", id).execute()
+        except Exception as e:
+            print(f"Supabase user update error: {e}")
+
+    global local_users
+    local_users = [user_data if u.get("id") == id else u for u in local_users]
+    return user_data
+
+@app.delete("/api/users/{id}")
+async def delete_user(id: str):
+    if use_supabase and supabase:
+        try:
+            supabase.table("users").delete().eq("id", id).execute()
+        except Exception as e:
+            print(f"Supabase user delete error: {e}")
+
+    global local_users
+    local_users = [u for u in local_users if u.get("id") != id]
+    return {"success": True, "message": "User deleted successfully."}
+
 
 
 # --- DIAGNOSTICS & SYSTEM STATUS ---

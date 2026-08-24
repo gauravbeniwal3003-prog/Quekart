@@ -321,11 +321,11 @@ export default function VendorDashboard({
   const [isSavingDispatch, setIsSavingDispatch] = useState<boolean>(false);
 
   // Bank & UPI Settlement Details State
-  const [bankAccountName, setBankAccountName] = useState<string>(() => currentVendor?.name || '');
-  const [bankAccountNumber, setBankAccountNumber] = useState<string>('98765432109876');
-  const [bankIfscCode, setBankIfscCode] = useState<string>('SBIN0001234');
-  const [bankName, setBankName] = useState<string>('State Bank of India');
-  const [bankUpiId, setBankUpiId] = useState<string>(() => `${(currentVendor?.phone || '9876543210')}@upi`);
+  const [bankAccountName, setBankAccountName] = useState<string>(() => currentVendor?.bankAccount?.accountHolderName || currentVendor?.name || '');
+  const [bankAccountNumber, setBankAccountNumber] = useState<string>(() => currentVendor?.bankAccount?.accountNumber || '');
+  const [bankIfscCode, setBankIfscCode] = useState<string>(() => currentVendor?.bankAccount?.ifscCode || '');
+  const [bankName, setBankName] = useState<string>(() => currentVendor?.bankAccount?.bankName || '');
+  const [bankUpiId, setBankUpiId] = useState<string>(() => currentVendor?.upiId || `${(currentVendor?.phone || '')}@upi`);
   const [isSavingBank, setIsSavingBank] = useState<boolean>(false);
   const [bankSaveSuccess, setBankSaveSuccess] = useState<boolean>(false);
 
@@ -362,11 +362,11 @@ export default function VendorDashboard({
   // Payout Request Form State (Bank vs UPI with full validation)
   const [payoutMethod, setPayoutMethod] = useState<'bank' | 'upi'>('bank');
   const [payoutAmount, setPayoutAmount] = useState<string>('');
-  const [payoutUpi, setPayoutUpi] = useState<string>(() => `${(currentVendor?.phone || '9876543210')}@upi`);
-  const [payoutAccNo, setPayoutAccNo] = useState<string>('98765432109876');
-  const [payoutIfsc, setPayoutIfsc] = useState<string>('SBIN0001234');
-  const [payoutHolder, setPayoutHolder] = useState<string>(() => currentVendor?.name || '');
-  const [payoutBankTitle, setPayoutBankTitle] = useState<string>('State Bank of India');
+  const [payoutUpi, setPayoutUpi] = useState<string>(() => currentVendor?.upiId || `${(currentVendor?.phone || '')}@upi`);
+  const [payoutAccNo, setPayoutAccNo] = useState<string>(() => currentVendor?.bankAccount?.accountNumber || '');
+  const [payoutIfsc, setPayoutIfsc] = useState<string>(() => currentVendor?.bankAccount?.ifscCode || '');
+  const [payoutHolder, setPayoutHolder] = useState<string>(() => currentVendor?.bankAccount?.accountHolderName || currentVendor?.name || '');
+  const [payoutBankTitle, setPayoutBankTitle] = useState<string>(() => currentVendor?.bankAccount?.bankName || '');
   const [isSubmittingPayout, setIsSubmittingPayout] = useState(false);
   const [payoutSuccessData, setPayoutSuccessData] = useState<any | null>(null);
   const [payoutErrorMsg, setPayoutErrorMsg] = useState<string>('');
@@ -398,6 +398,39 @@ export default function VendorDashboard({
       loadVendorFinancials();
     }
   }, [currentVendor?.id, activeTabKey]);
+
+  useEffect(() => {
+    if (currentVendor) {
+      if (currentVendor.bankAccount) {
+        setBankAccountNumber(currentVendor.bankAccount.accountNumber || '');
+        setBankIfscCode(currentVendor.bankAccount.ifscCode || '');
+        setBankAccountName(currentVendor.bankAccount.accountHolderName || currentVendor.name || '');
+        setBankName(currentVendor.bankAccount.bankName || '');
+        
+        setPayoutAccNo(currentVendor.bankAccount.accountNumber || '');
+        setPayoutIfsc(currentVendor.bankAccount.ifscCode || '');
+        setPayoutHolder(currentVendor.bankAccount.accountHolderName || currentVendor.name || '');
+        setPayoutBankTitle(currentVendor.bankAccount.bankName || '');
+      } else {
+        setBankAccountNumber('');
+        setBankIfscCode('');
+        setBankAccountName(currentVendor.name || '');
+        setBankName('');
+        
+        setPayoutAccNo('');
+        setPayoutIfsc('');
+        setPayoutHolder(currentVendor.name || '');
+        setPayoutBankTitle('');
+      }
+      if (currentVendor.upiId) {
+        setBankUpiId(currentVendor.upiId);
+        setPayoutUpi(currentVendor.upiId);
+      } else {
+        setBankUpiId(`${currentVendor.phone || ''}@upi`);
+        setPayoutUpi(`${currentVendor.phone || ''}@upi`);
+      }
+    }
+  }, [currentVendor]);
 
   // Handle Payout Submission (Bank A/C or UPI)
   const handleRequestPayout = async (e: React.FormEvent) => {

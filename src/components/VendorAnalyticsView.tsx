@@ -79,7 +79,7 @@ export const VendorAnalyticsView: React.FC<VendorAnalyticsViewProps> = ({
   // Aggregate Base Metrics
   const baseMetrics = useMemo(() => {
     if (singleProduct) {
-      const a = singleProduct.analytics || { impressions: 140, views: 38, cartAdds: 12 };
+      const a = singleProduct.analytics || { impressions: 0, views: 0, cartAdds: 0 };
       const productOrdersCount = vendorOrders.filter(o => 
         (o.items || []).some(item => item.product?.id === singleProduct.id)
       ).length;
@@ -92,10 +92,10 @@ export const VendorAnalyticsView: React.FC<VendorAnalyticsViewProps> = ({
       else if (timeRange === 'month') scale = 0.95;
       else if (timeRange === 'year') scale = 3.2;
 
-      const impressions = Math.max(12, Math.round((a.impressions || 120) * scale));
-      const views = Math.max(3, Math.round((a.views || 32) * scale));
-      const cartAdds = Math.max(1, Math.round((a.cartAdds || 9) * scale));
-      const ordersCount = Math.max(0, Math.round((productOrdersCount || 2) * scale));
+      const impressions = Math.round((a.impressions || 0) * scale);
+      const views = Math.round((a.views || 0) * scale);
+      const cartAdds = Math.round((a.cartAdds || 0) * scale);
+      const ordersCount = Math.round((productOrdersCount || 0) * scale);
 
       const ctr = impressions > 0 ? Number(((views / impressions) * 100).toFixed(1)) : 0;
       const cartRate = views > 0 ? Number(((cartAdds / views) * 100).toFixed(1)) : 0;
@@ -120,15 +120,15 @@ export const VendorAnalyticsView: React.FC<VendorAnalyticsViewProps> = ({
     else if (timeRange === 'month') scale = 0.90;
     else if (timeRange === 'year') scale = 3.5;
 
-    const rawImpressions = analyticsData?.totalImpressions || vendorProducts.reduce((s, p) => s + (p.analytics?.impressions || 110), 0) || 450;
-    const rawViews = analyticsData?.totalViews || vendorProducts.reduce((s, p) => s + (p.analytics?.views || 30), 0) || 120;
-    const rawCartAdds = analyticsData?.totalCartAdds || vendorProducts.reduce((s, p) => s + (p.analytics?.cartAdds || 8), 0) || 35;
-    const rawOrders = vendorOrders.length || 8;
+    const rawImpressions = analyticsData?.totalImpressions || vendorProducts.reduce((s, p) => s + (p.analytics?.impressions || 0), 0) || 0;
+    const rawViews = analyticsData?.totalViews || vendorProducts.reduce((s, p) => s + (p.analytics?.views || 0), 0) || 0;
+    const rawCartAdds = analyticsData?.totalCartAdds || vendorProducts.reduce((s, p) => s + (p.analytics?.cartAdds || 0), 0) || 0;
+    const rawOrders = vendorOrders.length;
 
-    const impressions = Math.max(25, Math.round(rawImpressions * scale));
-    const views = Math.max(8, Math.round(rawViews * scale));
-    const cartAdds = Math.max(2, Math.round(rawCartAdds * scale));
-    const ordersCount = Math.max(1, Math.round(rawOrders * scale));
+    const impressions = Math.round(rawImpressions * scale);
+    const views = Math.round(rawViews * scale);
+    const cartAdds = Math.round(rawCartAdds * scale);
+    const ordersCount = Math.round(rawOrders * scale);
 
     const ctr = impressions > 0 ? Number(((views / impressions) * 100).toFixed(1)) : 0;
     const cartRate = views > 0 ? Number(((cartAdds / views) * 100).toFixed(1)) : 0;
@@ -151,45 +151,45 @@ export const VendorAnalyticsView: React.FC<VendorAnalyticsViewProps> = ({
     
     if (timeRange === '24h') {
       const hours = [0, 3, 6, 9, 12, 15, 18, 21];
-      const baseImp = Math.max(1, Math.round(baseMetrics.impressions / 8));
-      const baseVw = Math.max(1, Math.round(baseMetrics.views / 8));
-      const baseCart = Math.max(0, Math.round(baseMetrics.cartAdds / 8));
-      const baseOrd = Math.max(0, Math.round(baseMetrics.ordersCount / 8));
+      const baseImp = Math.round(baseMetrics.impressions / 8);
+      const baseVw = Math.round(baseMetrics.views / 8);
+      const baseCart = Math.round(baseMetrics.cartAdds / 8);
+      const baseOrd = Math.round(baseMetrics.ordersCount / 8);
 
       hours.forEach(h => {
         const timeStr = `${h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`}`;
         const multiplier = h >= 12 && h <= 21 ? 1.4 : 0.6;
         points.push({
           label: timeStr,
-          impressions: Math.round(baseImp * multiplier + Math.random() * 3),
-          views: Math.round(baseVw * multiplier + Math.random() * 2),
+          impressions: Math.round(baseImp * multiplier),
+          views: Math.round(baseVw * multiplier),
           cartAdds: Math.round(baseCart * multiplier),
           orders: Math.round(baseOrd * multiplier)
         });
       });
     } else if (timeRange === '7d') {
       const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      const baseImp = Math.max(1, Math.round(baseMetrics.impressions / 7));
-      const baseVw = Math.max(1, Math.round(baseMetrics.views / 7));
-      const baseCart = Math.max(0, Math.round(baseMetrics.cartAdds / 7));
-      const baseOrd = Math.max(0, Math.round(baseMetrics.ordersCount / 7));
+      const baseImp = Math.round(baseMetrics.impressions / 7);
+      const baseVw = Math.round(baseMetrics.views / 7);
+      const baseCart = Math.round(baseMetrics.cartAdds / 7);
+      const baseOrd = Math.round(baseMetrics.ordersCount / 7);
 
       days.forEach((day, idx) => {
         const multiplier = idx >= 4 ? 1.35 : 0.85; // Higher on weekend
         points.push({
           label: day,
-          impressions: Math.round(baseImp * multiplier + (idx * 2)),
-          views: Math.round(baseVw * multiplier + idx),
+          impressions: Math.round(baseImp * multiplier),
+          views: Math.round(baseVw * multiplier),
           cartAdds: Math.round(baseCart * multiplier),
           orders: Math.round(baseOrd * multiplier)
         });
       });
     } else if (timeRange === '30d' || timeRange === 'month') {
       const weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
-      const baseImp = Math.max(1, Math.round(baseMetrics.impressions / 4));
-      const baseVw = Math.max(1, Math.round(baseMetrics.views / 4));
-      const baseCart = Math.max(0, Math.round(baseMetrics.cartAdds / 4));
-      const baseOrd = Math.max(0, Math.round(baseMetrics.ordersCount / 4));
+      const baseImp = Math.round(baseMetrics.impressions / 4);
+      const baseVw = Math.round(baseMetrics.views / 4);
+      const baseCart = Math.round(baseMetrics.cartAdds / 4);
+      const baseOrd = Math.round(baseMetrics.ordersCount / 4);
 
       weeks.forEach((wk, idx) => {
         const multiplier = 0.85 + (idx * 0.15);
@@ -203,10 +203,10 @@ export const VendorAnalyticsView: React.FC<VendorAnalyticsViewProps> = ({
       });
     } else if (timeRange === 'year') {
       const months = ['Jan', 'Mar', 'May', 'Jul', 'Sep', 'Nov'];
-      const baseImp = Math.max(1, Math.round(baseMetrics.impressions / 6));
-      const baseVw = Math.max(1, Math.round(baseMetrics.views / 6));
-      const baseCart = Math.max(0, Math.round(baseMetrics.cartAdds / 6));
-      const baseOrd = Math.max(0, Math.round(baseMetrics.ordersCount / 6));
+      const baseImp = Math.round(baseMetrics.impressions / 6);
+      const baseVw = Math.round(baseMetrics.views / 6);
+      const baseCart = Math.round(baseMetrics.cartAdds / 6);
+      const baseOrd = Math.round(baseMetrics.ordersCount / 6);
 
       months.forEach((m, idx) => {
         const multiplier = 0.7 + (idx * 0.2);

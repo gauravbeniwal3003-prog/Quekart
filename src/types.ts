@@ -106,8 +106,10 @@ export interface Vendor {
   businessCategory: string;
   gstin?: string;
   rating: number;
-  status: 'active' | 'suspended';
+  status: 'active' | 'suspended' | 'banned';
+  isBanned?: boolean;
   createdAt: string;
+
   state?: string;
   city?: string;
   district?: string;
@@ -148,7 +150,10 @@ export interface AppUser {
     isDefault?: boolean;
   }>;
   createdAt: string;
+  status?: 'active' | 'banned';
+  isBanned?: boolean;
 }
+
 
 export interface CartItem {
   id: string; // unique cart item id (productId + variantIndex + size)

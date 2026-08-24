@@ -225,72 +225,10 @@ if (SUPABASE_URL && SUPABASE_ANON_KEY) {
 // -------------------------------------------------------------
 // LOCAL MEMORY FALLBACK DATABASE (Seeds automatically from data.ts)
 // -------------------------------------------------------------
-const initialCouponsList: Coupon[] = [
-  {
-    code: 'QUEKART50',
-    discountType: 'flat',
-    value: 50,
-    minPurchase: 299,
-    description: 'Flat ₹50 OFF on orders above ₹299'
-  },
-  {
-    code: 'LUCKY50',
-    discountType: 'flat',
-    value: 50,
-    minPurchase: 299,
-    description: 'Flat ₹50 OFF on orders above ₹299'
-  },
-  {
-    code: 'MEESHO15',
-    discountType: 'percentage',
-    value: 15,
-    minPurchase: 0,
-    description: '15% OFF on all items (No minimum order)'
-  },
-  {
-    code: 'FESTIVE100',
-    discountType: 'flat',
-    value: 100,
-    minPurchase: 499,
-    description: 'Flat ₹100 OFF on orders above ₹499'
-  },
-  {
-    code: 'WELCOME20',
-    discountType: 'percentage',
-    value: 20,
-    minPurchase: 0,
-    description: 'Flat 20% OFF on all products'
-  }
-];
+const initialCouponsList: Coupon[] = [];
 
-const initialVendors: Vendor[] = [
-  {
-    id: 'vendor-big-raj',
-    name: 'Rajasthan Handloom House',
-    email: 'raj.handloom@quekart.com',
-    phone: '9876543210',
-    vendorType: 'big',
-    isVerified: true,
-    businessCategory: 'Apparel & Sarees',
-    gstin: '08AAAAA1111A1Z1',
-    rating: 4.8,
-    status: 'active',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'vendor-small-craft',
-    name: 'Jaipur Handcrafted Decors',
-    email: 'jaipur.crafts@quekart.com',
-    phone: '9123456789',
-    vendorType: 'small',
-    isVerified: false,
-    businessCategory: 'Home & Kitchen',
-    gstin: '08BBBBB2222B2Z2',
-    rating: 4.2,
-    status: 'active',
-    createdAt: new Date().toISOString()
-  }
-];
+const initialVendors: Vendor[] = [];
+
 
 let localProducts: Product[] = mockProducts.map(p => ({
   ...p,
@@ -554,6 +492,19 @@ const SMS_OTP_API_URL = process.env.SMS_OTP_API_URL || 'https://apitxt.com/api/s
 // Rate limiting map: fullMobile -> timestamp of last sent OTP (60s cooldown rule)
 const otpRateLimitMap = new Map<string, number>();
 
+// Hourly rate limiting maps for OTPs (Max 15 per hour per IP, Max 15 per hour per Phone)
+const otpIpHistoryMap = new Map<string, number[]>();
+const otpPhoneHistoryMap = new Map<string, number[]>();
+
+// Lightweight health check route for Better Stack & Render uptime monitoring
+app.get(['/api/health', '/health', '/api/ping', '/ping'], (_req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    uptime: 'active',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Secure cache for pending OTPs (Phone -> { otp, expires, isSignUp, role, lastSent })
 const pendingOtps = new Map<string, { otp: string; expires: number; isSignUp: boolean; role: string; lastSent: number }>();
 
@@ -598,15 +549,63 @@ app.post('/api/auth/send-otp', async (req, res) => {
   }
 
   try {
+    // Check if account is banned/suspended before sending OTP
+    if (role === 'customer' || role === 'user') {
+      let existingUser: any;
+      if (useSupabase && supabase) {
+        const { data } = await supabase.from('users').select('*').or(`phone.eq.${tenDigitPhone},phone.eq.${fullMobile}`).single();
+        if (data) existingUser = data.data || data;
+      }
+      if (!existingUser) {
+        existingUser = localUsers.find(u => u.phone === tenDigitPhone || u.phone === fullMobile);
+      }
+      if (existingUser && (existingUser.status === 'banned' || existingUser.isBanned)) {
+        return res.status(403).json({ error: 'Your account has been banned by the administrator.' });
+      }
+    } else if (role === 'seller' || role === 'vendor') {
+      let existingVendor: any;
+      if (useSupabase && supabase) {
+        const { data } = await supabase.from('vendors').select('*').or(`phone.eq.${tenDigitPhone},phone.eq.${fullMobile}`).single();
+        if (data) existingVendor = data.data || data;
+      }
+      if (!existingVendor) {
+        existingVendor = localVendors.find(v => v.phone === tenDigitPhone || v.phone === fullMobile);
+      }
+      if (existingVendor && (existingVendor.status === 'banned' || existingVendor.status === 'suspended' || existingVendor.isBanned)) {
+        return res.status(403).json({ error: 'Your seller account has been banned or suspended by the administrator.' });
+      }
+    }
+
     // Validate role conflicts first
     const roleCheck = await checkPhoneRole(tenDigitPhone, role);
     if (roleCheck.role && roleCheck.message) {
       return res.status(400).json({ error: roleCheck.message });
     }
 
-    // Rate Limiting Enforcement: 1 request per 60 seconds per phone number
-    const lastSent = otpRateLimitMap.get(fullMobile) || otpRateLimitMap.get(tenDigitPhone);
+    // 1. IP Rate Limiting Enforcement: Maximum 15 OTPs per hour per IP address
+    const clientIp = (req.headers['x-forwarded-for'] ? String(req.headers['x-forwarded-for']).split(',')[0].trim() : req.socket?.remoteAddress) || 'unknown';
     const now = Date.now();
+    const cutoff1h = now - (3600 * 1000); // 1 hour window
+
+    let ipHistory = (otpIpHistoryMap.get(clientIp) || []).filter(t => t > cutoff1h);
+    otpIpHistoryMap.set(clientIp, ipHistory);
+    if (ipHistory.length >= 15) {
+      return res.status(429).json({
+        error: 'Please try again after an hour'
+      });
+    }
+
+    // 2. Phone Number Rate Limiting Enforcement: Maximum 15 OTPs per hour per number (regardless of IP)
+    let phoneHistory = (otpPhoneHistoryMap.get(tenDigitPhone) || []).filter(t => t > cutoff1h);
+    otpPhoneHistoryMap.set(tenDigitPhone, phoneHistory);
+    if (phoneHistory.length >= 15) {
+      return res.status(429).json({
+        error: 'Please try again after an hour'
+      });
+    }
+
+    // 3. Short Rate Limiting Enforcement: 1 request per 60 seconds per phone number
+    const lastSent = otpRateLimitMap.get(fullMobile) || otpRateLimitMap.get(tenDigitPhone);
     if (lastSent && (now - lastSent) < 60000) {
       const remainingSec = Math.ceil((60000 - (now - lastSent)) / 1000);
       return res.status(429).json({
@@ -614,6 +613,10 @@ app.post('/api/auth/send-otp', async (req, res) => {
         cooldownRemainingSec: remainingSec
       });
     }
+
+    // Record timestamp into IP and Phone histories
+    ipHistory.push(now);
+    phoneHistory.push(now);
 
     // Generate secure 6-digit random OTP
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -642,8 +645,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
     res.json({
       success: true,
       message: `Verification OTP sent to +${fullMobile}.`,
-      cooldownRemainingSec: 60,
-      otp: otpCode
+      cooldownRemainingSec: 60
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to dispatch OTP.' });
@@ -652,7 +654,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
 
 // 2. Verify OTP Route (Checks 6-digit OTP, Auto-registers if user is new, issues JWT)
 app.post('/api/auth/verify-otp', async (req, res) => {
-  const { phone, otp, role, name, email, address, businessCategory, city, state, gstin, description, storeName } = req.body;
+  const { phone, otp, role, name, email, address, businessCategory, city, state, gstin, description, storeName, verifyOnly, pincode } = req.body;
   if (!phone || !otp || !role) {
     return res.status(400).json({ error: 'Phone number, OTP code, and expected role are required.' });
   }
@@ -667,7 +669,7 @@ app.post('/api/auth/verify-otp', async (req, res) => {
   if (!record) {
     // If no record found in memory (e.g. server restart or timeout), accept universal test codes 123456 / 999999
     if (submittedOtp !== '123456' && submittedOtp !== '999999') {
-      return res.status(400).json({ error: 'No active OTP verification request found for this phone.' });
+      return res.status(400).json({ error: 'No active OTP verification request found for this phone. Please request a new code.' });
     }
   } else {
     if (Date.now() > record.expires) {
@@ -690,6 +692,10 @@ app.post('/api/auth/verify-otp', async (req, res) => {
     // Clear validated OTP record
     pendingOtps.delete(fullMobile);
     pendingOtps.delete(tenDigitPhone);
+  }
+
+  if (verifyOnly) {
+    return res.json({ success: true, verified: true, message: 'Mobile OTP verified successfully.' });
   }
 
   try {
@@ -767,6 +773,28 @@ app.post('/api/auth/verify-otp', async (req, res) => {
         });
       }
 
+      // Check for duplicate registrations on Sign Up (indicated by presence of gstin)
+      if (gstin) {
+        if (vendor) {
+          return res.status(400).json({ error: 'A supplier is already registered with this mobile number. Please log in.' });
+        }
+
+        const cleanGstin = gstin.trim().toUpperCase();
+        let existingVendorByGst: Vendor | undefined;
+        if (useSupabase && supabase) {
+          const { data } = await supabase.from('vendors').select('*');
+          if (data) {
+            existingVendorByGst = data.map((row: any) => row.data || row).find((v: Vendor) => v.gstin && v.gstin.trim().toUpperCase() === cleanGstin && v.status !== 'suspended');
+          }
+        }
+        if (!existingVendorByGst) {
+          existingVendorByGst = localVendors.find(v => v.gstin && v.gstin.trim().toUpperCase() === cleanGstin && v.status !== 'suspended');
+        }
+        if (existingVendorByGst) {
+          return res.status(400).json({ error: `A supplier account is already registered with GSTIN (${cleanGstin}). Duplicate GST accounts are strictly prohibited.` });
+        }
+      }
+
       // SMART AUTO-REGISTER LOGIC:
       // If vendor does NOT exist, automatically register new vendor account!
       if (!vendor) {
@@ -778,13 +806,19 @@ app.post('/api/auth/verify-otp', async (req, res) => {
         const newVendor: Vendor = {
           id: `vendor-${Date.now()}`,
           name: (storeName || name || `Seller Store ${tenDigitPhone}`).trim(),
+          ownerName: (name || storeName || '').trim(),
+          legalBusinessName: name || storeName,
+          tradeName: storeName || name,
+          businessType: 'Registered Business',
           email: (email || `${fullMobile}@seller.quekart.com`).trim(),
           phone: fullMobile,
           vendorType: 'big',
           businessCategory: businessCategory || 'Apparel & Sarees',
-          gstin: gstin ? gstin.trim().toUpperCase() : '',
+          gstin: gstin.trim().toUpperCase(),
           city: city ? city.trim() : 'Jaipur',
           state: state ? state.trim() : 'Rajasthan',
+          pincode: pincode ? pincode.trim() : '302001',
+          address: address ? address.trim() : undefined,
           description: description ? description.trim() : 'GST-Verified Seller',
           rating: 5.0,
           status: 'active',
@@ -1672,6 +1706,57 @@ app.get('/api/products', async (req, res) => {
       productsList = localProducts;
     }
 
+    // Fetch active vendors and users to apply smart deletion/ban rules
+    let currentVendors: Vendor[] = [];
+    let currentUsers: AppUser[] = [];
+    if (useSupabase && supabase) {
+      const { data: vData } = await supabase.from('vendors').select('*');
+      if (vData) currentVendors = vData.map((r: any) => r.data || r);
+      const { data: uData } = await supabase.from('users').select('*');
+      if (uData) currentUsers = uData.map((r: any) => r.data || r);
+    } else {
+      currentVendors = localVendors;
+      currentUsers = localUsers;
+    }
+
+    const vendorMap = new Map<string, Vendor>();
+    currentVendors.forEach(v => vendorMap.set(v.id, v));
+
+    const bannedUserIds = new Set<string>();
+    const bannedUserPhones = new Set<string>();
+    currentUsers.forEach(u => {
+      if ((u as any).status === 'banned' || (u as any).isBanned) {
+        if (u.id) bannedUserIds.add(u.id);
+        if (u.phone) bannedUserPhones.add(u.phone);
+      }
+    });
+
+    // Smart filtering for products
+    productsList = productsList.filter(p => {
+      if (!p.vendorId) return true; // Admin/system product
+      
+      const v = vendorMap.get(p.vendorId);
+      // Rule 1: If vendor is deleted (does not exist in vendors table), hide product entirely
+      if (!v) return false;
+
+      // Rule 2: If vendor is banned/suspended, hide product on public customer views
+      if (!allParam && (v.status === 'banned' || v.status === 'suspended' || (v as any).isBanned)) {
+        return false;
+      }
+      return true;
+    });
+
+    // Rule 3: Filter out reviews written by banned users
+    productsList = productsList.map(p => {
+      if (!p.reviews || p.reviews.length === 0) return p;
+      const cleanReviews = p.reviews.filter(rev => {
+        if (rev.userId && bannedUserIds.has(rev.userId)) return false;
+        if ((rev as any).userPhone && bannedUserPhones.has((rev as any).userPhone)) return false;
+        return true;
+      });
+      return { ...p, reviews: cleanReviews, reviewCount: cleanReviews.length };
+    });
+
     // Filter based on parameters
     if (vendorIdParam) {
       // Filter by specific vendor
@@ -1696,6 +1781,7 @@ app.get('/api/products', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch products' });
   }
 });
+
 
 app.post('/api/products', async (req, res) => {
   const newProduct: Product = req.body;
@@ -2361,11 +2447,11 @@ let platformAnalyticsStats = {
 function ensureProductAnalytics(product: Product) {
   if (!product.analytics) {
     product.analytics = {
-      impressions: Math.floor(Math.random() * 300) + 80,
-      views: Math.floor(Math.random() * 60) + 15,
-      cartAdds: Math.floor(Math.random() * 12) + 2,
-      blockedImpressions: Math.floor(Math.random() * 10) + 1,
-      blockedViews: Math.floor(Math.random() * 4) + 1,
+      impressions: 0,
+      views: 0,
+      cartAdds: 0,
+      blockedImpressions: 0,
+      blockedViews: 0,
       lastUpdated: new Date().toISOString()
     };
   }
@@ -2415,6 +2501,10 @@ app.post('/api/analytics/impression', async (req, res) => {
         countedCount++;
         results[product.id] = { counted: true, impressions: analytics.impressions };
       }
+
+      if (useSupabase && supabase) {
+        supabase.from('products').update({ data: product }).eq('id', product.id).catch((e: any) => console.warn('Supabase impression update warning:', e));
+      }
     }
 
     res.json({
@@ -2457,6 +2547,9 @@ app.post('/api/analytics/view', async (req, res) => {
       analytics.blockedViews += 1;
       platformAnalyticsStats.totalBlockedViews += 1;
       const cooldownRemainingMin = Math.ceil((ANALYTICS_COOLDOWN_MS - (now - lastTime)) / (60 * 1000));
+      if (useSupabase && supabase) {
+        await supabase.from('products').update({ data: product }).eq('id', product.id).catch((e: any) => console.warn('Supabase view update warning:', e));
+      }
       return res.json({
         success: true,
         counted: false,
@@ -2471,6 +2564,10 @@ app.post('/api/analytics/view', async (req, res) => {
     analytics.views += 1;
     analytics.lastUpdated = new Date().toISOString();
     platformAnalyticsStats.totalViews += 1;
+
+    if (useSupabase && supabase) {
+      await supabase.from('products').update({ data: product }).eq('id', product.id).catch((e: any) => console.warn('Supabase view update warning:', e));
+    }
 
     res.json({
       success: true,
@@ -2502,6 +2599,10 @@ app.post('/api/analytics/cart-add', async (req, res) => {
     analytics.cartAdds += 1;
     analytics.lastUpdated = new Date().toISOString();
     platformAnalyticsStats.totalCartAdds += 1;
+
+    if (useSupabase && supabase) {
+      await supabase.from('products').update({ data: product }).eq('id', product.id).catch((e: any) => console.warn('Supabase cart-add update warning:', e));
+    }
 
     res.json({
       success: true,
@@ -2808,6 +2909,85 @@ app.put('/api/vendors/:id', async (req, res) => {
   }
 });
 
+app.delete('/api/vendors/:id', async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ error: 'Vendor ID is required' });
+  }
+
+  try {
+    if (useSupabase && supabase) {
+      await supabase.from('vendors').delete().eq('id', id);
+      await supabase.from('products').delete().eq('data->>vendorId', id);
+    }
+
+    localVendors = localVendors.filter(v => v.id !== id);
+    localProducts = localProducts.filter(p => p.vendorId !== id);
+
+    console.log(`[VENDOR DELETED] Vendor ${id} and all associated products removed.`);
+    res.json({ success: true, message: 'Vendor and all listed products removed successfully.' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to delete vendor' });
+  }
+});
+
+// --- USERS / CUSTOMERS MANAGEMENT ---
+app.get('/api/users', async (req, res) => {
+  try {
+    if (useSupabase && supabase) {
+      const { data, error } = await supabase.from('users').select('*');
+      if (!error && data && data.length > 0) {
+        return res.json(data.map((row: any) => row.data || row));
+      }
+    }
+    res.json(localUsers);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+app.put('/api/users/:id', async (req, res) => {
+  const { id } = req.params;
+  const updatedUser: AppUser = req.body;
+
+  if (!id || !updatedUser) {
+    return res.status(400).json({ error: 'Invalid user payload' });
+  }
+
+  try {
+    if (useSupabase && supabase) {
+      const { error } = await supabase.from('users').update({ data: updatedUser }).eq('id', id);
+      if (!error) {
+        localUsers = localUsers.map(u => u.id === id ? updatedUser : u);
+        return res.json(updatedUser);
+      }
+    }
+
+    localUsers = localUsers.map(u => u.id === id ? updatedUser : u);
+    res.json(updatedUser);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to update user' });
+  }
+});
+
+app.delete('/api/users/:id', async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ error: 'User ID is required' });
+  }
+
+  try {
+    if (useSupabase && supabase) {
+      await supabase.from('users').delete().eq('id', id);
+    }
+    localUsers = localUsers.filter(u => u.id !== id);
+    res.json({ success: true, message: 'User deleted successfully' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to delete user' });
+  }
+});
+
+
 // ==============================================================================
 // --- VENDOR FINANCIALS, PAYOUT REQUESTS & PASSBOOK STATEMENT LEDGER SYSTEM ---
 // ==============================================================================
@@ -2869,119 +3049,13 @@ interface UserWalletRecord {
 
 const localVendorPayouts: VendorPayoutRecord[] = [];
 const localVendorLedgers: Map<string, VendorLedgerRecord[]> = new Map();
-const localUserWallets: Map<string, UserWalletRecord> = new Map([
-  [
-    '9999999999',
-    {
-      phone: '9999999999',
-      userId: 'user-gaurav',
-      balance: 450,
-      totalRefunds: 450,
-      totalCashback: 0,
-      transactions: [
-        {
-          id: 'WTXN-REF-10928',
-          type: 'refund_credit',
-          title: 'Instant Refund: Order #order-81204 (Size Exchange Returned)',
-          orderId: 'order-81204',
-          amount: 450,
-          isCredit: true,
-          runningBalance: 450,
-          date: '12 Aug 2026, 02:40 PM',
-          status: 'Completed'
-        }
-      ]
-    }
-  ]
-]);
+const localUserWallets: Map<string, UserWalletRecord> = new Map();
 
 // Helper: Seed or retrieve vendor ledger & compute passbook running balances
 function getOrCreateVendorLedger(vendorId: string): VendorLedgerRecord[] {
   let ledger = localVendorLedgers.get(vendorId);
   if (!ledger) {
     ledger = [];
-    const vendor = localVendors.find(v => v.id === vendorId);
-    const vendorName = vendor?.name || 'QueKart Supplier Store';
-
-    // Seed realistic demo opening & settled order entries
-    const isBig = vendor?.vendorType === 'big';
-    let running = isBig ? 18500 : 6400;
-
-    ledger.push({
-      id: `LEDGER-${Date.now()}-001`,
-      vendorId,
-      transactionType: 'opening_balance',
-      typeLabel: 'Account Opening Balance',
-      referenceId: `INIT-${vendorId.substring(0, 10).toUpperCase()}`,
-      description: `Verified merchant initial working ledger balance for ${vendorName}`,
-      credit: running,
-      debit: 0,
-      runningBalance: running,
-      status: 'Settled',
-      timestamp: new Date(Date.now() - 15 * 86400000).toISOString(),
-      date: new Date(Date.now() - 15 * 86400000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ', 10:00 AM'
-    });
-
-    // Delivered Order Credit 1
-    const orderCredit1 = isBig ? 3490 : 1298;
-    running += orderCredit1;
-    ledger.push({
-      id: `LEDGER-${Date.now()}-002`,
-      vendorId,
-      transactionType: 'order_credit',
-      typeLabel: 'Order Delivered (Credit)',
-      referenceId: 'TXN-ORD-90218',
-      orderId: 'order-90218',
-      productTitle: isBig ? 'Banarasi Zari Saree (x2)' : 'Vintage Floral Midi Dress (x2)',
-      quantity: 2,
-      description: `Direct 100% payout credit for Order #order-90218 marked Delivered`,
-      credit: orderCredit1,
-      debit: 0,
-      runningBalance: running,
-      status: 'Settled',
-      timestamp: new Date(Date.now() - 10 * 86400000).toISOString(),
-      date: new Date(Date.now() - 10 * 86400000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ', 03:15 PM'
-    });
-
-    // Payout Withdrawal 1
-    const withdrawal1 = isBig ? 8000 : 3000;
-    running -= withdrawal1;
-    ledger.push({
-      id: `LEDGER-${Date.now()}-003`,
-      vendorId,
-      transactionType: 'payout_withdrawal',
-      typeLabel: 'Payout Withdrawal (Debit)',
-      referenceId: 'PAYOUT-BANK-78192',
-      description: `Settled to Bank A/C **${vendor?.bankAccount?.accountNumber ? vendor.bankAccount.accountNumber.slice(-4) : '9876'} (IFSC: ${vendor?.bankAccount?.ifscCode || 'SBIN0001234'})`,
-      credit: 0,
-      debit: withdrawal1,
-      runningBalance: running,
-      status: 'Completed',
-      timestamp: new Date(Date.now() - 7 * 86400000).toISOString(),
-      date: new Date(Date.now() - 7 * 86400000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ', 11:30 AM'
-    });
-
-    // Delivered Order Credit 2
-    const orderCredit2 = isBig ? 2490 : 1098;
-    running += orderCredit2;
-    ledger.push({
-      id: `LEDGER-${Date.now()}-004`,
-      vendorId,
-      transactionType: 'order_credit',
-      typeLabel: 'Order Delivered (Credit)',
-      referenceId: 'TXN-ORD-91045',
-      orderId: 'order-91045',
-      productTitle: isBig ? 'Embroidered Anarkali Kurti' : 'Handcrafted Wooden Wall Clock',
-      quantity: 1,
-      description: `Direct 100% payout credit for Order #order-91045 marked Delivered Early`,
-      credit: orderCredit2,
-      debit: 0,
-      runningBalance: running,
-      status: 'Settled',
-      timestamp: new Date(Date.now() - 3 * 86400000).toISOString(),
-      date: new Date(Date.now() - 3 * 86400000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ', 05:45 PM'
-    });
-
     localVendorLedgers.set(vendorId, ledger);
   }
   return ledger;
@@ -3241,6 +3315,73 @@ function recordVendorOrderReturned(order: Order, returnReason = 'Customer return
 app.get('/api/vendor/:id/financials', async (req, res) => {
   const { id } = req.params;
   try {
+    if (useSupabase && supabase) {
+      // 1. Fetch wallet ledger from Supabase
+      const { data: dbLedger } = await supabase
+        .from('vendor_wallet_ledger')
+        .select('*')
+        .eq('vendor_id', id);
+
+      if (dbLedger) {
+        const ledger = dbLedger.map((row: any) => {
+          const item = row.data || row;
+          return {
+            id: row.id || item.id,
+            vendorId: row.vendor_id || item.vendorId || id,
+            transactionType: row.transaction_type || item.transactionType,
+            typeLabel: row.type_label || item.typeLabel,
+            referenceId: row.reference_id || item.referenceId,
+            orderId: row.order_id || item.orderId,
+            productTitle: row.product_title || item.productTitle,
+            quantity: row.quantity || item.quantity,
+            description: row.description || item.description,
+            credit: Number(row.credit_amount !== undefined ? row.credit_amount : (item.credit || 0)),
+            debit: Number(row.debit_amount !== undefined ? row.debit_amount : (item.debit || 0)),
+            runningBalance: Number(row.running_balance !== undefined ? row.running_balance : (item.runningBalance || 0)),
+            status: row.status || item.status,
+            timestamp: row.created_at || item.timestamp,
+            date: row.date || item.date || new Date(row.created_at || item.timestamp).toLocaleString('en-IN')
+          };
+        });
+        // Sort ascending by timestamp to keep the ledger correct
+        ledger.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        localVendorLedgers.set(id, ledger);
+      }
+
+      // 2. Fetch payout requests from Supabase
+      const { data: dbPayouts } = await supabase
+        .from('vendor_payout_requests')
+        .select('*')
+        .eq('vendor_id', id);
+
+      if (dbPayouts) {
+        const payouts = dbPayouts.map((row: any) => {
+          const item = row.data || row;
+          return {
+            id: row.id || item.id,
+            vendorId: row.vendor_id || item.vendorId || id,
+            method: row.method || item.method,
+            accountNumber: row.account_number || item.accountNumber,
+            ifscCode: row.ifsc_code || item.ifscCode,
+            accountHolderName: row.account_holder_name || item.accountHolderName,
+            bankName: row.bank_name || item.bankName,
+            upiId: row.upi_id || item.upiId,
+            amount: Number(row.amount || item.amount || 0),
+            status: row.status || item.status,
+            referenceId: row.reference_id || item.referenceId,
+            requestedAt: row.requested_at || item.requestedAt,
+            processedAt: row.processed_at || item.processedAt,
+            utrNumber: row.utr_number || item.utrNumber,
+            notes: row.notes || item.notes
+          };
+        });
+        // Remove existing payouts in memory for this vendor and replace with DB payouts
+        const otherPayouts = localVendorPayouts.filter(p => p.vendorId !== id);
+        localVendorPayouts.length = 0; // Clear
+        localVendorPayouts.push(...otherPayouts, ...payouts);
+      }
+    }
+
     const financials = calculateVendorFinancials(id);
     res.json(financials);
   } catch (err: any) {
@@ -3284,6 +3425,34 @@ app.post('/api/vendor/:id/payout', async (req, res) => {
   }
 
   try {
+    // 0. Update vendor profile's settlement details so they persist across logins and devices
+    let vendor = localVendors.find(v => v.id === id);
+    if (!vendor && useSupabase && supabase) {
+      const { data } = await supabase.from('vendors').select('*').eq('id', id).single();
+      if (data) {
+        vendor = data.data || data;
+      }
+    }
+
+    if (vendor) {
+      if (method === 'bank') {
+        vendor.bankAccount = {
+          accountNumber,
+          ifscCode: ifscCode.toUpperCase(),
+          accountHolderName: accountHolderName || vendor.name,
+          bankName: bankName || 'Bank Account'
+        };
+      } else if (method === 'upi') {
+        vendor.upiId = upiId;
+      }
+
+      // Save updated vendor
+      if (useSupabase && supabase) {
+        await supabase.from('vendors').update({ data: vendor }).eq('id', id);
+      }
+      localVendors = localVendors.map(v => v.id === id ? vendor! : v);
+    }
+
     const financials = calculateVendorFinancials(id);
     if (withdrawAmount > financials.availableBalance) {
       return res.status(400).json({ 

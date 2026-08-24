@@ -101,7 +101,6 @@ export default function VendorAuthView({
   const [loginOtpDigits, setLoginOtpDigits] = useState(['', '', '', '', '', '']);
   const [loginTimer, setLoginTimer] = useState(60);
   const [isLoginResendActive, setIsLoginResendActive] = useState(false);
-  const [loginSimulatedOtp, setLoginSimulatedOtp] = useState('123456');
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -125,7 +124,6 @@ export default function VendorAuthView({
   // 4. Mobile No. + Inline OTP
   const [signUpPhone, setSignUpPhone] = useState('');
   const [signUpOtpDigits, setSignUpOtpDigits] = useState(['', '', '', '', '', '']);
-  const [signUpSimulatedOtp, setSignUpSimulatedOtp] = useState('123456');
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isMobileVerified, setIsMobileVerified] = useState(false);
   const [signUpTimer, setSignUpTimer] = useState(60);
@@ -287,9 +285,6 @@ export default function VendorAuthView({
         setLoginTimer(data.cooldownRemainingSec || 60);
         setIsLoginResendActive(false);
         setLoginOtpDigits(['', '', '', '', '', '']);
-        if (data.otp) {
-          setLoginSimulatedOtp(data.otp);
-        }
         setTimeout(() => {
           loginOtpInputRefs[0].current?.focus();
         }, 100);
@@ -499,9 +494,6 @@ export default function VendorAuthView({
         setSignUpTimer(data.cooldownRemainingSec || 60);
         setIsSignUpResendActive(false);
         setSignUpOtpDigits(['', '', '', '', '', '']);
-        if (data.otp) {
-          setSignUpSimulatedOtp(data.otp);
-        }
         setTimeout(() => {
           signUpInlineOtpRefs[0].current?.focus();
         }, 150);
@@ -579,6 +571,7 @@ export default function VendorAuthView({
     setIsProcessing(true);
 
     const cleanPhone = signUpPhone.trim().replace(/\s+/g, '');
+    const cleanGstin = gstin.trim().toUpperCase();
 
     try {
       const res = await fetch(getApiUrl('/api/auth/verify-otp'), {
@@ -587,15 +580,29 @@ export default function VendorAuthView({
         body: JSON.stringify({
           phone: cleanPhone,
           otp: codeToVerify,
-          role: 'vendor'
+          role: 'vendor',
+          name: ownerName.trim(),
+          storeName: storeName.trim(),
+          email: `${cleanPhone}@seller.quekart.com`,
+          gstin: cleanGstin,
+          city: district || 'Jaipur',
+          state: stateName || 'Rajasthan',
+          pincode: pincode || '302001',
+          address: address || `${district}, ${stateName}`,
+          description: `GST-Verified Seller (${cleanGstin}) - ${gstData?.legal_name || ownerName.trim()}, ${district || 'Jaipur'}, ${stateName || 'Rajasthan'}.`,
+          verifyOnly: false
         })
       });
 
-      if (res.ok) {
+      const data = await res.json();
+      if (res.ok && data.success) {
         setIsMobileVerified(true);
         setShowVendorSuccessTick(true);
         setTimeout(() => {
           setShowVendorSuccessTick(false);
+          if (data.vendor) {
+            onLoginSuccess(data.vendor, data.token || 'vendor-session-token');
+          }
         }, 1100);
         return;
       } else {
@@ -604,7 +611,7 @@ export default function VendorAuthView({
             navigator.vibrate(200);
           } catch (_) {}
         }
-        setErrorMsg('Invalid verification code. Please check and try again.');
+        setErrorMsg(data.error || 'Invalid verification code. Please check and try again.');
       }
     } catch (_) {
       if (typeof window !== 'undefined' && 'vibrate' in navigator) {
@@ -644,6 +651,11 @@ export default function VendorAuthView({
       return;
     }
     if (!isMobileVerified) {
+      const code = signUpOtpDigits.join('');
+      if (code.length === 6) {
+        await verifyInlineOtpCode(code);
+        return;
+      }
       setErrorMsg('Please verify your Mobile Number with OTP before continuing.');
       return;
     }
@@ -706,7 +718,7 @@ export default function VendorAuthView({
                              storeName.trim().length > 0 && 
                              isGstVerified &&
                              gstin.trim().length === 15 &&
-                             isMobileVerified;
+                             (isMobileVerified || (isOtpSent && signUpOtpDigits.join('').length === 6));
 
   return (
     <div className="h-[100dvh] w-full bg-slate-900 flex flex-col justify-between overflow-hidden relative select-none" id="vendor-login-view">
@@ -1113,22 +1125,19 @@ export default function VendorAuthView({
                       <span className="text-[10px] font-bold text-slate-700">
                         Enter 6-Digit Code:
                       </span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-mono font-black text-[#143C6B] bg-white px-1.5 py-0.2 rounded border border-blue-200">
-                          {signUpSimulatedOtp}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const chars = signUpSimulatedOtp.slice(0, 6).split('');
-                            setSignUpOtpDigits(chars);
-                            verifyInlineOtpCode(chars.join(''));
-                          }}
-                          className="text-[9.5px] font-black bg-[#143C6B] text-white px-1.5 py-0.5 rounded cursor-pointer active:scale-95"
-                        >
-                          Auto-Fill
-                        </button>
-                      </div>
+                      <span className="text-[10px] font-medium text-slate-500">
+                        {signUpTimer > 0 ? (
+                          `Resend in ${signUpTimer}s`
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={handleResendSignUpInlineOtp}
+                            className="text-[#143C6B] font-extrabold underline cursor-pointer hover:text-blue-900"
+                          >
+                            Resend OTP
+                          </button>
+                        )}
+                      </span>
                     </div>
 
                     {/* 6 OTP Digits */}

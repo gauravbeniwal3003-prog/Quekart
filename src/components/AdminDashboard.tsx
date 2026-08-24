@@ -46,7 +46,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Product, Order, Coupon, CartItem, Vendor, Banner, Category } from '../types';
+import { Product, Order, Coupon, CartItem, Vendor, Banner, Category, AppUser } from '../types';
 import Logo, { BrandLogo, QueKartLogoText } from './Logo';
 import { fetchAdminAnalytics } from '../utils/analytics';
 
@@ -345,6 +345,104 @@ export default function AdminDashboard({
       setVendors(prev => prev.map(v => v.id === vendor.id ? updatedVendor : v));
     }
   };
+
+  const handleBanVendor = async (vendor: Vendor) => {
+    const isCurrentlyBanned = vendor.status === 'banned';
+    const nextStatus = isCurrentlyBanned ? 'active' : 'banned';
+    const updatedVendor: Vendor = { ...vendor, status: nextStatus };
+    try {
+      const res = await fetch(`/api/vendors/${vendor.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedVendor)
+      });
+      if (res.ok) {
+        setVendors(prev => prev.map(v => v.id === vendor.id ? updatedVendor : v));
+        fetch('/api/products?all=true').then(r => r.json()).then(data => {
+          if (Array.isArray(data)) setLiveProducts(data);
+        }).catch(() => {});
+        alert(`Seller "${vendor.name}" is now ${nextStatus === 'banned' ? 'BANNED. Products are now private.' : 'ACTIVATED.'}`);
+      } else {
+        const err = await res.json();
+        alert(`Failed to update seller status: ${err.error}`);
+      }
+    } catch (err) {
+      setVendors(prev => prev.map(v => v.id === vendor.id ? updatedVendor : v));
+    }
+  };
+
+  const handleDeleteVendor = async (vendor: Vendor) => {
+    if (!confirm(`Are you sure you want to permanently delete seller "${vendor.name}"?\n\nSMART LOGIC: All products listed under this seller will also be deleted automatically!`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/vendors/${vendor.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setVendors(prev => prev.filter(v => v.id !== vendor.id));
+        setLiveProducts(prev => prev.filter(p => p.vendorId !== vendor.id));
+        alert(`Seller "${vendor.name}" and all associated products have been deleted.`);
+      } else {
+        const err = await res.json();
+        alert(`Failed to delete seller: ${err.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error deleting seller: ${err.message}`);
+    }
+  };
+
+  const [dbUsers, setDbUsers] = useState<AppUser[]>([]);
+
+  React.useEffect(() => {
+    fetch('/api/users')
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setDbUsers(data); })
+      .catch(() => {});
+  }, []);
+
+  const handleToggleCustomerBan = async (customer: any) => {
+    const isCurrentlyBanned = customer.status === 'banned';
+    const newStatus = isCurrentlyBanned ? 'active' : 'banned';
+    const updatedCustomer = { ...customer, status: newStatus, isBanned: !isCurrentlyBanned };
+    const idOrPhone = customer.id || customer.phone;
+    try {
+      const res = await fetch(`/api/users/${idOrPhone}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedCustomer)
+      });
+      if (res.ok) {
+        setDbUsers(prev => prev.map(u => (u.id === customer.id || u.phone === customer.phone) ? { ...u, status: newStatus } : u));
+        fetch('/api/products?all=true').then(r => r.json()).then(data => {
+          if (Array.isArray(data)) setLiveProducts(data);
+        }).catch(() => {});
+        alert(`Customer "${customer.name}" is now ${newStatus === 'banned' ? 'BANNED. Account login and reviews are hidden.' : 'ACTIVATED.'}`);
+      } else {
+        alert('Failed to update customer status');
+      }
+    } catch (err) {
+      alert('Error updating customer status');
+    }
+  };
+
+  const handleDeleteCustomer = async (customer: any) => {
+    if (!confirm(`Are you sure you want to permanently delete customer "${customer.name}"?`)) {
+      return;
+    }
+    const idOrPhone = customer.id || customer.phone;
+    try {
+      const res = await fetch(`/api/users/${idOrPhone}`, { method: 'DELETE' });
+      if (res.ok) {
+        setDbUsers(prev => prev.filter(u => u.id !== customer.id && u.phone !== customer.phone));
+        alert(`Customer "${customer.name}" deleted successfully.`);
+      } else {
+        alert('Failed to delete customer');
+      }
+    } catch (err: any) {
+      alert(`Error deleting customer: ${err.message}`);
+    }
+  };
+
+
 
   // Search & Filter States
   const [productSearch, setProductSearch] = useState('');
@@ -1225,11 +1323,13 @@ export default function AdminDashboard({
     return { totalSales, itemsSold };
   };
 
-  // Extract unique users (customers) from orders
+  // Extract unique users (customers) from database users and orders
   const uniqueUsers = React.useMemo(() => {
     const usersMap = new Map<string, {
+      id?: string;
       name: string;
       phone: string;
+      status?: string;
       addressLine: string;
       city: string;
       pincode: string;
@@ -1237,8 +1337,28 @@ export default function AdminDashboard({
       totalSpent: number;
       ordersCount: number;
       orders: Order[];
-      registeredAt: string; // ISO String from their first order
+      registeredAt: string;
     }>();
+
+    dbUsers.forEach(u => {
+      const key = u.phone || u.id;
+      if (key) {
+        usersMap.set(key, {
+          id: u.id,
+          name: u.name || 'Registered Customer',
+          phone: u.phone || '',
+          status: u.status || (u.isBanned ? 'banned' : 'active'),
+          addressLine: u.address || '',
+          city: u.city || '',
+          pincode: u.pincode || '',
+          state: u.state || '',
+          totalSpent: 0,
+          ordersCount: 0,
+          orders: [],
+          registeredAt: u.createdAt || new Date().toISOString()
+        });
+      }
+    });
 
     orders.forEach(o => {
       const phone = o.shippingAddress.phone || 'unknown';
@@ -1247,6 +1367,7 @@ export default function AdminDashboard({
         usersMap.set(phone, {
           name,
           phone,
+          status: 'active',
           addressLine: o.shippingAddress.addressLine || '',
           city: o.shippingAddress.city || '',
           pincode: o.shippingAddress.pincode || '',
@@ -1273,7 +1394,8 @@ export default function AdminDashboard({
     });
 
     return Array.from(usersMap.values());
-  }, [orders]);
+  }, [orders, dbUsers]);
+
 
   // Calculate statistics
   const totalRevenue = orders
@@ -4419,7 +4541,8 @@ export default function AdminDashboard({
                               </td>
                               <td className="p-4">
                                 <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                                  v.status === 'suspended' ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
+                                  v.status === 'banned' ? 'bg-purple-100 text-purple-800 border border-purple-200' :
+                                  v.status === 'suspended' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                                 }`}>
                                   {v.status}
                                 </span>
@@ -4430,23 +4553,32 @@ export default function AdminDashboard({
                                     setSelectedVendorForInspection(v);
                                     setAdminSubView('inspect-vendor');
                                   }}
-                                  className="text-[10px] font-black uppercase py-1.5 px-3 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#143C6B] border border-blue-100 transition-colors cursor-pointer inline-flex items-center gap-1"
+                                  className="text-[10px] font-black uppercase py-1.5 px-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#143C6B] border border-blue-100 transition-colors cursor-pointer inline-flex items-center gap-1"
                                   title="Individually Inspect Supplier Records"
                                 >
                                   <Eye className="w-3.5 h-3.5" />
                                   <span>Inspect</span>
                                 </button>
                                 <button
-                                  onClick={() => handleToggleVendorStatus(v)}
-                                  className={`text-[10px] font-black uppercase py-1.5 px-3 rounded-lg transition-colors cursor-pointer ${
-                                    v.status === 'suspended' 
-                                      ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-100' 
-                                      : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-100'
+                                  onClick={() => handleBanVendor(v)}
+                                  className={`text-[10px] font-black uppercase py-1.5 px-2.5 rounded-lg transition-colors cursor-pointer ${
+                                    v.status === 'banned' 
+                                      ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200' 
+                                      : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
                                   }`}
+                                  title="Ban seller account (Products become private and login is blocked)"
                                 >
-                                  {v.status === 'suspended' ? 'Activate' : 'Suspend'}
+                                  {v.status === 'banned' ? 'Unban' : 'Ban'}
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteVendor(v)}
+                                  className="text-[10px] font-black uppercase py-1.5 px-2.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors cursor-pointer"
+                                  title="Delete seller account and all their products"
+                                >
+                                  Delete
                                 </button>
                               </td>
+
                             </tr>
                           );
                         })}
@@ -4617,8 +4749,8 @@ export default function AdminDashboard({
                           <th className="p-4">Primary City / State</th>
                           <th className="p-4">Orders Placed</th>
                           <th className="p-4">Total Purchases (₹)</th>
-                          <th className="p-4">Onboarding Date</th>
-                          <th className="p-4 text-right">Records Action</th>
+                          <th className="p-4">Status</th>
+                          <th className="p-4 text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
@@ -4644,26 +4776,45 @@ export default function AdminDashboard({
                             <td className="p-4 text-[#143C6B] font-black text-sm">
                               ₹{u.totalSpent.toLocaleString('en-IN')}
                             </td>
-                            <td className="p-4 text-slate-500 font-medium">
-                              {new Date(u.registeredAt).toLocaleDateString('en-IN', {
-                                day: '2-digit',
-                                month: 'short',
-                                year: 'numeric'
-                              })}
+                            <td className="p-4">
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                                u.status === 'banned' ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              }`}>
+                                {u.status || 'active'}
+                              </span>
                             </td>
-                            <td className="p-4 text-right">
+                            <td className="p-4 text-right space-x-1.5 whitespace-nowrap">
                               <button
                                 onClick={() => {
                                   setSelectedCustomerForInspection(u);
                                   setAdminSubView('inspect-customer');
                                 }}
-                                className="text-[10px] font-black uppercase py-1.5 px-3 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#143C6B] border border-blue-100 transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                                className="text-[10px] font-black uppercase py-1.5 px-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#143C6B] border border-blue-100 transition-colors cursor-pointer inline-flex items-center gap-1"
                               >
                                 <Eye className="w-3.5 h-3.5" />
-                                <span>Inspect Records</span>
+                                <span>Inspect</span>
+                              </button>
+                              <button
+                                onClick={() => handleToggleCustomerBan(u)}
+                                className={`text-[10px] font-black uppercase py-1.5 px-2.5 rounded-lg transition-colors cursor-pointer ${
+                                  u.status === 'banned' 
+                                    ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200' 
+                                    : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
+                                }`}
+                                title="Ban customer (Prevents OTP login & hides reviews)"
+                              >
+                                {u.status === 'banned' ? 'Unban' : 'Ban'}
+                              </button>
+                              <button
+                                onClick={() => handleDeleteCustomer(u)}
+                                className="text-[10px] font-black uppercase py-1.5 px-2.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors cursor-pointer"
+                                title="Delete customer account"
+                              >
+                                Delete
                               </button>
                             </td>
                           </tr>
+
                         ))}
                       </tbody>
                     </table>

@@ -96,69 +96,73 @@ export default function App() {
   const parseCurrentPath = () => {
     const [pathnameOnly, searchPart] = currentPath.split('?');
     const parts = pathnameOnly.split('/').filter(Boolean);
+    const firstPart = (parts[0] || '').toLowerCase();
+    const secondPart = (parts[1] || '').toLowerCase();
+    const thirdPart = parts[2] || null;
+
     let portal: 'landing' | 'shop' | 'vendor' | 'admin' = 'landing';
     let tab = 'home';
     let productId: string | null = null;
     let subPage: string | null = null;
 
-    if (parts.length === 0 || parts[0] === 'landing') {
+    if (parts.length === 0 || firstPart === 'landing') {
       portal = 'landing';
       tab = 'landing';
-    } else if (parts[0] === 'vendor') {
+    } else if (firstPart === 'vendor') {
       portal = 'vendor';
       tab = 'vendor';
       if (parts.length > 1) {
         subPage = parts.slice(1).join('/');
       }
-    } else if (parts[0] === 'admin') {
+    } else if (firstPart === 'admin') {
       portal = 'admin';
       tab = 'admin';
       if (parts.length > 1) {
         subPage = parts.slice(1).join('/');
       }
-    } else if (parts[0] === 'shop') {
+    } else if (firstPart === 'shop') {
       portal = 'shop';
-      if (parts.length === 1 || parts[1] === 'home') {
+      if (parts.length === 1 || secondPart === 'home') {
         tab = 'home';
-      } else if (parts[1] === 'product' && parts[2]) {
-        productId = parts[2];
+      } else if (secondPart === 'product' && thirdPart) {
+        productId = thirdPart;
         tab = 'product';
-      } else if (parts[1] === 'login' || parts[1] === 'auth' || parts[1] === 'user') {
+      } else if (secondPart === 'login' || secondPart === 'auth' || secondPart === 'user') {
         tab = 'user';
-      } else if (['categories', 'orders', 'wishlist', 'cart', 'profile', 'logo', 'store'].includes(parts[1])) {
-        tab = parts[1];
-        if (parts[1] === 'categories' && parts[2]) {
-          subPage = parts[2];
-        } else if (parts[1] === 'store' && parts[2]) {
-          subPage = parts[2];
-        } else if (parts[1] === 'profile' && parts[2]) {
+      } else if (['categories', 'orders', 'wishlist', 'cart', 'profile', 'logo', 'store'].includes(secondPart)) {
+        tab = secondPart;
+        if (secondPart === 'categories' && thirdPart) {
+          subPage = thirdPart;
+        } else if (secondPart === 'store' && thirdPart) {
+          subPage = thirdPart;
+        } else if (secondPart === 'profile' && thirdPart) {
           subPage = parts.slice(2).join('/');
         }
       } else {
         tab = 'home';
       }
-    } else if (parts[0] === 'product' && parts[1]) {
+    } else if (firstPart === 'product' && parts[1]) {
       portal = 'shop';
       productId = parts[1];
       tab = 'product';
-    } else if (parts[0] === 'store' && parts[1]) {
+    } else if (firstPart === 'store' && parts[1]) {
       portal = 'shop';
       tab = 'store';
       subPage = parts[1];
-    } else if (parts[0] === 'user' || parts[0] === 'login' || parts[0] === 'auth') {
+    } else if (firstPart === 'user' || firstPart === 'login' || firstPart === 'auth') {
       portal = 'shop';
       tab = 'user';
       if (parts.length > 1) {
         subPage = parts.slice(1).join('/');
       }
-    } else if (['home', 'categories', 'orders', 'wishlist', 'cart', 'profile', 'logo', 'store'].includes(parts[0])) {
+    } else if (['home', 'categories', 'orders', 'wishlist', 'cart', 'profile', 'logo', 'store'].includes(firstPart)) {
       portal = 'shop';
-      tab = parts[0];
-      if (parts[0] === 'categories' && parts[1]) {
+      tab = firstPart;
+      if (firstPart === 'categories' && parts[1]) {
         subPage = parts[1];
-      } else if (parts[0] === 'store' && parts[1]) {
+      } else if (firstPart === 'store' && parts[1]) {
         subPage = parts[1];
-      } else if (parts[0] === 'profile' && parts[1]) {
+      } else if (firstPart === 'profile' && parts[1]) {
         subPage = parts.slice(1).join('/');
       }
     } else {
@@ -747,7 +751,7 @@ export default function App() {
           {/* Dynamic content rendering body */}
           <div 
             className={`flex-1 ${
-              (!currentUser && (activeTab === 'user' || (activeTab === 'home' && !sessionStorage.getItem('quekart_browsing_guest'))))
+              (!currentUser && (activeTab === 'user' || (activeTab === 'home' && !(sessionStorage.getItem('quekart_browsing_guest') === 'true' || localStorage.getItem('quekart_browsing_guest') === 'true'))))
                 ? 'overflow-hidden h-[100dvh] max-h-[100dvh] pb-0 bg-white'
                 : activeTab === 'categories' 
                 ? 'overflow-hidden h-[calc(100vh-60px)] md:h-[calc(100vh-120px)] pb-16 bg-gray-50' 
@@ -756,11 +760,12 @@ export default function App() {
             id="applet-content-viewport"
           >
             {/* If user is not logged in and on shop root or user/login tab, present OTP auth first */}
-            {!currentUser && (activeTab === 'user' || (activeTab === 'home' && !sessionStorage.getItem('quekart_browsing_guest'))) ? (
+            {!currentUser && (activeTab === 'user' || (activeTab === 'home' && !(sessionStorage.getItem('quekart_browsing_guest') === 'true' || localStorage.getItem('quekart_browsing_guest') === 'true'))) ? (
               <UserAuthView
                 onLoginSuccess={handleLoginUserSuccess}
                 onSkip={() => {
                   sessionStorage.setItem('quekart_browsing_guest', 'true');
+                  localStorage.setItem('quekart_browsing_guest', 'true');
                   navigateTo('/shop');
                 }}
                 navigateTo={navigateTo}
