@@ -29,14 +29,18 @@ interface LandingGatewayProps {
 // Interactive detailed policy modal states
 type ModalType = 'contact' | 'refund' | 'terms' | 'privacy' | null;
 
-// 8 Distinct product row datasets ensuring every row in the animation has unique products
+// 8 Distinct product row datasets ensuring every row in the animation has 10 unique products (80 distinct products in total)
 const LANDING_ROW_1 = [
   { id: 101, name: 'Designer Anarkali Kurti', img: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
   { id: 102, name: 'Royal Banarasi Silk Saree', img: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
-  { id: 103, name: 'Embroidered Sherwani', img: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
+  { id: 103, name: 'Embroidered Velvet Sherwani', img: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
   { id: 104, name: 'Bridal Chikankari Lehenga', img: 'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
   { id: 105, name: 'Handloom Silk Dupatta', img: 'https://images.unsplash.com/photo-1609357605129-26f69add5d6e?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
-  { id: 106, name: 'Royal Bandhgala Suit', img: 'https://images.unsplash.com/photo-1617137968427-85924c800a22?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' }
+  { id: 106, name: 'Royal Bandhgala Suit', img: 'https://images.unsplash.com/photo-1617137968427-85924c800a22?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 107, name: 'Chanderi Printed Kurta', img: 'https://images.unsplash.com/photo-1597983073493-88cd35cf93b0?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 108, name: 'Festive Ethnic Gown', img: 'https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
+  { id: 109, name: 'Kanjeevaram Pattu Saree', img: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 110, name: 'Gota Patti Sharara Set', img: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' }
 ];
 
 const LANDING_ROW_2 = [
@@ -45,7 +49,11 @@ const LANDING_ROW_2 = [
   { id: 203, name: 'Chronograph Steel Watch', img: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
   { id: 204, name: 'Pro Noise Cancelling Headphones', img: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
   { id: 205, name: 'Portable Bass Speaker', img: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
-  { id: 206, name: '4K Action Cam', img: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' }
+  { id: 206, name: '4K Action Cam', img: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
+  { id: 207, name: 'Over-Ear Studio Headphones', img: 'https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 208, name: 'Mechanical Wireless Keyboard', img: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 209, name: 'Smart Fitness Band', img: 'https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 210, name: 'Magnetic Fast Charger', img: 'https://images.unsplash.com/photo-1585060544812-6b45742d762f?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' }
 ];
 
 const LANDING_ROW_3 = [
@@ -54,7 +62,11 @@ const LANDING_ROW_3 = [
   { id: 303, name: 'Leather Chelsea Boots', img: 'https://images.unsplash.com/photo-1638247025967-b4e38f787b76?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
   { id: 304, name: 'High-Top Basketball Kicks', img: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
   { id: 305, name: 'Handcrafted Loafers', img: 'https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
-  { id: 306, name: 'Canvas Skate Sneakers', img: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' }
+  { id: 306, name: 'Canvas Skate Sneakers', img: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 307, name: 'Classic Oxford Shoes', img: 'https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 308, name: 'Air Cushion Trainers', img: 'https://images.unsplash.com/photo-1514989940723-e8e51635b782?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 309, name: 'Leather Dress Derbies', img: 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
+  { id: 310, name: 'Retro Suede Runners', img: 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' }
 ];
 
 const LANDING_ROW_4 = [
@@ -63,7 +75,11 @@ const LANDING_ROW_4 = [
   { id: 403, name: 'Distressed Denim Jeans', img: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
   { id: 404, name: 'Evening Cocktail Dress', img: 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
   { id: 405, name: 'Black Leather Biker Jacket', img: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
-  { id: 406, name: 'Oversized Streetwear Hoodie', img: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' }
+  { id: 406, name: 'Oversized Streetwear Hoodie', img: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
+  { id: 407, name: 'Cashmere Knit Pullover', img: 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 408, name: 'Oversized Graphic Tee', img: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 409, name: 'Casual Flannel Overshirt', img: 'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 410, name: 'Wool Trench Overcoat', img: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' }
 ];
 
 const LANDING_ROW_5 = [
@@ -71,8 +87,12 @@ const LANDING_ROW_5 = [
   { id: 502, name: 'Urban Utility Backpack', img: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
   { id: 503, name: 'Designer Crossbody Bag', img: 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
   { id: 504, name: 'Vintage Leather Travel Duffle', img: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
-  { id: 505, name: 'Slim Bifold Wallet', img: 'https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
-  { id: 506, name: 'Minimalist Evening Clutch', img: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' }
+  { id: 505, name: 'Slim Bifold Card Wallet', img: 'https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
+  { id: 506, name: 'Minimalist Evening Clutch', img: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 507, name: 'Structured Leather Satchel', img: 'https://images.unsplash.com/photo-1594223274512-ad4803739b7c?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 508, name: 'Quilted Chain Shoulder Bag', img: 'https://images.unsplash.com/photo-1591561954557-26941169b49e?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 509, name: 'Canvas Laptop Messenger', img: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
+  { id: 510, name: 'Hardshell Spinner Trolley', img: 'https://images.unsplash.com/photo-1577733966973-d680bffd2e80?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' }
 ];
 
 const LANDING_ROW_6 = [
@@ -81,7 +101,11 @@ const LANDING_ROW_6 = [
   { id: 603, name: 'Botanical Skincare Serum', img: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
   { id: 604, name: 'French Cologne Spray', img: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
   { id: 605, name: 'Hydrating Face Cream', img: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
-  { id: 606, name: 'Luxury Lipstick Kit', img: 'https://images.unsplash.com/photo-1617897903246-719242758050?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' }
+  { id: 606, name: 'Luxury Lipstick Kit', img: 'https://images.unsplash.com/photo-1617897903246-719242758050?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 607, name: 'Organic Face Cleanser', img: 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 608, name: 'Nourishing Argan Hair Oil', img: 'https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 609, name: 'Vitamin C Glow Drops', img: 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
+  { id: 610, name: 'Mineral Eyeshadow Palette', img: 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' }
 ];
 
 const LANDING_ROW_7 = [
@@ -90,16 +114,24 @@ const LANDING_ROW_7 = [
   { id: 703, name: 'Genuine Leather Waist Belt', img: 'https://images.unsplash.com/photo-1624222247344-550fb60583dc?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
   { id: 704, name: 'Classic Wool Fedora Hat', img: 'https://images.unsplash.com/photo-1514327605112-b887c0e61c0a?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
   { id: 705, name: 'Cashmere Winter Scarf', img: 'https://images.unsplash.com/photo-1520903920243-00d872a2d1c9?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
-  { id: 706, name: 'Retro Round Sunglasses', img: 'https://images.unsplash.com/photo-1508296695146-257a814070b4?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' }
+  { id: 706, name: 'Retro Round Sunglasses', img: 'https://images.unsplash.com/photo-1508296695146-257a814070b4?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
+  { id: 707, name: 'Embroidered Baseball Cap', img: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 708, name: 'Knit Wool Beanie', img: 'https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 709, name: 'Titanium Frame Spectacles', img: 'https://images.unsplash.com/photo-1609792633084-5390029b359f?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 710, name: 'Leather Driving Gloves', img: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' }
 ];
 
 const LANDING_ROW_8 = [
-  { id: 801, name: 'Classic Gold Ring', img: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 801, name: 'Classic Gold Solitaire Ring', img: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
   { id: 802, name: 'Kundan Choker Necklace', img: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
   { id: 803, name: 'Pearl Drop Earrings', img: 'https://images.unsplash.com/photo-1630019852942-f89202989a59?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
   { id: 804, name: 'Sterling Silver Chain', img: 'https://images.unsplash.com/photo-1611591475179-62cd3c2f2353?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
-  { id: 805, name: 'Gemstone Pendant', img: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
-  { id: 806, name: 'Rose Gold Bangles', img: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' }
+  { id: 805, name: 'Emerald Gemstone Pendant', img: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
+  { id: 806, name: 'Rose Gold Bangles', img: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 807, name: 'Diamond Tennis Bracelet', img: 'https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 808, name: 'Temple Jewellery Jhumkas', img: 'https://images.unsplash.com/photo-1600003014755-ba31aa59c4b6?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 809, name: 'Zircon Stud Earrings', img: 'https://images.unsplash.com/photo-1598560917505-59a3ad559071?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
+  { id: 810, name: 'Antique Silver Anklets', img: 'https://images.unsplash.com/photo-1573408301185-9146fe634ad0?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' }
 ];
 
 export default function LandingGateway({ onNavigate }: LandingGatewayProps) {

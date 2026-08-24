@@ -41,14 +41,18 @@ interface GstData {
   pincode: string;
 }
 
-// 5 Distinct wholesale product showcase tile datasets for Vendor Login Page ensuring every row in the animation has unique products
+// 5 Distinct wholesale product showcase tile datasets for Vendor Login Page ensuring every row in the animation has 10 unique products (50 distinct products in total)
 const WHOLESALE_ROW_1 = [
   { id: 101, name: 'Banarasi Saree', img: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
   { id: 102, name: 'Anarkali Kurti', img: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
   { id: 103, name: 'Velvet Sherwani', img: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
   { id: 104, name: 'Chanderi Lehenga', img: 'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
   { id: 105, name: 'Jacquard Dupatta', img: 'https://images.unsplash.com/photo-1609357605129-26f69add5d6e?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
-  { id: 106, name: 'Ethnic Bandhgala', img: 'https://images.unsplash.com/photo-1617137968427-85924c800a22?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' }
+  { id: 106, name: 'Ethnic Bandhgala', img: 'https://images.unsplash.com/photo-1617137968427-85924c800a22?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 107, name: 'Handloom Cotton Kurta', img: 'https://images.unsplash.com/photo-1597983073493-88cd35cf93b0?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 108, name: 'Festive Bridal Gown', img: 'https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
+  { id: 109, name: 'Kanjeevaram Silk Saree', img: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 110, name: 'Gota Sharara Set', img: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' }
 ];
 
 const WHOLESALE_ROW_2 = [
@@ -57,7 +61,11 @@ const WHOLESALE_ROW_2 = [
   { id: 203, name: 'Sound Speaker', img: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
   { id: 204, name: 'Over-Ear Headphones', img: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
   { id: 205, name: '4K Action Cam', img: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
-  { id: 206, name: 'Chronograph Steel Watch', img: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' }
+  { id: 206, name: 'Chronograph Steel Watch', img: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
+  { id: 207, name: 'Studio Monitoring Cans', img: 'https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 208, name: 'Mechanical Keypad', img: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 209, name: 'Fitness Smartband', img: 'https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 210, name: 'Qi Magnetic Charger', img: 'https://images.unsplash.com/photo-1585060544812-6b45742d762f?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' }
 ];
 
 const WHOLESALE_ROW_3 = [
@@ -66,7 +74,11 @@ const WHOLESALE_ROW_3 = [
   { id: 303, name: 'Slim Jeans', img: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
   { id: 304, name: 'Western Dress', img: 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
   { id: 305, name: 'Leather Biker Jacket', img: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
-  { id: 306, name: 'Fleece Hoodie', img: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' }
+  { id: 306, name: 'Fleece Hoodie', img: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
+  { id: 307, name: 'Cashmere Knit Sweater', img: 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 308, name: 'Graphic Casual Tee', img: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 309, name: 'Flannel Over-shirt', img: 'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 310, name: 'Woolen Trench Coat', img: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' }
 ];
 
 const WHOLESALE_ROW_4 = [
@@ -75,7 +87,11 @@ const WHOLESALE_ROW_4 = [
   { id: 403, name: 'Leather Chelsea Boots', img: 'https://images.unsplash.com/photo-1638247025967-b4e38f787b76?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
   { id: 404, name: 'Basketball Shoes', img: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
   { id: 405, name: 'Formal Loafers', img: 'https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
-  { id: 406, name: 'Canvas Skate Shoes', img: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' }
+  { id: 406, name: 'Canvas Skate Shoes', img: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 407, name: 'Classic Oxford Shoes', img: 'https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 408, name: 'Air Cushion Trainers', img: 'https://images.unsplash.com/photo-1514989940723-e8e51635b782?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 409, name: 'Leather Dress Derbies', img: 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
+  { id: 410, name: 'Retro Suede Runners', img: 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' }
 ];
 
 const WHOLESALE_ROW_5 = [
@@ -84,7 +100,11 @@ const WHOLESALE_ROW_5 = [
   { id: 503, name: 'Sunglasses', img: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
   { id: 504, name: 'Beauty Set', img: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' },
   { id: 505, name: 'Utility Travel Backpack', img: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
-  { id: 506, name: 'Classic Gold Ring', img: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' }
+  { id: 506, name: 'Classic Gold Ring', img: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' },
+  { id: 507, name: 'Kundan Choker Set', img: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f8f5ee]' },
+  { id: 508, name: 'Botanical Skincare Serum', img: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#eef8f8]' },
+  { id: 509, name: 'Leather Waist Belt', img: 'https://images.unsplash.com/photo-1624222247344-550fb60583dc?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#edf5f9]' },
+  { id: 510, name: 'Rose Gold Bangles', img: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f7edf5]' }
 ];
 
 export default function VendorAuthView({ 
