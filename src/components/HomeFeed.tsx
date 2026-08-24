@@ -67,60 +67,60 @@ export default function HomeFeed({
   // Apply filters and sort (hoisted above useEffects to prevent temporal dead zone)
   // Shoppers should only see verified/approved items
   const filteredProducts = useMemo(() => {
-    let list = products.filter(
-      (p) => !p.approvalStatus || p.approvalStatus === 'approved'
+    let list = (products || []).filter(Boolean).filter(
+      (p) => p && (!p.approvalStatus || p.approvalStatus === 'approved')
     );
 
     // 1. Category Filter
     if (selectedCategory !== 'All') {
       list = list.filter(
-        (p) => p.category === selectedCategory || p.subCategory === selectedCategory
+        (p) => p && (p.category === selectedCategory || p.subCategory === selectedCategory)
       );
     }
 
     // 2. Gender Filter
     if (selectedGender !== 'All') {
       if (selectedGender === 'Men') {
-        list = list.filter((p) => p.category === 'Men');
+        list = list.filter((p) => p && p.category === 'Men');
       } else if (selectedGender === 'Women') {
         list = list.filter(
-          (p) => p.category === 'Kurti, Saree & Lehenga' || p.category === 'Women Western' || p.category === 'Lingerie'
+          (p) => p && (p.category === 'Kurti, Saree & Lehenga' || p.category === 'Women Western' || p.category === 'Lingerie')
         );
       } else if (selectedGender === 'Kids') {
-        list = list.filter((p) => p.category === 'Kids & Toys');
+        list = list.filter((p) => p && p.category === 'Kids & Toys');
       }
     }
 
     // 3. Max Budget Filter
     if (maxPrice !== null && maxPrice > 0) {
-      list = list.filter((p) => p.price <= maxPrice);
+      list = list.filter((p) => p && p.price <= maxPrice);
     }
 
     // 4. Minimum Rating Filter
     if (minRating > 0) {
-      list = list.filter((p) => (p.rating || 0) >= minRating);
+      list = list.filter((p) => p && (p.rating || 0) >= minRating);
     }
 
     // 5. COD Available Filter
     if (codOnly) {
-      list = list.filter((p) => p.isCodAvailable);
+      list = list.filter((p) => p && p.isCodAvailable);
     }
 
     // 6. Minimum Discount Filter
     if (minDiscount > 0) {
-      list = list.filter((p) => (p.discountPercent || 0) >= minDiscount);
+      list = list.filter((p) => p && (p.discountPercent || 0) >= minDiscount);
     }
 
     // 7. Sorting
     const sorted = [...list];
     if (sortBy === 'price-asc') {
-      sorted.sort((a, b) => a.price - b.price);
+      sorted.sort((a, b) => (a?.price || 0) - (b?.price || 0));
     } else if (sortBy === 'price-desc') {
-      sorted.sort((a, b) => b.price - a.price);
+      sorted.sort((a, b) => (b?.price || 0) - (a?.price || 0));
     } else if (sortBy === 'discount') {
-      sorted.sort((a, b) => (b.discountPercent || 0) - (a.discountPercent || 0));
+      sorted.sort((a, b) => ((b?.discountPercent || 0) - (a?.discountPercent || 0)));
     } else if (sortBy === 'rating') {
-      sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      sorted.sort((a, b) => ((b?.rating || 0) - (a?.rating || 0)));
     }
 
     return sorted;
@@ -193,22 +193,23 @@ export default function HomeFeed({
   }, [searchQuery, filteredProducts.length]);
 
   // Dynamic Category bubbles loaded from categories prop
-  const dynamicCategories = categories && categories.length > 0 ? categories : [];
+  const dynamicCategories = (categories && categories.length > 0 ? categories : []).filter(Boolean);
   const categoryBubbles = [
     { label: 'All Categories', value: 'All', bg: 'bg-blue-100', img: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150' },
     ...dynamicCategories.map((cat, index) => {
+      if (!cat) return null;
       const colors = ['bg-pink-50', 'bg-blue-50', 'bg-yellow-50', 'bg-orange-50', 'bg-green-50', 'bg-purple-50', 'bg-teal-50'];
       const bg = colors[index % colors.length];
-      const img = cat.image || (cat.subCategories && cat.subCategories.length > 0 && cat.subCategories[0].image
+      const img = cat.image || (cat.subCategories && cat.subCategories.length > 0 && cat.subCategories[0] && cat.subCategories[0].image
         ? cat.subCategories[0].image 
         : 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150');
       return {
-        label: cat.name,
-        value: cat.name,
+        label: cat.name || 'Category',
+        value: cat.name || '',
         bg,
         img
       };
-    })
+    }).filter(Boolean) as { label: string; value: string; bg: string; img: string }[]
   ];
 
   return (

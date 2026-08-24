@@ -70,6 +70,47 @@ const initialCoupons: Coupon[] = [
   }
 ];
 
+// Safe storage helper functions to prevent SecurityError in sandbox iframes or private modes
+const safeGetLocalStorage = (key: string): string | null => {
+  try {
+    return typeof window !== 'undefined' && window.localStorage ? localStorage.getItem(key) : null;
+  } catch (_) {
+    return null;
+  }
+};
+
+const safeSetLocalStorage = (key: string, value: string): void => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem(key, value);
+    }
+  } catch (_) {}
+};
+
+const safeRemoveLocalStorage = (key: string): void => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.removeItem(key);
+    }
+  } catch (_) {}
+};
+
+const safeGetSessionStorage = (key: string): string | null => {
+  try {
+    return typeof window !== 'undefined' && window.sessionStorage ? sessionStorage.getItem(key) : null;
+  } catch (_) {
+    return null;
+  }
+};
+
+const safeSetSessionStorage = (key: string, value: string): void => {
+  try {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      sessionStorage.setItem(key, value);
+    }
+  } catch (_) {}
+};
+
 export default function App() {
   // 1. Path-based routing state with search query support
   const [currentPath, setCurrentPath] = useState<string>(() => window.location.pathname + (window.location.search || ''));
@@ -178,7 +219,7 @@ export default function App() {
   // User session state
   const [currentUser, setCurrentUser] = useState<any>(() => {
     try {
-      const saved = localStorage.getItem('quekart_current_user');
+      const saved = safeGetLocalStorage('quekart_current_user');
       return saved ? JSON.parse(saved) : null;
     } catch (_) {
       return null;
@@ -187,27 +228,27 @@ export default function App() {
 
   const handleLoginUserSuccess = (user: any, token: string) => {
     setCurrentUser(user);
-    localStorage.setItem('quekart_current_user', JSON.stringify(user));
-    localStorage.setItem('quekart_user_token', token);
+    safeSetLocalStorage('quekart_current_user', JSON.stringify(user));
+    safeSetLocalStorage('quekart_user_token', token);
     navigateTo('/shop'); // Directly enters into the customer panel (homepage with products)
   };
 
   const handleLogoutUser = () => {
     setCurrentUser(null);
-    localStorage.removeItem('quekart_current_user');
-    localStorage.removeItem('quekart_user_token');
+    safeRemoveLocalStorage('quekart_current_user');
+    safeRemoveLocalStorage('quekart_user_token');
     navigateTo('/shop'); // Redirects to mobile number OTP verification
   };
 
   const handleUpdateUser = (updatedUser: any) => {
     setCurrentUser(updatedUser);
-    localStorage.setItem('quekart_current_user', JSON.stringify(updatedUser));
+    safeSetLocalStorage('quekart_current_user', JSON.stringify(updatedUser));
   };
 
   // Database-driven products state (initialized with cached or mock products to prevent blank flash)
   const [products, setProducts] = useState<Product[]>(() => {
     try {
-      const cached = localStorage.getItem('quekart_cached_products');
+      const cached = safeGetLocalStorage('quekart_cached_products');
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -264,8 +305,8 @@ export default function App() {
     };
 
     const fetchUserProfile = async () => {
-      const token = localStorage.getItem('quekart_user_token');
-      const savedUser = localStorage.getItem('quekart_current_user');
+      const token = safeGetLocalStorage('quekart_user_token');
+      const savedUser = safeGetLocalStorage('quekart_current_user');
       if (token || savedUser) {
         try {
           const parsed = savedUser ? JSON.parse(savedUser) : null;
@@ -278,7 +319,7 @@ export default function App() {
             const data = await res.json();
             if (data.user) {
               setCurrentUser(data.user);
-              localStorage.setItem('quekart_current_user', JSON.stringify(data.user));
+              safeSetLocalStorage('quekart_current_user', JSON.stringify(data.user));
             }
           }
         } catch (_) {}
@@ -297,7 +338,7 @@ export default function App() {
 
   // Wishlist state (product IDs) - fully backed by localStorage
   const [wishlist, setWishlist] = useState<string[]>(() => {
-    const saved = localStorage.getItem('quekart_wishlist');
+    const saved = safeGetLocalStorage('quekart_wishlist');
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -310,7 +351,7 @@ export default function App() {
 
   // Persist wishlist changes to localStorage
   useEffect(() => {
-    localStorage.setItem('quekart_wishlist', JSON.stringify(wishlist));
+    safeSetLocalStorage('quekart_wishlist', JSON.stringify(wishlist));
   }, [wishlist]);
 
   // Global search
@@ -742,7 +783,7 @@ export default function App() {
         /* 4. CUSTOMER SHOPPING STOREFRONT (/shop) */
         <div 
           className={`w-full bg-white flex flex-col relative ${
-            (!currentUser && (activeTab === 'user' || (activeTab === 'home' && !sessionStorage.getItem('quekart_browsing_guest'))))
+            (!currentUser && (activeTab === 'user' || (activeTab === 'home' && !safeGetSessionStorage('quekart_browsing_guest'))))
               ? 'h-[100dvh] max-h-[100dvh] overflow-hidden'
               : 'min-h-screen'
           }`} 
@@ -751,7 +792,7 @@ export default function App() {
           {/* Dynamic content rendering body */}
           <div 
             className={`flex-1 ${
-              (!currentUser && (activeTab === 'user' || (activeTab === 'home' && !(sessionStorage.getItem('quekart_browsing_guest') === 'true' || localStorage.getItem('quekart_browsing_guest') === 'true'))))
+              (!currentUser && (activeTab === 'user' || (activeTab === 'home' && !(safeGetSessionStorage('quekart_browsing_guest') === 'true' || safeGetLocalStorage('quekart_browsing_guest') === 'true'))))
                 ? 'overflow-hidden h-[100dvh] max-h-[100dvh] pb-0 bg-white'
                 : activeTab === 'categories' 
                 ? 'overflow-hidden h-[calc(100vh-60px)] md:h-[calc(100vh-120px)] pb-16 bg-gray-50' 
@@ -760,12 +801,12 @@ export default function App() {
             id="applet-content-viewport"
           >
             {/* If user is not logged in and on shop root or user/login tab, present OTP auth first */}
-            {!currentUser && (activeTab === 'user' || (activeTab === 'home' && !(sessionStorage.getItem('quekart_browsing_guest') === 'true' || localStorage.getItem('quekart_browsing_guest') === 'true'))) ? (
+            {!currentUser && (activeTab === 'user' || (activeTab === 'home' && !(safeGetSessionStorage('quekart_browsing_guest') === 'true' || safeGetLocalStorage('quekart_browsing_guest') === 'true'))) ? (
               <UserAuthView
                 onLoginSuccess={handleLoginUserSuccess}
                 onSkip={() => {
-                  sessionStorage.setItem('quekart_browsing_guest', 'true');
-                  localStorage.setItem('quekart_browsing_guest', 'true');
+                  safeSetSessionStorage('quekart_browsing_guest', 'true');
+                  safeSetLocalStorage('quekart_browsing_guest', 'true');
                   navigateTo('/shop');
                 }}
                 navigateTo={navigateTo}
