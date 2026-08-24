@@ -1062,7 +1062,7 @@ export default function App() {
                     <UserAuthView
                       onLoginSuccess={handleLoginUserSuccess}
                       onSkip={() => {
-                        sessionStorage.setItem('quekart_browsing_guest', 'true');
+                        safeSetSessionStorage('quekart_browsing_guest', 'true');
                         navigateTo('/shop');
                       }}
                       navigateTo={navigateTo}
@@ -1088,7 +1088,7 @@ export default function App() {
           </div>
           
           {/* Global Bottom Navigation shown across customer storefront (hidden on login page) */}
-          {!((activeTab === 'user' || (activeTab === 'home' && !sessionStorage.getItem('quekart_browsing_guest'))) && !currentUser) && (
+          {!((activeTab === 'user' || (activeTab === 'home' && !safeGetSessionStorage('quekart_browsing_guest'))) && !currentUser) && (
             <BottomNav
               activeTab={activeTab}
               cartCount={cart.reduce((acc, item) => acc + item.quantity, 0)}

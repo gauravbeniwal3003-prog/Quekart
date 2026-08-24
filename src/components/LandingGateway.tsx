@@ -427,7 +427,9 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
                   <button
                     type="button"
                     onClick={() => {
-                      sessionStorage.setItem('quekart_browsing_guest', 'true');
+                      try {
+                        sessionStorage.setItem('quekart_browsing_guest', 'true');
+                      } catch (_) {}
                       onNavigate('/shop');
                     }}
                     className="w-full sm:w-1/2 text-white font-black text-sm py-3.5 sm:py-4 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 shadow-md cursor-pointer bg-navy hover:brightness-110 hover:shadow-xl active:scale-98 group whitespace-nowrap"
