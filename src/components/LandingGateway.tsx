@@ -645,7 +645,7 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
               <div className="flex flex-col divide-y divide-slate-100/80">
                 {/* Contact Us */}
                 <button 
-                  onClick={() => setActiveModal('contact')} 
+                  onClick={() => onNavigate('/contact')} 
                   className="w-full flex items-center justify-between py-3.5 hover:text-[#143C6B] transition-colors text-left group cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
@@ -659,7 +659,7 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
 
                 {/* Refund & Cancellations */}
                 <button 
-                  onClick={() => setActiveModal('refund')} 
+                  onClick={() => onNavigate('/refund')} 
                   className="w-full flex items-center justify-between py-3.5 hover:text-[#143C6B] transition-colors text-left group cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
@@ -673,7 +673,7 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
 
                 {/* Terms & Conditions */}
                 <button 
-                  onClick={() => setActiveModal('terms')} 
+                  onClick={() => onNavigate('/terms')} 
                   className="w-full flex items-center justify-between py-3.5 hover:text-[#143C6B] transition-colors text-left group cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
@@ -687,7 +687,7 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
 
                 {/* Privacy Policy */}
                 <button 
-                  onClick={() => setActiveModal('privacy')} 
+                  onClick={() => onNavigate('/privacy')} 
                   className="w-full flex items-center justify-between py-3.5 hover:text-[#143C6B] transition-colors text-left group cursor-pointer"
                 >
                   <div className="flex items-center gap-3">

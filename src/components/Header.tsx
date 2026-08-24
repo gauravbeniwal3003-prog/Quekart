@@ -631,8 +631,10 @@ export default function Header({
                   if (onLogout) {
                     onLogout();
                   } else {
-                    localStorage.removeItem('quekart_current_user');
-                    localStorage.removeItem('quekart_user_token');
+                    try {
+                      localStorage.removeItem('quekart_current_user');
+                      localStorage.removeItem('quekart_user_token');
+                    } catch (_) {}
                     window.dispatchEvent(new CustomEvent('show-toast', { detail: 'Logged out successfully!' }));
                     onSelectTab('user');
                   }

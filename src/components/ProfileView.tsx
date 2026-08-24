@@ -2338,8 +2338,10 @@ export default function ProfileView({
                   if (onLogout) {
                     onLogout();
                   } else {
-                    localStorage.removeItem('quekart_current_user');
-                    localStorage.removeItem('quekart_user_token');
+                    try {
+                      localStorage.removeItem('quekart_current_user');
+                      localStorage.removeItem('quekart_user_token');
+                    } catch (_) {}
                     onSelectTab('user');
                   }
                   triggerToast("Logged out successfully! Resetting session.");

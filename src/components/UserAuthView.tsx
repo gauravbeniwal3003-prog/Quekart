@@ -8,6 +8,7 @@ interface UserAuthViewProps {
   onLoginSuccess: (user: any, token: string) => void;
   onSkip?: () => void;
   navigateTo?: (path: string) => void;
+  isSignup?: boolean;
 }
 
 // 5 Distinct tile datasets for User Login Page ensuring every row in the animation has unique products
@@ -56,7 +57,7 @@ const FASHION_ROW_5 = [
   { id: 506, name: 'Classic Gold Ring', img: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&q=80&w=260', bg: 'bg-[#f4f7f6]' }
 ];
 
-export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: UserAuthViewProps) {
+export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo, isSignup = false }: UserAuthViewProps) {
   const [step, setStep] = useState<'phone' | 'otp' | 'profile_complete'>('phone');
   const [phone, setPhone] = useState('');
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
@@ -573,10 +574,10 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
 
               <div className="space-y-0.5">
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-display">
-                  India's smartest fashion app
+                  {isSignup ? "Create your account" : "India's smartest fashion app"}
                 </h1>
                 <p className="text-xs font-bold text-slate-400">
-                  Log In or Sign Up in 10 Seconds
+                  {isSignup ? "Register as a New Customer" : "Log In or Sign Up in 10 Seconds"}
                 </p>
               </div>
             </div>
@@ -639,9 +640,19 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo }: Use
             {/* Terms of Service Footer - Pinned nicely at bottom edge */}
             <p className="text-[11px] text-slate-400 font-medium text-center leading-normal">
               By continuing, you agree to our{' '}
-              <span className="border-b border-dashed border-slate-400 text-slate-500 cursor-pointer">Terms of service</span>
+              <span 
+                onClick={() => navigateTo ? navigateTo('/terms') : (window.history.pushState(null, '', '/terms'), window.dispatchEvent(new PopStateEvent('popstate')))}
+                className="border-b border-dashed border-slate-400 text-slate-500 cursor-pointer hover:text-[#143C6B]"
+              >
+                Terms of service
+              </span>
               {' '}&{' '}
-              <span className="border-b border-dashed border-slate-400 text-slate-500 cursor-pointer">Privacy policy</span>
+              <span 
+                onClick={() => navigateTo ? navigateTo('/privacy') : (window.history.pushState(null, '', '/privacy'), window.dispatchEvent(new PopStateEvent('popstate')))}
+                className="border-b border-dashed border-slate-400 text-slate-500 cursor-pointer hover:text-[#143C6B]"
+              >
+                Privacy policy
+              </span>
             </p>
 
           </div>

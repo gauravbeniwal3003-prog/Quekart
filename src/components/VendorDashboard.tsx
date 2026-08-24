@@ -253,7 +253,9 @@ export default function VendorDashboard({
         });
         if (res.ok) {
           setCurrentVendor(upgraded);
-          localStorage.setItem('quekart_current_vendor', JSON.stringify(upgraded));
+          try {
+            localStorage.setItem('quekart_current_vendor', JSON.stringify(upgraded));
+          } catch (_) {}
           setProfileGstin('');
           alert('Congratulations! Your GST number is verified. Your seller account is now upgraded to "Verified GST Store" and your legal business profile has been permanently locked for GST compliance.');
         }
@@ -261,7 +263,9 @@ export default function VendorDashboard({
         console.error('Failed to sync upgraded vendor status with server:', err);
         // Still update locally
         setCurrentVendor(upgraded);
-        localStorage.setItem('quekart_current_vendor', JSON.stringify(upgraded));
+        try {
+          localStorage.setItem('quekart_current_vendor', JSON.stringify(upgraded));
+        } catch (_) {}
       }
     }
   };
@@ -567,15 +571,19 @@ export default function VendorDashboard({
   // Vendor selection handler
   const handleSelectVendor = (vendor: Vendor) => {
     setCurrentVendor(vendor);
-    localStorage.setItem('quekart_current_vendor', JSON.stringify(vendor));
+    try {
+      localStorage.setItem('quekart_current_vendor', JSON.stringify(vendor));
+    } catch (_) {}
     goToVendorRoute('dashboard');
   };
 
   // Vendor logout handler -> stays strictly on /vendor
   const handleLogoutVendor = () => {
     setCurrentVendor(null);
-    localStorage.removeItem('quekart_current_vendor');
-    localStorage.removeItem('quekart_vendor_token');
+    try {
+      localStorage.removeItem('quekart_current_vendor');
+      localStorage.removeItem('quekart_vendor_token');
+    } catch (_) {}
     goToVendorRoute('');
   };
 
@@ -949,6 +957,7 @@ export default function VendorDashboard({
         onLoginSuccess={handleSelectVendor} 
         systemVendors={systemVendors}
         navigateTo={navigateTo}
+        initialAuthMode={activeSubPage === 'signup' || activeSubPage === 'register' ? 'signup' : 'login'}
       />
     );
   }

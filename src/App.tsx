@@ -30,6 +30,7 @@ import AuthPromptModal from './components/AuthPromptModal';
 import CategoryProductsView from './components/CategoryProductsView';
 import VendorStoreView from './components/VendorStoreView';
 import LandingGateway from './components/LandingGateway';
+import ComplianceView from './components/ComplianceView';
 import { smartSearchFilter } from './utils/search';
 
 const initialCoupons: Coupon[] = [
@@ -146,30 +147,63 @@ export default function App() {
     let productId: string | null = null;
     let subPage: string | null = null;
 
-    if (parts.length === 0 || firstPart === 'landing') {
+    // 1. Direct Compliance & Policies
+    if (['terms', 'privacy', 'refund', 'contact'].includes(firstPart)) {
+      portal = 'landing';
+      tab = firstPart;
+    }
+    // 2. Direct Customer Auth
+    else if (firstPart === 'login') {
+      portal = 'shop';
+      tab = 'user';
+      subPage = 'login';
+    } else if (firstPart === 'signup') {
+      portal = 'shop';
+      tab = 'user';
+      subPage = 'signup';
+    }
+    // 3. Platform Gateway / Hub Landing
+    else if (parts.length === 0 || firstPart === 'landing') {
       portal = 'landing';
       tab = 'landing';
-    } else if (firstPart === 'vendor') {
+    } 
+    // 4. Vendor Portal
+    else if (firstPart === 'vendor') {
       portal = 'vendor';
       tab = 'vendor';
-      if (parts.length > 1) {
+      if (secondPart === 'register' || secondPart === 'signup') {
+        subPage = 'signup';
+      } else if (secondPart === 'login') {
+        subPage = 'login';
+      } else if (parts.length > 1) {
         subPage = parts.slice(1).join('/');
       }
-    } else if (firstPart === 'admin') {
+    } 
+    // 5. Admin Portal
+    else if (firstPart === 'admin') {
       portal = 'admin';
       tab = 'admin';
       if (parts.length > 1) {
         subPage = parts.slice(1).join('/');
       }
-    } else if (firstPart === 'shop') {
+    } 
+    // 6. Shop Portal Routing
+    else if (firstPart === 'shop') {
       portal = 'shop';
       if (parts.length === 1 || secondPart === 'home') {
         tab = 'home';
+      } else if (['terms', 'privacy', 'refund', 'contact'].includes(secondPart)) {
+        portal = 'landing';
+        tab = secondPart;
+      } else if (secondPart === 'login') {
+        tab = 'user';
+        subPage = 'login';
+      } else if (secondPart === 'signup') {
+        tab = 'user';
+        subPage = 'signup';
       } else if (secondPart === 'product' && thirdPart) {
         productId = thirdPart;
         tab = 'product';
-      } else if (secondPart === 'login' || secondPart === 'auth' || secondPart === 'user') {
-        tab = 'user';
       } else if (['categories', 'orders', 'wishlist', 'cart', 'profile', 'logo', 'store'].includes(secondPart)) {
         tab = secondPart;
         if (secondPart === 'categories' && thirdPart) {
@@ -182,7 +216,9 @@ export default function App() {
       } else {
         tab = 'home';
       }
-    } else if (firstPart === 'product' && parts[1]) {
+    } 
+    // 7. Fallback legacy / direct root storefront mapping paths
+    else if (firstPart === 'product' && parts[1]) {
       portal = 'shop';
       productId = parts[1];
       tab = 'product';
@@ -190,7 +226,7 @@ export default function App() {
       portal = 'shop';
       tab = 'store';
       subPage = parts[1];
-    } else if (firstPart === 'user' || firstPart === 'login' || firstPart === 'auth') {
+    } else if (firstPart === 'user' || firstPart === 'auth') {
       portal = 'shop';
       tab = 'user';
       if (parts.length > 1) {
@@ -206,7 +242,9 @@ export default function App() {
       } else if (firstPart === 'profile' && parts[1]) {
         subPage = parts.slice(1).join('/');
       }
-    } else {
+    } 
+    // 8. General unrecognized fallbacks
+    else {
       portal = 'landing';
       tab = 'landing';
     }
@@ -739,7 +777,15 @@ export default function App() {
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans" id="applet-root">
       {/* 1. LANDING GATEWAY / PLATFORM HUB (abc.xyz /) */}
       {activePortal === 'landing' ? (
-        <LandingGateway onNavigate={navigateTo} />
+        ['terms', 'privacy', 'refund', 'contact'].includes(activeTab) ? (
+          <ComplianceView 
+            type={activeTab as any} 
+            onBack={() => navigateTo('/')} 
+            onNavigate={navigateTo}
+          />
+        ) : (
+          <LandingGateway onNavigate={navigateTo} />
+        )
       ) : activePortal === 'vendor' ? (
         /* 2. VENDOR PORTAL (Isolated Supplier Web App at /vendor) */
         <VendorDashboard
@@ -810,6 +856,7 @@ export default function App() {
                   navigateTo('/shop');
                 }}
                 navigateTo={navigateTo}
+                isSignup={activeSubPage === 'signup'}
               />
             ) : selectedProduct ? (
               /* PRODUCT DETAILS VIEW */
@@ -1066,6 +1113,7 @@ export default function App() {
                         navigateTo('/shop');
                       }}
                       navigateTo={navigateTo}
+                      isSignup={activeSubPage === 'signup'}
                     />
                   ) : (
                     <HomeFeed

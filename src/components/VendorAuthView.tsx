@@ -24,6 +24,7 @@ interface VendorAuthViewProps {
   onLoginSuccess: (vendor: Vendor, token?: string) => void;
   systemVendors?: Vendor[];
   navigateTo?: (path: string) => void;
+  initialAuthMode?: 'login' | 'signup';
 }
 
 interface GstData {
@@ -88,10 +89,17 @@ const WHOLESALE_ROW_5 = [
 
 export default function VendorAuthView({ 
   onLoginSuccess, 
-  systemVendors = [] 
+  systemVendors = [],
+  navigateTo,
+  initialAuthMode = 'login'
 }: VendorAuthViewProps) {
   // Top Level Mode: 'login' | 'signup'
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>(initialAuthMode);
+
+  // Sync authMode state if initialAuthMode prop changes (e.g. on direct navigation link clicks)
+  useEffect(() => {
+    setAuthMode(initialAuthMode);
+  }, [initialAuthMode]);
 
   // Login flow step: 'form' | 'otp'
   const [loginStep, setLoginStep] = useState<'form' | 'otp'>('form');
