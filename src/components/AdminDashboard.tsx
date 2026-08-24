@@ -49,6 +49,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Product, Order, Coupon, CartItem, Vendor, Banner, Category, AppUser } from '../types';
 import Logo, { BrandLogo, QueKartLogoText } from './Logo';
 import { fetchAdminAnalytics } from '../utils/analytics';
+import { ReturnPolicyAccordion, SizeAndParametersManager } from './ProductFormControls';
+import CategorySmartCropModal from './CategorySmartCropModal';
 
 interface AdminDashboardProps {
   products: Product[];
@@ -471,22 +473,88 @@ export default function AdminDashboard({
   const [customerStateFilter, setCustomerStateFilter] = useState('All');
   const [customerCityFilter, setCustomerCityFilter] = useState('All');
   const [selectedCustomerForInspection, setSelectedCustomerForInspection] = useState<any | null>(null);
+  const [selectedProductForInspection, setSelectedProductForInspection] = useState<Product | null>(null);
+  const [selectedOrderForInspection, setSelectedOrderForInspection] = useState<Order | null>(null);
+  const [vendorCatalogSearch, setVendorCatalogSearch] = useState('');
+  const [vendorCatalogCategory, setVendorCatalogCategory] = useState('All');
+  const [vendorCatalogStatus, setVendorCatalogStatus] = useState('All');
+  const [vendorCatalogSort, setVendorCatalogSort] = useState('newest');
+  const [activeProductImageIndex, setActiveProductImageIndex] = useState(0);
   
   // Modals & Form States
-  const [adminSubView, setAdminSubView] = useState<'list' | 'add-product' | 'edit-product' | 'add-coupon' | 'add-banner' | 'inspect-vendor' | 'inspect-customer'>('list');
+  const [adminSubView, setAdminSubView] = useState<'list' | 'add-product' | 'edit-product' | 'inspect-product' | 'add-coupon' | 'add-banner' | 'inspect-vendor' | 'inspect-order' | 'inspect-customer'>('list');
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
   const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
+
+  // Sync activeSubPage with adminSubView & targeted objects
+  React.useEffect(() => {
+    if (!activeSubPage) {
+      setAdminSubView('list');
+      return;
+    }
+    const parts = activeSubPage.split('/');
+    const main = parts[0];
+    const param = parts.slice(1).join('/');
+
+    if (main === 'add-product') {
+      setAdminSubView('add-product');
+    } else if (main === 'edit-product') {
+      setAdminSubView('edit-product');
+      if (param) {
+        const prod = products.find(p => p.id === param || String(p.numericId) === param);
+        if (prod) {
+          resetProductForm(prod);
+        }
+      }
+    } else if (main === 'inspect-product') {
+      setAdminSubView('inspect-product');
+      if (param) {
+        const prod = products.find(p => p.id === param || String(p.numericId) === param);
+        if (prod) setSelectedProductForInspection(prod);
+      }
+    } else if (main === 'inspect-vendor' || (main === 'vendors' && param)) {
+      setAdminSubView('inspect-vendor');
+      if (param) {
+        const vend = vendors.find(v => v.id === param || v.name === decodeURIComponent(param));
+        if (vend) setSelectedVendorForInspection(vend);
+      }
+    } else if (main === 'inspect-order' || (main === 'orders' && param)) {
+      setAdminSubView('inspect-order');
+      if (param) {
+        const ord = orders.find(o => o.id === param);
+        if (ord) setSelectedOrderForInspection(ord);
+      }
+    } else if (main === 'inspect-customer' || (main === 'customers' && param)) {
+      setAdminSubView('inspect-customer');
+    } else if (main === 'add-coupon') {
+      setAdminSubView('add-coupon');
+    } else if (main === 'add-banner') {
+      setAdminSubView('add-banner');
+    } else {
+      setAdminSubView('list');
+    }
+  }, [activeSubPage, products, vendors, orders]);
 
   // Categories management states
   const [categoryFormMode, setCategoryFormMode] = useState<'add' | 'edit' | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [categoryName, setCategoryName] = useState('');
   const [categoryIcon, setCategoryIcon] = useState('shopping-bag');
+  const [categoryImage, setCategoryImage] = useState('');
   const [categorySubCats, setCategorySubCats] = useState<Array<{ name: string; image: string }>>([]);
   const [isSavingCategory, setIsSavingCategory] = useState(false);
   const [categoryError, setCategoryError] = useState<string | null>(null);
+
+  // Category Smart Crop Modal states
+  const [isCategoryCropperOpen, setIsCategoryCropperOpen] = useState(false);
+  const [categoryCropperSrc, setCategoryCropperSrc] = useState('');
+  const [categoryCropTarget, setCategoryCropTarget] = useState<{ type: 'main' } | { type: 'sub'; index: number }>({ type: 'main' });
+  const [isUploadingCategoryImage, setIsUploadingCategoryImage] = useState(false);
+  const categoryFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const subCategoryFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [activeSubCropIndex, setActiveSubCropIndex] = useState<number | null>(null);
 
   // Sponsorship state variables
   const [sponsorSearchId, setSponsorSearchId] = useState('');
@@ -658,6 +726,7 @@ export default function AdminDashboard({
       id: generatedId,
       name: categoryName,
       icon: categoryIcon,
+      image: categoryImage || (categorySubCats[0]?.image) || '',
       subCategories: categorySubCats
     };
 
@@ -686,6 +755,7 @@ export default function AdminDashboard({
         setEditingCategory(null);
         setCategoryName('');
         setCategoryIcon('shopping-bag');
+        setCategoryImage('');
         setCategorySubCats([]);
       } else {
         const err = await res.json();
@@ -699,12 +769,78 @@ export default function AdminDashboard({
     }
   };
 
+  const handleOpenCategoryCropper = (imageSrc: string, target: { type: 'main' } | { type: 'sub'; index: number }) => {
+    setCategoryCropperSrc(imageSrc || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=600');
+    setCategoryCropTarget(target);
+    setIsCategoryCropperOpen(true);
+  };
+
+  const handleCategoryFileInputChange = (e: React.ChangeEvent<HTMLInputElement>, target: { type: 'main' } | { type: 'sub'; index: number }) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        handleOpenCategoryCropper(event.target.result as string, target);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleCategoryCropConfirm = async (croppedDataUrl: string) => {
+    setIsUploadingCategoryImage(true);
+    try {
+      const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
+      let finalImageUrl = croppedDataUrl;
+
+      // Host through proxied server endpoint
+      try {
+        const res = await fetch(getApiUrl('/api/upload-image'), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Admin-Secret': adminSecret
+          },
+          body: JSON.stringify({ image: croppedDataUrl })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.imageUrl) {
+            finalImageUrl = data.imageUrl;
+          }
+        }
+      } catch (uploadErr) {
+        console.warn('Backend image hosting fallback to base64 data url:', uploadErr);
+      }
+
+      if (categoryCropTarget.type === 'main') {
+        setCategoryImage(finalImageUrl);
+      } else {
+        const updated = [...categorySubCats];
+        if (updated[categoryCropTarget.index]) {
+          updated[categoryCropTarget.index].image = finalImageUrl;
+          setCategorySubCats(updated);
+        }
+      }
+      setIsCategoryCropperOpen(false);
+    } catch (err: any) {
+      console.error(err);
+      alert(`Error applying cropped image: ${err.message}`);
+    } finally {
+      setIsUploadingCategoryImage(false);
+    }
+  };
+
   const triggerAddCategory = () => {
     setCategoryFormMode('add');
     setEditingCategory(null);
     setCategoryName('');
     setCategoryIcon('shopping-bag');
-    setCategorySubCats([{ name: '', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=200&h=200&fit=crop' }]);
+    setCategoryImage('https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300');
+    setCategorySubCats([
+      { name: 'All Collection', image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300' }
+    ]);
     setCategoryError(null);
   };
 
@@ -713,7 +849,8 @@ export default function AdminDashboard({
     setEditingCategory(cat);
     setCategoryName(cat.name);
     setCategoryIcon(cat.icon || 'shopping-bag');
-    setCategorySubCats(cat.subCategories || []);
+    setCategoryImage(cat.image || (cat.subCategories && cat.subCategories[0]?.image) || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300');
+    setCategorySubCats(cat.subCategories ? [...cat.subCategories] : []);
     setCategoryError(null);
   };
 
@@ -758,6 +895,9 @@ export default function AdminDashboard({
   const [pTag, setPTag] = useState('');
   const [pCodPrice, setPCodPrice] = useState(45);
   const [pHasUpiOffer, setPHasUpiOffer] = useState(true);
+  const [pVendorId, setPVendorId] = useState<string>('');
+  const [pReturnPolicyType, setPReturnPolicyType] = useState<'return' | 'replacement' | 'no_return'>('return');
+  const [pReturnDays, setPReturnDays] = useState(7);
 
   // Extra fields to let admin edit absolutely everything
   const [pSoldBy, setPSoldBy] = useState('Gaurav Garments');
@@ -1071,8 +1211,11 @@ export default function AdminDashboard({
       setPTag(product.tag || '');
       setPCodPrice(product.codPrice || 45);
       setPHasUpiOffer(product.hasUpiOffer || false);
+      setPReturnPolicyType(product.returnPolicyType || 'return');
+      setPReturnDays(product.returnDays || 7);
       setPSoldBy(product.soldBy || 'Gaurav Garments');
       setPSoldByRating(product.soldByRating || 4.8);
+      setPVendorId(product.vendorId || '');
       setPRating(product.rating || 4.5);
       setPRatingCount(product.ratingCount || 124);
       setPReviewCount(product.reviewCount || 48);
@@ -1099,8 +1242,11 @@ export default function AdminDashboard({
       setPTag('');
       setPCodPrice(45);
       setPHasUpiOffer(true);
+      setPReturnPolicyType('return');
+      setPReturnDays(7);
       setPSoldBy('Gaurav Garments');
       setPSoldByRating(4.8);
+      setPVendorId('');
       setPRating(4.5);
       setPRatingCount(124);
       setPReviewCount(48);
@@ -1138,6 +1284,11 @@ export default function AdminDashboard({
       discountPercent: discountPercent > 0 ? discountPercent : 0,
       codPrice: pCodPrice,
       hasUpiOffer: pHasUpiOffer,
+      returnPolicyType: pReturnPolicyType,
+      returnDays: pReturnPolicyType !== 'no_return' ? pReturnDays : undefined,
+      returnPolicyText: pReturnPolicyType === 'no_return' 
+        ? 'Non-Returnable (Final Sale)' 
+        : (pReturnPolicyType === 'replacement' ? `${pReturnDays || 7} Days Replacement Only` : `${pReturnDays || 7} Days Return & Refund`),
       rating: pRating,
       ratingCount: pRatingCount,
       reviewCount: pReviewCount,
@@ -1155,6 +1306,7 @@ export default function AdminDashboard({
       productHighlights: pHighlights.filter(h => h.label.trim() && h.value.trim()),
       additionalDetails: pAdditionalDetails.filter(d => d.label.trim() && d.value.trim()),
       sizeOptions: pSizeOptions.filter(Boolean),
+      vendorId: pVendorId || (editingProduct ? editingProduct.vendorId : undefined),
       tag: pTag || undefined,
       reviews: editingProduct ? editingProduct.reviews : []
     };
@@ -1699,35 +1851,23 @@ export default function AdminDashboard({
             </div>
           </div>
 
-          {/* Size options */}
+          {/* Size and Custom Dimensions Parameters Manager */}
           <div>
-            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Available Size Options</label>
-            <div className="flex flex-wrap gap-2">
-              {['S', 'M', 'L', 'XL', 'XXL', 'Free Size'].map(size => {
-                const isSelected = pSizeOptions.includes(size);
-                return (
-                  <button
-                    type="button"
-                    key={size}
-                    onClick={() => {
-                      if (isSelected) {
-                        setPSizeOptions(pSizeOptions.filter(s => s !== size));
-                      } else {
-                        setPSizeOptions([...pSizeOptions, size]);
-                      }
-                    }}
-                    className={`px-3 py-1.5 rounded-md border text-xs font-black cursor-pointer transition-all ${
-                      isSelected
-                        ? 'bg-lucky-magenta text-white border-lucky-magenta shadow-3xs'
-                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    {size}
-                  </button>
-                );
-              })}
-            </div>
+            <SizeAndParametersManager
+              sizeOptions={pSizeOptions}
+              setSizeOptions={setPSizeOptions}
+              idPrefix="admin-prod"
+            />
           </div>
+
+          {/* Return & Replacement Policy (Arrow-type Expandable Dropdown / Accordion) */}
+          <ReturnPolicyAccordion
+            returnPolicyType={pReturnPolicyType}
+            setReturnPolicyType={setPReturnPolicyType}
+            returnDays={pReturnDays}
+            setReturnDays={setPReturnDays}
+            idPrefix="admin-prod"
+          />
 
           {/* Visual Image Manager */}
           <div className="space-y-4">
@@ -2378,83 +2518,171 @@ export default function AdminDashboard({
 
   const renderFullPageVendorInspection = () => {
     if (!selectedVendorForInspection) return null;
+    
+    // Filter and sort the vendor's products
+    const vendorProducts = products.filter(
+      (p) => p.vendorId === selectedVendorForInspection.id || p.soldBy === selectedVendorForInspection.name
+    );
+
+    const vendorCategories = ['All', ...Array.from(new Set(vendorProducts.map(p => p.category).filter(Boolean)))];
+
+    const filteredVendorCatalog = vendorProducts.filter(sku => {
+      const matchesSearch = !vendorCatalogSearch || 
+        sku.title.toLowerCase().includes(vendorCatalogSearch.toLowerCase()) ||
+        (sku.description && sku.description.toLowerCase().includes(vendorCatalogSearch.toLowerCase())) ||
+        sku.id.toLowerCase().includes(vendorCatalogSearch.toLowerCase());
+      
+      const matchesCat = vendorCatalogCategory === 'All' || sku.category === vendorCatalogCategory;
+      const matchesStatus = vendorCatalogStatus === 'All' || (sku.approvalStatus || 'pending') === vendorCatalogStatus;
+
+      return matchesSearch && matchesCat && matchesStatus;
+    }).sort((a, b) => {
+      if (vendorCatalogSort === 'price-asc') return a.price - b.price;
+      if (vendorCatalogSort === 'price-desc') return b.price - a.price;
+      if (vendorCatalogSort === 'oldest') {
+        return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+      }
+      // 'newest' default
+      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+    });
+
+    const vendorStats = getVendorSalesStats(selectedVendorForInspection.id, selectedVendorForInspection.name);
+
     return (
       <div className="bg-white rounded-xl border border-slate-200/80 shadow-3xs overflow-hidden" id="full-page-vendor-inspection">
-        <div className="bg-[#143C6B] text-white px-6 py-4 flex items-center justify-between">
+        {/* Header Bar */}
+        <div className="bg-[#143C6B] text-white px-6 py-4 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button 
               type="button"
               onClick={() => {
                 setAdminSubView('list');
                 setSelectedVendorForInspection(null);
+                setActiveTab('vendors');
               }}
               className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer transition-colors"
+              title="Back to Sellers Roster"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-5 h-5" />
             </button>
-            <div className="flex items-center gap-2.5">
-              <span className="text-2xl">🏪</span>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-xl">
+                🏪
+              </div>
               <div>
-                <h3 className="text-sm font-black flex items-center gap-2">
+                <h3 className="text-base font-black flex items-center gap-2">
                   <span>{selectedVendorForInspection.name}</span>
-                  <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase ${
-                    selectedVendorForInspection.status === 'suspended' ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider ${
+                    selectedVendorForInspection.status === 'banned' 
+                      ? 'bg-purple-500 text-white'
+                      : selectedVendorForInspection.status === 'suspended' 
+                        ? 'bg-amber-500 text-white' 
+                        : 'bg-emerald-500 text-white'
                   }`}>
                     {selectedVendorForInspection.status}
                   </span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider ${
+                    selectedVendorForInspection.vendorType === 'big'
+                      ? 'bg-blue-400/30 text-blue-200 border border-blue-300/40'
+                      : 'bg-white/20 text-white'
+                  }`}>
+                    {selectedVendorForInspection.vendorType === 'big' ? '👑 Verified Big Supplier' : '🌱 Emerging Seller'}
+                  </span>
                 </h3>
-                <p className="text-[10px] text-slate-300">Supplier Profile & SKU Catalog Inspection Panel</p>
+                <p className="text-[11px] text-slate-300 font-medium mt-0.5">
+                  ID: <span className="font-mono text-white">{selectedVendorForInspection.id}</span> • Registered: {selectedVendorForInspection.createdAt ? new Date(selectedVendorForInspection.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                </p>
               </div>
             </div>
+          </div>
+
+          {/* Quick Actions in Header */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleToggleVendorTier(selectedVendorForInspection)}
+              className="bg-white/15 hover:bg-white/25 text-white text-xs font-bold px-3 py-2 rounded-lg cursor-pointer transition-colors"
+            >
+              {selectedVendorForInspection.vendorType === 'big' ? 'Downgrade to Standard' : 'Upgrade to Verified Supplier'}
+            </button>
+            <button
+              onClick={() => handleBanVendor(selectedVendorForInspection)}
+              className={`text-xs font-bold px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                selectedVendorForInspection.status === 'banned'
+                  ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                  : 'bg-purple-600 hover:bg-purple-700 text-white'
+              }`}
+            >
+              {selectedVendorForInspection.status === 'banned' ? 'Unban Account' : 'Ban Account'}
+            </button>
           </div>
         </div>
 
         <div className="p-6 space-y-6">
+          {/* Key Metrics Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-slate-50 rounded-lg p-3 border border-slate-200/60">
-              <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide block">Total Sales Revenue</span>
-              <strong className="text-base text-emerald-600 font-black block mt-0.5">
-                ₹{getVendorSalesStats(selectedVendorForInspection.id, selectedVendorForInspection.name).totalSales.toLocaleString('en-IN')}
+            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200/60">
+              <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wide block">Total Sales Revenue</span>
+              <strong className="text-xl text-emerald-600 font-black block mt-1">
+                ₹{vendorStats.totalSales.toLocaleString('en-IN')}
               </strong>
+              <span className="text-[10px] text-slate-400 font-semibold mt-0.5 block">Delivered & Invoiced</span>
             </div>
-            <div className="bg-slate-50 rounded-lg p-3 border border-slate-200/60">
-              <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide block">Total Units Dispatched</span>
-              <strong className="text-base text-slate-800 font-black block mt-0.5">
-                {getVendorSalesStats(selectedVendorForInspection.id, selectedVendorForInspection.name).itemsSold} units
+            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200/60">
+              <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wide block">Total Units Dispatched</span>
+              <strong className="text-xl text-slate-800 font-black block mt-1">
+                {vendorStats.itemsSold} units
               </strong>
+              <span className="text-[10px] text-slate-400 font-semibold mt-0.5 block">Customer Shipments</span>
             </div>
-            <div className="bg-slate-50 rounded-lg p-3 border border-slate-200/60">
-              <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide block">Seller Rating</span>
-              <strong className="text-base text-amber-500 font-black block mt-0.5">
-                ★ {selectedVendorForInspection.rating || '4.5'} / 5.0
+            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200/60">
+              <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wide block">Seller Rating</span>
+              <strong className="text-xl text-amber-500 font-black block mt-1">
+                ★ {selectedVendorForInspection.rating || '4.5'} <span className="text-xs text-slate-400 font-normal">/ 5.0</span>
               </strong>
+              <span className="text-[10px] text-slate-400 font-semibold mt-0.5 block">Customer Feedback Score</span>
             </div>
-            <div className="bg-slate-50 rounded-lg p-3 border border-slate-200/60">
-              <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide block">Catalog Listings</span>
-              <strong className="text-base text-blue-600 font-black block mt-0.5">
-                {products.filter(p => p.vendorId === selectedVendorForInspection.id || p.soldBy === selectedVendorForInspection.name).length} SKUs
+            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200/60">
+              <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wide block">Catalog Listings</span>
+              <strong className="text-xl text-blue-600 font-black block mt-1">
+                {vendorProducts.length} SKUs
               </strong>
+              <span className="text-[10px] text-slate-400 font-semibold mt-0.5 block">
+                {vendorProducts.filter(p => p.approvalStatus === 'approved').length} Active • {vendorProducts.filter(p => p.approvalStatus === 'pending').length} Pending
+              </span>
             </div>
           </div>
 
-          <div className="bg-[#143C6B]/5 border border-[#143C6B]/10 rounded-xl p-4 space-y-3">
-            <h4 className="text-xs font-black text-[#143C6B] uppercase tracking-wider">🏢 Supplier Contact & Legal Verification</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2.5 gap-x-4 text-xs">
+          {/* Supplier Business & Tax Profile */}
+          <div className="bg-blue-50/40 border border-blue-200/70 rounded-xl p-5 space-y-3">
+            <h4 className="text-xs font-black text-[#143C6B] uppercase tracking-wider flex items-center gap-1.5">
+              <span>🏢 Supplier Contact & Business Registration Details</span>
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-y-3 gap-x-6 text-xs">
               <div>
-                <span className="text-slate-400 font-medium block">Registered Email Address</span>
-                <strong className="text-slate-800">{selectedVendorForInspection.email}</strong>
+                <span className="text-slate-400 font-bold block text-[10px] uppercase">Registered Email</span>
+                <strong className="text-slate-800 font-semibold">{selectedVendorForInspection.email || 'N/A'}</strong>
               </div>
               <div>
-                <span className="text-slate-400 font-medium block">Authorized Contact Phone</span>
-                <strong className="text-slate-800 font-mono">{selectedVendorForInspection.phone}</strong>
+                <span className="text-slate-400 font-bold block text-[10px] uppercase">Registered Phone Number</span>
+                <strong className="text-slate-800 font-mono font-semibold">{selectedVendorForInspection.phone || 'N/A'}</strong>
               </div>
               <div>
-                <span className="text-slate-400 font-medium block">GSTIN / Tax Registration Code</span>
-                <strong className="text-slate-800 uppercase font-mono">{selectedVendorForInspection.gstin || 'GST_EXEMPT_UNDER_SCHEME'}</strong>
+                <span className="text-slate-400 font-bold block text-[10px] uppercase">GSTIN / Tax ID</span>
+                <strong className="text-slate-800 uppercase font-mono font-semibold">{selectedVendorForInspection.gstin || 'GST_EXEMPT_UNDER_SCHEME'}</strong>
               </div>
               <div>
-                <span className="text-slate-400 font-medium block">Onboarding Timestamp</span>
-                <strong className="text-slate-800">
+                <span className="text-slate-400 font-bold block text-[10px] uppercase">Business Category</span>
+                <strong className="text-slate-800 font-semibold">{selectedVendorForInspection.businessCategory || 'General Merchandise'}</strong>
+              </div>
+              <div>
+                <span className="text-slate-400 font-bold block text-[10px] uppercase">Operating Location</span>
+                <strong className="text-slate-800 font-semibold">
+                  {[selectedVendorForInspection.city, selectedVendorForInspection.state, selectedVendorForInspection.pincode].filter(Boolean).join(', ') || 'India'}
+                </strong>
+              </div>
+              <div>
+                <span className="text-slate-400 font-bold block text-[10px] uppercase">Registered On</span>
+                <strong className="text-slate-800 font-semibold">
                   {selectedVendorForInspection.createdAt ? new Date(selectedVendorForInspection.createdAt).toLocaleString('en-IN', {
                     day: '2-digit',
                     month: 'long',
@@ -2467,61 +2695,253 @@ export default function AdminDashboard({
             </div>
           </div>
 
-          <div className="space-y-3">
-            <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">📦 Live catalog upload list ({products.filter(p => p.vendorId === selectedVendorForInspection.id || p.soldBy === selectedVendorForInspection.name).length} SKUs)</h4>
-            
-            {products.filter(p => p.vendorId === selectedVendorForInspection.id || p.soldBy === selectedVendorForInspection.name).length === 0 ? (
-              <p className="text-xs text-slate-400 font-medium italic">This supplier has not uploaded any product catalog files yet.</p>
+          {/* Supplier Catalog Management Section */}
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+              <div>
+                <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <span>📦 Full Product Catalogue for {selectedVendorForInspection.name}</span>
+                  <span className="bg-slate-100 text-slate-700 text-xs px-2.5 py-0.5 rounded-full font-bold">
+                    {filteredVendorCatalog.length} of {vendorProducts.length} Items
+                  </span>
+                </h4>
+                <p className="text-xs text-slate-500 font-medium">Inspect when products were posted, edit details, or moderate approvals</p>
+              </div>
+
+              {/* Add New Product for this Seller */}
+              <button
+                onClick={() => {
+                  resetProductForm();
+                  setPSoldBy(selectedVendorForInspection.name);
+                  setPSoldByRating(selectedVendorForInspection.rating || 4.5);
+                  setPVendorId(selectedVendorForInspection.id);
+                  setActiveTab('add-product');
+                }}
+                className="bg-lucky-magenta text-white hover:bg-opacity-95 font-extrabold text-xs px-4 py-2 rounded-lg flex items-center gap-1.5 shadow-xs cursor-pointer"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>Add Product for this Seller</span>
+              </button>
+            </div>
+
+            {/* Catalog Filter Toolbar */}
+            <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Filter supplier's products by title, SKU ID..."
+                  value={vendorCatalogSearch}
+                  onChange={(e) => setVendorCatalogSearch(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Category Dropdown */}
+                <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700">
+                  <Tag className="w-3.5 h-3.5 text-slate-400" />
+                  <select
+                    value={vendorCatalogCategory}
+                    onChange={(e) => setVendorCatalogCategory(e.target.value)}
+                    className="bg-transparent border-none text-xs font-bold text-[#143C6B] cursor-pointer focus:outline-hidden"
+                  >
+                    {vendorCategories.map(c => (
+                      <option key={c} value={c}>{c === 'All' ? 'All Categories' : c}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Status Dropdown */}
+                <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-slate-400" />
+                  <select
+                    value={vendorCatalogStatus}
+                    onChange={(e) => setVendorCatalogStatus(e.target.value)}
+                    className="bg-transparent border-none text-xs font-bold text-[#143C6B] cursor-pointer focus:outline-hidden"
+                  >
+                    <option value="All">All Statuses</option>
+                    <option value="approved">Approved</option>
+                    <option value="pending">Pending Review</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </div>
+
+                {/* Sort Dropdown */}
+                <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  <select
+                    value={vendorCatalogSort}
+                    onChange={(e) => setVendorCatalogSort(e.target.value)}
+                    className="bg-transparent border-none text-xs font-bold text-[#143C6B] cursor-pointer focus:outline-hidden"
+                  >
+                    <option value="newest">Newest Posted First</option>
+                    <option value="oldest">Oldest Posted First</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Products List Cards */}
+            {filteredVendorCatalog.length === 0 ? (
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-12 text-center">
+                <span className="text-3xl block">📦</span>
+                <p className="text-sm font-bold text-slate-700 mt-2">No products found in this supplier's catalogue</p>
+                <p className="text-xs text-slate-400 mt-0.5">Try clearing your filters or add a new product for this seller above.</p>
+              </div>
             ) : (
-              <div className="border border-slate-200 rounded-xl divide-y divide-slate-100 overflow-hidden bg-white">
-                {products.filter(p => p.vendorId === selectedVendorForInspection.id || p.soldBy === selectedVendorForInspection.name).map(sku => (
-                  <div key={sku.id} className="p-3 hover:bg-slate-50/50 flex items-center justify-between gap-3 text-xs">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-slate-50 border border-slate-150 overflow-hidden shrink-0">
-                        <img src={sku.images?.[0] || ''} alt="" className="w-full h-full object-cover" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredVendorCatalog.map((sku) => {
+                  const postedDateStr = sku.createdAt 
+                    ? new Date(sku.createdAt).toLocaleString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })
+                    : 'Recently Added';
+
+                  return (
+                    <div 
+                      key={sku.id} 
+                      className="bg-white border border-slate-200/90 rounded-xl p-4 flex flex-col justify-between gap-3 shadow-3xs hover:border-lucky-magenta/40 transition-all"
+                    >
+                      <div className="flex gap-3.5">
+                        {/* Thumbnail */}
+                        <div className="w-20 h-20 rounded-lg bg-slate-50 border border-slate-100 overflow-hidden shrink-0 relative">
+                          <img 
+                            src={sku.images?.[0] || ''} 
+                            alt={sku.title} 
+                            className="w-full h-full object-cover" 
+                            referrerPolicy="no-referrer"
+                          />
+                          {sku.images && sku.images.length > 1 && (
+                            <span className="absolute bottom-1 right-1 bg-black/70 text-white text-[8px] font-bold px-1 rounded-sm">
+                              +{sku.images.length - 1}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Product Info */}
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-sm bg-slate-100 text-slate-600">
+                              {sku.category}
+                            </span>
+                            <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase ${
+                              sku.approvalStatus === 'approved'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : sku.approvalStatus === 'rejected'
+                                  ? 'bg-red-50 text-red-700 border border-red-200'
+                                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            }`}>
+                              {sku.approvalStatus || 'pending'}
+                            </span>
+                          </div>
+
+                          <h5 className="font-black text-slate-900 text-xs truncate leading-tight mt-1" title={sku.title}>
+                            {sku.title}
+                          </h5>
+
+                          <div className="flex items-baseline gap-2 text-xs">
+                            <span className="font-black text-slate-900">₹{sku.price}</span>
+                            {sku.originalPrice && sku.originalPrice > sku.price && (
+                              <span className="text-[10px] text-slate-400 line-through">₹{sku.originalPrice}</span>
+                            )}
+                            {sku.discountPercent ? (
+                              <span className="text-[10px] font-extrabold text-emerald-600">{sku.discountPercent}% OFF</span>
+                            ) : null}
+                          </div>
+
+                          {/* EXACT POSTING DATE & TIME */}
+                          <div className="text-[10px] text-slate-500 font-semibold flex items-center gap-1.5 pt-0.5">
+                            <Clock className="w-3 h-3 text-slate-400" />
+                            <span>Posted on: <strong className="text-slate-700 font-mono">{postedDateStr}</strong></span>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <h5 className="font-black text-slate-900">{sku.title}</h5>
-                        <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400 font-semibold">
-                          <span className="bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded uppercase">{sku.category}</span>
-                          <span>•</span>
-                          <span>SKU Price: <strong className="text-slate-700">₹{sku.price}</strong></span>
+
+                      {/* Card Action Buttons */}
+                      <div className="border-t border-slate-100 pt-2.5 flex items-center justify-between gap-2">
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          SKU ID: {sku.id.substring(0, 14)}...
+                        </span>
+
+                        <div className="flex items-center gap-1.5">
+                          {/* Inspect Full Page */}
+                          <button
+                            onClick={() => {
+                              setSelectedProductForInspection(sku);
+                              setActiveTab('inspect-product/' + sku.id);
+                            }}
+                            className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#143C6B] border border-blue-200/60 transition-colors cursor-pointer text-[10px] font-extrabold flex items-center gap-1"
+                            title="Inspect product details and review metrics"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Inspect</span>
+                          </button>
+
+                          {/* Edit Product Full Page */}
+                          <button
+                            onClick={() => {
+                              resetProductForm(sku);
+                              setActiveTab('edit-product/' + sku.id);
+                            }}
+                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer text-[10px] font-extrabold flex items-center gap-1"
+                            title="Edit this product"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            <span>Edit</span>
+                          </button>
+
+                          {/* Approve/Reject Controls */}
+                          {sku.approvalStatus !== 'approved' && (
+                            <button
+                              onClick={() => handleApproveProduct(sku.id)}
+                              className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors cursor-pointer text-[10px] font-extrabold flex items-center gap-1"
+                              title="Approve product for live storefront"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              <span>Approve</span>
+                            </button>
+                          )}
+
+                          {/* Delete Product */}
+                          <button
+                            onClick={() => {
+                              triggerConfirm(
+                                `Are you sure you want to delete "${sku.title}" from this seller's catalogue?`,
+                                () => {
+                                  onDeleteProduct(sku.id);
+                                  setLiveProducts(prev => prev.filter(p => p.id !== sku.id));
+                                },
+                                'Delete Product',
+                                'Delete'
+                              );
+                            }}
+                            className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors cursor-pointer text-[10px] font-extrabold flex items-center gap-1"
+                            title="Permanently remove product"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[9px] px-2 py-0.5 rounded font-black uppercase ${
-                        sku.approvalStatus === 'approved' 
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' 
-                          : sku.approvalStatus === 'rejected' 
-                            ? 'bg-red-50 text-red-700 border border-red-100' 
-                            : 'bg-amber-50 text-amber-700 border border-amber-100'
-                      }`}>
-                        {sku.approvalStatus || 'pending'}
-                      </span>
-                      
-                      {sku.approvalStatus !== 'approved' && (
-                        <button
-                          onClick={() => handleApproveProduct(sku.id)}
-                          className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-md border border-emerald-100 transition-colors cursor-pointer"
-                          title="Approve SKU"
-                        >
-                          <Check className="w-4 h-4 stroke-[3]" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
 
+          {/* Raw Database Object Inspector Accordion */}
           <details className="group border border-slate-200 rounded-xl bg-slate-50 overflow-hidden">
             <summary className="p-4 flex items-center justify-between cursor-pointer font-black text-xs text-slate-700 select-none hover:bg-slate-100/50">
               <div className="flex items-center gap-2">
                 <Database className="w-4 h-4 text-slate-400" />
-                <span>🔍 RAW SUPPLIER DATABASE OBJECT INSPECTOR</span>
+                <span>🔍 RAW SUPPLIER RECORD (SUPABASE DB OBJECT)</span>
               </div>
               <span className="text-[10px] text-slate-400 font-extrabold group-open:rotate-180 transition-transform">▼</span>
             </summary>
@@ -2531,15 +2951,528 @@ export default function AdminDashboard({
           </details>
         </div>
 
-        <div className="bg-slate-50 border-t border-slate-200 p-4 flex justify-end shrink-0">
+        <div className="bg-slate-50 border-t border-slate-200 p-4 flex items-center justify-between shrink-0">
+          <span className="text-xs text-slate-500 font-medium">Viewing complete vendor administrative portal</span>
           <button
             onClick={() => {
               setAdminSubView('list');
               setSelectedVendorForInspection(null);
+              setActiveTab('vendors');
+            }}
+            className="bg-slate-900 text-white hover:bg-slate-800 font-extrabold text-xs px-5 py-2.5 rounded-lg cursor-pointer transition-colors shadow-sm"
+          >
+            Close Inspection & Return to Roster
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // FULL PAGE PRODUCT INSPECTION VIEW
+  const renderFullPageProductInspection = () => {
+    const p = selectedProductForInspection;
+    if (!p) {
+      return (
+        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center space-y-4">
+          <p className="text-sm font-bold text-slate-700">No product selected for inspection.</p>
+          <button
+            onClick={() => setActiveTab('products')}
+            className="bg-lucky-magenta text-white text-xs font-bold px-4 py-2 rounded-lg cursor-pointer"
+          >
+            Back to Products
+          </button>
+        </div>
+      );
+    }
+
+    const images = p.images && p.images.length > 0 ? p.images : ['https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=600&auto=format&fit=crop&q=80'];
+    const currentImg = images[activeProductImageIndex] || images[0];
+
+    return (
+      <div className="bg-white rounded-xl border border-slate-200/80 shadow-3xs overflow-hidden" id="full-page-product-inspection">
+        {/* Header Bar */}
+        <div className="bg-[#143C6B] text-white px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <button 
+              type="button"
+              onClick={() => {
+                setAdminSubView('list');
+                setSelectedProductForInspection(null);
+                setActiveTab('products');
+              }}
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer transition-colors"
+              title="Back to Products Catalog"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h3 className="text-base font-black flex items-center gap-2">
+                <span>{p.title}</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase ${
+                  p.approvalStatus === 'approved'
+                    ? 'bg-emerald-500 text-white'
+                    : p.approvalStatus === 'rejected'
+                      ? 'bg-red-500 text-white'
+                      : 'bg-amber-500 text-white'
+                }`}>
+                  {p.approvalStatus || 'pending'}
+                </span>
+                {p.tag && (
+                  <span className="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full font-bold uppercase">
+                    {p.tag}
+                  </span>
+                )}
+              </h3>
+              <p className="text-[11px] text-slate-300 font-medium mt-0.5">
+                Product UUID: <span className="font-mono text-white">{p.id}</span> • Numeric ID: <span className="font-mono text-white">#{p.numericId}</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                resetProductForm(p);
+                setActiveTab('edit-product/' + p.id);
+              }}
+              className="bg-white/15 hover:bg-white/25 text-white text-xs font-bold px-3.5 py-2 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+              <span>Edit Product</span>
+            </button>
+
+            {p.approvalStatus !== 'approved' && (
+              <button
+                onClick={() => {
+                  handleApproveProduct(p.id);
+                  setSelectedProductForInspection({ ...p, approvalStatus: 'approved' });
+                }}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold px-3.5 py-2 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Approve SKU</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                triggerConfirm(
+                  `Are you sure you want to delete "${p.title}"?`,
+                  () => {
+                    onDeleteProduct(p.id);
+                    setLiveProducts(prev => prev.filter(item => item.id !== p.id));
+                    setAdminSubView('list');
+                    setSelectedProductForInspection(null);
+                    setActiveTab('products');
+                  },
+                  'Delete Product',
+                  'Delete'
+                );
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3.5 py-2 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {/* Main Product Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Gallery Column (5 cols) */}
+            <div className="lg:col-span-5 space-y-4">
+              <div className="aspect-square rounded-2xl bg-slate-50 border border-slate-200 overflow-hidden shadow-inner flex items-center justify-center relative">
+                <img 
+                  src={currentImg} 
+                  alt={p.title} 
+                  className="w-full h-full object-contain"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+
+              {/* Thumbnails row */}
+              {images.length > 1 && (
+                <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                  {images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setActiveProductImageIndex(idx)}
+                      className={`w-16 h-16 rounded-xl overflow-hidden border-2 shrink-0 cursor-pointer transition-all ${
+                        activeProductImageIndex === idx ? 'border-lucky-magenta scale-105 shadow-sm' : 'border-slate-200 opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <img src={img} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Seller Attribution Card */}
+              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 space-y-2">
+                <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center justify-between">
+                  <span>🏪 Seller Attribution</span>
+                  {p.vendorId && (
+                    <button
+                      onClick={() => {
+                        const targetVend = vendors.find(v => v.id === p.vendorId || v.name === p.soldBy);
+                        if (targetVend) {
+                          setSelectedVendorForInspection(targetVend);
+                          setActiveTab('inspect-vendor/' + targetVend.id);
+                        }
+                      }}
+                      className="text-[10px] text-lucky-magenta font-black hover:underline cursor-pointer"
+                    >
+                      Inspect Seller Profile →
+                    </button>
+                  )}
+                </h4>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-slate-400 font-medium block text-[10px]">Seller Store Name</span>
+                    <strong className="text-slate-800">{p.soldBy || 'Platform Direct'}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-medium block text-[10px]">Seller Star Rating</span>
+                    <strong className="text-amber-500 font-black">★ {p.soldByRating || '4.5'}</strong>
+                  </div>
+                  {p.vendorId && (
+                    <div className="col-span-2">
+                      <span className="text-slate-400 font-medium block text-[10px]">Supplier Vendor ID</span>
+                      <strong className="text-slate-800 font-mono text-[11px]">{p.vendorId}</strong>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Product Details Column (7 cols) */}
+            <div className="lg:col-span-7 space-y-5">
+              {/* Pricing & Commercials Card */}
+              <div className="bg-emerald-50/40 border border-emerald-200/70 rounded-xl p-4">
+                <span className="text-[10px] text-emerald-800 font-extrabold uppercase tracking-wide block">Pricing & Margin Structure</span>
+                <div className="flex flex-wrap items-baseline gap-3 mt-1">
+                  <span className="text-3xl font-black text-slate-900">₹{p.price}</span>
+                  {p.originalPrice && (
+                    <span className="text-base text-slate-400 line-through font-bold">MRP ₹{p.originalPrice}</span>
+                  )}
+                  {p.discountPercent ? (
+                    <span className="bg-emerald-600 text-white font-black text-xs px-2.5 py-1 rounded-md">
+                      {p.discountPercent}% OFF
+                    </span>
+                  ) : null}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3 pt-3 border-t border-emerald-100 text-xs">
+                  <div>
+                    <span className="text-slate-500 font-medium block text-[10px]">Customer Rating</span>
+                    <strong className="text-amber-600 font-bold">★ {p.rating || '4.5'} ({p.ratingCount || 0} reviews)</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 font-medium block text-[10px]">Delivery Fee</span>
+                    <strong className="text-emerald-700 font-bold">FREE Delivery</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 font-medium block text-[10px]">Posted On</span>
+                    <strong className="text-slate-700 font-mono text-[11px]">
+                      {p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-IN') : 'Standard SKU'}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Taxonomy & Category */}
+              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 space-y-2">
+                <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">🏷️ Taxonomy & Categories</h4>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-slate-400 font-medium block text-[10px]">Primary Category</span>
+                    <strong className="text-slate-800 font-bold">{p.category}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-medium block text-[10px]">Sub-Category</span>
+                    <strong className="text-slate-800 font-bold">{p.subCategory || 'Standard'}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sizes & Inventory */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">📏 Sizing & Variants</h4>
+                <div className="flex flex-wrap gap-2">
+                  {p.sizeOptions && p.sizeOptions.length > 0 ? (
+                    p.sizeOptions.map((s, idx) => (
+                      <span key={idx} className="px-3 py-1.5 bg-slate-100 border border-slate-200 text-slate-800 text-xs font-bold rounded-lg">
+                        {s}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-slate-400 italic">Free Size / Standard Fit</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">📝 Product Description</h4>
+                <p className="text-xs text-slate-700 leading-relaxed bg-slate-50/50 p-4 rounded-xl border border-slate-100 whitespace-pre-line">
+                  {p.description || 'No description provided.'}
+                </p>
+              </div>
+
+              {/* Highlights Specs */}
+              {p.productHighlights && p.productHighlights.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">✨ Technical Highlights & Specs</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {p.productHighlights.map((h, idx) => (
+                      <div key={idx} className="bg-slate-50 border border-slate-150 p-2.5 rounded-lg text-xs">
+                        <span className="text-slate-400 font-bold text-[10px] uppercase block">{h.label}</span>
+                        <span className="text-slate-800 font-semibold">{h.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Additional Details */}
+              {p.additionalDetails && p.additionalDetails.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">🏛️ Manufacturer & Compliance Metadata</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {p.additionalDetails.map((ad, idx) => (
+                      <div key={idx} className="bg-slate-50 border border-slate-150 p-2.5 rounded-lg text-xs">
+                        <span className="text-slate-400 font-bold text-[10px] uppercase block">{ad.label}</span>
+                        <span className="text-slate-800 font-semibold">{ad.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Raw Supabase Database Object Inspector */}
+          <details className="group border border-slate-200 rounded-xl bg-slate-50 overflow-hidden">
+            <summary className="p-4 flex items-center justify-between cursor-pointer font-black text-xs text-slate-700 select-none hover:bg-slate-100/50">
+              <div className="flex items-center gap-2">
+                <Database className="w-4 h-4 text-slate-400" />
+                <span>🔍 RAW PRODUCT OBJECT (SUPABASE DATABASE RECORD)</span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-extrabold group-open:rotate-180 transition-transform">▼</span>
+            </summary>
+            <div className="p-4 border-t border-slate-200 bg-slate-950 text-emerald-400 font-mono text-[10px] overflow-x-auto leading-relaxed max-h-56">
+              <pre>{JSON.stringify(p, null, 2)}</pre>
+            </div>
+          </details>
+        </div>
+
+        <div className="bg-slate-50 border-t border-slate-200 p-4 flex justify-end shrink-0">
+          <button
+            onClick={() => {
+              setAdminSubView('list');
+              setSelectedProductForInspection(null);
+              setActiveTab('products');
             }}
             className="bg-slate-900 text-white hover:bg-slate-850 font-extrabold text-xs px-5 py-2.5 rounded-lg cursor-pointer transition-colors shadow-sm"
           >
-            Close Inspection Profile
+            Close Inspection View
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // FULL PAGE ORDER INSPECTION & TAX INVOICE VIEW
+  const renderFullPageOrderInspection = () => {
+    const order = selectedOrderForInspection;
+    if (!order) {
+      return (
+        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center space-y-4">
+          <p className="text-sm font-bold text-slate-700">No order selected for inspection.</p>
+          <button
+            onClick={() => setActiveTab('orders')}
+            className="bg-lucky-magenta text-white text-xs font-bold px-4 py-2 rounded-lg cursor-pointer"
+          >
+            Back to Orders
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-white rounded-xl border border-slate-200/80 shadow-3xs overflow-hidden" id="full-page-order-inspection">
+        {/* Header Bar */}
+        <div className="bg-[#143C6B] text-white px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <button 
+              type="button"
+              onClick={() => {
+                setAdminSubView('list');
+                setSelectedOrderForInspection(null);
+                setActiveTab('orders');
+              }}
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer transition-colors"
+              title="Back to Orders Roster"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h3 className="text-base font-black flex items-center gap-2">
+                <span>Order #{order.id}</span>
+                <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-black uppercase ${getStatusStyle(order.status)}`}>
+                  {order.status}
+                </span>
+              </h3>
+              <p className="text-[11px] text-slate-300 font-medium mt-0.5">
+                Placed on: <span className="font-mono text-white">{order.orderDate}</span> • Total Value: <strong className="text-emerald-300 font-black">₹{order.totalPrice}</strong>
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Status Updater */}
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <select
+                value={order.status}
+                onChange={(e) => {
+                  const newStatus = e.target.value as Order['status'];
+                  onUpdateOrderStatus(order.id, newStatus);
+                  setSelectedOrderForInspection({ ...order, status: newStatus });
+                }}
+                className="bg-white text-slate-900 border text-xs font-bold px-3 py-2 pr-8 rounded-lg appearance-none cursor-pointer focus:outline-hidden shadow-xs"
+              >
+                <option value="Ordered">Ordered (New)</option>
+                <option value="Shipped">Shipped (In Transit)</option>
+                <option value="Out for Delivery">Out for Delivery</option>
+                <option value="Delivered Early">Delivered</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 rotate-90 pointer-events-none" />
+            </div>
+
+            <button
+              onClick={() => window.print()}
+              className="bg-white/15 hover:bg-white/25 text-white text-xs font-bold px-3.5 py-2 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>Print Invoice</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {/* Top Info Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Customer Shipping Info */}
+            <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-5 space-y-3">
+              <h4 className="text-xs font-black text-[#143C6B] uppercase tracking-wider flex items-center gap-1.5">
+                <MapPin className="w-4 h-4" />
+                <span>Customer Shipping & Delivery Address</span>
+              </h4>
+              <div className="text-xs space-y-1.5">
+                <p className="text-sm font-black text-slate-900">{order.shippingAddress.name}</p>
+                <p className="text-slate-600 font-medium">
+                  <strong>Phone:</strong> <span className="font-mono">{order.shippingAddress.phone}</span>
+                </p>
+                <p className="text-slate-700 font-medium leading-relaxed">
+                  {order.shippingAddress.addressLine}<br />
+                  {order.shippingAddress.city}, {order.shippingAddress.state} - <span className="font-mono font-bold">{order.shippingAddress.pincode}</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Payment Summary */}
+            <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-5 space-y-3">
+              <h4 className="text-xs font-black text-[#143C6B] uppercase tracking-wider flex items-center gap-1.5">
+                <Ticket className="w-4 h-4" />
+                <span>Payment & Invoicing Summary</span>
+              </h4>
+              <div className="text-xs space-y-2">
+                <div className="flex justify-between text-slate-600">
+                  <span>Gross Line Items:</span>
+                  <span className="font-bold text-slate-900">{order.items.reduce((s, i) => s + i.quantity, 0)} Units</span>
+                </div>
+                <div className="flex justify-between text-slate-600">
+                  <span>Payment Mode:</span>
+                  <span className="font-bold text-slate-900">Cash on Delivery (COD) / Prepaid</span>
+                </div>
+                <div className="flex justify-between text-slate-600">
+                  <span>Delivery Charges:</span>
+                  <span className="font-bold text-emerald-600">FREE</span>
+                </div>
+                <div className="flex justify-between border-t border-slate-200 pt-2 text-sm">
+                  <span className="font-black text-slate-900">Net Invoice Amount:</span>
+                  <span className="font-black text-lucky-magenta text-base">₹{order.totalPrice}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Line Items Table */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+              📦 Ordered Line Items ({order.items.length} SKUs)
+            </h4>
+            <div className="border border-slate-200 rounded-xl divide-y divide-slate-100 overflow-hidden bg-white">
+              {order.items.map((item, idx) => {
+                const variant = item.product.variants?.[item.selectedVariantIndex];
+                const itemImg = variant?.imageUrl || (item.product.images && item.product.images[0]) || '';
+                const itemPrice = variant?.price || item.product.price;
+
+                return (
+                  <div key={idx} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-slate-50/50">
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-14 h-14 rounded-lg bg-slate-50 border border-slate-150 overflow-hidden shrink-0">
+                        <img src={itemImg} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      </div>
+                      <div>
+                        <h5 className="font-black text-slate-900 text-xs">{item.product.title}</h5>
+                        <div className="flex flex-wrap items-center gap-2 mt-1 text-[10px] text-slate-500 font-semibold">
+                          <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-bold">Size: {item.selectedSize}</span>
+                          <span>•</span>
+                          <span>Color: {variant?.colorName || 'Default'}</span>
+                          <span>•</span>
+                          <span>Sold by: <strong className="text-slate-800">{item.product.soldBy || 'QueKart Direct'}</strong></span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <span className="text-sm font-black text-slate-900 block">₹{itemPrice * item.quantity}</span>
+                      <span className="text-[10px] text-slate-400 block font-semibold">₹{itemPrice} × {item.quantity} units</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Raw Database Record */}
+          <details className="group border border-slate-200 rounded-xl bg-slate-50 overflow-hidden">
+            <summary className="p-4 flex items-center justify-between cursor-pointer font-black text-xs text-slate-700 select-none hover:bg-slate-100/50">
+              <div className="flex items-center gap-2">
+                <Database className="w-4 h-4 text-slate-400" />
+                <span>🔍 RAW ORDER RECORD (SUPABASE DB OBJECT)</span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-extrabold group-open:rotate-180 transition-transform">▼</span>
+            </summary>
+            <div className="p-4 border-t border-slate-200 bg-slate-950 text-emerald-400 font-mono text-[10px] overflow-x-auto leading-relaxed max-h-56">
+              <pre>{JSON.stringify(order, null, 2)}</pre>
+            </div>
+          </details>
+        </div>
+
+        <div className="bg-slate-50 border-t border-slate-200 p-4 flex justify-end shrink-0">
+          <button
+            onClick={() => {
+              setAdminSubView('list');
+              setSelectedOrderForInspection(null);
+              setActiveTab('orders');
+            }}
+            className="bg-slate-900 text-white hover:bg-slate-850 font-extrabold text-xs px-5 py-2.5 rounded-lg cursor-pointer transition-colors shadow-sm"
+          >
+            Close Order Invoice & Return
           </button>
         </div>
       </div>
@@ -3016,9 +3949,11 @@ export default function AdminDashboard({
           <div className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto space-y-6">
             {adminSubView === 'add-product' && renderFullPageProductForm(false)}
             {adminSubView === 'edit-product' && renderFullPageProductForm(true)}
+            {adminSubView === 'inspect-product' && renderFullPageProductInspection()}
             {adminSubView === 'add-coupon' && renderFullPageCouponForm()}
             {adminSubView === 'add-banner' && renderFullPageBannerForm()}
             {adminSubView === 'inspect-vendor' && renderFullPageVendorInspection()}
+            {adminSubView === 'inspect-order' && renderFullPageOrderInspection()}
             {adminSubView === 'inspect-customer' && renderFullPageCustomerInspection()}
           </div>
         ) : (
@@ -3510,6 +4445,16 @@ export default function AdminDashboard({
                             <div className="flex items-center justify-end gap-1.5">
                               <button
                                 onClick={() => {
+                                  setSelectedProductForInspection(product);
+                                  setActiveTab('inspect-product/' + product.id);
+                                }}
+                                className="p-2 rounded-lg text-slate-600 hover:text-lucky-magenta hover:bg-lucky-magenta/10 transition-colors cursor-pointer"
+                                title="Inspect Product in Full Page"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => {
                                   resetProductForm(product);
                                   setActiveTab('edit-product/' + product.id);
                                 }}
@@ -3584,6 +4529,16 @@ export default function AdminDashboard({
                           <div className="flex items-center gap-0.5">
                             <button
                               onClick={() => {
+                                setSelectedProductForInspection(product);
+                                setActiveTab('inspect-product/' + product.id);
+                              }}
+                              className="p-1.5 rounded-md text-slate-600 hover:text-lucky-magenta hover:bg-slate-100 cursor-pointer"
+                              title="Inspect Product"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => {
                                 resetProductForm(product);
                                 setActiveTab('edit-product/' + product.id);
                               }}
@@ -3627,15 +4582,37 @@ export default function AdminDashboard({
           {activeTab === 'categories' && (
             <div className="space-y-6 animate-fadeIn" id="categories-manager-container">
               
+              {/* Hidden file inputs for main category and subcategory uploads */}
+              <input
+                type="file"
+                ref={categoryFileInputRef}
+                onChange={(e) => handleCategoryFileInputChange(e, { type: 'main' })}
+                accept="image/*"
+                className="hidden"
+                id="main-category-file-input"
+              />
+              <input
+                type="file"
+                ref={subCategoryFileInputRef}
+                onChange={(e) => {
+                  if (activeSubCropIndex !== null) {
+                    handleCategoryFileInputChange(e, { type: 'sub', index: activeSubCropIndex });
+                  }
+                }}
+                accept="image/*"
+                className="hidden"
+                id="subcategory-file-input"
+              />
+
               {categoryFormMode ? (
                 /* --- ADD / EDIT CATEGORY FORM --- */
-                <form onSubmit={handleCategorySave} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6 max-w-2xl mx-auto" id="category-edit-form">
+                <form onSubmit={handleCategorySave} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6 max-w-3xl mx-auto" id="category-edit-form">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                     <div>
                       <h3 className="text-base font-extrabold text-slate-800" id="category-form-title">
-                        {categoryFormMode === 'edit' ? 'Edit Category Specifications' : 'Propose New Product Category'}
+                        {categoryFormMode === 'edit' ? 'Edit Category Specifications & Smart Crop' : 'Create New Storefront Category'}
                       </h3>
-                      <p className="text-[11px] text-slate-400 mt-0.5">Specify category visual tokens, metadata, and children subcategories</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Customize category branding image, smart crop framing, visual tokens, and subcategories</p>
                     </div>
                     <button
                       type="button"
@@ -3653,34 +4630,161 @@ export default function AdminDashboard({
                     </div>
                   )}
 
+                  {/* 1. Category Main Image & Smart Crop Studio Section */}
+                  <div className="p-4 bg-slate-50/80 border border-slate-200 rounded-2xl space-y-4" id="category-image-manager-section">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                          <Sparkles className="w-4 h-4 text-[#143C6B]" />
+                          <span>Category Storefront Image & Smart Crop</span>
+                        </h4>
+                        <p className="text-[10px] text-slate-500 mt-0.5">
+                          This image appears in the customer home screen circular bubble strip and category browsing lists
+                        </p>
+                      </div>
+                      <span className="text-[9px] font-black bg-[#143C6B]/10 text-[#143C6B] px-2 py-0.5 rounded-full uppercase">
+                        Smart Cropper Integrated
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                      {/* Live Customer Circle Bubble Simulation */}
+                      <div className="md:col-span-4 bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs flex flex-col items-center justify-center text-center">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                          Live Storefront Bubble
+                        </span>
+                        
+                        <div className="relative group cursor-pointer" onClick={() => categoryFileInputRef.current?.click()}>
+                          <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#143C6B] ring-2 ring-[#143C6B]/20 bg-blue-50/50 shadow-md flex items-center justify-center">
+                            {categoryImage ? (
+                              <img
+                                src={categoryImage}
+                                alt="Category Bubble Preview"
+                                className="w-full h-full object-cover"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : (
+                              <ShoppingBag className="w-7 h-7 text-[#143C6B]" />
+                            )}
+                          </div>
+                          <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[9px] font-black">
+                            Change
+                          </div>
+                        </div>
+
+                        <span className="text-xs font-black text-[#143C6B] mt-2 max-w-[120px] truncate">
+                          {categoryName || 'Category Name'}
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-medium mt-0.5">
+                          Home Screen Preview
+                        </span>
+                      </div>
+
+                      {/* Controls & Upload Actions */}
+                      <div className="md:col-span-8 space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => categoryFileInputRef.current?.click()}
+                            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#143C6B] hover:bg-[#143C6B]/90 text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer transition-all"
+                            id="upload-category-image-btn"
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>Upload & Smart Crop</span>
+                          </button>
+
+                          {categoryImage && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenCategoryCropper(categoryImage, { type: 'main' })}
+                              className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 shadow-2xs cursor-pointer transition-all"
+                              id="adjust-category-crop-btn"
+                            >
+                              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                              <span>Adjust Smart Crop</span>
+                            </button>
+                          )}
+
+                          {categoryImage && (
+                            <button
+                              type="button"
+                              onClick={() => setCategoryImage('')}
+                              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                              title="Clear Image (Fallback to subcategory image)"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Direct Image URL input */}
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase">Or Enter Direct Image CDN URL:</span>
+                          <input
+                            type="text"
+                            value={categoryImage}
+                            onChange={(e) => setCategoryImage(e.target.value)}
+                            placeholder="https://images.unsplash.com/photo-..."
+                            className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-hidden font-semibold text-slate-700"
+                            id="category-image-url-input"
+                          />
+                        </div>
+
+                        {/* Quick preset selector */}
+                        <div className="space-y-1">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">Quick Curated Photography Presets:</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {[
+                              { label: 'Ethnic Sarees', url: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=600' },
+                              { label: 'Western Wear', url: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=600' },
+                              { label: 'Men Fashion', url: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=600' },
+                              { label: 'Jewellery', url: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&q=80&w=600' },
+                              { label: 'Cosmetics', url: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=600' }
+                            ].map((pr, pidx) => (
+                              <button
+                                key={pidx}
+                                type="button"
+                                onClick={() => handleOpenCategoryCropper(pr.url, { type: 'main' })}
+                                className="text-[10px] font-bold bg-white hover:bg-[#143C6B]/10 hover:text-[#143C6B] border border-slate-200 px-2 py-1 rounded-md transition-colors cursor-pointer"
+                              >
+                                {pr.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Category Name */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">Category Name</label>
+                      <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">Category Title</label>
                       <input
                         type="text"
                         value={categoryName}
                         onChange={(e) => setCategoryName(e.target.value)}
-                        placeholder="e.g. Women Westernwear"
-                        className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-lucky-magenta/20 focus:border-lucky-magenta outline-hidden font-semibold transition-all"
+                        placeholder="e.g. Kurti, Saree & Ethnic Wear"
+                        className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#143C6B]/20 focus:border-[#143C6B] outline-hidden font-semibold transition-all"
                         id="category-name-input"
                       />
                     </div>
 
                     {/* Category Icon Selector */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">Visual Icon Token</label>
+                      <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">Fallback Icon Token</label>
                       <select
                         value={categoryIcon}
                         onChange={(e) => setCategoryIcon(e.target.value)}
-                        className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-lucky-magenta/20 focus:border-lucky-magenta outline-hidden font-semibold transition-all"
+                        className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#143C6B]/20 focus:border-[#143C6B] outline-hidden font-semibold transition-all"
                         id="category-icon-select"
                       >
                         <option value="shopping-bag">Shopping Bag (Default)</option>
-                        <option value="sparkles">Sparkles (Westernwear)</option>
-                        <option value="shirt">Shirt (Kurti/Clothing)</option>
-                        <option value="heart">Heart (Lingerie)</option>
-                        <option value="smile">Smile (Men)</option>
+                        <option value="sparkles">Sparkles (Western / Ethnic)</option>
+                        <option value="shirt">Shirt (Clothing)</option>
+                        <option value="gem">Gem (Jewellery)</option>
+                        <option value="heart">Heart (Favorites / Innerwear)</option>
+                        <option value="user">User (Men's Wear)</option>
                         <option value="baby">Baby (Kids & Toys)</option>
                         <option value="home">Home (Kitchen & Living)</option>
                         <option value="star">Star (Popular)</option>
@@ -3693,12 +4797,12 @@ export default function AdminDashboard({
                     <div className="flex items-center justify-between">
                       <div>
                         <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider">Subcategories List ({categorySubCats.length})</h4>
-                        <p className="text-[10px] text-slate-400 mt-0.5">Every category requires at least one leaf subcategory</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Every category requires at least one leaf subcategory with custom image</p>
                       </div>
                       <button
                         type="button"
                         onClick={() => setCategorySubCats([...categorySubCats, { name: '', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=200&h=200&fit=crop' }])}
-                        className="flex items-center gap-1.5 text-[10px] font-black text-lucky-magenta bg-lucky-magenta/5 hover:bg-lucky-magenta/10 px-3 py-1.5 rounded-lg cursor-pointer transition-colors"
+                        className="flex items-center gap-1.5 text-[10px] font-black text-[#143C6B] bg-[#143C6B]/5 hover:bg-[#143C6B]/10 px-3 py-1.5 rounded-lg cursor-pointer transition-colors"
                         id="add-subcategory-btn"
                       >
                         <Plus className="w-3.5 h-3.5" />
@@ -3706,23 +4810,33 @@ export default function AdminDashboard({
                       </button>
                     </div>
 
-                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1" id="subcategories-form-list">
+                    <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1" id="subcategories-form-list">
                       {categorySubCats.map((sub, idx) => (
-                        <div key={idx} className="flex gap-3 items-start bg-slate-50/50 border border-slate-200/60 p-3 rounded-xl relative group/sub" id={`subcategory-row-${idx}`}>
+                        <div key={idx} className="flex gap-3 items-start bg-slate-50/70 border border-slate-200 p-3 rounded-xl relative group/sub" id={`subcategory-row-${idx}`}>
                           
-                          {/* Circle Preview */}
-                          <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border border-slate-200 bg-white shadow-2xs">
+                          {/* Circle Preview & Quick Crop Trigger */}
+                          <div
+                            onClick={() => {
+                              setActiveSubCropIndex(idx);
+                              subCategoryFileInputRef.current?.click();
+                            }}
+                            className="relative group cursor-pointer w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-slate-200 bg-white shadow-2xs"
+                            title="Click to Upload & Smart Crop subcategory photo"
+                          >
                             <img
                               src={sub.image || 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=200&h=200&fit=crop'}
                               alt="Sub preview"
                               className="w-full h-full object-cover"
                               referrerPolicy="no-referrer"
                             />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[8px] font-bold">
+                              Crop
+                            </div>
                           </div>
 
                           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="space-y-1">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase">Subcategory Title</span>
+                              <span className="text-[10px] font-bold text-slate-500 uppercase">Subcategory Title</span>
                               <input
                                 type="text"
                                 value={sub.name}
@@ -3731,14 +4845,24 @@ export default function AdminDashboard({
                                   updated[idx].name = e.target.value;
                                   setCategorySubCats(updated);
                                 }}
-                                placeholder="e.g. Designer Kurtas"
+                                placeholder="e.g. Designer Kurtis"
                                 className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-hidden font-semibold"
                                 id={`subcategory-name-input-${idx}`}
                               />
                             </div>
 
                             <div className="space-y-1">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase">Image URL</span>
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase">Image URL</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenCategoryCropper(sub.image, { type: 'sub', index: idx })}
+                                  className="text-[9px] font-bold text-[#143C6B] hover:underline cursor-pointer flex items-center gap-0.5"
+                                >
+                                  <Sparkles className="w-2.5 h-2.5" />
+                                  Smart Crop
+                                </button>
+                              </div>
                               <input
                                 type="text"
                                 value={sub.image}
@@ -3761,7 +4885,7 @@ export default function AdminDashboard({
                               const updated = categorySubCats.filter((_, i) => i !== idx);
                               setCategorySubCats(updated);
                             }}
-                            className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50/50 cursor-pointer self-center"
+                            className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 cursor-pointer self-center transition-colors"
                             title="Remove subcategory"
                             id={`remove-subcategory-btn-${idx}`}
                           >
@@ -3785,16 +4909,16 @@ export default function AdminDashboard({
                     <button
                       type="submit"
                       disabled={isSavingCategory}
-                      className="flex items-center gap-1.5 px-5 py-2 text-xs bg-lucky-magenta text-white hover:bg-lucky-magenta-dark font-bold rounded-xl shadow-md cursor-pointer transition-colors"
+                      className="flex items-center gap-1.5 px-5 py-2 text-xs bg-[#143C6B] text-white hover:bg-[#143C6B]/90 font-bold rounded-xl shadow-md cursor-pointer transition-colors"
                       id="save-category-submit-btn"
                     >
                       {isSavingCategory ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          Saving...
+                          Saving Category...
                         </>
                       ) : (
-                        'Save Specifications'
+                        'Save & Publish Category'
                       )}
                     </button>
                   </div>
@@ -3804,43 +4928,58 @@ export default function AdminDashboard({
                 <div className="space-y-4">
                   {/* Category Filter and Creator Actions bar */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs" id="category-actions-bar">
-                    <div className="flex items-center gap-2">
-                      <Layers className="w-5 h-5 text-lucky-magenta shrink-0" />
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#143C6B] shadow-2xs">
+                        <Layers className="w-5 h-5 text-[#143C6B]" />
+                      </div>
                       <div>
-                        <span className="text-[10px] font-black text-lucky-magenta uppercase tracking-wider block">Position Registry</span>
-                        <h3 className="text-xs font-extrabold text-slate-700">Display Layout & Category Ordering</h3>
+                        <span className="text-[10px] font-black text-[#143C6B] uppercase tracking-wider block">Storefront Architecture</span>
+                        <h3 className="text-xs font-extrabold text-slate-800">Category Catalog & Live Home Bubble Layout</h3>
                       </div>
                     </div>
                     
                     <button
                       onClick={triggerAddCategory}
-                      className="flex items-center justify-center gap-1.5 px-4 py-2 text-xs bg-lucky-magenta hover:bg-lucky-magenta-dark text-white font-bold rounded-xl shadow-xs cursor-pointer transition-colors"
+                      className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs bg-[#143C6B] hover:bg-[#143C6B]/90 text-white font-bold rounded-xl shadow-xs cursor-pointer transition-colors"
                       id="create-category-btn"
                     >
                       <Plus className="w-4 h-4" />
-                      Propose Category
+                      <span>Create New Category</span>
                     </button>
                   </div>
 
                   {/* Categories Cards layout Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="categories-cards-grid">
                     {categories.map((cat, idx) => {
+                      const displayImg = cat.image || (cat.subCategories && cat.subCategories[0]?.image) || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300';
+                      
                       return (
                         <div
                           key={cat.id}
                           className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between space-y-4 relative group"
                           id={`category-card-${cat.id}`}
                         >
-                          {/* Top row */}
+                          {/* Top row with Live Circular Bubble preview and Position ranking */}
                           <div className="flex items-start justify-between">
                             <div className="flex items-center gap-3">
-                              {/* Icon background */}
-                              <div className="w-10 h-10 rounded-xl bg-blue-50/50 border border-blue-100 flex items-center justify-center text-lucky-magenta shadow-2xs">
-                                <Layers className="w-5 h-5" />
+                              {/* Actual Live Circular Bubble Thumbnail */}
+                              <div
+                                onClick={() => {
+                                  triggerEditCategory(cat);
+                                }}
+                                className="w-13 h-13 rounded-full overflow-hidden border-2 border-[#143C6B] ring-2 ring-[#143C6B]/20 bg-blue-50/50 flex-shrink-0 shadow-xs cursor-pointer hover:scale-105 transition-transform"
+                                title="Click to edit category image & smart crop"
+                              >
+                                <img
+                                  src={displayImg}
+                                  alt={cat.name}
+                                  className="w-full h-full object-cover"
+                                  referrerPolicy="no-referrer"
+                                />
                               </div>
                               <div>
-                                <h4 className="text-xs font-black text-slate-800 tracking-tight">{cat.name}</h4>
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{cat.id}</span>
+                                <h4 className="text-xs font-black text-slate-800 tracking-tight leading-snug">{cat.name}</h4>
+                                <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-widest">{cat.id}</span>
                               </div>
                             </div>
 
@@ -3872,16 +5011,19 @@ export default function AdminDashboard({
                             </div>
                           </div>
 
-                          {/* Subcategory pills */}
+                          {/* Subcategory thumbnails & pills */}
                           <div className="space-y-2">
                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Subcategories ({cat.subCategories?.length || 0})</span>
                             <div className="flex flex-wrap gap-1.5 max-h-[85px] overflow-y-auto scrollbar-thin">
                               {cat.subCategories && cat.subCategories.map((sub, sidx) => (
                                 <span
                                   key={sidx}
-                                  className="text-[9px] bg-slate-100 hover:bg-slate-200/70 border border-slate-200/50 text-slate-600 font-extrabold px-2 py-0.5 rounded-md transition-colors"
+                                  className="text-[9px] bg-slate-100 hover:bg-slate-200/70 border border-slate-200/50 text-slate-600 font-extrabold px-2 py-0.5 rounded-md transition-colors flex items-center gap-1"
                                 >
-                                  {sub.name}
+                                  {sub.image && (
+                                    <img src={sub.image} alt={sub.name} className="w-3 h-3 rounded-full object-cover" />
+                                  )}
+                                  <span>{sub.name}</span>
                                 </span>
                               ))}
                               {(!cat.subCategories || cat.subCategories.length === 0) && (
@@ -3890,19 +5032,19 @@ export default function AdminDashboard({
                             </div>
                           </div>
 
-                          {/* Quick Stats / Footer info */}
+                          {/* Quick Stats / Footer info & CRUD Actions */}
                           <div className="border-t border-slate-100/80 pt-3.5 flex items-center justify-between">
-                            <span className="text-[9px] text-slate-400 font-bold">Token: <span className="text-slate-600 font-black">{cat.icon || 'shopping-bag'}</span></span>
+                            <span className="text-[9px] text-slate-400 font-bold">Icon: <span className="text-slate-600 font-black">{cat.icon || 'shopping-bag'}</span></span>
                             
                             {/* Actions CRUD buttons */}
                             <div className="flex items-center gap-1.5">
                               <button
                                 onClick={() => triggerEditCategory(cat)}
-                                className="flex items-center gap-1 text-[10px] font-black text-lucky-magenta bg-lucky-magenta/5 hover:bg-lucky-magenta/10 px-2.5 py-1 rounded-md cursor-pointer transition-all"
+                                className="flex items-center gap-1 text-[10px] font-black text-[#143C6B] bg-[#143C6B]/5 hover:bg-[#143C6B]/10 px-2.5 py-1 rounded-md cursor-pointer transition-all"
                                 id={`edit-category-btn-${cat.id}`}
                               >
                                 <Edit2 className="w-3 h-3" />
-                                Edit
+                                Edit & Crop
                               </button>
                               
                               <button
@@ -3931,7 +5073,7 @@ export default function AdminDashboard({
                     <div className="py-16 text-center bg-white border border-slate-200 rounded-2xl" id="empty-categories-state">
                       <Layers className="w-12 h-12 text-slate-300 mx-auto mb-2 animate-bounce" />
                       <h4 className="text-sm font-extrabold text-slate-700">No Custom Categories Provisioned</h4>
-                      <p className="text-xs text-slate-400 mt-1 max-w-[280px] mx-auto">Database category tables are currently empty. Press "Propose Category" to begin.</p>
+                      <p className="text-xs text-slate-400 mt-1 max-w-[280px] mx-auto">Database category tables are currently empty. Press "Create New Category" to begin.</p>
                     </div>
                   )}
 
@@ -4079,6 +5221,18 @@ export default function AdminDashboard({
                           </select>
                           <ChevronRight className="w-3 h-3 text-slate-500 absolute right-2 top-1/2 -translate-y-1/2 rotate-90 pointer-events-none" />
                         </div>
+
+                        <button
+                          onClick={() => {
+                            setSelectedOrderForInspection(order);
+                            setActiveTab('inspect-order/' + order.id);
+                          }}
+                          className="p-1.5 px-2.5 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer flex items-center gap-1 font-extrabold text-[10px]"
+                          title="Full Page Invoice Inspection"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Inspect</span>
+                        </button>
 
                         <button
                           onClick={() => {
@@ -4559,7 +5713,7 @@ export default function AdminDashboard({
                                 <button
                                   onClick={() => {
                                     setSelectedVendorForInspection(v);
-                                    setAdminSubView('inspect-vendor');
+                                    setActiveTab('inspect-vendor/' + v.id);
                                   }}
                                   className="text-[10px] font-black uppercase py-1.5 px-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#143C6B] border border-blue-100 transition-colors cursor-pointer inline-flex items-center gap-1"
                                   title="Individually Inspect Supplier Records"
@@ -6204,6 +7358,25 @@ export default function AdminDashboard({
           </div>
         )}
       </AnimatePresence>
+
+      {/* Category Smart Crop & Live Publishing Simulator Modal */}
+      <CategorySmartCropModal
+        isOpen={isCategoryCropperOpen}
+        initialImage={categoryCropperSrc}
+        categoryTitle={
+          categoryCropTarget.type === 'main' 
+            ? (categoryName || 'Category Name') 
+            : (categorySubCats[categoryCropTarget.index]?.name || 'Subcategory')
+        }
+        targetLabel={
+          categoryCropTarget.type === 'main'
+            ? 'Main Storefront Category Bubble'
+            : `Subcategory: ${categorySubCats[categoryCropTarget.index]?.name || 'Item'}`
+        }
+        onConfirm={handleCategoryCropConfirm}
+        onClose={() => setIsCategoryCropperOpen(false)}
+        isLoading={isUploadingCategoryImage}
+      />
 
     </div>
   </div>

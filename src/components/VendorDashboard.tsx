@@ -67,6 +67,7 @@ import VendorExportReports from './VendorExportReports';
 import { VendorAnalyticsView } from './VendorAnalyticsView';
 import { MASTER_CATEGORIES, MasterCategory, getSubcategoriesForCategory } from '../data/categoriesData';
 import { fetchVendorAnalytics } from '../utils/analytics';
+import { ReturnPolicyAccordion, SizeAndParametersManager } from './ProductFormControls';
 
 interface VendorDashboardProps {
   products: Product[];
@@ -1893,30 +1894,13 @@ export default function VendorDashboard({
                       </div>
                     </div>
 
-                    {/* Sizing Chips */}
+                    {/* Sizing & Custom Parameters Manager (Dimensions like 12x5, Apparel, Footwear, Volume) */}
                     <div className="pt-2">
-                      <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1.5">
-                        Available Sizes / Inventory Options
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {['Free Size', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '6-12M', '1-2Y', '3-4Y', '5-6Y'].map(sz => {
-                          const active = pSizeOptions.includes(sz);
-                          return (
-                            <button
-                              key={sz}
-                              type="button"
-                              onClick={() => handleToggleSize(sz)}
-                              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                                active 
-                                  ? 'bg-[#143C6B] text-white border-[#143C6B] shadow-xs' 
-                                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                              }`}
-                            >
-                              {sz}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <SizeAndParametersManager
+                        sizeOptions={pSizeOptions}
+                        setSizeOptions={setPSizeOptions}
+                        idPrefix="vendor-add"
+                      />
                     </div>
 
                     {/* Description */}
@@ -2009,110 +1993,14 @@ export default function VendorDashboard({
                       )}
                     </div>
 
-                    {/* 2. RETURN & REPLACEMENT POLICY */}
-                    <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-4 space-y-3.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-blue-100 text-[#143C6B] flex items-center justify-center font-black">
-                          <RotateCcw className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Return & Replacement Policy</h4>
-                          <p className="text-[10.5px] text-slate-500 font-medium">Choose policy type and return duration for this specific product</p>
-                        </div>
-                      </div>
-
-                      {/* Policy Mode Selector: 3 Options */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setPReturnPolicyType('return')}
-                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
-                            pReturnPolicyType === 'return'
-                              ? 'bg-blue-50 border-[#143C6B] ring-1 ring-[#143C6B]'
-                              : 'bg-white border-slate-200 hover:bg-slate-50'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-black text-slate-900">Return & Refund</span>
-                            <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${pReturnPolicyType === 'return' ? 'border-[#143C6B] bg-[#143C6B]' : 'border-slate-300'}`}>
-                              {pReturnPolicyType === 'return' && <Check className="w-2.5 h-2.5 text-white" />}
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-slate-500 font-medium">Full refund upon item return</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setPReturnPolicyType('replacement')}
-                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
-                            pReturnPolicyType === 'replacement'
-                              ? 'bg-amber-50 border-amber-500 ring-1 ring-amber-500'
-                              : 'bg-white border-slate-200 hover:bg-slate-50'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-black text-slate-900">Replacement Only</span>
-                            <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${pReturnPolicyType === 'replacement' ? 'border-amber-500 bg-amber-500' : 'border-slate-300'}`}>
-                              {pReturnPolicyType === 'replacement' && <Check className="w-2.5 h-2.5 text-white" />}
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-slate-500 font-medium">Size/defect exchange only</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setPReturnPolicyType('no_return')}
-                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
-                            pReturnPolicyType === 'no_return'
-                              ? 'bg-red-50 border-red-500 ring-1 ring-red-500'
-                              : 'bg-white border-slate-200 hover:bg-slate-50'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-black text-slate-900">No Return</span>
-                            <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${pReturnPolicyType === 'no_return' ? 'border-red-500 bg-red-500' : 'border-slate-300'}`}>
-                              {pReturnPolicyType === 'no_return' && <Check className="w-2.5 h-2.5 text-white" />}
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-slate-500 font-medium">Final sale, non-returnable</span>
-                        </button>
-                      </div>
-
-                      {/* Days Selection when policy is Return or Replacement */}
-                      {pReturnPolicyType !== 'no_return' ? (
-                        <div className="pt-2 border-t border-slate-200/60 flex flex-wrap items-center justify-between gap-3">
-                          <div className="flex items-center gap-2">
-                            <label className="text-[11px] text-slate-700 font-bold">Policy Window:</label>
-                            <div className="flex gap-1.5">
-                              {[7, 10, 14, 15, 30].map(days => (
-                                <button
-                                  key={days}
-                                  type="button"
-                                  onClick={() => setPReturnDays(days)}
-                                  className={`text-xs px-2.5 py-1 rounded-lg font-bold border transition-colors cursor-pointer ${
-                                    pReturnDays === days ? 'bg-[#143C6B] text-white border-[#143C6B]' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
-                                  }`}
-                                >
-                                  {days} Days
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div className="bg-white px-3 py-1.5 rounded-xl border border-blue-200 text-xs font-bold text-[#143C6B] flex items-center gap-1.5">
-                            <span>Badge:</span>
-                            <span className="bg-blue-50 text-[#143C6B] px-2 py-0.5 rounded-md border border-blue-100 font-black">
-                              {pReturnPolicyType === 'return' ? `${pReturnDays || 7} Days Return` : `${pReturnDays || 7} Days Replacement`}
-                            </span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="pt-2 border-t border-slate-200/60 bg-red-50/60 rounded-xl p-2.5 border border-red-100 text-red-900 text-xs font-semibold flex items-center gap-2">
-                          <Ban className="w-4 h-4 text-red-600 flex-shrink-0" />
-                          <span>Buyers will see a clear <strong>"Non-Returnable (Final Sale)"</strong> badge on the product page.</span>
-                        </div>
-                      )}
-                    </div>
+                    {/* 2. RETURN & REPLACEMENT POLICY (Arrow-type Expandable Dropdown / Accordion) */}
+                    <ReturnPolicyAccordion
+                      returnPolicyType={pReturnPolicyType}
+                      setReturnPolicyType={setPReturnPolicyType}
+                      returnDays={pReturnDays}
+                      setReturnDays={setPReturnDays}
+                      idPrefix="vendor-add"
+                    />
 
                     {/* 3. UPI OFFERS & INSTANT PROMOTIONS */}
                     <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-4 space-y-3.5">
@@ -2379,30 +2267,13 @@ export default function VendorDashboard({
                       </div>
                     </div>
 
-                    {/* Sizing Chips */}
-                    <div>
-                      <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1.5">
-                        Available Sizes
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {['Free Size', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '6-12M', '1-2Y', '3-4Y', '5-6Y'].map(sz => {
-                          const active = pSizeOptions.includes(sz);
-                          return (
-                            <button
-                              key={sz}
-                              type="button"
-                              onClick={() => handleToggleSize(sz)}
-                              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                                active 
-                                  ? 'bg-[#143C6B] text-white border-[#143C6B]' 
-                                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                              }`}
-                            >
-                              {sz}
-                            </button>
-                          );
-                        })}
-                      </div>
+                    {/* Sizing & Custom Parameters Manager */}
+                    <div className="pt-2">
+                      <SizeAndParametersManager
+                        sizeOptions={pSizeOptions}
+                        setSizeOptions={setPSizeOptions}
+                        idPrefix="vendor-edit"
+                      />
                     </div>
 
                     {/* Description */}
@@ -2493,110 +2364,14 @@ export default function VendorDashboard({
                       )}
                     </div>
 
-                    {/* 2. RETURN & REPLACEMENT POLICY */}
-                    <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-4 space-y-3.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-blue-100 text-[#143C6B] flex items-center justify-center font-black">
-                          <RotateCcw className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Return & Replacement Policy</h4>
-                          <p className="text-[10.5px] text-slate-500 font-medium">Configure return/replacement terms for this product</p>
-                        </div>
-                      </div>
-
-                      {/* Policy Mode Selector: 3 Options */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setPReturnPolicyType('return')}
-                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
-                            pReturnPolicyType === 'return'
-                              ? 'bg-blue-50 border-[#143C6B] ring-1 ring-[#143C6B]'
-                              : 'bg-white border-slate-200 hover:bg-slate-50'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-black text-slate-900">Return & Refund</span>
-                            <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${pReturnPolicyType === 'return' ? 'border-[#143C6B] bg-[#143C6B]' : 'border-slate-300'}`}>
-                              {pReturnPolicyType === 'return' && <Check className="w-2.5 h-2.5 text-white" />}
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-slate-500 font-medium">Full refund upon item return</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setPReturnPolicyType('replacement')}
-                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
-                            pReturnPolicyType === 'replacement'
-                              ? 'bg-amber-50 border-amber-500 ring-1 ring-amber-500'
-                              : 'bg-white border-slate-200 hover:bg-slate-50'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-black text-slate-900">Replacement Only</span>
-                            <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${pReturnPolicyType === 'replacement' ? 'border-amber-500 bg-amber-500' : 'border-slate-300'}`}>
-                              {pReturnPolicyType === 'replacement' && <Check className="w-2.5 h-2.5 text-white" />}
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-slate-500 font-medium">Size/defect exchange only</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setPReturnPolicyType('no_return')}
-                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
-                            pReturnPolicyType === 'no_return'
-                              ? 'bg-red-50 border-red-500 ring-1 ring-red-500'
-                              : 'bg-white border-slate-200 hover:bg-slate-50'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-black text-slate-900">No Return</span>
-                            <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${pReturnPolicyType === 'no_return' ? 'border-red-500 bg-red-500' : 'border-slate-300'}`}>
-                              {pReturnPolicyType === 'no_return' && <Check className="w-2.5 h-2.5 text-white" />}
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-slate-500 font-medium">Final sale, non-returnable</span>
-                        </button>
-                      </div>
-
-                      {/* Days Selection */}
-                      {pReturnPolicyType !== 'no_return' ? (
-                        <div className="pt-2 border-t border-slate-200/60 flex flex-wrap items-center justify-between gap-3">
-                          <div className="flex items-center gap-2">
-                            <label className="text-[11px] text-slate-700 font-bold">Policy Window:</label>
-                            <div className="flex gap-1.5">
-                              {[7, 10, 14, 15, 30].map(days => (
-                                <button
-                                  key={days}
-                                  type="button"
-                                  onClick={() => setPReturnDays(days)}
-                                  className={`text-xs px-2.5 py-1 rounded-lg font-bold border transition-colors cursor-pointer ${
-                                    pReturnDays === days ? 'bg-[#143C6B] text-white border-[#143C6B]' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
-                                  }`}
-                                >
-                                  {days} Days
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div className="bg-white px-3 py-1.5 rounded-xl border border-blue-200 text-xs font-bold text-[#143C6B] flex items-center gap-1.5">
-                            <span>Badge:</span>
-                            <span className="bg-blue-50 text-[#143C6B] px-2 py-0.5 rounded-md border border-blue-100 font-black">
-                              {pReturnPolicyType === 'return' ? `${pReturnDays || 7} Days Return` : `${pReturnDays || 7} Days Replacement`}
-                            </span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="pt-2 border-t border-slate-200/60 bg-red-50/60 rounded-xl p-2.5 border border-red-100 text-red-900 text-xs font-semibold flex items-center gap-2">
-                          <Ban className="w-4 h-4 text-red-600 flex-shrink-0" />
-                          <span>Buyers will see a clear <strong>"Non-Returnable (Final Sale)"</strong> badge on the product page.</span>
-                        </div>
-                      )}
-                    </div>
+                    {/* 2. RETURN & REPLACEMENT POLICY (Arrow-type Expandable Dropdown / Accordion) */}
+                    <ReturnPolicyAccordion
+                      returnPolicyType={pReturnPolicyType}
+                      setReturnPolicyType={setPReturnPolicyType}
+                      returnDays={pReturnDays}
+                      setReturnDays={setPReturnDays}
+                      idPrefix="vendor-edit"
+                    />
 
                     {/* 3. UPI OFFERS & INSTANT PROMOTIONS */}
                     <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-4 space-y-3.5">

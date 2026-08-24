@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ArrowUpDown, ChevronDown, SlidersHorizontal, Heart, Sparkles, CheckCircle2, Loader2, Search, ShoppingBag, Tag, X, Star, Check, RotateCcw } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { ArrowUpDown, ChevronDown, ChevronUp, SlidersHorizontal, Heart, Sparkles, CheckCircle2, Loader2, Search, ShoppingBag, Tag, X, Star, Check, RotateCcw } from 'lucide-react';
 import { Product, Banner, Category } from '../types';
 import { useInfiniteProductPagination } from '../hooks/useInfiniteProductPagination';
 import { sortHomeFeedByPerformance } from '../utils/productSorting';
@@ -63,6 +64,158 @@ export default function HomeFeed({
 
   // Countdown clock simulation for the flash deals (as seen in Lucky screenshots)
   const [timerText, setTimerText] = useState('01h : 25m : 26s');
+
+  // Category Bubbles expand/collapse state (3 categories + See More initially)
+  const [isCategoriesExpanded, setIsCategoriesExpanded] = useState(false);
+
+  // Banner Carousel Index tracking & automatic loop animation state
+  const [row1Index, setRow1Index] = useState(0);
+  const [row2Index, setRow2Index] = useState(0);
+
+  // Row 1 Swipe handlers (Touch & Mouse dragging support)
+  const [row1TouchStart, setRow1TouchStart] = useState<number | null>(null);
+  const [row1TouchEnd, setRow1TouchEnd] = useState<number | null>(null);
+  const [row1IsDragging, setRow1IsDragging] = useState(false);
+
+  // Row 2 Swipe handlers (Touch & Mouse dragging support)
+  const [row2TouchStart, setRow2TouchStart] = useState<number | null>(null);
+  const [row2TouchEnd, setRow2TouchEnd] = useState<number | null>(null);
+  const [row2IsDragging, setRow2IsDragging] = useState(false);
+
+  const nextRow1 = () => {
+    if (!banners || banners.length <= 1) return;
+    setRow1Index((prev) => (prev + 1) % banners.length);
+  };
+
+  const prevRow1 = () => {
+    if (!banners || banners.length <= 1) return;
+    setRow1Index((prev) => (prev === 0 ? banners.length - 1 : prev - 1));
+  };
+
+  const nextRow2 = () => {
+    if (!banners || banners.length <= 2) return;
+    setRow2Index((prev) => (prev >= banners.length - 2 ? 0 : prev + 1));
+  };
+
+  const prevRow2 = () => {
+    if (!banners || banners.length <= 2) return;
+    setRow2Index((prev) => (prev === 0 ? banners.length - 2 : prev - 1));
+  };
+
+  // Auto loop triggers
+  useEffect(() => {
+    if (!banners || banners.length <= 1) return;
+    const interval = setInterval(() => {
+      nextRow1();
+    }, 4000); // Top single banner auto-rotates every 4 seconds
+    return () => clearInterval(interval);
+  }, [banners?.length]);
+
+  useEffect(() => {
+    if (!banners || banners.length <= 2) return;
+    const interval = setInterval(() => {
+      nextRow2();
+    }, 5500); // Bottom double banners auto-rotate every 5.5 seconds (staggered slightly)
+    return () => clearInterval(interval);
+  }, [banners?.length]);
+
+  // Touch Swipe Handlers for Row 1
+  const handleRow1TouchStart = (e: React.TouchEvent) => {
+    setRow1TouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleRow1TouchMove = (e: React.TouchEvent) => {
+    setRow1TouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleRow1TouchEnd = () => {
+    if (row1TouchStart !== null && row1TouchEnd !== null) {
+      const diff = row1TouchStart - row1TouchEnd;
+      if (diff > 50) {
+        nextRow1();
+      } else if (diff < -50) {
+        prevRow1();
+      }
+    }
+    setRow1TouchStart(null);
+    setRow1TouchEnd(null);
+  };
+
+  const handleRow1MouseDown = (e: React.MouseEvent) => {
+    setRow1TouchStart(e.clientX);
+    setRow1IsDragging(true);
+  };
+
+  const handleRow1MouseMove = (e: React.MouseEvent) => {
+    if (row1IsDragging) {
+      setRow1TouchEnd(e.clientX);
+    }
+  };
+
+  const handleRow1MouseUpOrLeave = () => {
+    if (row1IsDragging) {
+      if (row1TouchStart !== null && row1TouchEnd !== null) {
+        const diff = row1TouchStart - row1TouchEnd;
+        if (diff > 50) {
+          nextRow1();
+        } else if (diff < -50) {
+          prevRow1();
+        }
+      }
+    }
+    setRow1TouchStart(null);
+    setRow1TouchEnd(null);
+    setRow1IsDragging(false);
+  };
+
+  // Touch Swipe Handlers for Row 2
+  const handleRow2TouchStart = (e: React.TouchEvent) => {
+    setRow2TouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleRow2TouchMove = (e: React.TouchEvent) => {
+    setRow2TouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleRow2TouchEnd = () => {
+    if (row2TouchStart !== null && row2TouchEnd !== null) {
+      const diff = row2TouchStart - row2TouchEnd;
+      if (diff > 50) {
+        nextRow2();
+      } else if (diff < -50) {
+        prevRow2();
+      }
+    }
+    setRow2TouchStart(null);
+    setRow2TouchEnd(null);
+  };
+
+  const handleRow2MouseDown = (e: React.MouseEvent) => {
+    setRow2TouchStart(e.clientX);
+    setRow2IsDragging(true);
+  };
+
+  const handleRow2MouseMove = (e: React.MouseEvent) => {
+    if (row2IsDragging) {
+      setRow2TouchEnd(e.clientX);
+    }
+  };
+
+  const handleRow2MouseUpOrLeave = () => {
+    if (row2IsDragging) {
+      if (row2TouchStart !== null && row2TouchEnd !== null) {
+        const diff = row2TouchStart - row2TouchEnd;
+        if (diff > 50) {
+          nextRow2();
+        } else if (diff < -50) {
+          prevRow2();
+        }
+      }
+    }
+    setRow2TouchStart(null);
+    setRow2TouchEnd(null);
+    setRow2IsDragging(false);
+  };
 
   // Apply filters and sort (hoisted above useEffects to prevent temporal dead zone)
   // Shoppers should only see verified/approved items
@@ -214,19 +367,27 @@ export default function HomeFeed({
 
   return (
     <div className="pb-20 max-w-7xl mx-auto w-full px-0 md:px-4" id="home-feed-container">
-      {/* Categories Grid (4 in a line on mobile, wrapping gracefully) */}
-      <div className="bg-white py-5 px-3 border-b border-gray-100 grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-y-5 gap-x-2 justify-items-center shadow-3xs" id="category-bubbles-slider">
-        {categoryBubbles.map((item, index) => {
+      {/* Categories Grid (3 categories + See More initially in a single 4-column row, expanding to all categories + See Less) */}
+      <motion.div
+        layout
+        transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+        className="bg-white py-4 px-3 border-b border-gray-100 grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-y-4 gap-x-2 justify-items-center shadow-3xs overflow-hidden"
+        id="category-bubbles-slider"
+      >
+        {/* Permanent first 3 categories */}
+        {categoryBubbles.slice(0, 3).map((item, index) => {
           const isActive = selectedCategory === item.value;
           return (
-            <button
-              key={index}
+            <motion.button
+              layout
+              key={`cat-perm-${index}-${item.value}`}
               onClick={() => onSelectCategory(item.value)}
               className="flex flex-col items-center cursor-pointer group w-full max-w-[80px]"
               id={`bubble-${index}`}
+              whileTap={{ scale: 0.94 }}
             >
-              <div className={`w-14 h-14 rounded-full overflow-hidden flex items-center justify-center relative transition-all border-2 ${
-                isActive ? 'border-lucky-magenta scale-105 shadow-md' : 'border-gray-100 group-hover:border-blue-300'
+              <div className={`w-14 h-14 rounded-full overflow-hidden flex items-center justify-center relative transition-all duration-200 border-2 ${
+                isActive ? 'border-[#143C6B] scale-105 shadow-md ring-2 ring-[#143C6B]/20' : 'border-gray-100 group-hover:border-blue-300'
               } ${item.bg}`}>
                 <img
                   src={item.img}
@@ -239,65 +400,274 @@ export default function HomeFeed({
                 />
               </div>
               <span className={`text-[10px] mt-1 text-center font-medium w-full truncate tracking-tight text-gray-700 px-0.5 ${
-                isActive ? 'text-lucky-magenta font-black' : 'font-semibold'
+                isActive ? 'text-[#143C6B] font-black' : 'font-semibold'
               }`}>
                 {item.label}
               </span>
-            </button>
+            </motion.button>
           );
         })}
-      </div>
+
+        {/* Expandable categories (items beyond index 2) */}
+        <AnimatePresence>
+          {isCategoriesExpanded &&
+            categoryBubbles.slice(3).map((item, subIndex) => {
+              const actualIndex = subIndex + 3;
+              const isActive = selectedCategory === item.value;
+              return (
+                <motion.button
+                  layout
+                  key={`cat-exp-${actualIndex}-${item.value}`}
+                  initial={{ opacity: 0, scale: 0.75, y: -8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.75, y: -8 }}
+                  transition={{
+                    duration: 0.24,
+                    delay: Math.min(subIndex * 0.02, 0.15),
+                    ease: [0.22, 1, 0.36, 1]
+                  }}
+                  whileTap={{ scale: 0.94 }}
+                  onClick={() => onSelectCategory(item.value)}
+                  className="flex flex-col items-center cursor-pointer group w-full max-w-[80px]"
+                  id={`bubble-${actualIndex}`}
+                >
+                  <div className={`w-14 h-14 rounded-full overflow-hidden flex items-center justify-center relative transition-all duration-200 border-2 ${
+                    isActive ? 'border-[#143C6B] scale-105 shadow-md ring-2 ring-[#143C6B]/20' : 'border-gray-100 group-hover:border-blue-300'
+                  } ${item.bg}`}>
+                    <img
+                      src={item.img}
+                      alt={item.label}
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150';
+                      }}
+                    />
+                  </div>
+                  <span className={`text-[10px] mt-1 text-center font-medium w-full truncate tracking-tight text-gray-700 px-0.5 ${
+                    isActive ? 'text-[#143C6B] font-black' : 'font-semibold'
+                  }`}>
+                    {item.label}
+                  </span>
+                </motion.button>
+              );
+            })}
+        </AnimatePresence>
+
+        {/* AnimatePresence for See More / See Less buttons */}
+        <AnimatePresence mode="wait">
+          {!isCategoriesExpanded && categoryBubbles.length > 3 ? (
+            <motion.button
+              layout
+              key="btn-see-more"
+              type="button"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              whileTap={{ scale: 0.92 }}
+              onClick={() => setIsCategoriesExpanded(true)}
+              className="flex flex-col items-center cursor-pointer group w-full max-w-[80px]"
+              id="see-more-categories-bubble"
+              title="View all categories"
+            >
+              <div className="w-14 h-14 rounded-full overflow-hidden flex flex-col items-center justify-center relative transition-all border-2 border-blue-200/90 bg-gradient-to-b from-blue-50 to-indigo-50/70 group-hover:border-[#143C6B] group-hover:bg-blue-100 shadow-2xs group-hover:scale-105">
+                <ChevronDown className="w-5 h-5 text-[#143C6B] group-hover:translate-y-0.5 transition-transform stroke-[2.5]" />
+              </div>
+              <span className="text-[10px] mt-1 text-center font-black tracking-tight text-[#143C6B] px-0.5 whitespace-nowrap">
+                See More
+              </span>
+            </motion.button>
+          ) : isCategoriesExpanded && categoryBubbles.length > 3 ? (
+            <motion.button
+              layout
+              key="btn-see-less"
+              type="button"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              whileTap={{ scale: 0.92 }}
+              onClick={() => setIsCategoriesExpanded(false)}
+              className="flex flex-col items-center cursor-pointer group w-full max-w-[80px]"
+              id="see-less-categories-bubble"
+              title="Collapse categories"
+            >
+              <div className="w-14 h-14 rounded-full overflow-hidden flex flex-col items-center justify-center relative transition-all border-2 border-slate-300 bg-gradient-to-b from-slate-50 to-slate-100 group-hover:border-slate-500 group-hover:bg-slate-200 shadow-2xs group-hover:scale-105">
+                <ChevronUp className="w-5 h-5 text-slate-700 group-hover:-translate-y-0.5 transition-transform stroke-[2.5]" />
+              </div>
+              <span className="text-[10px] mt-1 text-center font-black tracking-tight text-slate-700 px-0.5 whitespace-nowrap">
+                See Less
+              </span>
+            </motion.button>
+          ) : null}
+        </AnimatePresence>
+      </motion.div>
 
       {/* Dynamic Banners Poster Section */}
       {banners && banners.length > 0 && (
-        <div className="w-full bg-gray-50 py-3 md:py-4 px-3 md:px-4">
-          <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-3 pb-2 -mb-2">
-            {banners.map((banner) => (
+        <div className="w-full bg-gray-50 py-3 md:py-4 px-3 md:px-4 space-y-4">
+          {/* Row 1: Main Carousel Banner (Top single poster - slides independently) */}
+          <div className="relative">
+            <div 
+              className="w-full overflow-hidden relative cursor-grab active:cursor-grabbing select-none"
+              onTouchStart={handleRow1TouchStart}
+              onTouchMove={handleRow1TouchMove}
+              onTouchEnd={handleRow1TouchEnd}
+              onMouseDown={handleRow1MouseDown}
+              onMouseMove={handleRow1MouseMove}
+              onMouseUp={handleRow1MouseUpOrLeave}
+              onMouseLeave={handleRow1MouseUpOrLeave}
+            >
               <div 
-                key={banner.id} 
-                onClick={() => banner.targetCategory && onSelectCategory(banner.targetCategory)}
-                className="relative snap-center shrink-0 w-full md:w-[85%] lg:w-[65%] rounded-2xl overflow-hidden shadow-md border border-gray-200/80 group cursor-pointer bg-slate-900"
+                className="flex transition-transform duration-500 ease-out gap-4"
+                style={{ transform: `translateX(calc(-${row1Index} * (100% + 16px)))` }}
               >
-                <div className="aspect-[2.1/1] sm:aspect-[2.5/1] md:aspect-[3.2/1] w-full relative">
-                  <img 
-                    src={banner.imageUrl} 
-                    alt={banner.title || banner.type} 
-                    className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
-                    referrerPolicy="no-referrer"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=1200';
-                    }}
-                  />
-                  {/* Dark Gradient Overlay for Readability */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#143C6B]/90 via-[#143C6B]/60 to-transparent flex flex-col justify-between p-3.5 sm:p-5 md:p-6 text-white">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="bg-[#FF8C00] text-slate-950 text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shadow-xs">
-                        {banner.code ? `CODE: ${banner.code}` : (banner.type === 'promotional' ? 'FESTIVE PROMO' : 'NEWS')}
-                      </span>
-                      <span className="bg-white/20 backdrop-blur-md text-white text-[9px] font-bold tracking-tight px-2 py-0.5 rounded-md border border-white/30">
-                        QueKart Exclusive
-                      </span>
-                    </div>
+                {banners.map((banner) => (
+                  <div 
+                    key={banner.id} 
+                    onClick={() => banner.targetCategory && onSelectCategory(banner.targetCategory)}
+                    className="w-full shrink-0 rounded-2xl overflow-hidden shadow-md border border-gray-200/80 group cursor-pointer bg-slate-900"
+                  >
+                    <div className="aspect-[2.1/1] sm:aspect-[2.5/1] md:aspect-[3.2/1] w-full relative">
+                      <img 
+                        src={banner.imageUrl} 
+                        alt={banner.title || banner.type} 
+                        className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=1200';
+                        }}
+                        draggable="false"
+                      />
+                      {/* Dark Gradient Overlay for Readability */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-[#143C6B]/90 via-[#143C6B]/60 to-transparent flex flex-col justify-between p-3.5 sm:p-5 md:p-6 text-white pointer-events-none select-none">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="bg-[#FF8C00] text-slate-950 text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shadow-xs">
+                            {banner.code ? `CODE: ${banner.code}` : (banner.type === 'promotional' ? 'FESTIVE PROMO' : 'NEWS')}
+                          </span>
+                          <span className="bg-white/20 backdrop-blur-md text-white text-[9px] font-bold tracking-tight px-2 py-0.5 rounded-md border border-white/30">
+                            QueKart Exclusive
+                          </span>
+                        </div>
 
-                    <div className="max-w-[80%] sm:max-w-[70%]">
-                      <h3 className="text-xs sm:text-base md:text-xl font-extrabold text-white tracking-tight leading-tight drop-shadow-xs line-clamp-2">
-                        {banner.title || 'Festive Offers & Deals'}
-                      </h3>
-                      {banner.subtitle && (
-                        <p className="text-[10px] sm:text-xs text-amber-200 font-medium mt-1 line-clamp-2 drop-shadow-xs">
-                          {banner.subtitle}
-                        </p>
-                      )}
-                      <div className="mt-2 sm:mt-3 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold text-[#FF8C00] group-hover:translate-x-1 transition-transform">
-                        <span>Explore Collection</span>
-                        <span>→</span>
+                        <div className="max-w-[80%] sm:max-w-[70%]">
+                          <h3 className="text-xs sm:text-base md:text-xl font-extrabold text-white tracking-tight leading-tight drop-shadow-xs line-clamp-2">
+                            {banner.title || 'Festive Offers & Deals'}
+                          </h3>
+                          {banner.subtitle && (
+                            <p className="text-[10px] sm:text-xs text-amber-200 font-medium mt-1 line-clamp-2 drop-shadow-xs">
+                              {banner.subtitle}
+                            </p>
+                          )}
+                          <div className="mt-2 sm:mt-3 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold text-[#FF8C00] group-hover:translate-x-1 transition-transform">
+                            <span>Explore Collection</span>
+                            <span>→</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Row 1 Dot Indicators */}
+            {banners.length > 1 && (
+              <div className="flex justify-center gap-1.5 mt-2">
+                {banners.map((_, i) => (
+                  <button
+                    key={`row1-indicator-${i}`}
+                    onClick={(e) => { e.stopPropagation(); setRow1Index(i); }}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${i === row1Index ? 'w-4 bg-[#FF8C00]' : 'w-1.5 bg-gray-300'}`}
+                    title={`Slide ${i + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Row 2: Two Side-by-Side Banners of Same Type (slides independently) */}
+          {banners.length >= 2 && (
+            <div className="relative">
+              <div 
+                className="w-full overflow-hidden relative cursor-grab active:cursor-grabbing select-none"
+                onTouchStart={handleRow2TouchStart}
+                onTouchMove={handleRow2TouchMove}
+                onTouchEnd={handleRow2TouchEnd}
+                onMouseDown={handleRow2MouseDown}
+                onMouseMove={handleRow2MouseMove}
+                onMouseUp={handleRow2MouseUpOrLeave}
+                onMouseLeave={handleRow2MouseUpOrLeave}
+              >
+                <div 
+                  className="flex transition-transform duration-500 ease-out gap-3"
+                  style={{ transform: `translateX(calc(-${row2Index} * (50% + 6px)))` }}
+                >
+                  {banners.map((banner, index) => (
+                    <div 
+                      key={`row2-${banner.id}-${index}`}
+                      onClick={() => banner.targetCategory && onSelectCategory(banner.targetCategory)}
+                      className="w-[calc(50%-6px)] shrink-0 relative rounded-xl overflow-hidden shadow-sm border border-gray-200/80 group cursor-pointer bg-slate-900"
+                    >
+                      <div className="aspect-[1.5/1] sm:aspect-[1.8/1] md:aspect-[2.2/1] w-full relative">
+                        <img 
+                          src={banner.imageUrl} 
+                          alt={banner.title || banner.type} 
+                          className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=1200';
+                          }}
+                          draggable="false"
+                        />
+                        {/* Dark Gradient Overlay for Readability */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#143C6B]/90 via-[#143C6B]/60 to-transparent flex flex-col justify-between p-2.5 sm:p-4 text-white pointer-events-none select-none">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="bg-[#FF8C00] text-slate-950 text-[7px] sm:text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 sm:px-2 py-0.5 rounded-full shadow-xs truncate">
+                              {banner.code ? `CODE: ${banner.code}` : (banner.type === 'promotional' ? 'PROMO' : 'NEWS')}
+                            </span>
+                            <span className="bg-white/20 backdrop-blur-md text-white text-[7px] sm:text-[8px] font-bold tracking-tight px-1.5 py-0.5 rounded border border-white/30 truncate">
+                              Exclusive
+                            </span>
+                          </div>
+
+                          <div className="max-w-[95%]">
+                            <h3 className="text-[9.5px] sm:text-xs md:text-sm font-extrabold text-white tracking-tight leading-tight drop-shadow-xs line-clamp-2">
+                              {banner.title || 'Special Deals'}
+                            </h3>
+                            {banner.subtitle && (
+                              <p className="text-[7.5px] sm:text-[10px] text-amber-200 font-medium mt-0.5 line-clamp-1 drop-shadow-xs">
+                                {banner.subtitle}
+                              </p>
+                            )}
+                            <div className="mt-1 flex items-center gap-1 text-[7.5px] sm:text-[10px] font-bold text-[#FF8C00] group-hover:translate-x-0.5 transition-transform">
+                              <span>Explore</span>
+                              <span>→</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
+
+              {/* Row 2 Dot Indicators */}
+              {banners.length > 2 && (
+                <div className="flex justify-center gap-1.5 mt-2">
+                  {Array.from({ length: banners.length - 1 }).map((_, i) => (
+                    <button
+                      key={`row2-indicator-${i}`}
+                      onClick={(e) => { e.stopPropagation(); setRow2Index(i); }}
+                      className={`h-1 rounded-full transition-all duration-300 ${i === row2Index ? 'w-3 bg-[#FF8C00]' : 'w-1 bg-gray-300'}`}
+                      title={`Slide Page ${i + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
