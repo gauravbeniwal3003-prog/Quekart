@@ -640,7 +640,7 @@ export const VendorAnalyticsView: React.FC<VendorAnalyticsViewProps> = ({
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
             <div className="flex items-center gap-3">
               <img
-                src={singleProduct.images[0] || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=120'}
+                src={(singleProduct.images && singleProduct.images[0]) || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=120'}
                 alt={singleProduct.title}
                 className="w-14 h-14 object-cover rounded-2xl border border-slate-200 shadow-xs shrink-0"
               />
@@ -789,7 +789,7 @@ export const VendorAnalyticsView: React.FC<VendorAnalyticsViewProps> = ({
                       <td className="p-3 min-w-[220px]">
                         <div className="flex items-center gap-2.5">
                           <img
-                            src={pItem.images[0] || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=100'}
+                            src={(pItem.images && pItem.images[0]) || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=100'}
                             alt=""
                             className="w-9 h-9 object-cover rounded-xl border border-slate-200 shrink-0"
                           />

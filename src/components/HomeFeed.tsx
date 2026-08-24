@@ -999,7 +999,7 @@ export default function HomeFeed({
                   {/* Main Product Image Container */}
                   <div className="relative aspect-square w-full bg-gray-50 flex items-center justify-center overflow-hidden">
                     <img
-                      src={product.images[0]}
+                      src={(product.images && product.images[0]) || 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=300'}
                       alt={product.title}
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                       referrerPolicy="no-referrer"

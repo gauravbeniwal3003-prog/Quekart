@@ -83,7 +83,7 @@ export default function ProductDetail({
   onSearch
 }: ProductDetailProps) {
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
-  const [selectedSize, setSelectedSize] = useState(product.sizeOptions[0] || 'Free Size');
+  const [selectedSize, setSelectedSize] = useState((product.sizeOptions && product.sizeOptions[0]) || 'Free Size');
   const [quantity, setQuantity] = useState(1);
   const [activeDetailTab, setActiveDetailTab] = useState<'specification' | 'reviews'>('specification');
   const [isDescExpanded, setIsDescExpanded] = useState(false);

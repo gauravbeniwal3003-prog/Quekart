@@ -3473,7 +3473,7 @@ export default function AdminDashboard({
                         <tr key={product.id} className="hover:bg-slate-50/30">
                           <td className="py-3 px-4">
                             <img 
-                              src={product.images[0]} 
+                              src={(product.images && product.images[0]) || ''} 
                               alt="" 
                               className="w-12 h-12 rounded-lg object-cover bg-slate-50 border border-slate-100" 
                               referrerPolicy="no-referrer"
@@ -3555,7 +3555,7 @@ export default function AdminDashboard({
                   {filteredProducts.map((product) => (
                     <div key={product.id} className="p-4 flex gap-3.5 hover:bg-slate-50/30">
                       <img 
-                        src={product.images[0]} 
+                        src={(product.images && product.images[0]) || ''} 
                         alt="" 
                         className="w-16 h-16 rounded-xl object-cover bg-slate-50 border border-slate-100 flex-shrink-0"
                         referrerPolicy="no-referrer"
@@ -4121,7 +4121,7 @@ export default function AdminDashboard({
                               <div key={idx} className="flex items-center justify-between py-2 first:pt-0 last:pb-0">
                                 <div className="flex items-center gap-2.5">
                                   <img 
-                                    src={variant?.imageUrl || item.product.images[0]} 
+                                    src={variant?.imageUrl || (item.product.images && item.product.images[0]) || ''} 
                                     alt="" 
                                     className="w-10 h-10 rounded-md object-cover bg-slate-50 border border-slate-100"
                                     referrerPolicy="no-referrer"
@@ -4266,7 +4266,7 @@ export default function AdminDashboard({
                     >
                       <div className="w-24 h-24 bg-slate-50 rounded-lg overflow-hidden shrink-0 border border-slate-100">
                         <img 
-                          src={p.images[0]} 
+                          src={(p.images && p.images[0]) || ''} 
                           alt={p.title} 
                           className="w-full h-full object-cover"
                           referrerPolicy="no-referrer"
@@ -4868,7 +4868,7 @@ export default function AdminDashboard({
                     {sponsorProduct ? (
                       <div className="bg-slate-50/50 border border-slate-100 rounded-xl p-3.5 flex gap-3.5 items-center">
                         <img
-                          src={sponsorProduct.images[0]}
+                          src={(sponsorProduct.images && sponsorProduct.images[0]) || ''}
                           alt={sponsorProduct.title}
                           className="w-14 h-14 object-cover rounded-lg border border-slate-200/60"
                           referrerPolicy="no-referrer"
@@ -5005,7 +5005,7 @@ export default function AdminDashboard({
                               <td className="p-4">
                                 <div className="flex items-center gap-3">
                                   <img
-                                    src={p.images[0]}
+                                    src={(p.images && p.images[0]) || ''}
                                     alt={p.title}
                                     className="w-10 h-10 object-cover rounded-md border border-slate-200/50 flex-shrink-0"
                                     referrerPolicy="no-referrer"

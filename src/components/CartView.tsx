@@ -278,7 +278,7 @@ export default function CartDrawer({
                     <div className="space-y-3.5" id="cart-items-list">
                       {filteredCart.map((item) => {
                         const variant = item.product.variants[item.selectedVariantIndex] || {
-                          imageUrl: item.product.images[0],
+                          imageUrl: (item.product.images && item.product.images[0]) || '',
                           price: item.product.price,
                           originalPrice: item.product.originalPrice,
                           colorName: 'Default'

@@ -1533,7 +1533,7 @@ export default function VendorDashboard({
                             <div key={product.id} className="bg-slate-50/70 border border-slate-200/90 rounded-2xl p-3 flex flex-col justify-between gap-3 hover:border-slate-300 transition-colors">
                               <div className="flex gap-3">
                                 <img
-                                  src={product.images[0] || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=200'}
+                                  src={(product.images && product.images[0]) || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=200'}
                                   alt={product.title}
                                   className="w-20 h-20 object-cover rounded-xl border border-slate-200 shrink-0 bg-white"
                                   referrerPolicy="no-referrer"
@@ -3887,7 +3887,7 @@ export default function VendorDashboard({
 
               <div className="flex gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
                 <img
-                  src={quickStockProduct.images[0] || ''}
+                  src={(quickStockProduct.images && quickStockProduct.images[0]) || ''}
                   alt=""
                   className="w-14 h-14 object-cover rounded-lg border border-slate-200 shrink-0 bg-white"
                   referrerPolicy="no-referrer"
