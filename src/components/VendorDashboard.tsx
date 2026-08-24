@@ -3977,7 +3977,7 @@ export default function VendorDashboard({
               <div className="space-y-3">
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 text-xs space-y-1">
                   <p className="font-bold text-slate-900">Ship To: {dispatchOrder.shippingAddress?.name}</p>
-                  <p className="text-slate-600">{dispatchOrder.shippingAddress?.street}, {dispatchOrder.shippingAddress?.city}, {dispatchOrder.shippingAddress?.state} - {dispatchOrder.shippingAddress?.pincode}</p>
+                  <p className="text-slate-600">{dispatchOrder.shippingAddress?.addressLine}, {dispatchOrder.shippingAddress?.city}, {dispatchOrder.shippingAddress?.state} - {dispatchOrder.shippingAddress?.pincode}</p>
                   <p className="text-[#143C6B] font-bold">Contact: +91 {dispatchOrder.shippingAddress?.phone}</p>
                 </div>
 

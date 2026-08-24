@@ -462,7 +462,7 @@ export default function ProfileView({
   // Profile avatar drawing
   const renderAvatarSvg = (sizeClass = "w-16 h-16") => (
     <div className={`relative ${sizeClass} rounded-full flex items-center justify-center overflow-visible shadow-inner`} style={{ backgroundColor: avatarSkin + "40" }}>
-      <svg viewBox="0 0 100 100" className="w-[85%] h-[85%] mt-1.5" referrerPolicy="no-referrer">
+      <svg viewBox="0 0 100 100" className="w-[85%] h-[85%] mt-1.5">
         {/* Head */}
         <path d="M50,22 C32,22 32,48 32,54 C32,60 38,68 50,68 C62,68 68,60 68,54 C68,48 68,22 50,22 Z" fill={avatarSkin} />
         {/* Ears */}
