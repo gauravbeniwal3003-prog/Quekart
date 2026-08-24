@@ -96,10 +96,18 @@ export default function AdminDashboard({
   currentPath = window.location.pathname + window.location.search
 }: AdminDashboardProps) {
   // Admin Passcode State
-  const [adminPasscode, setAdminPasscode] = useState(() => localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123');
+  const [adminPasscode, setAdminPasscode] = useState(() => {
+    try {
+      return localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+    } catch (_) {
+      return 'lucky-secret-admin-pass-123';
+    }
+  });
   const handlePasscodeChange = (newPass: string) => {
     setAdminPasscode(newPass);
-    localStorage.setItem('lucky_admin_secret', newPass);
+    try {
+      localStorage.setItem('lucky_admin_secret', newPass);
+    } catch (_) {}
   };
 
   // Custom dialog confirmation state
@@ -123,7 +131,7 @@ export default function AdminDashboard({
     setIsSyncing(true);
     setSyncStatus('idle');
     try {
-      const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+      const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
       const res = await fetch(getApiUrl('/api/admin/sync-demo-products'), {
         method: 'POST',
         headers: {
@@ -232,7 +240,7 @@ export default function AdminDashboard({
   // Product Approval Operations
   const handleApproveProduct = async (productId: string) => {
     try {
-      const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+      const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
       const res = await fetch(`/api/products/${productId}/approve`, {
         method: 'PUT',
         headers: {
@@ -267,7 +275,7 @@ export default function AdminDashboard({
   const handleRejectProduct = async (productId: string) => {
     const reason = rejectionReasonInput[productId]?.trim() || 'Product listing contains low-resolution images or invalid descriptions.';
     try {
-      const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+      const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
       const res = await fetch(`/api/products/${productId}/approve`, {
         method: 'PUT',
         headers: {
@@ -515,7 +523,7 @@ export default function AdminDashboard({
     if (!sponsorProduct) return;
     setIsSponsoringSubmitting(true);
     try {
-      const adminSecret = localStorage.getItem('lucky_admin_secret') || adminPasscode || 'lucky-secret-admin-pass-123';
+      const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
       const response = await fetch(getApiUrl('/api/products/sponsor'), {
         method: 'POST',
         headers: {
@@ -866,7 +874,7 @@ export default function AdminDashboard({
       const base64Data = canvas.toDataURL('image/jpeg', 0.85);
       setCroppingSrc(null); // Close modal instantly
 
-      const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+      const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
       const res = await fetch(getApiUrl('/api/upload-image'), {
         method: 'POST',
         headers: {
@@ -980,7 +988,7 @@ export default function AdminDashboard({
         stopCamera();
 
         // Safe secure upload through our proxied endpoint
-        const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+        const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
         const res = await fetch(getApiUrl('/api/upload-image'), {
           method: 'POST',
           headers: {

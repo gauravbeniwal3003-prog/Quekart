@@ -76,8 +76,14 @@ async function fetchSafeJson(url: string, options?: RequestInit): Promise<any | 
   try {
     const headers = new Headers(options?.headers);
     if (!headers.has('Authorization')) {
-      const userToken = typeof window !== 'undefined' ? localStorage.getItem('quekart_user_token') : null;
-      const vendorToken = typeof window !== 'undefined' ? localStorage.getItem('quekart_vendor_token') : null;
+      let userToken = null;
+      let vendorToken = null;
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          userToken = localStorage.getItem('quekart_user_token');
+          vendorToken = localStorage.getItem('quekart_vendor_token');
+        }
+      } catch (_) {}
       const activeToken = userToken || vendorToken;
       if (activeToken) {
         headers.set('Authorization', `Bearer ${activeToken}`);
@@ -98,6 +104,16 @@ async function fetchSafeJson(url: string, options?: RequestInit): Promise<any | 
   } catch (err) {
     return null;
   }
+}
+
+function getAdminSecret(providedSecret?: string): string {
+  if (providedSecret) return providedSecret;
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+    }
+  } catch (_) {}
+  return 'lucky-secret-admin-pass-123';
 }
 
 /**
@@ -260,7 +276,7 @@ export async function fetchVendorsUnified(): Promise<Vendor[]> {
  * Save / Upsert Product to Database
  */
 export async function saveProductUnified(product: Product, adminSecret?: string, vendorId?: string): Promise<Product> {
-  const secret = adminSecret || localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+  const secret = getAdminSecret(adminSecret);
   
   // 1. Try API
   try {
@@ -297,7 +313,7 @@ export async function saveProductUnified(product: Product, adminSecret?: string,
  * Delete Product from Database
  */
 export async function deleteProductUnified(productId: string, adminSecret?: string): Promise<boolean> {
-  const secret = adminSecret || localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+  const secret = getAdminSecret(adminSecret);
   
   // 1. Try API
   try {
@@ -371,7 +387,7 @@ export async function saveOrderUnified(orderData: any): Promise<Order | null> {
  * Save Banner to Database (Admin only)
  */
 export async function saveBannerUnified(banner: Banner, adminSecret?: string): Promise<Banner> {
-  const secret = adminSecret || localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+  const secret = getAdminSecret(adminSecret);
   try {
     const res = await fetch(getApiUrl('/api/banners'), {
       method: 'POST',
@@ -399,7 +415,7 @@ export async function saveBannerUnified(banner: Banner, adminSecret?: string): P
  * Delete Banner from Database (Admin only)
  */
 export async function deleteBannerUnified(bannerId: string, adminSecret?: string): Promise<boolean> {
-  const secret = adminSecret || localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+  const secret = getAdminSecret(adminSecret);
   try {
     const res = await fetch(getApiUrl(`/api/banners/${bannerId}`), {
       method: 'DELETE',

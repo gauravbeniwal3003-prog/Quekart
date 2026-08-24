@@ -97,8 +97,12 @@ export default function VendorDashboard({
 }: VendorDashboardProps) {
   // Current logged in vendor state
   const [currentVendor, setCurrentVendor] = useState<Vendor | null>(() => {
-    const saved = localStorage.getItem('quekart_current_vendor');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('quekart_current_vendor');
+      return saved ? JSON.parse(saved) : null;
+    } catch (_) {
+      return null;
+    }
   });
 
   // Left sidebar drawer navigation state

@@ -471,7 +471,7 @@ export default function App() {
 
   // Admin Operations Actions (Restricted & Authenticated)
   const handleAddProduct = async (newProduct: Product) => {
-    const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+    const adminSecret = safeGetLocalStorage('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
     // Optimistically update local state first
     setProducts((prev) => [newProduct, ...prev]);
     try {
@@ -487,7 +487,7 @@ export default function App() {
   const handleEditProduct = async (updatedProduct: Product) => {
     // Optimistically update local state first
     setProducts((prev) => prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p)));
-    const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+    const adminSecret = safeGetLocalStorage('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
     try {
       const saved = await saveProductUnified(updatedProduct, adminSecret);
       if (saved) {
@@ -501,7 +501,7 @@ export default function App() {
   const handleDeleteProduct = async (productId: string) => {
     // Optimistically update local state first
     setProducts((prev) => prev.filter((p) => p.id !== productId));
-    const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+    const adminSecret = safeGetLocalStorage('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
     try {
       await deleteProductUnified(productId, adminSecret);
     } catch (e) {
@@ -513,7 +513,7 @@ export default function App() {
   const handleVendorAddProduct = async (newProduct: Product) => {
     let vendorId = '';
     try {
-      const saved = localStorage.getItem('quekart_current_vendor');
+      const saved = safeGetLocalStorage('quekart_current_vendor');
       if (saved) {
         vendorId = JSON.parse(saved).id;
       }
@@ -533,7 +533,7 @@ export default function App() {
   const handleVendorEditProduct = async (updatedProduct: Product) => {
     let vendorId = '';
     try {
-      const saved = localStorage.getItem('quekart_current_vendor');
+      const saved = safeGetLocalStorage('quekart_current_vendor');
       if (saved) {
         vendorId = JSON.parse(saved).id;
       }
@@ -553,7 +553,7 @@ export default function App() {
   const handleVendorDeleteProduct = async (productId: string) => {
     let vendorId = '';
     try {
-      const saved = localStorage.getItem('quekart_current_vendor');
+      const saved = safeGetLocalStorage('quekart_current_vendor');
       if (saved) {
         vendorId = JSON.parse(saved).id;
       }
@@ -570,7 +570,7 @@ export default function App() {
   const handleUpdateOrderStatus = async (orderId: string, status: Order['status']) => {
     // Optimistically update local state first
     setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)));
-    const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+    const adminSecret = safeGetLocalStorage('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
     try {
       const res = await fetch(`/api/orders/${orderId}`, {
         method: 'PUT',
@@ -606,7 +606,7 @@ export default function App() {
         }
         if (data.user && currentUser && data.user.id === currentUser.id) {
           setCurrentUser(data.user);
-          localStorage.setItem('quekart_user_session', JSON.stringify(data.user));
+          safeSetLocalStorage('quekart_user_session', JSON.stringify(data.user));
         }
         return { success: true, refundAmount: data.refundAmount };
       } else {
@@ -622,7 +622,7 @@ export default function App() {
   const handleDeleteOrder = async (orderId: string) => {
     // Optimistically update local state first
     setOrders((prev) => prev.filter((o) => o.id !== orderId));
-    const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+    const adminSecret = safeGetLocalStorage('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
     try {
       const res = await fetch(`/api/orders/${orderId}`, {
         method: 'DELETE',
@@ -642,7 +642,7 @@ export default function App() {
   const handleAddCoupon = async (newCoupon: Coupon) => {
     // Optimistically update local state first
     setCoupons((prev) => [newCoupon, ...prev]);
-    const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+    const adminSecret = safeGetLocalStorage('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
     try {
       const res = await fetch(getApiUrl('/api/coupons'), {
         method: 'POST',
@@ -667,7 +667,7 @@ export default function App() {
   const handleDeleteCoupon = async (code: string) => {
     // Optimistically update local state first
     setCoupons((prev) => prev.filter((c) => c.code !== code));
-    const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+    const adminSecret = safeGetLocalStorage('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
     try {
       const res = await fetch(getApiUrl(`/api/coupons/${code}`), {
         method: 'DELETE',
@@ -687,7 +687,7 @@ export default function App() {
   const handleAddBanner = async (newBanner: Banner) => {
     // Optimistically update local state first
     setBanners((prev) => [newBanner, ...prev]);
-    const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+    const adminSecret = safeGetLocalStorage('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
     try {
       const res = await fetch(getApiUrl('/api/banners'), {
         method: 'POST',
@@ -712,7 +712,7 @@ export default function App() {
   const handleDeleteBanner = async (id: string) => {
     // Optimistically update local state first
     setBanners((prev) => prev.filter((b) => b.id !== id));
-    const adminSecret = localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+    const adminSecret = safeGetLocalStorage('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
     try {
       const res = await fetch(getApiUrl(`/api/banners/${id}`), {
         method: 'DELETE',
