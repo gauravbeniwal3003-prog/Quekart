@@ -437,7 +437,7 @@ export default function HomeFeed({
               id={`bubble-${index}`}
               whileTap={{ scale: 0.94 }}
             >
-              <div className={`w-14 h-14 rounded-full overflow-hidden flex items-center justify-center relative transition-all duration-200 border-2 ${
+              <div className={`w-14 h-14 rounded-xl overflow-hidden aspect-square flex items-center justify-center relative transition-all duration-200 border-2 ${
                 isActive ? 'border-[#143C6B] scale-105 shadow-md ring-2 ring-[#143C6B]/20' : 'border-gray-100 group-hover:border-blue-300'
               } ${item.bg}`}>
                 <img
@@ -482,7 +482,7 @@ export default function HomeFeed({
                   className="flex flex-col items-center cursor-pointer group w-full max-w-[80px]"
                   id={`bubble-${actualIndex}`}
                 >
-                  <div className={`w-14 h-14 rounded-full overflow-hidden flex items-center justify-center relative transition-all duration-200 border-2 ${
+                  <div className={`w-14 h-14 rounded-xl overflow-hidden aspect-square flex items-center justify-center relative transition-all duration-200 border-2 ${
                     isActive ? 'border-[#143C6B] scale-105 shadow-md ring-2 ring-[#143C6B]/20' : 'border-gray-100 group-hover:border-blue-300'
                   } ${item.bg}`}>
                     <img
@@ -522,7 +522,7 @@ export default function HomeFeed({
               id="see-more-categories-bubble"
               title="View all categories"
             >
-              <div className="w-14 h-14 rounded-full overflow-hidden flex flex-col items-center justify-center relative transition-all border-2 border-blue-200/90 bg-gradient-to-b from-blue-50 to-indigo-50/70 group-hover:border-[#143C6B] group-hover:bg-blue-100 shadow-2xs group-hover:scale-105">
+              <div className="w-14 h-14 rounded-xl overflow-hidden aspect-square flex flex-col items-center justify-center relative transition-all border-2 border-blue-200/90 bg-gradient-to-b from-blue-50 to-indigo-50/70 group-hover:border-[#143C6B] group-hover:bg-blue-100 shadow-2xs group-hover:scale-105">
                 <ChevronDown className="w-5 h-5 text-[#143C6B] group-hover:translate-y-0.5 transition-transform stroke-[2.5]" />
               </div>
               <span className="text-[10px] mt-1 text-center font-black tracking-tight text-[#143C6B] px-0.5 whitespace-nowrap">
@@ -544,7 +544,7 @@ export default function HomeFeed({
               id="see-less-categories-bubble"
               title="Collapse categories"
             >
-              <div className="w-14 h-14 rounded-full overflow-hidden flex flex-col items-center justify-center relative transition-all border-2 border-slate-300 bg-gradient-to-b from-slate-50 to-slate-100 group-hover:border-slate-500 group-hover:bg-slate-200 shadow-2xs group-hover:scale-105">
+              <div className="w-14 h-14 rounded-xl overflow-hidden aspect-square flex flex-col items-center justify-center relative transition-all border-2 border-slate-300 bg-gradient-to-b from-slate-50 to-slate-100 group-hover:border-slate-500 group-hover:bg-slate-200 shadow-2xs group-hover:scale-105">
                 <ChevronUp className="w-5 h-5 text-slate-700 group-hover:-translate-y-0.5 transition-transform stroke-[2.5]" />
               </div>
               <span className="text-[10px] mt-1 text-center font-black tracking-tight text-slate-700 px-0.5 whitespace-nowrap">

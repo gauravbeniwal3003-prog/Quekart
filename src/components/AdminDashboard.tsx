@@ -5482,7 +5482,7 @@ export default function AdminDashboard({
                                     }}
                                     className="rounded border-slate-300 text-lucky-magenta focus:ring-lucky-magenta/30"
                                   />
-                                  <div className="w-6 h-6 rounded-full overflow-hidden border border-slate-200 flex-shrink-0">
+                                  <div className="w-6 h-6 rounded-md overflow-hidden aspect-square border border-slate-200 flex-shrink-0">
                                     <img
                                       src={cat.image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150'}
                                       alt={cat.name}
@@ -5556,10 +5556,10 @@ export default function AdminDashboard({
                       <div>
                         <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                           <Sparkles className="w-4 h-4 text-[#143C6B]" />
-                          <span>Category Storefront Image & Smart Crop</span>
+                          <span>Category Storefront Image & Smart Crop (1:1 Square)</span>
                         </h4>
                         <p className="text-[10px] text-slate-500 mt-0.5">
-                          This image appears in the customer home screen circular bubble strip and category browsing lists
+                          This image appears in the customer home screen 1:1 square category frame and category browsing lists
                         </p>
                       </div>
                       <span className="text-[9px] font-black bg-[#143C6B]/10 text-[#143C6B] px-2 py-0.5 rounded-full uppercase">
@@ -5568,18 +5568,18 @@ export default function AdminDashboard({
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                      {/* Live Customer Circle Bubble Simulation */}
+                      {/* Live Customer 1:1 Square Frame Simulation */}
                       <div className="md:col-span-4 bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs flex flex-col items-center justify-center text-center">
                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-                          Live Storefront Bubble
+                          Live Storefront 1:1 Frame
                         </span>
                         
                         <div className="relative group cursor-pointer" onClick={() => categoryFileInputRef.current?.click()}>
-                          <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#143C6B] ring-2 ring-[#143C6B]/20 bg-blue-50/50 shadow-md flex items-center justify-center">
+                          <div className="w-16 h-16 rounded-xl overflow-hidden aspect-square border-2 border-[#143C6B] ring-2 ring-[#143C6B]/20 bg-blue-50/50 shadow-md flex items-center justify-center">
                             {categoryImage ? (
                               <img
                                 src={categoryImage}
-                                alt="Category Bubble Preview"
+                                alt="Category 1:1 Frame Preview"
                                 className="w-full h-full object-cover"
                                 referrerPolicy="no-referrer"
                               />
@@ -5587,7 +5587,7 @@ export default function AdminDashboard({
                               <ShoppingBag className="w-7 h-7 text-[#143C6B]" />
                             )}
                           </div>
-                          <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[9px] font-black">
+                          <div className="absolute inset-0 rounded-xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[9px] font-black">
                             Change
                           </div>
                         </div>
@@ -5734,13 +5734,13 @@ export default function AdminDashboard({
                       {categorySubCats.map((sub, idx) => (
                         <div key={idx} className="flex gap-3 items-start bg-slate-50/70 border border-slate-200 p-3 rounded-xl relative group/sub" id={`subcategory-row-${idx}`}>
                           
-                          {/* Circle Preview & Quick Crop Trigger */}
+                          {/* 1:1 Square Preview & Quick Crop Trigger */}
                           <div
                             onClick={() => {
                               setActiveSubCropIndex(idx);
                               subCategoryFileInputRef.current?.click();
                             }}
-                            className="relative group cursor-pointer w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-slate-200 bg-white shadow-2xs"
+                            className="relative group cursor-pointer w-12 h-12 rounded-xl overflow-hidden aspect-square flex-shrink-0 border-2 border-slate-200 bg-white shadow-2xs"
                             title="Click to Upload & Smart Crop subcategory photo"
                           >
                             <img
@@ -5887,7 +5887,7 @@ export default function AdminDashboard({
                           </div>
                           <div>
                             <span className="text-[10px] font-black text-[#143C6B] uppercase tracking-wider block">First Category System</span>
-                            <h3 className="text-xs font-extrabold text-slate-800">Categories & Live Home Bubble Layout</h3>
+                            <h3 className="text-xs font-extrabold text-slate-800">Categories & Live Home 1:1 Square Layout</h3>
                           </div>
                         </div>
                         
@@ -5912,15 +5912,15 @@ export default function AdminDashboard({
                               className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between space-y-4 relative group"
                               id={`category-card-${cat.id}`}
                             >
-                              {/* Top row with Live Circular Bubble preview and Position ranking */}
+                              {/* Top row with Live 1:1 Square Frame preview and Position ranking */}
                               <div className="flex items-start justify-between">
                                 <div className="flex items-center gap-3">
-                                  {/* Actual Live Circular Bubble Thumbnail */}
+                                  {/* Actual Live 1:1 Square Frame Thumbnail */}
                                   <div
                                     onClick={() => {
                                       triggerEditCategory(cat);
                                     }}
-                                    className="w-13 h-13 rounded-full overflow-hidden border-2 border-[#143C6B] ring-2 ring-[#143C6B]/20 bg-blue-50/50 flex-shrink-0 shadow-xs cursor-pointer hover:scale-105 transition-transform"
+                                    className="w-13 h-13 rounded-xl overflow-hidden aspect-square border-2 border-[#143C6B] ring-2 ring-[#143C6B]/20 bg-blue-50/50 flex-shrink-0 shadow-xs cursor-pointer hover:scale-105 transition-transform"
                                     title="Click to edit category image & smart crop"
                                   >
                                     <img
@@ -5976,7 +5976,7 @@ export default function AdminDashboard({
                                       className="text-[9px] bg-slate-100 hover:bg-slate-200/70 border border-slate-200/50 text-slate-600 font-extrabold px-2 py-0.5 rounded-md transition-colors flex items-center gap-1"
                                     >
                                       {sub.image && (
-                                        <img src={sub.image} alt={sub.name} className="w-3 h-3 rounded-full object-cover" />
+                                        <img src={sub.image} alt={sub.name} className="w-3.5 h-3.5 rounded-sm aspect-square object-cover" />
                                       )}
                                       <span>{sub.name}</span>
                                     </span>

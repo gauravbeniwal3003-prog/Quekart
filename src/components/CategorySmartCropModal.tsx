@@ -40,7 +40,7 @@ export default function CategorySmartCropModal({
   const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [previewMask, setPreviewMask] = useState<'circle' | 'square'>('circle');
+  const [previewMask, setPreviewMask] = useState<'square' | 'circle'>('square');
   const [liveCroppedDataUrl, setLiveCroppedDataUrl] = useState<string>('');
   
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -233,21 +233,21 @@ export default function CategorySmartCropModal({
                 <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
                   <button
                     type="button"
-                    onClick={() => setPreviewMask('circle')}
+                    onClick={() => setPreviewMask('square')}
                     className={`text-[10px] font-black px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                      previewMask === 'circle' ? 'bg-[#143C6B] text-white' : 'text-slate-400 hover:text-white'
+                      previewMask === 'square' ? 'bg-[#143C6B] text-white shadow-xs' : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    Circle Mask
+                    1:1 Square Frame
                   </button>
                   <button
                     type="button"
-                    onClick={() => setPreviewMask('square')}
+                    onClick={() => setPreviewMask('circle')}
                     className={`text-[10px] font-black px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                      previewMask === 'square' ? 'bg-[#143C6B] text-white' : 'text-slate-400 hover:text-white'
+                      previewMask === 'circle' ? 'bg-[#143C6B] text-white shadow-xs' : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    Square 1:1
+                    Circle
                   </button>
                 </div>
               </div>
@@ -263,7 +263,7 @@ export default function CategorySmartCropModal({
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
                   className={`w-[260px] h-[260px] sm:w-[280px] sm:h-[280px] relative overflow-hidden shadow-2xl border-4 bg-slate-950 cursor-grab active:cursor-grabbing flex items-center justify-center select-none ${
-                    previewMask === 'circle' ? 'rounded-full border-[#143C6B]' : 'rounded-2xl border-slate-700'
+                    previewMask === 'circle' ? 'rounded-full border-[#143C6B]' : 'rounded-2xl border-[#143C6B]'
                   }`}
                   id="smart-crop-viewport"
                 >
@@ -359,24 +359,24 @@ export default function CategorySmartCropModal({
                 <span>Live Storefront Preview Before Publishing</span>
               </div>
 
-              {/* Live Customer Simulation Card 1: Homepage Bubble Strip */}
+              {/* Live Customer Simulation Card 1: Homepage 1:1 Square Frame */}
               <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
                 <div className="flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-wider">
                   <span className="flex items-center gap-1">
                     <Smartphone className="w-3.5 h-3.5 text-slate-400" />
-                    1. Home Page Category Bubble
+                    1. Home Page Category Frame (1:1)
                   </span>
                   <span className="text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded-full font-bold">
                     Exact Live Match
                   </span>
                 </div>
 
-                {/* Simulated Customer Header Pill */}
+                {/* Simulated Customer Header Tile */}
                 <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-inner flex flex-col items-center justify-center space-y-2">
                   <div className="flex items-center justify-center gap-3">
-                    {/* The Live Bubble */}
+                    {/* The Live 1:1 Square Frame */}
                     <div className="flex flex-col items-center group cursor-pointer">
-                      <div className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center border-2 border-[#143C6B] ring-2 ring-[#143C6B]/20 bg-blue-50/50 shadow-md transition-transform transform scale-105">
+                      <div className="w-16 h-16 rounded-xl overflow-hidden aspect-square flex items-center justify-center border-2 border-[#143C6B] ring-2 ring-[#143C6B]/20 bg-blue-50/50 shadow-md transition-transform transform scale-105">
                         <img
                           src={liveCroppedDataUrl || currentImageSrc}
                           alt="Live Preview"
@@ -388,9 +388,9 @@ export default function CategorySmartCropModal({
                       </span>
                     </div>
 
-                    {/* Faded adjacent bubbles for realism */}
+                    {/* Faded adjacent tiles for realism */}
                     <div className="opacity-40 flex flex-col items-center">
-                      <div className="w-14 h-14 rounded-full overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-400">
+                      <div className="w-14 h-14 rounded-xl overflow-hidden aspect-square bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-400">
                         Popular
                       </div>
                       <span className="text-[10px] font-medium text-slate-500 mt-1.5">Popular</span>
@@ -398,7 +398,7 @@ export default function CategorySmartCropModal({
                   </div>
 
                   <span className="text-[9px] font-semibold text-slate-400 text-center">
-                    Shopper View: This is precisely how shoppers will view and tap this category on Mobile and Desktop.
+                    Shopper View: This is precisely how shoppers will view and tap this 1:1 square category frame on Mobile and Desktop.
                   </span>
                 </div>
               </div>
@@ -406,11 +406,11 @@ export default function CategorySmartCropModal({
               {/* Live Customer Simulation Card 2: Subcategory / Drawer View */}
               <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
-                  2. Subcategory / Card View
+                  2. Subcategory / Card View (1:1)
                 </span>
                 
                 <div className="bg-white rounded-xl p-3.5 border border-slate-200 flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-50 border border-slate-200 shrink-0">
+                  <div className="w-12 h-12 rounded-xl overflow-hidden aspect-square bg-slate-50 border border-slate-200 shrink-0">
                     <img
                       src={liveCroppedDataUrl || currentImageSrc}
                       alt="Thumbnail Preview"

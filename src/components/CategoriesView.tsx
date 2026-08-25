@@ -57,8 +57,8 @@ export default function CategoriesView({
               }`}
               id={`sidebar-item-${filt.id}`}
             >
-              {/* Filter Image Circle */}
-              <div className={`w-10 h-10 rounded-full overflow-hidden flex items-center justify-center transition-transform flex-shrink-0 border ${
+              {/* Filter Image 1:1 Square Frame */}
+              <div className={`w-10 h-10 rounded-xl overflow-hidden aspect-square flex items-center justify-center transition-transform flex-shrink-0 border ${
                 isActive ? 'border-lucky-magenta bg-blue-50 text-lucky-magenta scale-105' : 'border-gray-200 bg-white text-gray-400'
               }`}>
                 {filt.image ? (
@@ -106,7 +106,7 @@ export default function CategoriesView({
               <div className="space-y-6" id="assigned-categories-list">
                 {assignedCategories.map((cat) => (
                   <div key={cat.id} className="pb-4 last:border-0" id={`category-group-${cat.id}`}>
-                    {/* Subcategories bubbles grid directly */}
+                    {/* Subcategories 1:1 square grid directly */}
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-y-5 gap-x-3">
                       {cat.subCategories?.map((sub, index) => (
                         <motion.button
@@ -120,12 +120,12 @@ export default function CategoriesView({
                           className="flex flex-col items-center cursor-pointer group transition-all"
                           id={`subcategory-item-${cat.id}-${index}`}
                         >
-                          {/* Image Circle */}
-                          <div className="w-14 h-14 md:w-16 md:h-16 rounded-full overflow-hidden bg-blue-50/50 border border-blue-100/40 p-0.5 flex items-center justify-center shadow-xs">
+                          {/* Image 1:1 Square Frame */}
+                          <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl overflow-hidden aspect-square bg-blue-50/50 border border-blue-100/40 p-0.5 flex items-center justify-center shadow-xs">
                             <img
                               src={sub.image || undefined}
                               alt={sub.name}
-                              className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-300"
+                              className="w-full h-full object-cover rounded-lg group-hover:scale-110 transition-transform duration-300"
                               referrerPolicy="no-referrer"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300';
