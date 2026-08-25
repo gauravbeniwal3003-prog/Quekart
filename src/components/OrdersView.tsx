@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
 import { Search, SlidersHorizontal, ChevronRight, Package, RotateCcw, CheckCircle2, AlertCircle, Clock, ShieldCheck, Wallet, ArrowLeft, X } from 'lucide-react';
 import { Order } from '../types';
 import { resetScrollToTop } from '../utils/scroll';
@@ -145,7 +146,7 @@ export default function OrdersView({
         {/* Orders List */}
         {filteredOrders.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5" id="orders-list">
-            {filteredOrders.map((order) => {
+            {filteredOrders.map((order, idx) => {
               const primaryItem = (order.items && order.items.length > 0) ? order.items[0] : null;
               const prod = primaryItem?.product;
               const prodTitle = prod?.title || 'Ordered Product';
@@ -156,8 +157,12 @@ export default function OrdersView({
               const isExpanded = expandedOrderId === order.id;
 
               return (
-                <div
+                <motion.div
                   key={order.id}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.16, delay: Math.min(idx * 0.02, 0.12), ease: 'easeOut' }}
+                  style={{ willChange: 'transform, opacity' }}
                   className="bg-white rounded-2xl p-4 border border-gray-200/80 shadow-3xs hover:shadow-xs transition-all flex flex-col justify-between"
                   id={`order-card-${order.id}`}
                 >
@@ -269,7 +274,7 @@ export default function OrdersView({
                       )}
                     </div>
                   )}
-                </div>
+                </motion.div>
               );
             })}
           </div>

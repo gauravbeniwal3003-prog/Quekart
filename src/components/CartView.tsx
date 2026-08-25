@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
 import { X, Trash2, ShieldCheck, MapPin, CheckCircle, ArrowLeft, CreditCard, Ticket, Tag, Percent, ChevronDown, ChevronUp, Search, Lock, User, Phone } from 'lucide-react';
 import { CartItem, Order, Coupon } from '../types';
 import { getApiUrl } from '../utils/api';
@@ -281,7 +282,7 @@ export default function CartDrawer({
                     </div>
                   ) : (
                     <div className="space-y-3.5" id="cart-items-list">
-                      {filteredCart.map((item) => {
+                      {filteredCart.map((item, idx) => {
                         const variant = item.product.variants[item.selectedVariantIndex] || {
                           imageUrl: (item.product.images && item.product.images[0]) || '',
                           price: item.product.price,
@@ -289,8 +290,12 @@ export default function CartDrawer({
                           colorName: 'Default'
                         };
                         return (
-                          <div
+                          <motion.div
                             key={item.id}
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.16, delay: Math.min(idx * 0.02, 0.12), ease: 'easeOut' }}
+                            style={{ willChange: 'transform, opacity' }}
                             className="bg-white border border-gray-200/80 rounded-xl p-3 sm:p-4 flex items-start gap-3.5 relative shadow-3xs"
                             id={`cart-item-${item.id}`}
                           >
@@ -342,7 +347,7 @@ export default function CartDrawer({
                                 </button>
                               </div>
                             </div>
-                          </div>
+                          </motion.div>
                         );
                       })}
 

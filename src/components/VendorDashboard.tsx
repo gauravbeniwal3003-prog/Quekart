@@ -1233,6 +1233,11 @@ export default function VendorDashboard({
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <h2 className="text-sm sm:text-base font-black text-slate-900">{currentVendor.name}</h2>
+                          {currentVendor.numericId !== undefined && (
+                            <span className="bg-[#143C6B]/10 text-[#143C6B] font-mono font-black text-[10px] px-2 py-0.5 rounded-md border border-[#143C6B]/20">
+                              Vendor ID: #{currentVendor.numericId}
+                            </span>
+                          )}
                           <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
                             isGstLocked
                               ? 'bg-emerald-50 text-emerald-800 border-emerald-300'

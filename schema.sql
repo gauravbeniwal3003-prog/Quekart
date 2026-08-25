@@ -27,6 +27,7 @@ DROP POLICY IF EXISTS "Allow public read on vendors" ON vendors;
 DROP POLICY IF EXISTS "Allow full access on vendors to all" ON vendors;
 DROP POLICY IF EXISTS "Allow full access on users to all" ON users;
 DROP POLICY IF EXISTS "Allow full access on categories to all" ON categories;
+DROP POLICY IF EXISTS "Allow full access on category_filters to all" ON category_filters;
 DROP POLICY IF EXISTS "Allow full access on banners to all" ON banners;
 DROP POLICY IF EXISTS "Allow full access on reviews to all" ON reviews;
 
@@ -128,6 +129,18 @@ CREATE TABLE IF NOT EXISTS categories (
 );
 ALTER TABLE categories DISABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow full access on categories to all" ON categories FOR ALL TO public USING (true) WITH CHECK (true);
+
+-- ----------------------------------------------------------------------
+-- 5.5. CATEGORY FILTERS TABLE (Header Pills & Filter Bar Management)
+-- ----------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS category_filters (
+    id TEXT PRIMARY KEY,
+    data JSONB NOT NULL,
+    position INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+ALTER TABLE category_filters DISABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow full access on category_filters to all" ON category_filters FOR ALL TO public USING (true) WITH CHECK (true);
 
 -- ----------------------------------------------------------------------
 -- 6. HIGH-PERFORMANCE EXPRESSION INDEXES

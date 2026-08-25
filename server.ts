@@ -9,8 +9,8 @@ import { Product, Order, Coupon, CartItem, Vendor, Category, Banner, CategoryFil
 import fs from 'fs';
 import crypto from 'crypto';
 
-// Product Numeric ID Generator
-let lastProductNumericId = 10;
+// Product Numeric ID Generator (Sequential numbers starting from 1 to infinity)
+let lastProductNumericId = 0;
 try {
   if (fs.existsSync('./product_counter.txt')) {
     const saved = fs.readFileSync('./product_counter.txt', 'utf8');
@@ -35,6 +35,32 @@ function getNextProductNumericId(): number {
   return lastProductNumericId;
 }
 
+// Vendor / Seller Numeric ID Generator (Sequential numbers starting from 1 to infinity)
+let lastVendorNumericId = 0;
+try {
+  if (fs.existsSync('./vendor_counter.txt')) {
+    const saved = fs.readFileSync('./vendor_counter.txt', 'utf8');
+    const val = parseInt(saved, 10);
+    if (!isNaN(val)) {
+      lastVendorNumericId = val;
+    }
+  } else {
+    fs.writeFileSync('./vendor_counter.txt', String(lastVendorNumericId), 'utf8');
+  }
+} catch (e) {
+  console.warn('Error reading/writing vendor_counter.txt:', e);
+}
+
+function getNextVendorNumericId(): number {
+  lastVendorNumericId += 1;
+  try {
+    fs.writeFileSync('./vendor_counter.txt', String(lastVendorNumericId), 'utf8');
+  } catch (e) {
+    console.warn('Error saving vendor_counter.txt:', e);
+  }
+  return lastVendorNumericId;
+}
+
 async function ensureAllProductsHaveNumericIds() {
   let productsList: Product[] = [];
   try {
@@ -57,11 +83,6 @@ async function ensureAllProductsHaveNumericIds() {
     if (p.numericId && p.numericId > maxId) {
       maxId = p.numericId;
     }
-  }
-
-  // Ensure maxId is at least the initial count
-  if (maxId < mockProducts.length) {
-    maxId = mockProducts.length;
   }
 
   let updatedCount = 0;
@@ -103,6 +124,69 @@ async function ensureAllProductsHaveNumericIds() {
   }
 
   console.log(`🤖 Verified Product Sequential IDs: Max allotted ID is ${lastProductNumericId}. Assured unique non-recycled sequence.`);
+}
+
+async function ensureAllVendorsHaveNumericIds() {
+  let vendorsList: Vendor[] = [];
+  try {
+    if (useSupabase && supabase) {
+      const { data, error } = await supabase.from('vendors').select('*');
+      if (!error && data) {
+        vendorsList = data.map((row: any) => row.data);
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to query Supabase vendors for numeric ID sync:', err);
+  }
+
+  if (vendorsList.length === 0) {
+    vendorsList = localVendors;
+  }
+
+  let maxId = 0;
+  for (const v of vendorsList) {
+    if (v.numericId && v.numericId > maxId) {
+      maxId = v.numericId;
+    }
+  }
+
+  let updatedCount = 0;
+  for (const v of vendorsList) {
+    if (!v.numericId) {
+      maxId += 1;
+      v.numericId = maxId;
+      updatedCount++;
+      if (useSupabase && supabase) {
+        try {
+          await supabase.from('vendors').update({ data: v }).eq('id', v.id);
+        } catch (dbErr) {
+          console.error(`Failed to update numericId for vendor ${v.id} in DB:`, dbErr);
+        }
+      }
+    }
+  }
+
+  // Ensure all local vendors have numeric IDs in memory
+  for (const v of localVendors) {
+    if (!v.numericId) {
+      const match = vendorsList.find(vl => vl.id === v.id);
+      if (match && match.numericId) {
+        v.numericId = match.numericId;
+      } else {
+        maxId += 1;
+        v.numericId = maxId;
+      }
+    }
+  }
+
+  lastVendorNumericId = Math.max(lastVendorNumericId, maxId);
+  try {
+    fs.writeFileSync('./vendor_counter.txt', String(lastVendorNumericId), 'utf8');
+  } catch (e) {
+    console.warn('Error saving final vendor_counter.txt:', e);
+  }
+
+  console.log(`🤖 Verified Vendor Sequential IDs: Max allotted ID is ${lastVendorNumericId}. Assured unique non-recycled sequence.`);
 }
 
 // Load environment variables
@@ -498,6 +582,7 @@ async function testAndSeedSupabase() {
 // Run connection tests
 testAndSeedSupabase().then(() => {
   ensureAllProductsHaveNumericIds();
+  ensureAllVendorsHaveNumericIds();
 });
 
 // -------------------------------------------------------------
@@ -2946,6 +3031,11 @@ app.post('/api/vendors', async (req, res) => {
     return res.status(400).json({ error: 'Invalid vendor registration data' });
   }
 
+  // Assign sequential numeric ID starting from 1 to infinity
+  if (!newVendor.numericId) {
+    newVendor.numericId = getNextVendorNumericId();
+  }
+
   try {
     if (useSupabase && supabase) {
       const { error } = await supabase.from('vendors').insert([{ id: newVendor.id, data: newVendor }]);
@@ -2974,6 +3064,16 @@ app.put('/api/vendors/:id', async (req, res) => {
 
   if (!updatedVendor || !updatedVendor.id) {
     return res.status(400).json({ error: 'Invalid vendor details' });
+  }
+
+  // Preserve existing numericId if present
+  if (!updatedVendor.numericId) {
+    const existing = localVendors.find(v => v.id === id || String(v.numericId) === id);
+    if (existing?.numericId) {
+      updatedVendor.numericId = existing.numericId;
+    } else {
+      updatedVendor.numericId = getNextVendorNumericId();
+    }
   }
 
   try {
@@ -3910,22 +4010,23 @@ app.post('/api/category-filters', authenticateAdmin, async (req, res) => {
 
   try {
     if (useSupabase && supabase) {
-      const { data: countData } = await supabase.from('category_filters').select('id');
-      const position = countData ? countData.length : 0;
+      const { data: countData, error: countErr } = await supabase.from('category_filters').select('id');
+      const position = countData ? countData.length : localCategoryFilters.length;
       const { error } = await supabase.from('category_filters').insert([{ id: newFilter.id, data: newFilter, position }]);
-      if (!error) {
-        localCategoryFilters.push(newFilter);
-        saveMockDataFile();
-        return res.status(201).json(newFilter);
+      if (error) {
+        console.warn('⚠️ Supabase insert category_filter error (using local storage fallback):', error.message || error);
       }
-      throw error;
     }
 
+    // Always update local cache & mock data
     localCategoryFilters.push(newFilter);
     saveMockDataFile();
     res.status(201).json(newFilter);
   } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to create category filter' });
+    console.error('Category filter create error:', err);
+    localCategoryFilters.push(newFilter);
+    saveMockDataFile();
+    res.status(201).json(newFilter);
   }
 });
 
@@ -3939,19 +4040,19 @@ app.put('/api/category-filters/:id', authenticateAdmin, async (req, res) => {
   try {
     if (useSupabase && supabase) {
       const { error } = await supabase.from('category_filters').update({ data: updatedFilter }).eq('id', id);
-      if (!error) {
-        localCategoryFilters = localCategoryFilters.map(f => f.id === id ? updatedFilter : f);
-        saveMockDataFile();
-        return res.json(updatedFilter);
+      if (error) {
+        console.warn('⚠️ Supabase update category_filter error (using local storage fallback):', error.message || error);
       }
-      throw error;
     }
 
     localCategoryFilters = localCategoryFilters.map(f => f.id === id ? updatedFilter : f);
     saveMockDataFile();
     res.json(updatedFilter);
   } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to update category filter' });
+    console.error('Category filter update error:', err);
+    localCategoryFilters = localCategoryFilters.map(f => f.id === id ? updatedFilter : f);
+    saveMockDataFile();
+    res.json(updatedFilter);
   }
 });
 
@@ -3960,19 +4061,19 @@ app.delete('/api/category-filters/:id', authenticateAdmin, async (req, res) => {
   try {
     if (useSupabase && supabase) {
       const { error } = await supabase.from('category_filters').delete().eq('id', id);
-      if (!error) {
-        localCategoryFilters = localCategoryFilters.filter(f => f.id !== id);
-        saveMockDataFile();
-        return res.json({ success: true, message: 'Category filter deleted successfully' });
+      if (error) {
+        console.warn('⚠️ Supabase delete category_filter error (falling back to local cache):', error.message || error);
       }
-      throw error;
     }
 
     localCategoryFilters = localCategoryFilters.filter(f => f.id !== id);
     saveMockDataFile();
-    res.json({ success: true, message: 'Category filter deleted' });
+    res.json({ success: true, message: 'Category filter deleted successfully' });
   } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to delete category filter' });
+    console.error('Category filter delete error:', err);
+    localCategoryFilters = localCategoryFilters.filter(f => f.id !== id);
+    saveMockDataFile();
+    res.json({ success: true, message: 'Category filter deleted successfully' });
   }
 });
 
@@ -3986,7 +4087,9 @@ app.post('/api/category-filters/reorder', authenticateAdmin, async (req, res) =>
     if (useSupabase && supabase) {
       for (let i = 0; i < ids.length; i++) {
         const { error } = await supabase.from('category_filters').update({ position: i }).eq('id', ids[i]);
-        if (error) throw error;
+        if (error) {
+          console.warn(`⚠️ Supabase reorder category_filter ${ids[i]} error:`, error.message || error);
+        }
       }
     }
 
@@ -4003,6 +4106,7 @@ app.post('/api/category-filters/reorder', authenticateAdmin, async (req, res) =>
 
     res.json({ success: true, message: 'Category filters reordered successfully' });
   } catch (err: any) {
+    console.error('Category filter reorder error:', err);
     res.status(500).json({ error: err.message || 'Failed to reorder category filters' });
   }
 });

@@ -109,6 +109,7 @@ export interface Vendor {
   status: 'active' | 'suspended' | 'banned';
   isBanned?: boolean;
   createdAt: string;
+  numericId?: number; // Sequential simple unique numeric ID starting from 1 to infinity
 
   state?: string;
   city?: string;

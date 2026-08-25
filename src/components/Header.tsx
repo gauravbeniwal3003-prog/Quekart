@@ -38,13 +38,23 @@ export default function Header({
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
+    let ticking = false;
+
     const handleScroll = () => {
-      const viewport = document.getElementById('applet-content-viewport');
-      const scrollTop = viewport ? viewport.scrollTop : (window.scrollY || document.documentElement.scrollTop || 0);
-      if (scrollTop > 20) {
-        setIsScrolled(true);
-      } else if (scrollTop < 10) {
-        setIsScrolled(false);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const viewport = document.getElementById('applet-content-viewport');
+          const scrollTop = viewport ? viewport.scrollTop : (window.scrollY || document.documentElement.scrollTop || 0);
+          
+          // Use hysteresis threshold (50px to collapse, 15px to expand) to prevent scroll bouncing/flickering
+          if (scrollTop > 50) {
+            setIsScrolled(true);
+          } else if (scrollTop < 15) {
+            setIsScrolled(false);
+          }
+          ticking = false;
+        });
+        ticking = true;
       }
     };
 
@@ -211,89 +221,91 @@ export default function Header({
   };
 
   return (
-    <header className={`sticky top-0 z-50 bg-white/95 backdrop-blur-md transition-all duration-300 ease-in-out ${isScrolled ? 'shadow-md border-b border-gray-200 py-1.5 md:py-2.5 px-3 md:px-8' : 'border-b border-gray-100 shadow-xs py-2 md:py-3 px-4 md:px-8'}`} id="lucky-header">
+    <header className={`sticky top-0 z-50 bg-white/95 backdrop-blur-md transition-[padding,box-shadow,background-color,border-color] duration-300 ease-out ${isScrolled ? 'shadow-md border-b border-gray-200 py-1.5 md:py-2.5 px-4 md:px-8' : 'border-b border-gray-100 shadow-xs py-2 md:py-3 px-4 md:px-8'}`} id="lucky-header">
       {/* Container to restrict max width on desktop but let it stay fluid */}
       <div className="max-w-7xl mx-auto w-full">
         {/* Top Header Row */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1.5 md:gap-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1 md:gap-6">
           
-          {/* Logo & Refer row on Mobile, Logo on Left on Desktop */}
+          {/* Logo & Refer row on Mobile, Logo on Left on Desktop - Smooth CSS Grid transition */}
           <div 
-            className={`transition-all duration-300 ease-in-out flex items-center justify-between md:justify-start gap-3 flex-shrink-0 w-full md:w-auto ${
+            className={`grid transition-[grid-template-rows,opacity,margin] duration-300 ease-out md:block flex-shrink-0 w-full md:w-auto ${
               isScrolled 
-                ? 'max-h-0 opacity-0 mb-0 overflow-hidden pointer-events-none md:max-h-none md:opacity-100 md:overflow-visible md:pointer-events-auto' 
-                : 'max-h-16 opacity-100 mb-1 md:mb-0 overflow-visible pointer-events-auto'
+                ? 'grid-rows-[0fr] opacity-0 mb-0 pointer-events-none md:grid-rows-[1fr] md:opacity-100 md:pointer-events-auto md:mb-0' 
+                : 'grid-rows-[1fr] opacity-100 mb-1 md:mb-0 pointer-events-auto'
             }`}
           >
-            {/* Left Section (Profile & Refer) - Mobile Only */}
-            <div className="flex items-center gap-2 md:hidden flex-shrink-0">
-              <button
-                onClick={() => onSelectTab('profile')}
-                className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center cursor-pointer transition-transform active:scale-95"
-                id="avatar-btn-mobile"
-              >
-                <img
-                  src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100"
-                  alt="Gaurav Avatar"
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-              </button>
+            <div className="overflow-hidden min-h-0 flex items-center justify-between md:justify-start gap-3 w-full">
+              {/* Left Section (Profile & Refer) - Mobile Only */}
+              <div className="flex items-center gap-2 md:hidden flex-shrink-0">
+                <button
+                  onClick={() => onSelectTab('profile')}
+                  className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center cursor-pointer transition-transform active:scale-95"
+                  id="avatar-btn-mobile"
+                >
+                  <img
+                    src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100"
+                    alt="Gaurav Avatar"
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                </button>
 
-              <div
-                className="hidden sm:flex items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-full px-2.5 py-1 text-[11px] font-semibold text-blue-700 animate-pulse cursor-pointer"
-                id="refer-pill-mobile"
-              >
-                <Gift className="w-3.5 h-3.5 text-blue-600 animate-bounce" />
-                <span>Refer and Earn</span>
+                <div
+                  className="hidden sm:flex items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-full px-2.5 py-1 text-[11px] font-semibold text-blue-700 animate-pulse cursor-pointer"
+                  id="refer-pill-mobile"
+                >
+                  <Gift className="w-3.5 h-3.5 text-blue-600 animate-bounce" />
+                  <span>Refer and Earn</span>
+                </div>
               </div>
-            </div>
 
-            {/* Logo */}
-            <BrandLogo size="md" onClick={() => onSelectTab('home')} />
+              {/* Logo */}
+              <BrandLogo size="md" onClick={() => onSelectTab('home')} />
 
-            {/* Action icons - Mobile Only */}
-            <div className="flex items-center gap-3 md:hidden flex-shrink-0">
-              <button
-                onClick={() => onSelectTab('wishlist')}
-                className="p-1.5 hover:bg-gray-100 rounded-full relative cursor-pointer text-gray-700 transition-colors"
-                id="wishlist-header-btn-mobile"
-              >
-                <Heart className="w-5 h-5 stroke-2 hover:fill-red-500 hover:text-red-500 transition-colors" />
-              </button>
-              
-              <button
-                onClick={onOpenCart}
-                className="p-1.5 hover:bg-gray-100 rounded-full relative cursor-pointer text-gray-700 transition-colors"
-                id="cart-header-btn-mobile"
-              >
-                <ShoppingCart className="w-5 h-5 stroke-2" />
-                {totalItems > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-lucky-magenta text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-scaleIn border border-white">
-                    {totalItems}
-                  </span>
-                )}
-              </button>
+              {/* Action icons - Mobile Only */}
+              <div className="flex items-center gap-3 md:hidden flex-shrink-0">
+                <button
+                  onClick={() => onSelectTab('wishlist')}
+                  className="p-1.5 hover:bg-gray-100 rounded-full relative cursor-pointer text-gray-700 transition-colors"
+                  id="wishlist-header-btn-mobile"
+                >
+                  <Heart className="w-5 h-5 stroke-2 hover:fill-red-500 hover:text-red-500 transition-colors" />
+                </button>
+                
+                <button
+                  onClick={onOpenCart}
+                  className="p-1.5 hover:bg-gray-100 rounded-full relative cursor-pointer text-gray-700 transition-colors"
+                  id="cart-header-btn-mobile"
+                >
+                  <ShoppingCart className="w-5 h-5 stroke-2" />
+                  {totalItems > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-lucky-magenta text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-scaleIn border border-white">
+                      {totalItems}
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Search Bar Container */}
-          <div className="flex items-center gap-2 w-full md:w-auto flex-1">
+          <div className="flex items-center gap-2 w-full md:w-auto flex-1 min-w-0">
             {/* Inline mini logo on mobile when scrolled */}
             <div 
-              className={`transition-all duration-300 ease-in-out md:hidden flex items-center gap-2 flex-shrink-0 ${
+              className={`transition-[max-width,opacity,transform] duration-300 ease-out md:hidden flex items-center flex-shrink-0 overflow-hidden transform-gpu ${
                 isScrolled 
-                  ? 'max-w-[120px] opacity-100 pointer-events-auto' 
-                  : 'max-w-0 opacity-0 overflow-hidden pointer-events-none'
+                  ? 'max-w-[115px] opacity-100 scale-100 pointer-events-auto pr-1' 
+                  : 'max-w-0 opacity-0 scale-90 pointer-events-none pr-0'
               }`}
             >
               <BrandLogo size="sm" onClick={() => onSelectTab('home')} />
             </div>
 
             {/* Search Bar (responsive width) */}
-            <div className="relative flex flex-col flex-1 max-w-2xl md:mx-auto w-full" id="search-container" ref={containerRef}>
+            <div className="relative flex flex-col flex-1 max-w-2xl md:mx-auto w-full min-w-0" id="search-container" ref={containerRef}>
               <div className="relative flex items-center w-full">
-                <div className="absolute left-3.5 text-gray-400">
+                <div className="absolute left-3.5 text-gray-400 pointer-events-none">
                   <Search className="w-4 h-4 md:w-5 md:h-5 stroke-2" />
                 </div>
                 <input
@@ -307,7 +319,7 @@ export default function Header({
                   }}
                   onFocus={() => setShowSuggestions(true)}
                   onKeyDown={handleKeyDown}
-                  className="w-full pl-10 md:pl-11 pr-16 md:pr-20 py-1.5 md:py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs md:text-sm text-gray-800 placeholder-gray-400 focus:outline-hidden focus:border-lucky-magenta focus:bg-white transition-all shadow-inner"
+                  className="w-full pl-10 md:pl-11 pr-16 md:pr-20 py-1.5 md:py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs md:text-sm text-gray-800 placeholder-gray-400 focus:outline-hidden focus:border-lucky-magenta focus:bg-white transition-[background-color,border-color,box-shadow] duration-200 shadow-inner"
                   id="search-input"
                   autoComplete="off"
                 />
