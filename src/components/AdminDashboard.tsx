@@ -2856,14 +2856,14 @@ export default function AdminDashboard({
               </button>
             </div>
 
-            {bImageUrl && (
+            {Boolean(bImageUrl?.trim()) && (
               <div className="mt-3 bg-white p-3 rounded-xl border border-slate-200">
                 <p className="text-[9px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Live Poster Rendering (as seen in /shop):</p>
                 
                 <div className={`bg-slate-100 rounded-xl overflow-hidden border border-slate-200/80 relative shadow-md group ${
                   bRow === 'upper' ? 'aspect-[3.2/1]' : 'aspect-[2.2/1]'
                 }`}>
-                  <img src={bImageUrl} alt="Preview" className="w-full h-full object-cover object-center animate-fadeIn" />
+                  <img src={bImageUrl.trim()} alt="Preview" className="w-full h-full object-cover object-center animate-fadeIn" />
                   <div className="absolute inset-0 bg-gradient-to-r from-[#143C6B]/90 via-[#143C6B]/60 to-transparent flex flex-col justify-between p-3 sm:p-4 text-white pointer-events-none select-none">
                     <div className="flex items-center justify-between gap-2">
                       {bCode ? (
@@ -4189,7 +4189,7 @@ export default function AdminDashboard({
             <div className="border border-slate-200 rounded-xl divide-y divide-slate-100 overflow-hidden bg-white">
               {order.items.map((item, idx) => {
                 const variant = item.product.variants?.[item.selectedVariantIndex];
-                const itemImg = variant?.imageUrl || (item.product.images && item.product.images[0]) || '';
+                const itemImg = variant?.imageUrl || (item.product.images && item.product.images[0]) || 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=120';
                 const itemPrice = variant?.price || item.product.price;
 
                 return (
@@ -7424,7 +7424,7 @@ export default function AdminDashboard({
                       {upperBanners.map((b) => (
                         <div key={b.id} className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-xs flex flex-col group relative">
                           <div className="aspect-[3/1] w-full bg-slate-900 relative">
-                            <img src={b.imageUrl} alt={b.title || b.type} className="w-full h-full object-cover" />
+                            <img src={b.imageUrl || 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&q=80&w=900'} alt={b.title || b.type} className="w-full h-full object-cover" />
                             <div className="absolute top-2 right-2 bg-lucky-magenta text-white text-[8px] font-black uppercase px-2 py-0.5 rounded shadow-xs">
                               ORDER: {b.order || 1}
                             </div>
@@ -7508,7 +7508,7 @@ export default function AdminDashboard({
                       {lowerBanners.map((b) => (
                         <div key={b.id} className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-xs flex flex-col group relative">
                           <div className="aspect-[2/1] w-full bg-slate-900 relative">
-                            <img src={b.imageUrl} alt={b.title || b.type} className="w-full h-full object-cover" />
+                            <img src={b.imageUrl || 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&q=80&w=600'} alt={b.title || b.type} className="w-full h-full object-cover" />
                             <div className="absolute top-2 right-2 bg-lucky-magenta text-white text-[8px] font-black uppercase px-2 py-0.5 rounded shadow-xs">
                               ORDER: {b.order || 1}
                             </div>
@@ -7977,9 +7977,9 @@ export default function AdminDashboard({
                     placeholder="https://example.com/image.jpg"
                     className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
                   />
-                  {bImageUrl && (
+                  {Boolean(bImageUrl?.trim()) && (
                     <div className="mt-3 aspect-[3/1] bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
-                      <img src={bImageUrl} alt="Preview" className="w-full h-full object-cover" />
+                      <img src={bImageUrl.trim()} alt="Preview" className="w-full h-full object-cover" />
                     </div>
                   )}
                 </div>

@@ -35,7 +35,7 @@ export default function CategorySmartCropModal({
   onClose,
   isLoading = false
 }: CategorySmartCropModalProps) {
-  const [currentImageSrc, setCurrentImageSrc] = useState(initialImage);
+  const [currentImageSrc, setCurrentImageSrc] = useState(initialImage || CATEGORY_PRESETS[0].url);
   const [cropZoom, setCropZoom] = useState(1.0);
   const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -48,8 +48,8 @@ export default function CategorySmartCropModal({
 
   // Sync state when initialImage changes or modal opens
   useEffect(() => {
-    if (isOpen && initialImage) {
-      setCurrentImageSrc(initialImage);
+    if (isOpen) {
+      setCurrentImageSrc(initialImage || CATEGORY_PRESETS[0].url);
       setCropZoom(1.0);
       setCropOffset({ x: 0, y: 0 });
     }
@@ -378,7 +378,7 @@ export default function CategorySmartCropModal({
                     <div className="flex flex-col items-center group cursor-pointer">
                       <div className="w-16 h-16 rounded-xl overflow-hidden aspect-square flex items-center justify-center border-2 border-[#143C6B] ring-2 ring-[#143C6B]/20 bg-blue-50/50 shadow-md transition-transform transform scale-105">
                         <img
-                          src={liveCroppedDataUrl || currentImageSrc}
+                          src={liveCroppedDataUrl || currentImageSrc || CATEGORY_PRESETS[0].url}
                           alt="Live Preview"
                           className="w-full h-full object-cover"
                         />
@@ -412,7 +412,7 @@ export default function CategorySmartCropModal({
                 <div className="bg-white rounded-xl p-3.5 border border-slate-200 flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl overflow-hidden aspect-square bg-slate-50 border border-slate-200 shrink-0">
                     <img
-                      src={liveCroppedDataUrl || currentImageSrc}
+                      src={liveCroppedDataUrl || currentImageSrc || CATEGORY_PRESETS[0].url}
                       alt="Thumbnail Preview"
                       className="w-full h-full object-cover"
                     />

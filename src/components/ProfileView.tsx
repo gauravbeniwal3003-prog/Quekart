@@ -1819,7 +1819,7 @@ export default function ProfileView({
           <div className="space-y-4">
             {sharedProducts.map(p => (
               <div key={p.id} className="bg-white rounded-xl border border-gray-100 p-3.5 shadow-3xs flex gap-3.5 items-center">
-                <img src={p.image} alt={p.title} className="w-16 h-20 object-cover rounded-md flex-shrink-0" />
+                <img src={p.image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=120'} alt={p.title} className="w-16 h-20 object-cover rounded-md flex-shrink-0" />
                 <div className="flex-1 min-w-0 space-y-1">
                   <h4 className="text-xs font-black text-gray-800 truncate">{p.title}</h4>
                   <p className="text-xs font-black text-gray-950">₹{p.price} <span className="text-[10px] text-gray-400 line-through">₹{p.originalPrice}</span></p>

@@ -1049,7 +1049,7 @@ export default function App() {
                                   onClick={() => navigateTo('/shop/product/' + p.id)}
                                   className="bg-white rounded-xl overflow-hidden border border-gray-200/80 p-2.5 relative cursor-pointer hover:shadow-md transition-all"
                                 >
-                                  <img src={p.images[0] || undefined} alt={p.title} className="w-full aspect-square object-cover rounded-lg" referrerPolicy="no-referrer" />
+                                  <img src={p.images?.[0] || 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=300'} alt={p.title} className="w-full aspect-square object-cover rounded-lg" referrerPolicy="no-referrer" />
                                   <h3 className="text-xs font-bold text-gray-700 truncate mt-2">{p.title}</h3>
                                   <p className="text-xs font-black text-gray-950 mt-1 premium-rupee">₹{p.price}</p>
                                   <motion.button

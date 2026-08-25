@@ -26,7 +26,7 @@ export default function BannerSmartCropModal({
   onClose,
   isLoading = false
 }: BannerSmartCropModalProps) {
-  const [currentImageSrc, setCurrentImageSrc] = useState(initialImage);
+  const [currentImageSrc, setCurrentImageSrc] = useState(initialImage || PRESET_BANNERS[0].url);
   const [cropZoom, setCropZoom] = useState(1.0);
   const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
