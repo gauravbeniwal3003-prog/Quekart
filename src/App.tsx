@@ -916,6 +916,7 @@ export default function App() {
                     products={approvedProducts}
                     currentUser={currentUser}
                     onLogout={handleLogoutUser}
+                    onSelectCategory={handleSelectCategory}
                   />
                 )}
 

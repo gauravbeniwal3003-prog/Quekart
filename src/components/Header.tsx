@@ -14,6 +14,7 @@ interface HeaderProps {
   products?: Product[];
   currentUser?: any;
   onLogout?: () => void;
+  onSelectCategory?: (category: string) => void;
 }
 
 const TRENDING_SEARCHES = ['Kurtis', 'Watches', 'Sarees', 'Earphones', 'Sunglasses', 'Jeans', 'T-shirts', 'Bags'];
@@ -27,7 +28,8 @@ export default function Header({
   activeTab = 'home',
   products = [],
   currentUser = null,
-  onLogout
+  onLogout,
+  onSelectCategory
 }: HeaderProps) {
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
@@ -36,6 +38,13 @@ export default function Header({
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+
+  // Voice Search Visualizer State
+  const [isVoiceActive, setIsVoiceActive] = useState(false);
+  const [voiceListening, setVoiceListening] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     let ticking = false;
@@ -178,9 +187,21 @@ export default function Header({
     suggestionsList = suggestionsList.slice(0, 8);
   }
 
-  const handleSuggestionClick = (text: string) => {
+  const handleSuggestionClick = (text: string, type?: 'category' | 'subcategory' | 'product') => {
     saveSearchToHistory(text);
-    onSearch(text);
+    
+    // Auto-filter category chip when a category suggestion or known category is clicked
+    if (type === 'category') {
+      onSelectCategory?.(text);
+      onSearch('');
+    } else {
+      const matchingCategory = products.find((p) => p.category.toLowerCase() === text.toLowerCase());
+      if (matchingCategory) {
+        onSelectCategory?.(matchingCategory.category);
+      }
+      onSearch(text);
+    }
+
     if (activeTab !== 'home') {
       onSelectTab('home');
     }
@@ -188,35 +209,141 @@ export default function Header({
     setActiveSuggestionIndex(-1);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!showSuggestions) return;
+  // Voice Search Actions
+  const startVoiceSearch = () => {
+    setIsVoiceActive(true);
+    setVoiceTranscript('');
+    setVoiceError(null);
+    setVoiceListening(true);
 
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      const listSize = query ? suggestionsList.length : TRENDING_SEARCHES.length;
-      setActiveSuggestionIndex(prev => (prev + 1) % listSize);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      const listSize = query ? suggestionsList.length : TRENDING_SEARCHES.length;
-      setActiveSuggestionIndex(prev => (prev - 1 + listSize) % listSize);
-    } else if (e.key === 'Enter') {
-      if (activeSuggestionIndex >= 0) {
-        e.preventDefault();
-        const selectedText = query 
-          ? suggestionsList[activeSuggestionIndex].text 
-          : TRENDING_SEARCHES[activeSuggestionIndex];
-        handleSuggestionClick(selectedText);
-      } else {
-        if (searchQuery.trim()) {
-          saveSearchToHistory(searchQuery.trim());
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+      try {
+        if (recognitionRef.current) {
+          try {
+            recognitionRef.current.abort();
+          } catch (_) {}
         }
+        const recognition = new SpeechRecognition();
+        recognitionRef.current = recognition;
+        recognition.lang = 'en-IN';
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
+
+        recognition.onresult = (event: any) => {
+          const currentTranscript = Array.from(event.results)
+            .map((result: any) => result[0].transcript)
+            .join('');
+          setVoiceTranscript(currentTranscript);
+        };
+
+        recognition.onspeechend = () => {
+          try {
+            recognition.stop();
+          } catch (_) {}
+        };
+
+        recognition.onend = () => {
+          setVoiceListening(false);
+        };
+
+        recognition.onerror = (event: any) => {
+          console.warn('Speech recognition notice:', event.error);
+          setVoiceListening(false);
+          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+            setVoiceError('Microphone access is restricted or unavailable.');
+          } else if (event.error !== 'no-speech') {
+            setVoiceError('Could not recognize voice. Tap a quick term or speak again.');
+          }
+        };
+
+        recognition.start();
+      } catch (err) {
+        console.warn('Could not start speech recognition:', err);
+        setVoiceListening(false);
+      }
+    } else {
+      // Browser does not support Web Speech API natively
+      setVoiceListening(false);
+    }
+  };
+
+  const stopVoiceSearch = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch (_) {}
+    }
+    setIsVoiceActive(false);
+    setVoiceListening(false);
+    setVoiceTranscript('');
+    setVoiceError(null);
+  };
+
+  const handleApplyVoiceQuery = (queryText: string) => {
+    stopVoiceSearch();
+    handleSuggestionClick(queryText);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      setShowSuggestions(false);
+      setActiveSuggestionIndex(-1);
+      if (searchQuery) {
+        onSearch('');
+      }
+      (e.target as HTMLInputElement).blur();
+      return;
+    }
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (showSuggestions && activeSuggestionIndex >= 0) {
+        const selectedText = query 
+          ? suggestionsList[activeSuggestionIndex]?.text 
+          : TRENDING_SEARCHES[activeSuggestionIndex];
+        if (selectedText) {
+          handleSuggestionClick(selectedText);
+          return;
+        }
+      }
+
+      const trimmedQuery = searchQuery.trim();
+      if (trimmedQuery) {
+        saveSearchToHistory(trimmedQuery);
+        onSearch(trimmedQuery);
         if (activeTab !== 'home') {
           onSelectTab('home');
         }
-        setShowSuggestions(false);
       }
-    } else if (e.key === 'Escape') {
       setShowSuggestions(false);
+      setActiveSuggestionIndex(-1);
+      (e.target as HTMLInputElement).blur();
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (!showSuggestions) {
+        setShowSuggestions(true);
+        return;
+      }
+      const listSize = query ? suggestionsList.length : TRENDING_SEARCHES.length;
+      if (listSize > 0) {
+        setActiveSuggestionIndex((prev) => (prev + 1) % listSize);
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!showSuggestions) {
+        setShowSuggestions(true);
+        return;
+      }
+      const listSize = query ? suggestionsList.length : TRENDING_SEARCHES.length;
+      if (listSize > 0) {
+        setActiveSuggestionIndex((prev) => (prev - 1 + listSize) % listSize);
+      }
     }
   };
 
@@ -319,13 +446,44 @@ export default function Header({
                   }}
                   onFocus={() => setShowSuggestions(true)}
                   onKeyDown={handleKeyDown}
-                  className="w-full pl-10 md:pl-11 pr-16 md:pr-20 py-1.5 md:py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs md:text-sm text-gray-800 placeholder-gray-400 focus:outline-hidden focus:border-lucky-magenta focus:bg-white transition-[background-color,border-color,box-shadow] duration-200 shadow-inner"
+                  className={`w-full pl-10 md:pl-11 ${searchQuery ? 'pr-24 md:pr-28' : 'pr-16 md:pr-20'} py-1.5 md:py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs md:text-sm text-gray-800 placeholder-gray-400 focus:outline-hidden focus:border-lucky-magenta focus:bg-white transition-[background-color,border-color,box-shadow,padding] duration-200 shadow-inner`}
                   id="search-input"
                   autoComplete="off"
                 />
-                <div className="absolute right-3 flex items-center gap-2 md:gap-3 text-gray-400">
-                  <button className="hover:text-lucky-magenta transition-colors cursor-pointer" title="Voice Search" id="mic-btn">
-                    <Mic className="w-4 h-4 md:w-5 md:h-5" />
+                <div className="absolute right-3 flex items-center gap-1.5 md:gap-2.5 text-gray-400">
+                  {searchQuery ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onSearch('');
+                          setShowSuggestions(false);
+                          const searchEl = document.getElementById('search-input') as HTMLInputElement;
+                          if (searchEl) {
+                            searchEl.focus();
+                          }
+                        }}
+                        className="p-1 hover:bg-gray-200/80 rounded-full text-gray-400 hover:text-gray-700 transition-colors cursor-pointer active:scale-95 flex items-center justify-center"
+                        title="Clear search query"
+                        id="search-quick-clear-btn"
+                        aria-label="Clear search query"
+                      >
+                        <X className="w-3.5 h-3.5 md:w-4 md:h-4 stroke-[2.5]" />
+                      </button>
+                      <div className="h-3.5 md:h-4 w-[1px] bg-gray-300"></div>
+                    </>
+                  ) : null}
+                  <button 
+                    type="button"
+                    onClick={startVoiceSearch} 
+                    className="hover:text-lucky-magenta transition-colors cursor-pointer p-0.5 rounded-full hover:bg-gray-100" 
+                    title="Voice Search" 
+                    id="mic-btn"
+                    aria-label="Search by Voice"
+                  >
+                    <Mic className="w-4 h-4 md:w-5 md:h-5 text-gray-500 hover:text-lucky-magenta" />
                   </button>
                   <div className="h-3.5 md:h-4 w-[1px] bg-gray-300"></div>
                   <button className="hover:text-lucky-magenta transition-colors cursor-pointer" title="Search by Photo" id="camera-btn">
@@ -387,7 +545,7 @@ export default function Header({
                         {TRENDING_SEARCHES.map((term, index) => (
                           <button
                             key={term}
-                            onClick={() => handleSuggestionClick(term)}
+                            onClick={() => handleSuggestionClick(term, 'category')}
                             className={`text-xs px-3 py-1.5 rounded-full border border-gray-100 bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-lucky-magenta hover:border-blue-200 cursor-pointer font-semibold transition-all ${
                               activeSuggestionIndex === index ? 'bg-blue-50 text-lucky-magenta border-blue-200' : ''
                             }`}
@@ -413,24 +571,32 @@ export default function Header({
                           {suggestionsList.map((item, index) => (
                             <button
                               key={index}
-                              onClick={() => handleSuggestionClick(item.text)}
+                              onClick={() => handleSuggestionClick(item.text, item.type)}
                               className={`w-full text-left px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer ${
                                 activeSuggestionIndex === index ? 'bg-gray-50' : ''
                               }`}
                             >
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
                                 {item.type === 'category' || item.type === 'subcategory' ? (
                                   <Tag className="w-4 h-4 text-blue-500 flex-shrink-0" />
                                 ) : (
                                   <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
                                 )}
-                                <div>
-                                  <span className="text-xs font-bold text-gray-800 break-words">
-                                    <HighlightedText text={item.text} query={searchQuery} />
+                                <div className="truncate">
+                                  <span className="text-xs font-normal text-slate-700 break-words">
+                                    <HighlightedText 
+                                      text={item.text} 
+                                      query={searchQuery} 
+                                      highlightClassName="font-black text-[#143C6B] bg-blue-100/90 px-1 py-0.5 rounded-sm inline-block"
+                                    />
                                   </span>
                                   {item.subText && (
-                                    <span className="text-[10px] text-gray-400 font-bold ml-2 uppercase tracking-wide bg-gray-100 px-1.5 py-0.5 rounded-sm">
-                                      <HighlightedText text={item.subText} query={searchQuery} />
+                                    <span className="text-[10px] text-slate-400 font-medium ml-2 uppercase tracking-wide bg-slate-100 px-1.5 py-0.5 rounded-sm">
+                                      <HighlightedText 
+                                        text={item.subText} 
+                                        query={searchQuery} 
+                                        highlightClassName="font-bold text-slate-900 bg-amber-100/90 px-0.5 rounded-xs inline-block"
+                                      />
                                     </span>
                                   )}
                                 </div>
@@ -669,6 +835,101 @@ export default function Header({
               >
                 Yes, Log Out
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Voice Search Audio Visualizer Modal */}
+      {isVoiceActive && (
+        <div 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fadeIn" 
+          id="voice-search-overlay"
+          onClick={stopVoiceSearch}
+        >
+          <div 
+            className="bg-white rounded-3xl max-w-sm sm:max-w-md w-full p-5 sm:p-6 shadow-2xl border border-slate-100 text-center animate-scaleIn space-y-4 sm:space-y-5"
+            onClick={(e) => e.stopPropagation()}
+            id="voice-search-modal"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-blue-50 text-[#143C6B] flex items-center justify-center">
+                  <Mic className="w-4 h-4" />
+                </div>
+                <div className="text-left">
+                  <h3 className="text-sm font-black text-slate-900 leading-tight">QueKart Voice Search</h3>
+                  <p className="text-[11px] text-slate-400 font-medium">Smart Voice Assistant</p>
+                </div>
+              </div>
+              <button 
+                onClick={stopVoiceSearch}
+                className="p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                id="close-voice-search-btn"
+                aria-label="Close voice search"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Audio Visualizer Wave */}
+            <div className="py-5 sm:py-6 flex flex-col items-center justify-center space-y-3 sm:space-y-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="flex items-center justify-center gap-2 h-14" id="audio-wave-visualizer">
+                <span className="w-1.5 bg-gradient-to-t from-[#143C6B] to-blue-500 rounded-full animate-wave-1"></span>
+                <span className="w-1.5 bg-gradient-to-t from-[#143C6B] to-blue-400 rounded-full animate-wave-2"></span>
+                <span className="w-1.5 bg-gradient-to-t from-[#143C6B] to-indigo-500 rounded-full animate-wave-3"></span>
+                <span className="w-1.5 bg-gradient-to-t from-[#143C6B] to-blue-400 rounded-full animate-wave-4"></span>
+                <span className="w-1.5 bg-gradient-to-t from-[#143C6B] to-blue-500 rounded-full animate-wave-5"></span>
+              </div>
+
+              {/* Status / Transcript */}
+              <div className="px-4 text-center min-h-[36px] flex items-center justify-center">
+                {voiceTranscript ? (
+                  <p className="text-base font-bold text-slate-900 break-words" id="voice-transcript-text">
+                    "{voiceTranscript}"
+                  </p>
+                ) : voiceError ? (
+                  <p className="text-xs font-semibold text-rose-500" id="voice-error-text">
+                    {voiceError}
+                  </p>
+                ) : (
+                  <p className="text-xs font-semibold text-slate-500 animate-pulse" id="voice-listening-prompt">
+                    Listening... Speak now (e.g. "Kurtis", "Watches", "Sarees")
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            {voiceTranscript ? (
+              <button
+                type="button"
+                onClick={() => handleApplyVoiceQuery(voiceTranscript)}
+                className="w-full bg-[#143C6B] text-white hover:bg-opacity-95 font-bold text-xs py-3 rounded-xl shadow-md cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-2"
+                id="apply-voice-transcript-btn"
+              >
+                <Search className="w-4 h-4" />
+                <span>Search for "{voiceTranscript}"</span>
+              </button>
+            ) : null}
+
+            {/* Quick Suggestions Chips */}
+            <div className="text-left space-y-2 pt-1 border-t border-slate-100">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Or tap a quick search sample:
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {['Kurtis', 'Watches', 'Sarees', 'Shoes', 'Earphones'].map((sample) => (
+                  <button
+                    key={sample}
+                    type="button"
+                    onClick={() => handleApplyVoiceQuery(sample)}
+                    className="text-xs px-3 py-1.5 rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-blue-50 hover:text-[#143C6B] hover:border-blue-200 font-medium transition-colors cursor-pointer active:scale-95"
+                  >
+                    "{sample}"
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>

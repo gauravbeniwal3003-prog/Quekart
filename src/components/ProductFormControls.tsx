@@ -50,8 +50,8 @@ export const ReturnPolicyAccordion: React.FC<ReturnPolicyAccordionProps> = ({
     setIsOpen(false);
   };
 
-  const handleApplyCustomDays = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleApplyCustomDays = (e?: React.FormEvent | React.MouseEvent | React.KeyboardEvent) => {
+    if (e) e.preventDefault();
     const parsed = parseInt(customDaysInput, 10);
     if (!isNaN(parsed) && parsed > 0 && parsed <= 90) {
       setReturnDays(parsed);
@@ -254,7 +254,7 @@ export const ReturnPolicyAccordion: React.FC<ReturnPolicyAccordionProps> = ({
                   </div>
 
                   {/* Custom Days Input */}
-                  <form onSubmit={handleApplyCustomDays} className="flex items-center gap-2 pt-1">
+                  <div className="flex items-center gap-2 pt-1">
                     <span className="text-[10.5px] font-bold text-slate-500">Or Custom Days:</span>
                     <input
                       type="number"
@@ -263,15 +263,23 @@ export const ReturnPolicyAccordion: React.FC<ReturnPolicyAccordionProps> = ({
                       placeholder="e.g. 5, 20"
                       value={customDaysInput}
                       onChange={(e) => setCustomDaysInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleApplyCustomDays(e);
+                        }
+                      }}
                       className="w-24 text-xs font-bold border border-slate-300 rounded-xl px-2.5 py-1.5 focus:outline-hidden focus:border-[#143C6B] bg-white"
                     />
                     <button
-                      type="submit"
+                      type="button"
+                      onClick={handleApplyCustomDays}
                       className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3 py-1.5 rounded-xl cursor-pointer"
                     >
                       Apply & Close
                     </button>
-                  </form>
+                  </div>
                 </div>
               ) : (
                 <div className="bg-red-50/70 rounded-xl p-3 border border-red-100 text-red-900 text-xs font-medium flex items-center gap-2">
@@ -453,7 +461,7 @@ export const SizeAndParametersManager: React.FC<SizeAndParametersManagerProps> =
       </div>
 
       {/* 1. Custom Parameter Direct Input Bar */}
-      <form onSubmit={handleAddCustom} className="space-y-1.5">
+      <div className="space-y-1.5">
         <label className="text-[10.5px] text-slate-600 font-bold block">
           Type Custom Parameter (e.g. 12x5, 10x8 inch, 500ml, UK 8, King Size):
         </label>
@@ -464,12 +472,20 @@ export const SizeAndParametersManager: React.FC<SizeAndParametersManagerProps> =
               placeholder="e.g. 12x5, 10x8, 16x16, 250ml, UK 9, 34x32, Free Size"
               value={customInput}
               onChange={(e) => setCustomInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleAddCustom();
+                }
+              }}
               className="w-full text-xs font-bold border border-slate-300 rounded-xl px-3 py-2 bg-white focus:outline-hidden focus:border-[#143C6B]"
               id={`${idPrefix}-custom-size-input`}
             />
           </div>
           <button
-            type="submit"
+            type="button"
+            onClick={() => handleAddCustom()}
             disabled={!customInput.trim()}
             className="bg-[#143C6B] hover:bg-[#0D2C4E] text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-3xs shrink-0"
           >
@@ -477,7 +493,7 @@ export const SizeAndParametersManager: React.FC<SizeAndParametersManagerProps> =
             <span>Add Parameter</span>
           </button>
         </div>
-      </form>
+      </div>
 
       {/* 2. User-Friendly Parameter Preset Library & Quick-Pick Tabs */}
       <div className="space-y-2 pt-1 border-t border-slate-200/80">

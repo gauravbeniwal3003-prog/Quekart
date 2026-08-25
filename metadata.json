@@ -1,6 +1,6 @@
 {
   "name": "QueKart",
   "description": "Production-ready Meesho-style multi-role wholesale e-commerce platform featuring SMS OTP authentication for customers, dedicated vendor portal with verified instant listings and unverified review workflows, and comprehensive admin dashboard.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

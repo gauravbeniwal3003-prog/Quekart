@@ -19,27 +19,27 @@ export const HighlightedText: React.FC<HighlightedTextProps> = ({
   }
 
   const rawQuery = query.trim();
-  // Escape special regex characters
-  const escapedQuery = rawQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-  // Split query into tokens to highlight individual matched words if multi-word query
-  const tokens = rawQuery
+  const rawTokens = rawQuery
     .split(/\s+/)
-    .filter((t) => t.length > 0)
-    .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    .filter((t) => t.length > 0);
 
-  if (tokens.length === 0) {
+  if (rawTokens.length === 0) {
     return <span className={className}>{text}</span>;
   }
 
-  // Combine query and tokens into regex pattern
-  const pattern = new RegExp(`(${[escapedQuery, ...tokens].join('|')})`, 'gi');
+  // Escape special regex characters
+  const escapedQuery = rawQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const escapedTokens = rawTokens.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
+  // Combine query and tokens sorted by length descending so longer sub-phrases match first
+  const uniquePatterns = Array.from(new Set([escapedQuery, ...escapedTokens])).sort((a, b) => b.length - a.length);
+  const pattern = new RegExp(`(${uniquePatterns.join('|')})`, 'gi');
   const parts = text.split(pattern);
 
   return (
     <span className={className}>
       {parts.map((part, index) => {
-        const isMatch = tokens.some((t) => part.toLowerCase() === t.toLowerCase()) || part.toLowerCase() === rawQuery.toLowerCase();
+        const isMatch = rawTokens.some((t) => part.toLowerCase() === t.toLowerCase()) || part.toLowerCase() === rawQuery.toLowerCase();
         return isMatch ? (
           <mark key={index} className={`bg-transparent ${highlightClassName}`}>
             {part}
@@ -53,3 +53,4 @@ export const HighlightedText: React.FC<HighlightedTextProps> = ({
 };
 
 export default HighlightedText;
+
