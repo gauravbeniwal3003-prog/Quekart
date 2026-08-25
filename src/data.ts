@@ -1,4 +1,4 @@
-import { Product, Category, Banner } from './types';
+import { Product, Category, Banner, CategoryFilter } from './types';
 
 // Core category definitions matching logo color theme (#143C6B Navy Blue & #FF8C00 Saffron Gold)
 export const mockCategories: Category[] = [
@@ -107,7 +107,9 @@ export const initialBanners: Banner[] = [
     title: 'RAKSHA BANDHAN MAHOTSAV',
     subtitle: 'Up to 80% OFF on Designer Sarees, Kurtis & Festive Gift Sets',
     code: 'RAKHI80',
-    targetCategory: 'Kurti, Saree & Ethnic Wear'
+    targetCategory: 'Kurti, Saree & Ethnic Wear',
+    row: 'upper',
+    order: 1
   },
   {
     id: 'banner-rakhi-2',
@@ -116,7 +118,9 @@ export const initialBanners: Banner[] = [
     title: 'BHAI-BEHEN SPECIAL GIFT HAMPER',
     subtitle: 'Flat ₹100 Instant Discount on Royal Kundan & Gold Jewellery',
     code: 'FESTIVE100',
-    targetCategory: 'Jewellery & Accessories'
+    targetCategory: 'Jewellery & Accessories',
+    row: 'lower',
+    order: 1
   },
   {
     id: 'banner-rakhi-3',
@@ -125,7 +129,9 @@ export const initialBanners: Banner[] = [
     title: 'ROYAL ETHNIC RAKHI COLLECTION',
     subtitle: 'Buy 2 Get 1 FREE on All Festive Apparel & Sherwanis',
     code: 'BUY2GET1',
-    targetCategory: 'Men Fashion'
+    targetCategory: 'Men Fashion',
+    row: 'lower',
+    order: 2
   }
 ];
 
@@ -134,5 +140,32 @@ export const mockProducts: Product[] = [];
 
 // Production start: Orders populated on customer checkout
 export const initialOrders: any[] = [];
+
+export const mockCategoryFilters: CategoryFilter[] = [
+  {
+    id: 'filter-fashion',
+    name: 'Fashion & Clothing',
+    image: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=150',
+    categoryIds: ['cat-ethnic-wear', 'cat-women-western', 'cat-men', 'cat-footwear']
+  },
+  {
+    id: 'filter-popular',
+    name: 'Popular',
+    image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150',
+    categoryIds: ['cat-popular']
+  },
+  {
+    id: 'filter-electronics',
+    name: 'Electronics & Gadgets',
+    image: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&q=80&w=150',
+    categoryIds: []
+  },
+  {
+    id: 'filter-ethnic',
+    name: 'Kurti, Saree & Ethnic Wear',
+    image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=150',
+    categoryIds: ['cat-ethnic-wear']
+  }
+];
 
 

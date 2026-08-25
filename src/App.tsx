@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Heart, HelpCircle, ArrowLeft, Smile, Search, LogOut, CheckCircle2, User as UserIcon, ShoppingBag, ShieldAlert } from 'lucide-react';
-import { mockProducts, initialOrders, initialBanners, mockCategories } from './data';
+import { mockProducts, initialOrders, initialBanners } from './data';
 import { 
   fetchProductsUnified, 
   fetchCategoriesUnified, 
+  fetchCategoryFiltersUnified,
   fetchBannersUnified, 
   fetchCouponsUnified, 
   fetchOrdersUnified, 
@@ -12,8 +14,9 @@ import {
   saveOrderUnified,
   isSupabaseConfigured 
 } from './supabase';
-import { Product, CartItem, Order, Coupon, Banner, Category } from './types';
+import { Product, CartItem, Order, Coupon, Banner, Category, CategoryFilter } from './types';
 import { getApiUrl } from './utils/api';
+import { resetScrollToTop } from './utils/scroll';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
 import HomeFeed from './components/HomeFeed';
@@ -131,7 +134,7 @@ export default function App() {
   const navigateTo = (path: string) => {
     window.history.pushState(null, '', path);
     setCurrentPath(path);
-    window.scrollTo(0, 0);
+    resetScrollToTop();
   };
 
   // Helper to parse current pathname
@@ -302,45 +305,52 @@ export default function App() {
   const [coupons, setCoupons] = useState<Coupon[]>(initialCoupons);
 
   // Database-driven categories state
-  const [categories, setCategories] = useState<Category[]>(mockCategories);
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  // Database-driven category filters state (left sidebar on /shop/categories)
+  const [categoryFilters, setCategoryFilters] = useState<CategoryFilter[]>([]);
 
   // Dynamic persistent banners state
   const [banners, setBanners] = useState<Banner[]>(initialBanners);
 
-  // Fetch initial data from server-side or Supabase direct
+  // Fetch / Refresh shop data from server-side or Supabase direct
+  const refreshShopData = useCallback(async () => {
+    try {
+      const [productsData, ordersData, couponsData, categoriesData, categoryFiltersData, bannersData] = await Promise.all([
+        fetchProductsUnified(),
+        fetchOrdersUnified(),
+        fetchCouponsUnified(),
+        fetchCategoriesUnified(),
+        fetchCategoryFiltersUnified(),
+        fetchBannersUnified()
+      ]);
+      
+      if (productsData && Array.isArray(productsData)) {
+        setProducts(productsData);
+      }
+      if (ordersData && Array.isArray(ordersData)) {
+        setOrders(ordersData);
+      }
+      if (couponsData && Array.isArray(couponsData)) {
+        setCoupons(couponsData);
+      }
+      if (categoriesData && Array.isArray(categoriesData)) {
+        setCategories(categoriesData);
+      }
+      if (categoryFiltersData && Array.isArray(categoryFiltersData)) {
+        setCategoryFilters(categoryFiltersData);
+      }
+      if (bannersData && Array.isArray(bannersData)) {
+        setBanners(bannersData);
+      }
+    } catch (err) {
+      console.warn('⚠️ Data loading notice:', err);
+    }
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
-    const fetchInitialData = async () => {
-      try {
-        const [productsData, ordersData, couponsData, categoriesData, bannersData] = await Promise.all([
-          fetchProductsUnified(),
-          fetchOrdersUnified(),
-          fetchCouponsUnified(),
-          fetchCategoriesUnified(),
-          fetchBannersUnified()
-        ]);
-        
-        if (isMounted) {
-          if (productsData && productsData.length > 0) {
-            setProducts(productsData);
-          }
-          if (ordersData && ordersData.length > 0) {
-            setOrders(ordersData);
-          }
-          if (couponsData && couponsData.length > 0) {
-            setCoupons(couponsData);
-          }
-          if (categoriesData && categoriesData.length > 0) {
-            setCategories(categoriesData);
-          }
-          if (bannersData && bannersData.length > 0) {
-            setBanners(bannersData);
-          }
-        }
-      } catch (err) {
-        console.warn('⚠️ Data loading notice:', err);
-      }
-    };
+    refreshShopData();
 
     const fetchUserProfile = async () => {
       const token = safeGetLocalStorage('quekart_user_token');
@@ -364,7 +374,7 @@ export default function App() {
       }
     };
     
-    fetchInitialData();
+    refreshShopData();
     fetchUserProfile();
     return () => { isMounted = false; };
   }, []);
@@ -404,10 +414,10 @@ export default function App() {
     }
   };
 
-  // Sync scroll behavior on route/product changes
+  // Sync scroll behavior on route/product/subpage changes across all portals & views
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'auto' });
-  }, [activeTab, selectedProduct]);
+    resetScrollToTop();
+  }, [currentPath, activePortal, activeTab, activeSubPage, selectedProduct]);
 
   // Auth Prompt Modal State (for gating restricted guest actions)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -679,7 +689,7 @@ export default function App() {
 
   const handleAddCoupon = async (newCoupon: Coupon) => {
     // Optimistically update local state first
-    setCoupons((prev) => [newCoupon, ...prev]);
+    setCoupons((prev) => prev.some(c => c.code === newCoupon.code) ? prev.map(c => c.code === newCoupon.code ? newCoupon : c) : [newCoupon, ...prev]);
     const adminSecret = safeGetLocalStorage('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
     try {
       const res = await fetch(getApiUrl('/api/coupons'), {
@@ -724,7 +734,7 @@ export default function App() {
 
   const handleAddBanner = async (newBanner: Banner) => {
     // Optimistically update local state first
-    setBanners((prev) => [newBanner, ...prev]);
+    setBanners((prev) => prev.some(b => b.id === newBanner.id) ? prev.map(b => b.id === newBanner.id ? newBanner : b) : [newBanner, ...prev]);
     const adminSecret = safeGetLocalStorage('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
     try {
       const res = await fetch(getApiUrl('/api/banners'), {
@@ -810,6 +820,9 @@ export default function App() {
           banners={banners}
           categories={categories}
           onSetCategories={setCategories}
+          categoryFilters={categoryFilters}
+          onSetCategoryFilters={setCategoryFilters}
+          onRefreshShopData={refreshShopData}
           onAddProduct={handleAddProduct}
           onEditProduct={handleEditProduct}
           onDeleteProduct={handleDeleteProduct}
@@ -828,20 +841,16 @@ export default function App() {
       ) : (
         /* 4. CUSTOMER SHOPPING STOREFRONT (/shop) */
         <div 
-          className={`w-full bg-white flex flex-col relative ${
-            (!currentUser && (activeTab === 'user' || (activeTab === 'home' && !safeGetSessionStorage('quekart_browsing_guest'))))
-              ? 'h-[100dvh] max-h-[100dvh] overflow-hidden'
-              : 'min-h-screen'
-          }`} 
+          className="w-full h-[100dvh] max-h-[100dvh] bg-white flex flex-col relative overflow-hidden" 
           id="customer-shop-container"
         >
           {/* Dynamic content rendering body */}
           <div 
-            className={`flex-1 ${
+            className={`flex-1 flex flex-col min-h-0 ${
               (!currentUser && (activeTab === 'user' || (activeTab === 'home' && !(safeGetSessionStorage('quekart_browsing_guest') === 'true' || safeGetLocalStorage('quekart_browsing_guest') === 'true'))))
                 ? 'overflow-hidden h-[100dvh] max-h-[100dvh] pb-0 bg-white'
-                : activeTab === 'categories' 
-                ? 'overflow-hidden h-[calc(100vh-60px)] md:h-[calc(100vh-120px)] pb-16 bg-gray-50' 
+                : (activeTab === 'categories' && !activeSubPage) 
+                ? 'overflow-hidden pb-16 md:pb-0 bg-gray-50' 
                 : 'overflow-y-auto pb-20 md:pb-10 bg-gray-50'
             }`} 
             id="applet-content-viewport"
@@ -910,176 +919,191 @@ export default function App() {
                   />
                 )}
 
-                {/* Tab Switcher */}
-                {activeTab === 'home' && (
-                  <HomeFeed
-                    categories={categories}
-                    products={searchedProducts}
-                    banners={banners}
-                    onSelectProduct={(p) => navigateTo('/shop/product/' + p.id)}
-                    wishlist={wishlist}
-                    onToggleWishlist={handleToggleWishlist}
-                    selectedCategory={selectedCategory}
-                    onSelectCategory={handleSelectCategory}
-                    searchQuery={searchQuery}
-                    currentUser={currentUser}
-                    onRequireLogin={triggerRequireLogin}
-                  />
-                )}
-
-                {activeTab === 'categories' && (
-                  activeSubPage ? (
-                    <CategoryProductsView
-                      filterName={decodeURIComponent(activeSubPage)}
-                      products={products}
-                      onBack={() => navigateTo('/shop/categories')}
-                      onSelectProduct={(id) => navigateTo('/shop/product/' + id)}
-                      wishlist={wishlist}
-                      onToggleWishlist={handleToggleWishlist}
-                      currentUser={currentUser}
-                      onRequireLogin={triggerRequireLogin}
-                    />
-                  ) : (
-                    <CategoriesView
-                      categories={categories}
-                      onSelectCategory={(categoryName) => {
-                        navigateTo('/shop/categories/' + encodeURIComponent(categoryName));
-                      }}
-                      onSelectTab={(tab) => navigateTo(tab === 'home' ? '/shop' : '/shop/' + tab)}
-                    />
-                  )
-                )}
-
-                {activeTab === 'orders' && (
-                  <OrdersView
-                    orders={orders}
-                    onSelectProduct={(id) => navigateTo('/shop/product/' + id)}
-                    onSelectTab={(tab) => navigateTo(tab === 'home' ? '/shop' : '/shop/' + tab)}
-                    currentUser={currentUser}
-                    onReturnOrder={handleReturnOrder}
-                  />
-                )}
-
-                {activeTab === 'wishlist' && (
-                  <div className="bg-gray-50 min-h-[calc(100vh-130px)] pb-16 w-full" id="wishlist-page">
-                    {currentUser && (
-                      <div className="sticky top-[60px] md:top-[120px] z-[90] bg-gray-50 px-4 pt-3 pb-3 border-b border-gray-200/80 shadow-xs">
-                        {/* Local Search for Wishlist */}
-                        <div className="max-w-7xl mx-auto relative flex-1 w-full">
-                          <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                          <input
-                            type="text"
-                            placeholder="Search wishlist..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-white border border-gray-200 rounded-lg py-2 pl-9 pr-4 text-xs font-medium focus:outline-hidden focus:border-lucky-magenta"
-                            id="wishlist-search-input"
-                          />
-                        </div>
-                      </div>
+                {/* Tab Switcher with Motion Animation */}
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeTab + (activeSubPage || '')}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.18, ease: "easeInOut" }}
+                    className="w-full flex-1 flex flex-col min-h-0"
+                  >
+                    {activeTab === 'home' && (
+                      <HomeFeed
+                        categories={categories}
+                        products={searchedProducts}
+                        banners={banners}
+                        onSelectProduct={(p) => navigateTo('/shop/product/' + p.id)}
+                        wishlist={wishlist}
+                        onToggleWishlist={handleToggleWishlist}
+                        selectedCategory={selectedCategory}
+                        onSelectCategory={handleSelectCategory}
+                        searchQuery={searchQuery}
+                        currentUser={currentUser}
+                        onRequireLogin={triggerRequireLogin}
+                      />
                     )}
 
-                    <div className="max-w-7xl mx-auto px-4 mt-4" id="wishlist-list-content">
-                    {!currentUser ? (
-                      <div className="max-w-md mx-auto py-16 flex flex-col items-center text-center" id="guest-wishlist-view">
-                        <div className="w-20 h-20 rounded-3xl bg-pink-50 border border-pink-100 flex items-center justify-center text-pink-500 shadow-sm mb-4">
-                          <Heart className="w-10 h-10 stroke-[1.8]" />
-                        </div>
-                        <h2 className="text-lg font-black text-slate-900 tracking-tight">Your Wishlist is Empty</h2>
-                        <p className="text-xs text-slate-500 font-semibold mt-2 leading-relaxed max-w-xs">
-                          Sign in to view and save trending clothes, gadgets & lifestyle items to your personal wishlist.
-                        </p>
-                        <div className="w-full space-y-2.5 mt-6">
-                          <button
-                            onClick={() => navigateTo('/shop/login')}
-                            className="w-full py-3 bg-[#143C6B] hover:bg-[#0C2340] active:scale-[0.99] text-white text-xs font-black rounded-xl shadow-md transition-all cursor-pointer uppercase tracking-wider"
-                            id="wishlist-signin-btn"
-                          >
-                            Sign In / Log In
-                          </button>
-                          <button
-                            onClick={() => navigateTo('/shop')}
-                            className="w-full py-2.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
-                            id="wishlist-explore-btn"
-                          >
-                            Explore Trending Products
-                          </button>
-                        </div>
-                      </div>
-                    ) : wishlist.length === 0 ? (
-                      <div className="text-center py-16" id="empty-wishlist-view">
-                        <Heart className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                        <p className="text-xs text-gray-400 font-bold">Your wishlist is currently empty.</p>
-                        <button
-                          onClick={() => navigateTo('/shop')}
-                          className="mt-4 bg-lucky-magenta text-white font-extrabold text-xs py-2 px-6 rounded-full cursor-pointer hover:opacity-90"
-                        >
-                          Browse Products
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4" id="wishlist-grid">
-                        {products
-                          .filter((p) => wishlist.includes(p.id) && p.title.toLowerCase().includes(searchQuery.toLowerCase()))
-                          .map((p) => (
-                            <div
-                              key={p.id}
-                              onClick={() => navigateTo('/shop/product/' + p.id)}
-                              className="bg-white rounded-xl overflow-hidden border border-gray-200/80 p-2.5 relative cursor-pointer hover:shadow-md transition-all"
-                            >
-                              <img src={p.images[0]} alt={p.title} className="w-full aspect-square object-cover rounded-lg" referrerPolicy="no-referrer" />
-                              <h3 className="text-xs font-bold text-gray-700 truncate mt-2">{p.title}</h3>
-                              <p className="text-xs font-black text-gray-950 mt-1 premium-rupee">₹{p.price}</p>
+                    {activeTab === 'categories' && (
+                      activeSubPage ? (
+                        <CategoryProductsView
+                          filterName={decodeURIComponent(activeSubPage)}
+                          products={products}
+                          onBack={() => navigateTo('/shop/categories')}
+                          onSelectProduct={(id) => navigateTo('/shop/product/' + id)}
+                          wishlist={wishlist}
+                          onToggleWishlist={handleToggleWishlist}
+                          currentUser={currentUser}
+                          onRequireLogin={triggerRequireLogin}
+                        />
+                      ) : (
+                        <CategoriesView
+                          categoryFilters={categoryFilters}
+                          categories={categories}
+                          onSelectCategory={(categoryName) => {
+                            navigateTo('/shop/categories/' + encodeURIComponent(categoryName));
+                          }}
+                          onSelectTab={(tab) => navigateTo(tab === 'home' ? '/shop' : '/shop/' + tab)}
+                        />
+                      )
+                    )}
+
+                    {activeTab === 'orders' && (
+                      <OrdersView
+                        orders={orders}
+                        onSelectProduct={(id) => navigateTo('/shop/product/' + id)}
+                        onSelectTab={(tab) => navigateTo(tab === 'home' ? '/shop' : '/shop/' + tab)}
+                        currentUser={currentUser}
+                        onReturnOrder={handleReturnOrder}
+                      />
+                    )}
+
+                    {activeTab === 'wishlist' && (
+                      <div className="bg-gray-50 min-h-[calc(100vh-130px)] pb-16 w-full" id="wishlist-page">
+                        {currentUser && (
+                          <div className="sticky top-[52px] md:top-[64px] z-40 bg-gray-50 px-4 pt-3 pb-3 border-b border-gray-200/80 shadow-xs">
+                            {/* Local Search for Wishlist */}
+                            <div className="max-w-7xl mx-auto relative flex-1 w-full">
+                              <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                              <input
+                                type="text"
+                                placeholder="Search wishlist..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full bg-white border border-gray-200 rounded-lg py-2 pl-9 pr-4 text-xs font-medium focus:outline-hidden focus:border-lucky-magenta"
+                                id="wishlist-search-input"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="max-w-7xl mx-auto px-4 mt-4" id="wishlist-list-content">
+                        {!currentUser ? (
+                          <div className="max-w-md mx-auto py-16 flex flex-col items-center text-center" id="guest-wishlist-view">
+                            <div className="w-20 h-20 rounded-3xl bg-pink-50 border border-pink-100 flex items-center justify-center text-pink-500 shadow-sm mb-4">
+                              <Heart className="w-10 h-10 stroke-[1.8]" />
+                            </div>
+                            <h2 className="text-lg font-black text-slate-900 tracking-tight">Your Wishlist is Empty</h2>
+                            <p className="text-xs text-slate-500 font-semibold mt-2 leading-relaxed max-w-xs">
+                              Sign in to view and save trending clothes, gadgets & lifestyle items to your personal wishlist.
+                            </p>
+                            <div className="w-full space-y-2.5 mt-6">
                               <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleToggleWishlist(p.id);
-                                }}
-                                className="absolute top-4 right-4 bg-white/90 p-1.5 rounded-full text-red-500 shadow-xs hover:scale-110 active:scale-95 transition-transform"
+                                onClick={() => navigateTo('/shop/login')}
+                                className="w-full py-3 bg-[#143C6B] hover:bg-[#0C2340] active:scale-[0.99] text-white text-xs font-black rounded-xl shadow-md transition-all cursor-pointer uppercase tracking-wider"
+                                id="wishlist-signin-btn"
                               >
-                                <Heart className="w-4 h-4 fill-current" />
+                                Sign In / Log In
+                              </button>
+                              <button
+                                onClick={() => navigateTo('/shop')}
+                                className="w-full py-2.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                                id="wishlist-explore-btn"
+                              >
+                                Explore Trending Products
                               </button>
                             </div>
-                          ))}
+                          </div>
+                        ) : wishlist.length === 0 ? (
+                          <div className="text-center py-16" id="empty-wishlist-view">
+                            <Heart className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                            <p className="text-xs text-gray-400 font-bold">Your wishlist is currently empty.</p>
+                            <button
+                              onClick={() => navigateTo('/shop')}
+                              className="mt-4 bg-lucky-magenta text-white font-extrabold text-xs py-2 px-6 rounded-full cursor-pointer hover:opacity-90"
+                            >
+                              Browse Products
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4" id="wishlist-grid">
+                            {products
+                              .filter((p) => wishlist.includes(p.id) && p.title.toLowerCase().includes(searchQuery.toLowerCase()))
+                              .map((p) => (
+                                <motion.div
+                                  key={p.id}
+                                  whileHover={{ y: -3, scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
+                                  onClick={() => navigateTo('/shop/product/' + p.id)}
+                                  className="bg-white rounded-xl overflow-hidden border border-gray-200/80 p-2.5 relative cursor-pointer hover:shadow-md transition-all"
+                                >
+                                  <img src={p.images[0] || undefined} alt={p.title} className="w-full aspect-square object-cover rounded-lg" referrerPolicy="no-referrer" />
+                                  <h3 className="text-xs font-bold text-gray-700 truncate mt-2">{p.title}</h3>
+                                  <p className="text-xs font-black text-gray-950 mt-1 premium-rupee">₹{p.price}</p>
+                                  <motion.button
+                                    whileTap={{ scale: 0.8 }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleToggleWishlist(p.id);
+                                    }}
+                                    className="absolute top-4 right-4 bg-white/90 p-1.5 rounded-full text-red-500 shadow-xs hover:scale-110 active:scale-95 transition-transform"
+                                  >
+                                    <Heart className="w-4 h-4 fill-current" />
+                                  </motion.button>
+                                </motion.div>
+                              ))}
+                          </div>
+                        )}
+                        </div>
                       </div>
                     )}
-                    </div>
-                  </div>
-                )}
 
-                {activeTab === 'logo' && (
-                  <LogoView onBack={() => navigateTo('/shop')} />
-                )}
+                    {activeTab === 'logo' && (
+                      <LogoView onBack={() => navigateTo('/shop')} />
+                    )}
 
-                {activeTab === 'profile' && (
-                  <ProfileView
-                    onBack={() => navigateTo('/shop')}
-                    onOpenCart={() => navigateTo('/shop/cart')}
-                    cartCount={cart.reduce((acc, item) => acc + item.quantity, 0)}
-                    onSelectTab={(tab) => navigateTo(tab === 'home' ? '/shop' : (tab === 'user' ? '/shop/login' : '/shop/' + tab))}
-                    wishlistCount={wishlist.length}
-                    ordersCount={orders.length}
-                    activeSubPage={activeSubPage}
-                    setActiveSubPage={(sub) => navigateTo(sub ? `/shop/profile/${sub}` : '/shop/profile')}
-                    currentUser={currentUser}
-                    onUpdateUser={handleUpdateUser}
-                    onLogout={handleLogoutUser}
-                  />
-                )}
+                    {activeTab === 'profile' && (
+                      <ProfileView
+                        onBack={() => navigateTo('/shop')}
+                        onOpenCart={() => navigateTo('/shop/cart')}
+                        cartCount={cart.reduce((acc, item) => acc + item.quantity, 0)}
+                        onSelectTab={(tab) => navigateTo(tab === 'home' ? '/shop' : (tab === 'user' ? '/shop/login' : '/shop/' + tab))}
+                        wishlistCount={wishlist.length}
+                        ordersCount={orders.length}
+                        activeSubPage={activeSubPage}
+                        setActiveSubPage={(sub) => navigateTo(sub ? `/shop/profile/${sub}` : '/shop/profile')}
+                        currentUser={currentUser}
+                        onUpdateUser={handleUpdateUser}
+                        onLogout={handleLogoutUser}
+                      />
+                    )}
 
-                {activeTab === 'cart' && (
-                  <CartView
-                    isOpen={true}
-                    onClose={() => navigateTo('/shop')}
-                    cart={cart}
-                    onUpdateQuantity={handleUpdateQuantity}
-                    onRemoveItem={handleRemoveItem}
-                    onPlaceOrder={handlePlaceOrder}
-                    coupons={coupons}
-                    currentUser={currentUser}
-                    onNavigate={(path) => navigateTo(path.startsWith('/shop') ? path : (path === '/user' ? '/shop/login' : `/shop${path}`))}
-                  />
-                )}
+                    {activeTab === 'cart' && (
+                      <CartView
+                        isOpen={true}
+                        onClose={() => navigateTo('/shop')}
+                        cart={cart}
+                        onUpdateQuantity={handleUpdateQuantity}
+                        onRemoveItem={handleRemoveItem}
+                        onPlaceOrder={handlePlaceOrder}
+                        coupons={coupons}
+                        currentUser={currentUser}
+                        onNavigate={(path) => navigateTo(path.startsWith('/shop') ? path : (path === '/user' ? '/shop/login' : `/shop${path}`))}
+                      />
+                    )}
+                  </motion.div>
+                </AnimatePresence>
 
                 {activeTab === 'store' && (
                   <VendorStoreView

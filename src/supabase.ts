@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { Product, Order, Coupon, Banner, Category, Vendor } from './types';
-import { mockProducts, mockCategories, initialBanners } from './data';
+import { Product, Order, Coupon, Banner, Category, Vendor, CategoryFilter } from './types';
+import { mockProducts, initialBanners } from './data';
 
 // -------------------------------------------------------------
 // SECURE HYBRID CONFIGURATION
@@ -181,7 +181,29 @@ export async function fetchCategoriesUnified(): Promise<Category[]> {
     } catch (_) {}
   }
 
-  return mockCategories;
+  return [];
+}
+
+/**
+ * Fetch Category Filters
+ */
+export async function fetchCategoryFiltersUnified(): Promise<CategoryFilter[]> {
+  const apiFilters = await fetchSafeJson(getApiUrl('/api/category-filters'));
+  if (apiFilters && Array.isArray(apiFilters) && apiFilters.length > 0) {
+    return apiFilters;
+  }
+
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { data, error } = await sb.from('category_filters').select('*').order('position', { ascending: true });
+      if (!error && data && data.length > 0) {
+        return data.map((r: any) => r.data || r);
+      }
+    } catch (_) {}
+  }
+
+  return [];
 }
 
 /**

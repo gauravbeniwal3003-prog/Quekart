@@ -1,7 +1,8 @@
-import { useState, useMemo, MouseEvent } from 'react';
+import { useState, useMemo, useEffect, MouseEvent } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, SlidersHorizontal, ShoppingBag, Heart, CheckCircle2, ChevronDown, Loader2, Tag, Star, X, Check, RotateCcw } from 'lucide-react';
 import { Product } from '../types';
+import { resetScrollToTop } from '../utils/scroll';
 import { useInfiniteProductPagination } from '../hooks/useInfiniteProductPagination';
 import { HighlightedText } from './HighlightedText';
 import { useProductImpressionObserver } from '../hooks/useProductImpressionObserver';
@@ -32,6 +33,10 @@ export default function CategoryProductsView({
 }: CategoryProductsViewProps) {
   // Activate automatic product impression tracking (1 count per 3 hours per IP)
   useProductImpressionObserver();
+
+  useEffect(() => {
+    resetScrollToTop();
+  }, [filterName]);
 
   const [sortBy, setSortBy] = useState<string>('popular');
   const [showSortDropdown, setShowSortDropdown] = useState(false);
@@ -114,7 +119,7 @@ export default function CategoryProductsView({
   return (
     <div className="flex flex-col bg-gray-50 min-h-full" id="category-products-page">
       {/* Sticky Header Row */}
-      <div className="sticky top-0 z-[100] bg-white border-b border-gray-100 px-4 py-3 shadow-3xs" id="category-page-header">
+      <div className="sticky top-[52px] md:top-[64px] z-40 bg-white border-b border-gray-100 px-4 py-3 shadow-3xs" id="category-page-header">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
@@ -321,15 +326,20 @@ export default function CategoryProductsView({
                 const isWishlisted = wishlist.includes(product.id);
                 const isTrigger = idx === triggerIndex;
                 return (
-                  <div
+                  <motion.div
                     key={product.id}
                     data-product-id={product.id}
                     ref={isTrigger ? triggerRef : undefined}
+                    initial={{ opacity: 0, y: 12, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.2, delay: Math.min(idx * 0.02, 0.2) }}
+                    whileHover={{ y: -3, scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => {
                       trackProductView(product.id);
                       onSelectProduct(product.id);
                     }}
-                    className="bg-white border border-gray-100/80 rounded-xl overflow-hidden hover:shadow-md active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between group h-full relative"
+                    className="bg-white border border-gray-100/80 rounded-xl overflow-hidden hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group h-full relative"
                     id={`category-product-card-${product.id}`}
                   >
                     {/* Image container */}
@@ -421,7 +431,7 @@ export default function CategoryProductsView({
                         )}
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>

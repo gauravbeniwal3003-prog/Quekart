@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Trash2, ShieldCheck, MapPin, CheckCircle, ArrowLeft, CreditCard, Ticket, Tag, Percent, ChevronDown, ChevronUp, Search, Lock, User, Phone } from 'lucide-react';
 import { CartItem, Order, Coupon } from '../types';
 import { getApiUrl } from '../utils/api';
+import { resetScrollToTop } from '../utils/scroll';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -43,6 +44,10 @@ export default function CartDrawer({
   // Checkout phases: 'cart' -> 'address' -> 'payment' -> 'success'
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'address' | 'success'>('cart');
   const [placedOrderId, setPlacedOrderId] = useState('');
+
+  useEffect(() => {
+    resetScrollToTop();
+  }, [checkoutStep]);
 
   // Coupon System State
   const [inputCoupon, setInputCoupon] = useState('');
@@ -196,7 +201,7 @@ export default function CartDrawer({
       <div className="relative w-full max-w-md md:max-w-4xl lg:max-w-5xl bg-white h-full min-h-screen sm:min-h-0 sm:rounded-2xl sm:border border-gray-200/80 flex flex-col shadow-sm z-10 overflow-hidden" id="cart-view-panel">
         
         {/* Header */}
-        <div className="sticky top-[60px] md:top-[120px] z-[90] bg-white px-4 sm:px-6 py-4 border-b border-gray-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs" id="cart-sticky-header">
+        <div className="sticky top-[52px] md:top-[64px] z-40 bg-white px-4 sm:px-6 py-4 border-b border-gray-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs" id="cart-sticky-header">
           <div className="flex items-center gap-2.5">
             {checkoutStep === 'address' && (
               <button onClick={() => setCheckoutStep('cart')} className="p-1 hover:bg-gray-100 rounded-full cursor-pointer">

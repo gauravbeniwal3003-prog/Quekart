@@ -189,7 +189,7 @@ export default function VendorStoreView({
     <div className="bg-slate-50 min-h-screen pb-24 text-slate-900 selection:bg-[#143C6B]/10 selection:text-[#143C6B]" id="vendor-store-view-root">
       
       {/* 1. TOP APP BAR */}
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-200/80 shadow-3xs px-3 sm:px-6 py-2.5 sm:py-3" id="store-header">
+      <header className="sticky top-[52px] md:top-[64px] z-40 bg-white border-b border-slate-200/80 shadow-3xs px-3 sm:px-6 py-2.5 sm:py-3" id="store-header">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
           
           <div className="flex items-center gap-3">

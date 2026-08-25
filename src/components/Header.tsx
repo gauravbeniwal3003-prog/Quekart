@@ -35,6 +35,34 @@ export default function Header({
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const viewport = document.getElementById('applet-content-viewport');
+      const scrollTop = viewport ? viewport.scrollTop : (window.scrollY || document.documentElement.scrollTop || 0);
+      if (scrollTop > 20) {
+        setIsScrolled(true);
+      } else if (scrollTop < 10) {
+        setIsScrolled(false);
+      }
+    };
+
+    const viewport = document.getElementById('applet-content-viewport');
+    if (viewport) {
+      viewport.addEventListener('scroll', handleScroll, { passive: true });
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    handleScroll();
+
+    return () => {
+      if (viewport) {
+        viewport.removeEventListener('scroll', handleScroll);
+      }
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
   
   // Search History from LocalStorage
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
@@ -183,19 +211,25 @@ export default function Header({
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-gray-100 shadow-xs px-4 md:px-8 py-2 md:py-3" id="lucky-header">
+    <header className={`sticky top-0 z-50 bg-white/95 backdrop-blur-md transition-all duration-300 ease-in-out ${isScrolled ? 'shadow-md border-b border-gray-200 py-1.5 md:py-2.5 px-3 md:px-8' : 'border-b border-gray-100 shadow-xs py-2 md:py-3 px-4 md:px-8'}`} id="lucky-header">
       {/* Container to restrict max width on desktop but let it stay fluid */}
       <div className="max-w-7xl mx-auto w-full">
         {/* Top Header Row */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1.5 md:gap-6">
           
           {/* Logo & Refer row on Mobile, Logo on Left on Desktop */}
-          <div className="flex items-center justify-between md:justify-start gap-4 flex-shrink-0 w-full md:w-auto">
+          <div 
+            className={`transition-all duration-300 ease-in-out flex items-center justify-between md:justify-start gap-3 flex-shrink-0 w-full md:w-auto ${
+              isScrolled 
+                ? 'max-h-0 opacity-0 mb-0 overflow-hidden pointer-events-none md:max-h-none md:opacity-100 md:overflow-visible md:pointer-events-auto' 
+                : 'max-h-16 opacity-100 mb-1 md:mb-0 overflow-visible pointer-events-auto'
+            }`}
+          >
             {/* Left Section (Profile & Refer) - Mobile Only */}
             <div className="flex items-center gap-2 md:hidden flex-shrink-0">
               <button
                 onClick={() => onSelectTab('profile')}
-                className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center cursor-pointer transition-transform active:scale-95"
+                className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center cursor-pointer transition-transform active:scale-95"
                 id="avatar-btn-mobile"
               >
                 <img
@@ -225,7 +259,7 @@ export default function Header({
                 className="p-1.5 hover:bg-gray-100 rounded-full relative cursor-pointer text-gray-700 transition-colors"
                 id="wishlist-header-btn-mobile"
               >
-                <Heart className="w-6 h-6 stroke-2 hover:fill-red-500 hover:text-red-500 transition-colors" />
+                <Heart className="w-5 h-5 stroke-2 hover:fill-red-500 hover:text-red-500 transition-colors" />
               </button>
               
               <button
@@ -233,9 +267,9 @@ export default function Header({
                 className="p-1.5 hover:bg-gray-100 rounded-full relative cursor-pointer text-gray-700 transition-colors"
                 id="cart-header-btn-mobile"
               >
-                <ShoppingCart className="w-6 h-6 stroke-2" />
+                <ShoppingCart className="w-5 h-5 stroke-2" />
                 {totalItems > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-lucky-magenta text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center animate-scaleIn border border-white">
+                  <span className="absolute -top-1.5 -right-1.5 bg-lucky-magenta text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-scaleIn border border-white">
                     {totalItems}
                   </span>
                 )}
@@ -243,37 +277,50 @@ export default function Header({
             </div>
           </div>
 
-          {/* Search Bar (responsive width) */}
-          <div className="relative flex flex-col flex-1 max-w-2xl md:mx-auto w-full" id="search-container" ref={containerRef}>
-            <div className="relative flex items-center w-full">
-              <div className="absolute left-3.5 text-gray-400">
-                <Search className="w-5 h-5 stroke-2" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search by Keyword, Product or Category..."
-                value={searchQuery}
-                onChange={(e) => {
-                  onSearch(e.target.value);
-                  setShowSuggestions(true);
-                  setActiveSuggestionIndex(-1);
-                }}
-                onFocus={() => setShowSuggestions(true)}
-                onKeyDown={handleKeyDown}
-                className="w-full pl-11 pr-20 py-2 md:py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 placeholder-gray-400 focus:outline-hidden focus:border-lucky-magenta focus:bg-white transition-all shadow-inner"
-                id="search-input"
-                autoComplete="off"
-              />
-              <div className="absolute right-3 flex items-center gap-3 text-gray-400">
-                <button className="hover:text-lucky-magenta transition-colors cursor-pointer" title="Voice Search" id="mic-btn">
-                  <Mic className="w-5 h-5" />
-                </button>
-                <div className="h-4 w-[1px] bg-gray-300"></div>
-                <button className="hover:text-lucky-magenta transition-colors cursor-pointer" title="Search by Photo" id="camera-btn">
-                  <Camera className="w-5 h-5" />
-                </button>
-              </div>
+          {/* Search Bar Container */}
+          <div className="flex items-center gap-2 w-full md:w-auto flex-1">
+            {/* Inline mini logo on mobile when scrolled */}
+            <div 
+              className={`transition-all duration-300 ease-in-out md:hidden flex items-center gap-2 flex-shrink-0 ${
+                isScrolled 
+                  ? 'max-w-[120px] opacity-100 pointer-events-auto' 
+                  : 'max-w-0 opacity-0 overflow-hidden pointer-events-none'
+              }`}
+            >
+              <BrandLogo size="sm" onClick={() => onSelectTab('home')} />
             </div>
+
+            {/* Search Bar (responsive width) */}
+            <div className="relative flex flex-col flex-1 max-w-2xl md:mx-auto w-full" id="search-container" ref={containerRef}>
+              <div className="relative flex items-center w-full">
+                <div className="absolute left-3.5 text-gray-400">
+                  <Search className="w-4 h-4 md:w-5 md:h-5 stroke-2" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search by Keyword, Product or Category..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    onSearch(e.target.value);
+                    setShowSuggestions(true);
+                    setActiveSuggestionIndex(-1);
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  onKeyDown={handleKeyDown}
+                  className="w-full pl-10 md:pl-11 pr-16 md:pr-20 py-1.5 md:py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs md:text-sm text-gray-800 placeholder-gray-400 focus:outline-hidden focus:border-lucky-magenta focus:bg-white transition-all shadow-inner"
+                  id="search-input"
+                  autoComplete="off"
+                />
+                <div className="absolute right-3 flex items-center gap-2 md:gap-3 text-gray-400">
+                  <button className="hover:text-lucky-magenta transition-colors cursor-pointer" title="Voice Search" id="mic-btn">
+                    <Mic className="w-4 h-4 md:w-5 md:h-5" />
+                  </button>
+                  <div className="h-3.5 md:h-4 w-[1px] bg-gray-300"></div>
+                  <button className="hover:text-lucky-magenta transition-colors cursor-pointer" title="Search by Photo" id="camera-btn">
+                    <Camera className="w-4 h-4 md:w-5 md:h-5" />
+                  </button>
+                </div>
+              </div>
 
             {/* Smart Suggestions Dropdown */}
             {showSuggestions && (
@@ -401,6 +448,7 @@ export default function Header({
               </div>
             )}
           </div>
+        </div>
 
           {/* Desktop Right Header Actions - Hidden on Mobile */}
           <div className="hidden md:flex items-center gap-6 flex-shrink-0">
@@ -567,40 +615,6 @@ export default function Header({
             </div>
           </div>
 
-        </div>
-
-        {/* Desktop Navigation Sub-bar - Hidden on Mobile */}
-        <div className="hidden md:flex items-center justify-center lg:justify-start gap-8 md:gap-10 py-3 border-t border-gray-100 mt-3 text-xs md:text-sm font-extrabold text-gray-600 tracking-wide uppercase">
-          <button
-            onClick={() => onSelectTab('home')}
-            className={`hover:text-lucky-magenta transition-all cursor-pointer relative pb-1 ${activeTab === 'home' ? 'text-lucky-magenta font-black border-b-2 border-lucky-magenta' : ''}`}
-          >
-            Home Feed
-          </button>
-          <button
-            onClick={() => onSelectTab('categories')}
-            className={`hover:text-lucky-magenta transition-all cursor-pointer relative pb-1 ${activeTab === 'categories' ? 'text-lucky-magenta font-black border-b-2 border-lucky-magenta' : ''}`}
-          >
-            All Categories
-          </button>
-          <button
-            onClick={() => onSelectTab('orders')}
-            className={`hover:text-lucky-magenta transition-all cursor-pointer relative pb-1 ${activeTab === 'orders' ? 'text-lucky-magenta font-black border-b-2 border-lucky-magenta' : ''}`}
-          >
-            My Orders
-          </button>
-          <button
-            onClick={() => onSelectTab('wishlist')}
-            className={`hover:text-lucky-magenta transition-all cursor-pointer relative pb-1 ${activeTab === 'wishlist' ? 'text-lucky-magenta font-black border-b-2 border-lucky-magenta' : ''}`}
-          >
-            Wishlist
-          </button>
-          <button
-            onClick={() => onSelectTab('profile')}
-            className={`hover:text-lucky-magenta transition-all cursor-pointer relative pb-1 ${activeTab === 'profile' ? 'text-lucky-magenta font-black border-b-2 border-lucky-magenta' : ''}`}
-          >
-            Account
-          </button>
         </div>
 
       </div>

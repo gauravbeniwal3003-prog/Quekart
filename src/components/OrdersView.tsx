@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, SlidersHorizontal, ChevronRight, Package, RotateCcw, CheckCircle2, AlertCircle, Clock, ShieldCheck, Wallet, ArrowLeft, X } from 'lucide-react';
 import { Order } from '../types';
+import { resetScrollToTop } from '../utils/scroll';
 
 interface OrdersViewProps {
   orders: Order[];
@@ -24,6 +25,10 @@ export default function OrdersView({
   const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
   const [returnSuccessMessage, setReturnSuccessMessage] = useState<string | null>(null);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+
+  useEffect(() => {
+    resetScrollToTop();
+  }, []);
 
   // If user is not logged in (guest mode), show clean Meesho-style Logged-Out Orders State
   if (!currentUser) {
@@ -93,7 +98,7 @@ export default function OrdersView({
   return (
     <div className="bg-gray-50 min-h-[calc(100vh-130px)] pb-16 w-full" id="orders-view-container">
       {/* Sticky Header Section */}
-      <div className="sticky top-[60px] md:top-[120px] z-[90] bg-gray-50 px-4 pt-3 pb-3 border-b border-gray-200/80 shadow-xs" id="orders-sticky-header">
+      <div className="sticky top-[52px] md:top-[64px] z-40 bg-gray-50 px-4 pt-3 pb-3 border-b border-gray-200/80 shadow-xs" id="orders-sticky-header">
         {/* Search orders & filters row */}
         <div className="max-w-4xl lg:max-w-5xl mx-auto flex items-center gap-3" id="orders-search-row">
           <div className="relative flex-1">

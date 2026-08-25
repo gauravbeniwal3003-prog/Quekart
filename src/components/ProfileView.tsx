@@ -1,6 +1,7 @@
 import React from 'react';
 import Logo, { BrandLogo } from './Logo';
 import { getApiUrl } from '../utils/api';
+import { resetScrollToTop } from '../utils/scroll';
 import { 
   ChevronLeft, 
   Search, 
@@ -258,7 +259,7 @@ export default function ProfileView({
 
   // Scroll to top instantly when subpage changes inside profile
   React.useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'auto' });
+    resetScrollToTop();
   }, [activeSubPage]);
 
   const guardAuthAction = (actionCallback: () => void, featureName: string) => {

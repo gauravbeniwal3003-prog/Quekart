@@ -4,8 +4,8 @@ import { createServer as createViteServer } from 'vite';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from '@google/genai';
-import { mockProducts, initialOrders, mockCategories, initialBanners } from './src/data.js';
-import { Product, Order, Coupon, CartItem, Vendor, Category, Banner } from './src/types.js';
+import { mockProducts, initialOrders, mockCategories, initialBanners, mockCategoryFilters } from './src/data.js';
+import { Product, Order, Coupon, CartItem, Vendor, Category, Banner, CategoryFilter } from './src/types.js';
 import fs from 'fs';
 import crypto from 'crypto';
 
@@ -238,6 +238,7 @@ let localOrders: Order[] = [...initialOrders];
 let localCoupons: Coupon[] = [...initialCouponsList];
 let localVendors: Vendor[] = [...initialVendors];
 let localCategories: Category[] = [...mockCategories];
+let localCategoryFilters: CategoryFilter[] = [...mockCategoryFilters];
 let localBanners: Banner[] = [...initialBanners];
 let localGstResults: Array<{
   gstin: string;
@@ -288,6 +289,7 @@ if (fs.existsSync('./mock_data.json')) {
     const raw = fs.readFileSync('./mock_data.json', 'utf8');
     const parsed = JSON.parse(raw);
     if (parsed.categories && parsed.categories.length > 0) localCategories = parsed.categories;
+    if (parsed.categoryFilters && parsed.categoryFilters.length > 0) localCategoryFilters = parsed.categoryFilters;
     if (parsed.banners && parsed.banners.length > 0) localBanners = parsed.banners;
     if (parsed.products && parsed.products.length > 0) localProducts = parsed.products;
     if (parsed.orders && parsed.orders.length > 0) localOrders = parsed.orders;
@@ -301,6 +303,7 @@ if (fs.existsSync('./mock_data.json')) {
 }
 
 if (localCategories.length === 0) localCategories = [...mockCategories];
+if (localCategoryFilters.length === 0) localCategoryFilters = [...mockCategoryFilters];
 if (localBanners.length === 0) localBanners = [...initialBanners];
 
 // Sync and generate mock_data.json for Python backend parity
@@ -309,6 +312,7 @@ try {
     products: localProducts,
     orders: localOrders,
     categories: localCategories,
+    categoryFilters: localCategoryFilters,
     coupons: localCoupons,
     vendors: localVendors,
     users: localUsers,
@@ -318,6 +322,24 @@ try {
   console.log('✅ Synchronized ./mock_data.json successfully.');
 } catch (e) {
   console.warn('⚠️ Failed to sync ./mock_data.json:', e);
+}
+
+function saveMockDataFile() {
+  try {
+    const dumpData = {
+      products: localProducts,
+      orders: localOrders,
+      categories: localCategories,
+      categoryFilters: localCategoryFilters,
+      coupons: localCoupons,
+      vendors: localVendors,
+      users: localUsers,
+      banners: localBanners
+    };
+    fs.writeFileSync('./mock_data.json', JSON.stringify(dumpData, null, 2), 'utf8');
+  } catch (e) {
+    console.warn('⚠️ Failed to save mock_data.json:', e);
+  }
 }
 
 // -------------------------------------------------------------
@@ -417,6 +439,30 @@ async function testAndSeedSupabase() {
       }
     } else {
       console.log('ℹ️ Categories table in Supabase using local cache fallback.');
+    }
+
+    // 5.5. Verify category_filters table
+    const { data: filtCountData, error: filtError } = await supabase.from('category_filters').select('id');
+    if (!filtError) {
+      const existingFilterIds = new Set((filtCountData || []).map((row: any) => row.id));
+      if (existingFilterIds.size === 0 && localCategoryFilters.length > 0) {
+        console.log('🌱 category_filters table is empty. Seeding default category filters...');
+        for (let i = 0; i < localCategoryFilters.length; i++) {
+          const f = localCategoryFilters[i];
+          const { error: insertErr } = await supabase.from('category_filters').insert({ id: f.id, data: f, position: i });
+          if (insertErr) {
+            console.warn(`⚠️ Note seeding category filter ${f.id}:`, insertErr.message || insertErr);
+          }
+        }
+      } else {
+        console.log(`📊 Category Filters in Supabase: ${existingFilterIds.size}. Upserting database records...`);
+        for (let i = 0; i < localCategoryFilters.length; i++) {
+          const f = localCategoryFilters[i];
+          await supabase.from('category_filters').upsert({ id: f.id, data: f, position: i });
+        }
+      }
+    } else {
+      console.log('ℹ️ category_filters table in Supabase using local cache fallback.');
     }
 
     // 6. Verify banners table (Managed dynamically via Admin Panel)
@@ -3684,17 +3730,27 @@ app.post('/api/coupons', authenticateAdmin, async (req, res) => {
 
   try {
     if (useSupabase && supabase) {
-      const { error } = await supabase.from('coupons').insert([{ code: newCoupon.code, data: newCoupon }]);
-      if (!error) {
-        return res.status(201).json(newCoupon);
+      const { error } = await supabase.from('coupons').upsert({ code: newCoupon.code, data: newCoupon });
+      if (error) {
+        throw error;
       }
-      throw error;
     }
 
-    localCoupons.unshift(newCoupon);
+    const existingIndex = localCoupons.findIndex(c => c.code === newCoupon.code);
+    if (existingIndex > -1) {
+      localCoupons[existingIndex] = newCoupon;
+    } else {
+      localCoupons.unshift(newCoupon);
+    }
     res.status(201).json(newCoupon);
   } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to create coupon' });
+    const existingIndex = localCoupons.findIndex(c => c.code === newCoupon.code);
+    if (existingIndex > -1) {
+      localCoupons[existingIndex] = newCoupon;
+    } else {
+      localCoupons.unshift(newCoupon);
+    }
+    res.status(201).json(newCoupon);
   }
 });
 
@@ -3831,6 +3887,126 @@ app.post('/api/categories/reorder', authenticateAdmin, async (req, res) => {
   }
 });
 
+// --- CATEGORY FILTERS ---
+app.get('/api/category-filters', async (req, res) => {
+  try {
+    if (useSupabase && supabase) {
+      const { data, error } = await supabase.from('category_filters').select('*').order('position', { ascending: true });
+      if (!error && data && data.length > 0) {
+        return res.json(data.map((row: any) => row.data));
+      }
+    }
+    res.json(localCategoryFilters);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch category filters' });
+  }
+});
+
+app.post('/api/category-filters', authenticateAdmin, async (req, res) => {
+  const newFilter: CategoryFilter = req.body;
+  if (!newFilter || !newFilter.id) {
+    return res.status(400).json({ error: 'Invalid category filter data' });
+  }
+
+  try {
+    if (useSupabase && supabase) {
+      const { data: countData } = await supabase.from('category_filters').select('id');
+      const position = countData ? countData.length : 0;
+      const { error } = await supabase.from('category_filters').insert([{ id: newFilter.id, data: newFilter, position }]);
+      if (!error) {
+        localCategoryFilters.push(newFilter);
+        saveMockDataFile();
+        return res.status(201).json(newFilter);
+      }
+      throw error;
+    }
+
+    localCategoryFilters.push(newFilter);
+    saveMockDataFile();
+    res.status(201).json(newFilter);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to create category filter' });
+  }
+});
+
+app.put('/api/category-filters/:id', authenticateAdmin, async (req, res) => {
+  const { id } = req.params;
+  const updatedFilter: CategoryFilter = req.body;
+  if (!updatedFilter) {
+    return res.status(400).json({ error: 'Invalid category filter data' });
+  }
+
+  try {
+    if (useSupabase && supabase) {
+      const { error } = await supabase.from('category_filters').update({ data: updatedFilter }).eq('id', id);
+      if (!error) {
+        localCategoryFilters = localCategoryFilters.map(f => f.id === id ? updatedFilter : f);
+        saveMockDataFile();
+        return res.json(updatedFilter);
+      }
+      throw error;
+    }
+
+    localCategoryFilters = localCategoryFilters.map(f => f.id === id ? updatedFilter : f);
+    saveMockDataFile();
+    res.json(updatedFilter);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to update category filter' });
+  }
+});
+
+app.delete('/api/category-filters/:id', authenticateAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (useSupabase && supabase) {
+      const { error } = await supabase.from('category_filters').delete().eq('id', id);
+      if (!error) {
+        localCategoryFilters = localCategoryFilters.filter(f => f.id !== id);
+        saveMockDataFile();
+        return res.json({ success: true, message: 'Category filter deleted successfully' });
+      }
+      throw error;
+    }
+
+    localCategoryFilters = localCategoryFilters.filter(f => f.id !== id);
+    saveMockDataFile();
+    res.json({ success: true, message: 'Category filter deleted' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to delete category filter' });
+  }
+});
+
+app.post('/api/category-filters/reorder', authenticateAdmin, async (req, res) => {
+  const { ids } = req.body;
+  if (!ids || !Array.isArray(ids)) {
+    return res.status(400).json({ error: 'Invalid ids array' });
+  }
+
+  try {
+    if (useSupabase && supabase) {
+      for (let i = 0; i < ids.length; i++) {
+        const { error } = await supabase.from('category_filters').update({ position: i }).eq('id', ids[i]);
+        if (error) throw error;
+      }
+    }
+
+    const ordered: CategoryFilter[] = [];
+    for (const fid of ids) {
+      const found = localCategoryFilters.find(f => f.id === fid);
+      if (found) ordered.push(found);
+    }
+    for (const f of localCategoryFilters) {
+      if (!ids.includes(f.id)) ordered.push(f);
+    }
+    localCategoryFilters = ordered;
+    saveMockDataFile();
+
+    res.json({ success: true, message: 'Category filters reordered successfully' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to reorder category filters' });
+  }
+});
+
 
 // --- BANNERS ---
 app.get('/api/banners', async (req, res) => {
@@ -3855,16 +4031,26 @@ app.post('/api/banners', authenticateAdmin, async (req, res) => {
 
   try {
     if (useSupabase && supabase) {
-      const { error } = await supabase.from('banners').insert([{ id: newBanner.id, data: newBanner }]);
+      const { error } = await supabase.from('banners').upsert({ id: newBanner.id, data: newBanner });
       if (error) {
-        console.warn('⚠️ Supabase banner insert fallback to local:', error.message || error);
+        console.warn('⚠️ Supabase banner upsert fallback to local:', error.message || error);
       }
     }
 
-    localBanners.push(newBanner);
+    const existingIndex = localBanners.findIndex(b => b.id === newBanner.id);
+    if (existingIndex > -1) {
+      localBanners[existingIndex] = newBanner;
+    } else {
+      localBanners.push(newBanner);
+    }
     res.status(201).json(newBanner);
   } catch (err: any) {
-    localBanners.push(newBanner);
+    const existingIndex = localBanners.findIndex(b => b.id === newBanner.id);
+    if (existingIndex > -1) {
+      localBanners[existingIndex] = newBanner;
+    } else {
+      localBanners.push(newBanner);
+    }
     res.status(201).json(newBanner);
   }
 });

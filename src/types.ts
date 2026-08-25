@@ -261,6 +261,13 @@ export interface Category {
   }[];
 }
 
+export interface CategoryFilter {
+  id: string;
+  name: string;
+  image?: string;
+  categoryIds: string[]; // List of Category IDs belonging to this filter
+}
+
 export interface Banner {
   id: string;
   imageUrl: string;
@@ -270,6 +277,8 @@ export interface Banner {
   subtitle?: string;
   code?: string;
   targetCategory?: string;
+  row?: 'upper' | 'lower';
+  order?: number;
 }
 
 export interface Coupon {

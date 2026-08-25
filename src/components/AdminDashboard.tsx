@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getApiUrl } from '../utils/api';
+import { resetScrollToTop } from '../utils/scroll';
 import { 
   LayoutDashboard, 
   Package, 
@@ -46,11 +47,12 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Product, Order, Coupon, CartItem, Vendor, Banner, Category, AppUser } from '../types';
+import { Product, Order, Coupon, CartItem, Vendor, Banner, Category, AppUser, CategoryFilter } from '../types';
 import Logo, { BrandLogo, QueKartLogoText } from './Logo';
 import { fetchAdminAnalytics } from '../utils/analytics';
 import { ReturnPolicyAccordion, SizeAndParametersManager } from './ProductFormControls';
 import CategorySmartCropModal from './CategorySmartCropModal';
+import BannerSmartCropModal from './BannerSmartCropModal';
 
 interface AdminDashboardProps {
   products: Product[];
@@ -59,6 +61,9 @@ interface AdminDashboardProps {
   banners?: Banner[];
   categories?: Category[];
   onSetCategories?: (categories: Category[]) => void;
+  categoryFilters?: CategoryFilter[];
+  onSetCategoryFilters?: (filters: CategoryFilter[]) => void;
+  onRefreshShopData?: () => void;
   onAddProduct: (product: Product) => void;
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (id: string) => void;
@@ -82,6 +87,9 @@ export default function AdminDashboard({
   banners = [],
   categories = [],
   onSetCategories = () => {},
+  categoryFilters = [],
+  onSetCategoryFilters = () => {},
+  onRefreshShopData = () => {},
   onAddProduct,
   onEditProduct,
   onDeleteProduct,
@@ -149,6 +157,7 @@ export default function AdminDashboard({
           orders: data.ordersSynced
         });
         setSyncStatus('success');
+        onRefreshShopData();
       } else {
         setSyncStatus('failed');
         const err = await res.json();
@@ -166,6 +175,11 @@ export default function AdminDashboard({
   // Navigation State
   const activeTab = activeSubPage || 'overview';
   const setActiveTab = setActiveSubPage || (() => {});
+
+  // Scroll to top on sub-page / tab switch in Admin
+  useEffect(() => {
+    resetScrollToTop();
+  }, [activeTab]);
 
   // TailAdmin Interface States
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -371,6 +385,7 @@ export default function AdminDashboard({
         fetch('/api/products?all=true').then(r => r.json()).then(data => {
           if (Array.isArray(data)) setLiveProducts(data);
         }).catch(() => {});
+        onRefreshShopData();
         alert(`Seller "${vendor.name}" is now ${nextStatus === 'banned' ? 'BANNED. Products are now private.' : 'ACTIVATED.'}`);
       } else {
         const err = await res.json();
@@ -390,6 +405,7 @@ export default function AdminDashboard({
       if (res.ok) {
         setVendors(prev => prev.filter(v => v.id !== vendor.id));
         setLiveProducts(prev => prev.filter(p => p.vendorId !== vendor.id));
+        onRefreshShopData();
         alert(`Seller "${vendor.name}" and all associated products have been deleted.`);
       } else {
         const err = await res.json();
@@ -538,6 +554,7 @@ export default function AdminDashboard({
   }, [activeSubPage, products, vendors, orders]);
 
   // Categories management states
+  const [categorySubTab, setCategorySubTab] = useState<'categories' | 'filters'>('categories');
   const [categoryFormMode, setCategoryFormMode] = useState<'add' | 'edit' | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [categoryName, setCategoryName] = useState('');
@@ -547,10 +564,20 @@ export default function AdminDashboard({
   const [isSavingCategory, setIsSavingCategory] = useState(false);
   const [categoryError, setCategoryError] = useState<string | null>(null);
 
+  // Category Filters management states
+  const [filterFormMode, setFilterFormMode] = useState<'add' | 'edit' | null>(null);
+  const [editingFilter, setEditingFilter] = useState<CategoryFilter | null>(null);
+  const [filterName, setFilterName] = useState('');
+  const [filterImage, setFilterImage] = useState('');
+  const [filterCategoryIds, setFilterCategoryIds] = useState<string[]>([]);
+  const [isSavingFilter, setIsSavingFilter] = useState(false);
+  const [filterError, setFilterError] = useState<string | null>(null);
+  const filterFileInputRef = React.useRef<HTMLInputElement | null>(null);
+
   // Category Smart Crop Modal states
   const [isCategoryCropperOpen, setIsCategoryCropperOpen] = useState(false);
   const [categoryCropperSrc, setCategoryCropperSrc] = useState('');
-  const [categoryCropTarget, setCategoryCropTarget] = useState<{ type: 'main' } | { type: 'sub'; index: number }>({ type: 'main' });
+  const [categoryCropTarget, setCategoryCropTarget] = useState<{ type: 'main' } | { type: 'sub'; index: number } | { type: 'filter' }>({ type: 'main' });
   const [isUploadingCategoryImage, setIsUploadingCategoryImage] = useState(false);
   const categoryFileInputRef = React.useRef<HTMLInputElement | null>(null);
   const subCategoryFileInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -633,6 +660,7 @@ export default function AdminDashboard({
       });
       if (res.ok) {
         onSetCategories(categories.filter(c => c.id !== catId));
+        onRefreshShopData();
       } else {
         const err = await res.json();
         alert(err.detail || 'Failed to delete category');
@@ -750,6 +778,7 @@ export default function AdminDashboard({
         } else {
           onSetCategories([...categories, savedData]);
         }
+        onRefreshShopData();
         // Reset and close form
         setCategoryFormMode(null);
         setEditingCategory(null);
@@ -769,7 +798,7 @@ export default function AdminDashboard({
     }
   };
 
-  const handleOpenCategoryCropper = (imageSrc: string, target: { type: 'main' } | { type: 'sub'; index: number }) => {
+  const handleOpenCategoryCropper = (imageSrc: string, target: { type: 'main' } | { type: 'sub'; index: number } | { type: 'filter' }) => {
     setCategoryCropperSrc(imageSrc || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=600');
     setCategoryCropTarget(target);
     setIsCategoryCropperOpen(true);
@@ -816,6 +845,8 @@ export default function AdminDashboard({
 
       if (categoryCropTarget.type === 'main') {
         setCategoryImage(finalImageUrl);
+      } else if (categoryCropTarget.type === 'filter') {
+        setFilterImage(finalImageUrl);
       } else {
         const updated = [...categorySubCats];
         if (updated[categoryCropTarget.index]) {
@@ -830,6 +861,172 @@ export default function AdminDashboard({
     } finally {
       setIsUploadingCategoryImage(false);
     }
+  };
+
+  const handleFilterFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setCategoryCropperSrc(event.target.result as string);
+        setCategoryCropTarget({ type: 'filter' });
+        setIsCategoryCropperOpen(true);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleFilterDelete = async (filterId: string) => {
+    try {
+      const res = await fetch(getApiUrl(`/api/category-filters/${filterId}`), {
+        method: 'DELETE',
+        headers: {
+          'x-admin-secret': adminPasscode
+        }
+      });
+      if (res.ok) {
+        onSetCategoryFilters(categoryFilters.filter(f => f.id !== filterId));
+        onRefreshShopData();
+      } else {
+        const err = await res.json();
+        alert(err.detail || 'Failed to delete category filter');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error deleting category filter');
+    }
+  };
+
+  const handleFilterMoveUp = async (index: number) => {
+    if (index === 0) return;
+    const newFilters = [...categoryFilters];
+    const temp = newFilters[index];
+    newFilters[index] = newFilters[index - 1];
+    newFilters[index - 1] = temp;
+    
+    // Optimistic UI update
+    onSetCategoryFilters(newFilters);
+
+    try {
+      const res = await fetch(getApiUrl('/api/category-filters/reorder'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-secret': adminPasscode
+        },
+        body: JSON.stringify({ ids: newFilters.map(f => f.id) })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        console.error('Failed to persist category filters reordering:', err);
+      }
+    } catch (err) {
+      console.error('Network error during category filters reordering:', err);
+    }
+  };
+
+  const handleFilterMoveDown = async (index: number) => {
+    if (index === categoryFilters.length - 1) return;
+    const newFilters = [...categoryFilters];
+    const temp = newFilters[index];
+    newFilters[index] = newFilters[index + 1];
+    newFilters[index + 1] = temp;
+
+    // Optimistic UI update
+    onSetCategoryFilters(newFilters);
+
+    try {
+      const res = await fetch(getApiUrl('/api/category-filters/reorder'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-secret': adminPasscode
+        },
+        body: JSON.stringify({ ids: newFilters.map(f => f.id) })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        console.error('Failed to persist category filters reordering:', err);
+      }
+    } catch (err) {
+      console.error('Network error during category filters reordering:', err);
+    }
+  };
+
+  const handleFilterSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!filterName.trim()) {
+      setFilterError('Filter Name is required');
+      return;
+    }
+
+    setIsSavingFilter(true);
+    setFilterError(null);
+
+    const generatedId = editingFilter?.id || 'filter-' + filterName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const payload: CategoryFilter = {
+      id: generatedId,
+      name: filterName,
+      image: filterImage || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150',
+      categoryIds: filterCategoryIds
+    };
+
+    try {
+      const url = filterFormMode === 'edit' ? `/api/category-filters/${editingFilter?.id}` : '/api/category-filters';
+      const method = filterFormMode === 'edit' ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-secret': adminPasscode
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        const savedData = await res.json();
+        if (filterFormMode === 'edit') {
+          onSetCategoryFilters(categoryFilters.map(f => f.id === editingFilter?.id ? savedData : f));
+        } else {
+          onSetCategoryFilters([...categoryFilters, savedData]);
+        }
+        onRefreshShopData();
+        setFilterFormMode(null);
+        setEditingFilter(null);
+        setFilterName('');
+        setFilterImage('');
+        setFilterCategoryIds([]);
+      } else {
+        const err = await res.json();
+        setFilterError(err.detail || 'Failed to save category filter');
+      }
+    } catch (err) {
+      console.error(err);
+      setFilterError('Network error saving category filter');
+    } finally {
+      setIsSavingFilter(false);
+    }
+  };
+
+  const triggerAddFilter = () => {
+    setFilterFormMode('add');
+    setEditingFilter(null);
+    setFilterName('');
+    setFilterImage('');
+    setFilterCategoryIds([]);
+    setFilterError(null);
+  };
+
+  const triggerEditFilter = (filt: CategoryFilter) => {
+    setFilterFormMode('edit');
+    setEditingFilter(filt);
+    setFilterName(filt.name);
+    setFilterImage(filt.image || '');
+    setFilterCategoryIds(filt.categoryIds || []);
+    setFilterError(null);
   };
 
   const triggerAddCategory = () => {
@@ -854,6 +1051,14 @@ export default function AdminDashboard({
     setCategoryError(null);
   };
 
+  // New Coupon Form Fields
+  const [cCode, setCCode] = useState('');
+  const [cType, setCType] = useState<'flat' | 'percentage'>('flat');
+  const [cValue, setCValue] = useState(50);
+  const [cMinPurchase, setCMinPurchase] = useState(299);
+  const [cDescription, setCDescription] = useState('Flat ₹50 OFF on orders above ₹299');
+  const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
+
   // Synchronize sub-view when tab changes or deep URL route parameters are hit
   React.useEffect(() => {
     if (activeTab && activeTab.startsWith('edit-product/')) {
@@ -869,19 +1074,76 @@ export default function AdminDashboard({
       resetProductForm();
       setAdminSubView('add-product');
     } else if (activeTab === 'add-coupon') {
+      setCCode('');
+      setCType('flat');
+      setCValue(50);
+      setCMinPurchase(299);
+      setCDescription('Flat ₹50 OFF on orders above ₹299');
+      setEditingCoupon(null);
       setAdminSubView('add-coupon');
+    } else if (activeTab && activeTab.startsWith('edit-coupon/')) {
+      const couponCode = activeTab.replace('edit-coupon/', '');
+      const foundCoupon = coupons.find(c => c.code === couponCode);
+      if (foundCoupon) {
+        setCCode(foundCoupon.code);
+        setCType(foundCoupon.discountType);
+        setCValue(foundCoupon.value);
+        setCMinPurchase(foundCoupon.minPurchase);
+        setCDescription(foundCoupon.description);
+        setEditingCoupon(foundCoupon);
+        setAdminSubView('add-coupon');
+      } else {
+        setAdminSubView('list');
+      }
     } else if (activeTab === 'add-banner') {
+      setBType('promotional');
+      setBImageUrl('');
+      setBLinkUrl('');
+      setBRow('upper');
+      setBOrder(1);
+      setBTitle('');
+      setBSubtitle('');
+      setBCode('');
+      setBTargetCategory('');
+      setEditingBanner(null);
       setAdminSubView('add-banner');
+    } else if (activeTab && activeTab.startsWith('edit-banner/')) {
+      const bId = activeTab.replace('edit-banner/', '');
+      const foundBanner = (banners || []).find(b => b.id === bId);
+      if (foundBanner) {
+        setBType(foundBanner.type);
+        setBImageUrl(foundBanner.imageUrl);
+        setBLinkUrl(foundBanner.linkUrl || '');
+        setBRow(foundBanner.row || 'upper');
+        setBOrder(foundBanner.order || 1);
+        setBTitle(foundBanner.title || '');
+        setBSubtitle(foundBanner.subtitle || '');
+        setBCode(foundBanner.code || '');
+        setBTargetCategory(foundBanner.targetCategory || '');
+        setEditingBanner(foundBanner);
+        setAdminSubView('add-banner');
+      } else {
+        setAdminSubView('list');
+      }
     } else {
       setAdminSubView('list');
     }
     setCategoryFormMode(null);
-  }, [activeTab, products]);
+  }, [activeTab, products, coupons, banners]);
 
   // New Banner Form Fields
   const [bType, setBType] = useState<'promotional' | 'news'>('promotional');
   const [bImageUrl, setBImageUrl] = useState('');
   const [bLinkUrl, setBLinkUrl] = useState('');
+  const [bRow, setBRow] = useState<'upper' | 'lower'>('upper');
+  const [bOrder, setBOrder] = useState<number>(1);
+  const [bTitle, setBTitle] = useState('');
+  const [bSubtitle, setBSubtitle] = useState('');
+  const [bCode, setBCode] = useState('');
+  const [bTargetCategory, setBTargetCategory] = useState('');
+  const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
+  const [isBannerCropOpen, setIsBannerCropOpen] = useState(false);
+  const [bannerCropSrc, setBannerCropSrc] = useState('');
 
   // New/Edit Product Form Fields
   const [pTitle, setPTitle] = useState('');
@@ -1189,13 +1451,6 @@ export default function AdminDashboard({
     }
   };
 
-  // New Coupon Form Fields
-  const [cCode, setCCode] = useState('');
-  const [cType, setCType] = useState<'flat' | 'percentage'>('flat');
-  const [cValue, setCValue] = useState(50);
-  const [cMinPurchase, setCMinPurchase] = useState(299);
-  const [cDescription, setCDescription] = useState('Flat ₹50 OFF on orders above ₹299');
-
   // Reset Product Form
   const resetProductForm = (product: Product | null = null) => {
     if (product) {
@@ -1318,9 +1573,12 @@ export default function AdminDashboard({
       onAddProduct(productPayload);
       setLiveProducts(prev => [productPayload, ...prev]);
     }
-    setAdminSubView('list');
     setEditingProduct(null);
-    setActiveTab('products');
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      setActiveTab('products');
+    }
   };
 
   // Submit Banner Form
@@ -1329,16 +1587,34 @@ export default function AdminDashboard({
     if (!bImageUrl.trim() || !onAddBanner) return;
 
     onAddBanner({
-      id: `banner-${Date.now()}`,
+      id: editingBanner ? editingBanner.id : `banner-${Date.now()}`,
       imageUrl: bImageUrl.trim(),
       linkUrl: bLinkUrl.trim() || undefined,
-      type: bType
+      type: bType,
+      row: bRow,
+      order: Number(bOrder) || 1,
+      title: bTitle.trim() || undefined,
+      subtitle: bSubtitle.trim() || undefined,
+      code: bCode.trim() || undefined,
+      targetCategory: bTargetCategory.trim() || undefined
     });
     
     setBImageUrl('');
     setBLinkUrl('');
     setBType('promotional');
-    setAdminSubView('list');
+    setBRow('upper');
+    setBOrder(1);
+    setBTitle('');
+    setBSubtitle('');
+    setBCode('');
+    setBTargetCategory('');
+    setEditingBanner(null);
+    
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      setActiveTab('banners');
+    }
   };
 
   // Submit Coupon Form
@@ -1355,12 +1631,19 @@ export default function AdminDashboard({
     };
 
     onAddCoupon(newCoupon);
-    setAdminSubView('list');
+    
     // Reset coupon fields
     setCCode('');
     setCValue(50);
     setCMinPurchase(299);
     setCDescription('');
+    setEditingCoupon(null);
+
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      setActiveTab('coupons');
+    }
   };
 
   // Enrich mock products with creation dates if missing
@@ -1660,31 +1943,20 @@ export default function AdminDashboard({
               <div className="bg-white px-3 py-1.5 rounded-t-lg border-t border-x border-slate-200 flex items-center gap-2 max-w-[240px] shadow-3xs">
                 <span className="text-emerald-500 text-xs shrink-0">🔒</span>
                 <span className="truncate">Edit SKU: {pTitle || 'Loading...'}</span>
-                <button 
-                  type="button"
-                  onClick={() => {
-                    setAdminSubView('list');
-                    setEditingProduct(null);
-                    setActiveTab('products');
-                  }}
-                  className="text-slate-400 hover:text-slate-600 font-normal ml-1"
-                >
-                  ✕
-                </button>
               </div>
-              <div className="px-3 py-1.5 text-slate-400 hover:text-slate-600 cursor-pointer text-[10px]">
+              <div className="px-3 py-1.5 text-slate-400 text-[10px]">
                 + New Tab
               </div>
             </div>
-
+ 
             {/* Address Bar */}
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1 text-slate-400 shrink-0">
-                <button type="button" onClick={() => { setAdminSubView('list'); setEditingProduct(null); setActiveTab('products'); }} className="p-1 hover:bg-slate-200 rounded-md font-mono">◀</button>
-                <button type="button" disabled className="p-1 text-slate-300 font-mono">▶</button>
-                <button type="button" onClick={() => alert('Refreshing simulated session... Layout persisted successfully.')} className="p-1 hover:bg-slate-200 rounded-md font-mono">🔄</button>
+              <div className="flex items-center gap-1 text-slate-300 shrink-0 select-none">
+                <button type="button" disabled className="p-1 font-mono text-slate-300 cursor-not-allowed">◀</button>
+                <button type="button" disabled className="p-1 font-mono text-slate-300 cursor-not-allowed">▶</button>
+                <button type="button" onClick={() => alert('Refreshing simulated session... Layout persisted successfully.')} className="p-1 hover:bg-slate-200 text-slate-400 rounded-md font-mono">🔄</button>
               </div>
-
+ 
               <div className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-[11px] font-semibold text-slate-700 flex items-center justify-between shadow-3xs min-w-0">
                 <div className="flex items-center gap-1.5 overflow-hidden min-w-0">
                   <span className="text-emerald-600 text-xs shrink-0">🔒</span>
@@ -1705,27 +1977,16 @@ export default function AdminDashboard({
                   Copy URL
                 </button>
               </div>
-
+ 
               <div className="hidden md:block bg-emerald-500 text-white font-extrabold text-[9px] px-2.5 py-1 rounded-sm uppercase tracking-wider animate-pulse shadow-3xs shrink-0">
                 SUPER POWERED LIVE SESSION
               </div>
             </div>
           </div>
         )}
-
+ 
         <div className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button 
-              type="button"
-              onClick={() => {
-                setAdminSubView('list');
-                setEditingProduct(null);
-                setActiveTab('products');
-              }}
-              className="p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 cursor-pointer transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
             <div>
               <h3 className="text-sm font-black text-slate-900">{isEdit ? 'Modify Active SKU' : 'Add New SKU to Catalog'}</h3>
               <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Jaipur Warehouse Hub</p>
@@ -2305,17 +2566,6 @@ export default function AdminDashboard({
           {/* Form Footer */}
           <div className="border-t border-slate-100 pt-4 flex gap-2 justify-end">
             <button
-              type="button"
-              onClick={() => {
-                setAdminSubView('list');
-                setEditingProduct(null);
-                setActiveTab('products');
-              }}
-              className="bg-slate-100 text-slate-700 hover:bg-slate-200 font-extrabold text-xs px-4 py-2.5 rounded-lg cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
               type="submit"
               className="bg-lucky-magenta text-white hover:bg-opacity-90 font-extrabold text-xs px-5 py-2.5 rounded-lg cursor-pointer shadow-md"
             >
@@ -2332,13 +2582,6 @@ export default function AdminDashboard({
       <div className="bg-white rounded-xl border border-slate-200/80 shadow-3xs overflow-hidden" id="full-page-coupon-form">
         <div className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button 
-              type="button"
-              onClick={() => setAdminSubView('list')}
-              className="p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 cursor-pointer transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
             <div>
               <h3 className="text-sm font-black text-slate-900">Generate Interactive Coupon</h3>
               <p className="text-[10px] text-slate-400">Direct-to-Consumer Discount Rules</p>
@@ -2418,13 +2661,6 @@ export default function AdminDashboard({
 
           <div className="border-t border-slate-100 pt-4 flex gap-2 justify-end">
             <button
-              type="button"
-              onClick={() => setAdminSubView('list')}
-              className="bg-slate-100 text-slate-700 hover:bg-slate-200 font-extrabold text-xs px-4 py-2.5 rounded-lg cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
               type="submit"
               className="bg-lucky-magenta text-white hover:bg-opacity-90 font-extrabold text-xs px-5 py-2.5 rounded-lg cursor-pointer shadow-md"
             >
@@ -2441,74 +2677,220 @@ export default function AdminDashboard({
       <div className="bg-white rounded-xl border border-slate-200/80 shadow-3xs overflow-hidden" id="full-page-banner-form">
         <div className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button 
-              type="button"
-              onClick={() => setAdminSubView('list')}
-              className="p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 cursor-pointer transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
             <div>
-              <h3 className="text-sm font-black text-slate-900">Add New Banner</h3>
+              <h3 className="text-sm font-black text-slate-900">{editingBanner ? 'Edit Banner Position' : 'Add New Banner'}</h3>
               <p className="text-[10px] text-slate-300 font-semibold uppercase tracking-wider mt-0.5">Home Page Banner Slot</p>
             </div>
           </div>
         </div>
 
         <form onSubmit={handleBannerSubmit} className="p-6 space-y-4 max-w-xl">
-          <div>
-            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Banner Type *</label>
-            <select
-              value={bType}
-              onChange={(e) => setBType(e.target.value as any)}
-              className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2.5 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
-            >
-              <option value="promotional">Promotional Offer</option>
-              <option value="news">Latest News / Announcement</option>
-            </select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Banner Type *</label>
+              <select
+                value={bType}
+                onChange={(e) => setBType(e.target.value as any)}
+                className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2.5 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+              >
+                <option value="promotional">Promotional Offer</option>
+                <option value="news">Latest News / Announcement</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Target Banner Row *</label>
+              <select
+                value={bRow}
+                onChange={(e) => setBRow(e.target.value as any)}
+                className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2.5 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+              >
+                <option value="upper">Upper Row (Single Banner)</option>
+                <option value="lower">Below Row (Two Banners)</option>
+              </select>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Image URL *</label>
-            <input
-              type="url"
-              required
-              value={bImageUrl}
-              onChange={(e) => setBImageUrl(e.target.value)}
-              placeholder="https://example.com/image.jpg"
-              className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Display Order Weight *</label>
+              <input
+                type="number"
+                min={1}
+                required
+                value={bOrder}
+                onChange={(e) => setBOrder(Number(e.target.value))}
+                placeholder="e.g. 1 (first), 2 (second)"
+                className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Link URL (Optional)</label>
+              <input
+                type="url"
+                value={bLinkUrl}
+                onChange={(e) => setBLinkUrl(e.target.value)}
+                placeholder="https://quekart.com/category"
+                className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Banner Title (Optional)</label>
+              <input
+                type="text"
+                value={bTitle}
+                onChange={(e) => setBTitle(e.target.value)}
+                placeholder="e.g. RAKSHA BANDHAN MAHOTSAV"
+                className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Banner Subtitle (Optional)</label>
+              <input
+                type="text"
+                value={bSubtitle}
+                onChange={(e) => setBSubtitle(e.target.value)}
+                placeholder="e.g. Up to 80% OFF on Traditional Wear"
+                className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Coupon Code Overlay (Optional)</label>
+              <input
+                type="text"
+                value={bCode}
+                onChange={(e) => setBCode(e.target.value)}
+                placeholder="e.g. FESTIVE100"
+                className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Target Category Redirect (Optional)</label>
+              <input
+                type="text"
+                value={bTargetCategory}
+                onChange={(e) => setBTargetCategory(e.target.value)}
+                placeholder="e.g. Jewellery & Accessories"
+                className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide">Banner Graphic Image *</label>
+            
+            <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-xl p-6 bg-slate-50 hover:bg-slate-100/50 transition-colors relative">
+              <input
+                type="file"
+                accept="image/*"
+                id="banner-file-upload-input"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (event) => {
+                    if (event.target?.result) {
+                      setBannerCropSrc(event.target.result as string);
+                      setIsBannerCropOpen(true);
+                    }
+                  };
+                  reader.readAsDataURL(file);
+                  e.target.value = ''; // Reset
+                }}
+              />
+              
+              <Upload className="w-8 h-8 text-slate-400 mb-2" />
+              <p className="text-xs font-bold text-slate-700">Drag & drop or click to upload</p>
+              <p className="text-[10px] text-slate-400 font-medium mt-0.5">Supports high-res PNG, JPG, WebP</p>
+              
+              <button
+                type="button"
+                onClick={() => document.getElementById('banner-file-upload-input')?.click()}
+                className="mt-3 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-black text-[10px] px-3.5 py-2 rounded-lg cursor-pointer shadow-3xs"
+              >
+                Choose File
+              </button>
+            </div>
+
             {bImageUrl && (
-              <div className="mt-3 aspect-[3/1] bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
-                <img src={bImageUrl} alt="Preview" className="w-full h-full object-cover" />
+              <div className="mt-3 bg-white p-3 rounded-xl border border-slate-200">
+                <p className="text-[9px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Live Poster Rendering (as seen in /shop):</p>
+                
+                <div className={`bg-slate-100 rounded-xl overflow-hidden border border-slate-200/80 relative shadow-md group ${
+                  bRow === 'upper' ? 'aspect-[3.2/1]' : 'aspect-[2.2/1]'
+                }`}>
+                  <img src={bImageUrl} alt="Preview" className="w-full h-full object-cover object-center animate-fadeIn" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#143C6B]/90 via-[#143C6B]/60 to-transparent flex flex-col justify-between p-3 sm:p-4 text-white pointer-events-none select-none">
+                    <div className="flex items-center justify-between gap-2">
+                      {bCode ? (
+                        <span className="bg-[#FF8C00] text-slate-950 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
+                          CODE: {bCode}
+                        </span>
+                      ) : (
+                        <span className="bg-slate-900/50 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
+                          {bType === 'promotional' ? 'FESTIVE PROMO' : 'NEWS'}
+                        </span>
+                      )}
+                      <span className="bg-white/20 backdrop-blur-md text-white text-[9px] font-bold tracking-tight px-1.5 py-0.5 rounded border border-white/30">
+                        QueKart Exclusive
+                      </span>
+                    </div>
+                    <div className="max-w-[80%]">
+                      <h3 className="text-xs sm:text-sm font-extrabold text-white leading-tight">
+                        {bTitle || 'Festive Offers & Deals'}
+                      </h3>
+                      {bSubtitle && (
+                        <p className="text-[9px] sm:text-xs text-amber-200 font-medium mt-0.5 line-clamp-1">
+                          {bSubtitle}
+                        </p>
+                      )}
+                      <div className="mt-1 flex items-center gap-1 text-[8px] sm:text-[10px] font-bold text-[#FF8C00]">
+                        <span>Explore Collection</span>
+                        <span>→</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBannerCropSrc(bImageUrl);
+                      setIsBannerCropOpen(true);
+                    }}
+                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] py-2 rounded-lg cursor-pointer"
+                  >
+                    ✂️ Crop / Adjust Photo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('banner-file-upload-input')?.click()}
+                    className="flex-1 bg-lucky-magenta/10 hover:bg-lucky-magenta/15 text-lucky-magenta font-bold text-[10px] py-2 rounded-lg cursor-pointer"
+                  >
+                    🔄 Change Photo
+                  </button>
+                </div>
               </div>
             )}
           </div>
 
-          <div>
-            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Link URL (Optional)</label>
-            <input
-              type="url"
-              value={bLinkUrl}
-              onChange={(e) => setBLinkUrl(e.target.value)}
-              placeholder="https://quekart.com/category"
-              className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
-            />
-          </div>
-
           <div className="pt-4 flex justify-end gap-2 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={() => setAdminSubView('list')}
-              className="bg-slate-100 text-slate-700 hover:bg-slate-200 font-extrabold text-xs px-4 py-2.5 rounded-lg cursor-pointer"
-            >
-              Cancel
-            </button>
             <button
               type="submit"
               className="bg-lucky-magenta text-white hover:bg-opacity-90 font-extrabold text-xs px-5 py-2.5 rounded-lg cursor-pointer shadow-md"
             >
-              Add Banner
+              {editingBanner ? 'Save Changes' : 'Add Banner'}
             </button>
           </div>
         </form>
@@ -2813,7 +3195,7 @@ export default function AdminDashboard({
                         {/* Thumbnail */}
                         <div className="w-20 h-20 rounded-lg bg-slate-50 border border-slate-100 overflow-hidden shrink-0 relative">
                           <img 
-                            src={sku.images?.[0] || ''} 
+                            src={sku.images?.[0] || undefined} 
                             alt={sku.title} 
                             className="w-full h-full object-cover" 
                             referrerPolicy="no-referrer"
@@ -3585,7 +3967,7 @@ export default function AdminDashboard({
                       <div key={idx} className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-3 text-xs font-semibold">
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 rounded-md bg-slate-50 border border-slate-100 overflow-hidden shrink-0">
-                            <img src={item.product.images?.[0] || ''} alt="" className="w-full h-full object-cover" />
+                            <img src={item.product.images?.[0] || undefined} alt="" className="w-full h-full object-cover" />
                           </div>
                           <div>
                             <h5 className="font-black text-slate-800">{item.product.title}</h5>
@@ -3654,7 +4036,7 @@ export default function AdminDashboard({
       { id: 'overview', label: 'Dashboard', icon: LayoutDashboard, section: 'MAIN' },
       { id: 'analytics', label: 'Analytics & Anti-Spam', icon: Eye, section: 'MAIN' },
       { id: 'products', label: 'Products', icon: Package, count: products.length, section: 'INVENTORY' },
-      { id: 'categories', label: 'Categories', icon: Layers, count: categories.length, section: 'INVENTORY' },
+      { id: 'categories', label: 'Category Filters', icon: Layers, count: categories.length, section: 'INVENTORY' },
       { id: 'approvals', label: 'Approvals', icon: Clock, count: liveProducts.filter(p => p.approvalStatus === 'pending').length, section: 'INVENTORY', highlight: true },
       { id: 'vendors', label: 'Sellers', icon: Users, count: vendors.length, section: 'RELATIONS' },
       { id: 'customers', label: 'Customers', icon: Users, count: uniqueUsers.length, section: 'RELATIONS' },
@@ -3877,70 +4259,7 @@ export default function AdminDashboard({
             />
           </div>
 
-          {/* Right menu tools */}
-          <div className="flex items-center gap-4 flex-shrink-0">
-            {/* Secure Passcode control inside a clean button */}
-            <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5">
-              <Lock className="w-3.5 h-3.5 text-slate-400" />
-              <input 
-                type="password" 
-                value={adminPasscode}
-                onChange={(e) => handlePasscodeChange(e.target.value)}
-                placeholder="Passcode"
-                className="bg-transparent border-none text-[11px] font-mono text-slate-700 focus:outline-hidden w-24 text-center"
-                title="Enter database authorization secret passcode"
-              />
-            </div>
 
-            {/* Notification bell with orange badge */}
-            <div className="relative cursor-pointer hover:bg-slate-50 p-2 rounded-full transition-all">
-              <Bell className="w-5 h-5 text-slate-500" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-500 rounded-full border border-white"></span>
-            </div>
-
-            {/* User Profile dropdown */}
-            <div className="relative">
-              <button 
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center gap-2.5 cursor-pointer focus:outline-hidden"
-              >
-                <div className="text-right hidden md:block">
-                  <span className="block text-xs font-black text-slate-800 leading-tight">Musharof</span>
-                  <span className="block text-[10px] text-slate-400 font-bold leading-tight">Gaurav Garments</span>
-                </div>
-                <img 
-                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=120&auto=format&fit=crop" 
-                  alt="Musharof" 
-                  className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-2xs"
-                />
-                <ChevronDown className="w-4 h-4 text-slate-500" />
-              </button>
-
-              {isDropdownOpen && (
-                <div className="absolute right-0 mt-3.5 w-48 bg-white border border-slate-200 rounded-xl shadow-lg p-1 text-xs text-slate-700 font-semibold space-y-0.5 z-50">
-                  <button 
-                    onClick={() => { setIsDropdownOpen(false); alert('Connected to Gaurav Garments admin portal.'); }}
-                    className="w-full text-left px-3 py-2 hover:bg-slate-50 rounded-lg cursor-pointer"
-                  >
-                    User Profile
-                  </button>
-                  <button 
-                    onClick={() => { setIsDropdownOpen(false); alert('Database Connection is Live'); }}
-                    className="w-full text-left px-3 py-2 hover:bg-slate-50 rounded-lg cursor-pointer"
-                  >
-                    Account Settings
-                  </button>
-                  <hr className="border-slate-100 my-1" />
-                  <button 
-                    onClick={() => { setIsDropdownOpen(false); handleMenuClick('overview'); }}
-                    className="w-full text-left px-3 py-2 hover:bg-slate-50 text-slate-700 font-bold rounded-lg cursor-pointer"
-                  >
-                    Dashboard Overview
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
         </header>
 
         {/* Scrollable Work Area */}
@@ -3969,7 +4288,7 @@ export default function AdminDashboard({
                 {activeTab === 'overview' && 'eCommerce Dashboard'}
                 {activeTab === 'analytics' && 'Platform Analytics & Anti-Spam Control'}
                 {activeTab === 'products' && 'Products Catalog'}
-                {activeTab === 'categories' && 'Categories Management'}
+                {activeTab === 'categories' && 'Category Filters Management'}
                 {activeTab === 'orders' && 'Orders Invoices'}
                 {activeTab === 'coupons' && 'Promo Coupons'}
                 {activeTab === 'banners' && 'Marketing Banners'}
@@ -3981,7 +4300,7 @@ export default function AdminDashboard({
                 {activeTab === 'overview' && 'Real-time performance indicators and business diagnostic values'}
                 {activeTab === 'analytics' && 'Global impression tracking, detail views, cart conversion funnels, and 3-hour IP anti-spam logs'}
                 {activeTab === 'products' && 'Manage listing specs, image uploads, category targets'}
-                {activeTab === 'categories' && 'View, add, edit, delete, and reorder product categories and subcategories'}
+                {activeTab === 'categories' && 'View, add, edit, delete, and reorder storefront category filters and subcategories'}
                 {activeTab === 'orders' && 'Review order payment dispatches, custom delivery logistics'}
                 {activeTab === 'coupons' && 'Configure dynamic discounts, promo vouchers, cart validation specs'}
                 {activeTab === 'banners' && 'Optimize visual banners and advertising placements'}
@@ -4276,7 +4595,7 @@ export default function AdminDashboard({
                         title: p.title,
                         soldBy: p.soldBy,
                         price: p.price,
-                        image: p.images[0] || '',
+                        image: p.images[0] || undefined,
                         impressions: p.analytics?.impressions || 150,
                         views: p.analytics?.views || 40,
                         cartAdds: p.analytics?.cartAdds || 12,
@@ -4287,7 +4606,7 @@ export default function AdminDashboard({
                           <td className="p-3 min-w-[220px]">
                             <div className="flex items-center gap-2.5">
                               <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0">
-                                <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                                <img src={item.image || undefined} alt={item.title} className="w-full h-full object-cover" />
                               </div>
                               <div>
                                 <h5 className="font-bold text-slate-900 line-clamp-1 text-xs" title={item.title}>{item.title}</h5>
@@ -4408,7 +4727,7 @@ export default function AdminDashboard({
                         <tr key={product.id} className="hover:bg-slate-50/30">
                           <td className="py-3 px-4">
                             <img 
-                              src={(product.images && product.images[0]) || ''} 
+                              src={(product.images && product.images[0]) || undefined} 
                               alt="" 
                               className="w-12 h-12 rounded-lg object-cover bg-slate-50 border border-slate-100" 
                               referrerPolicy="no-referrer"
@@ -4500,7 +4819,7 @@ export default function AdminDashboard({
                   {filteredProducts.map((product) => (
                     <div key={product.id} className="p-4 flex gap-3.5 hover:bg-slate-50/30">
                       <img 
-                        src={(product.images && product.images[0]) || ''} 
+                        src={(product.images && product.images[0]) || undefined} 
                         alt="" 
                         className="w-16 h-16 rounded-xl object-cover bg-slate-50 border border-slate-100 flex-shrink-0"
                         referrerPolicy="no-referrer"
@@ -4603,16 +4922,179 @@ export default function AdminDashboard({
                 className="hidden"
                 id="subcategory-file-input"
               />
+              <input
+                type="file"
+                ref={filterFileInputRef}
+                onChange={handleFilterFileInputChange}
+                accept="image/*"
+                className="hidden"
+                id="filter-file-input"
+              />
 
-              {categoryFormMode ? (
+              {filterFormMode ? (
+                /* --- ADD / EDIT FILTER FORM --- */
+                <form onSubmit={handleFilterSave} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6 max-w-3xl mx-auto" id="filter-edit-form">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                    <div>
+                      <h3 className="text-base font-extrabold text-slate-800" id="filter-form-title">
+                        {filterFormMode === 'edit' ? 'Edit Category Filter Specifications' : 'Create New Category Filter'}
+                      </h3>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Customize filter name, sidebar image banner, and assign categories</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFilterFormMode(null)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 cursor-pointer"
+                      id="close-filter-form-btn"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {filterError && (
+                    <div className="p-3 bg-red-50 text-red-600 text-xs font-bold rounded-xl border border-red-100" id="filter-error-box">
+                      {filterError}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Left Column: Details & Image */}
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Category Filter Name</label>
+                        <input
+                          type="text"
+                          value={filterName}
+                          onChange={(e) => setFilterName(e.target.value)}
+                          placeholder="e.g. Women Western, Fashion Accessories"
+                          className="w-full px-4 py-2.5 text-xs border border-slate-250 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#143C6B]/20 focus:border-[#143C6B]"
+                          id="filter-name-input"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Branding Image Banner</label>
+                        <div className="flex items-center gap-4">
+                          <div className="w-20 h-20 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center flex-shrink-0 relative group">
+                            {filterImage ? (
+                              <img
+                                src={filterImage}
+                                alt="Filter Preview"
+                                className="w-full h-full object-cover"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : (
+                              <ImageIcon className="w-6 h-6 text-slate-355" />
+                            )}
+                          </div>
+                          <div className="space-y-1.5">
+                            <button
+                              type="button"
+                              onClick={() => filterFileInputRef.current?.click()}
+                              className="px-3.5 py-2 text-[11px] font-bold bg-[#143C6B]/5 hover:bg-[#143C6B]/10 text-[#143C6B] border border-[#143C6B]/15 rounded-xl cursor-pointer transition-colors"
+                              id="upload-filter-img-btn"
+                            >
+                              Upload Image
+                            </button>
+                            {filterImage && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenCategoryCropper(filterImage, { type: 'filter' })}
+                                className="px-3 py-2 text-[11px] font-bold text-amber-600 hover:bg-amber-50 rounded-xl cursor-pointer transition-colors block mt-1"
+                              >
+                                Spark Crop
+                              </button>
+                            )}
+                            <p className="text-[10px] text-slate-400">Perfect ratio recommended for sidebar banners.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Column: Category Mapping Select */}
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                          Map Categories To This Filter
+                        </label>
+                        <p className="text-[10px] text-slate-400 mb-2">Select which first-level shop categories appear when this filter is clicked in the sidebar.</p>
+                        
+                        <div className="border border-slate-200 rounded-xl p-3 max-h-[220px] overflow-y-auto space-y-2 bg-slate-50/50" id="categories-mapping-list">
+                          {categories.map((cat) => {
+                            const isChecked = filterCategoryIds.includes(cat.id);
+                            return (
+                              <label
+                                key={cat.id}
+                                className={`flex items-center justify-between p-2 rounded-lg border transition-all cursor-pointer ${
+                                  isChecked
+                                    ? 'bg-white border-lucky-magenta/25 shadow-2xs'
+                                    : 'border-transparent hover:bg-slate-100'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setFilterCategoryIds([...filterCategoryIds, cat.id]);
+                                      } else {
+                                        setFilterCategoryIds(filterCategoryIds.filter(id => id !== cat.id));
+                                      }
+                                    }}
+                                    className="rounded border-slate-300 text-lucky-magenta focus:ring-lucky-magenta/30"
+                                  />
+                                  <div className="w-6 h-6 rounded-full overflow-hidden border border-slate-200 flex-shrink-0">
+                                    <img
+                                      src={cat.image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150'}
+                                      alt={cat.name}
+                                      className="w-full h-full object-cover"
+                                      referrerPolicy="no-referrer"
+                                    />
+                                  </div>
+                                  <span className="text-xs font-bold text-slate-700">{cat.name}</span>
+                                </div>
+                                <span className="text-[9px] text-slate-400 font-bold font-mono">({cat.subCategories?.length || 0} subs)</span>
+                              </label>
+                            );
+                          })}
+                          {categories.length === 0 && (
+                            <p className="text-[10px] text-slate-400 text-center py-4 font-semibold">Please create some categories first!</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setFilterFormMode(null)}
+                      className="px-5 py-2.5 text-xs font-black text-slate-500 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors"
+                      id="cancel-filter-btn"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSavingFilter}
+                      className="flex items-center justify-center gap-1.5 px-5 py-2.5 text-xs bg-[#143C6B] hover:bg-[#143C6B]/90 disabled:bg-slate-300 text-white font-extrabold rounded-xl cursor-pointer transition-all shadow-xs"
+                      id="save-filter-submit-btn"
+                    >
+                      {isSavingFilter && <Loader2 className="w-4 h-4 animate-spin" />}
+                      <span>{filterFormMode === 'edit' ? 'Update Category Filter' : 'Save Category Filter'}</span>
+                    </button>
+                  </div>
+                </form>
+              ) : categoryFormMode ? (
                 /* --- ADD / EDIT CATEGORY FORM --- */
                 <form onSubmit={handleCategorySave} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6 max-w-3xl mx-auto" id="category-edit-form">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                     <div>
                       <h3 className="text-base font-extrabold text-slate-800" id="category-form-title">
-                        {categoryFormMode === 'edit' ? 'Edit Category Specifications & Smart Crop' : 'Create New Storefront Category'}
+                        {categoryFormMode === 'edit' ? 'Edit Category Filter Specifications & Smart Crop' : 'Create New Storefront Category Filter'}
                       </h3>
-                      <p className="text-[11px] text-slate-400 mt-0.5">Customize category branding image, smart crop framing, visual tokens, and subcategories</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Customize category filter branding image, smart crop framing, visual tokens, and subcategories</p>
                     </div>
                     <button
                       type="button"
@@ -4924,159 +5406,349 @@ export default function AdminDashboard({
                   </div>
                 </form>
               ) : (
-                /* --- CATEGORIES LIST MODE --- */
-                <div className="space-y-4">
-                  {/* Category Filter and Creator Actions bar */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs" id="category-actions-bar">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#143C6B] shadow-2xs">
-                        <Layers className="w-5 h-5 text-[#143C6B]" />
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-black text-[#143C6B] uppercase tracking-wider block">Storefront Architecture</span>
-                        <h3 className="text-xs font-extrabold text-slate-800">Category Catalog & Live Home Bubble Layout</h3>
-                      </div>
-                    </div>
-                    
+                /* --- LISTS & SUB-TABS SELECTOR MODE --- */
+                <div className="space-y-6">
+                  {/* Modern visual sub-tab pill switcher */}
+                  <div className="flex items-center gap-2 p-1 bg-slate-100 border border-slate-200 rounded-2xl max-w-2xl" id="category-subtabs-pillbox">
                     <button
-                      onClick={triggerAddCategory}
-                      className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs bg-[#143C6B] hover:bg-[#143C6B]/90 text-white font-bold rounded-xl shadow-xs cursor-pointer transition-colors"
-                      id="create-category-btn"
+                      type="button"
+                      onClick={() => setCategorySubTab('categories')}
+                      className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-xs font-black uppercase tracking-wider rounded-xl cursor-pointer transition-all ${
+                        categorySubTab === 'categories'
+                          ? 'bg-white text-lucky-magenta shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                      id="subtab-categories-trigger"
                     >
-                      <Plus className="w-4 h-4" />
-                      <span>Create New Category</span>
+                      <Layers className="w-4 h-4" />
+                      <span>First Categories (Top Row)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCategorySubTab('filters')}
+                      className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-xs font-black uppercase tracking-wider rounded-xl cursor-pointer transition-all ${
+                        categorySubTab === 'filters'
+                          ? 'bg-white text-lucky-magenta shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                      id="subtab-filters-trigger"
+                    >
+                      <Filter className="w-4 h-4" />
+                      <span>Second Category Filters (Left Sidebar)</span>
                     </button>
                   </div>
 
-                  {/* Categories Cards layout Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="categories-cards-grid">
-                    {categories.map((cat, idx) => {
-                      const displayImg = cat.image || (cat.subCategories && cat.subCategories[0]?.image) || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300';
-                      
-                      return (
-                        <div
-                          key={cat.id}
-                          className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between space-y-4 relative group"
-                          id={`category-card-${cat.id}`}
-                        >
-                          {/* Top row with Live Circular Bubble preview and Position ranking */}
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-3">
-                              {/* Actual Live Circular Bubble Thumbnail */}
-                              <div
-                                onClick={() => {
-                                  triggerEditCategory(cat);
-                                }}
-                                className="w-13 h-13 rounded-full overflow-hidden border-2 border-[#143C6B] ring-2 ring-[#143C6B]/20 bg-blue-50/50 flex-shrink-0 shadow-xs cursor-pointer hover:scale-105 transition-transform"
-                                title="Click to edit category image & smart crop"
-                              >
-                                <img
-                                  src={displayImg}
-                                  alt={cat.name}
-                                  className="w-full h-full object-cover"
-                                  referrerPolicy="no-referrer"
-                                />
-                              </div>
-                              <div>
-                                <h4 className="text-xs font-black text-slate-800 tracking-tight leading-snug">{cat.name}</h4>
-                                <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-widest">{cat.id}</span>
-                              </div>
-                            </div>
-
-                            {/* Position Controls */}
-                            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200/80 rounded-lg p-0.5" id={`position-adjusters-${cat.id}`}>
-                              <button
-                                onClick={() => handleCategoryMoveUp(idx)}
-                                disabled={idx === 0}
-                                className={`p-1 rounded-sm text-xs cursor-pointer transition-colors ${
-                                  idx === 0 ? 'text-slate-300' : 'text-slate-600 hover:bg-white hover:text-slate-900 shadow-2xs'
-                                }`}
-                                title="Move Up (Increase Display Rank)"
-                              >
-                                ▲
-                              </button>
-                              <span className="text-[9px] font-black px-1 text-slate-400 select-none">
-                                {idx + 1}
-                              </span>
-                              <button
-                                onClick={() => handleCategoryMoveDown(idx)}
-                                disabled={idx === categories.length - 1}
-                                className={`p-1 rounded-sm text-xs cursor-pointer transition-colors ${
-                                  idx === categories.length - 1 ? 'text-slate-300' : 'text-slate-600 hover:bg-white hover:text-slate-900 shadow-2xs'
-                                }`}
-                                title="Move Down (Decrease Display Rank)"
-                              >
-                                ▼
-                              </button>
-                            </div>
+                  {categorySubTab === 'categories' ? (
+                    /* --- 1. FIRST LEVEL CATEGORIES TAB --- */
+                    <div className="space-y-4 animate-fadeIn" id="categories-tab-content">
+                      {/* Category Creator Actions bar */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs" id="category-actions-bar">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#143C6B] shadow-2xs">
+                            <Layers className="w-5 h-5 text-[#143C6B]" />
                           </div>
-
-                          {/* Subcategory thumbnails & pills */}
-                          <div className="space-y-2">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Subcategories ({cat.subCategories?.length || 0})</span>
-                            <div className="flex flex-wrap gap-1.5 max-h-[85px] overflow-y-auto scrollbar-thin">
-                              {cat.subCategories && cat.subCategories.map((sub, sidx) => (
-                                <span
-                                  key={sidx}
-                                  className="text-[9px] bg-slate-100 hover:bg-slate-200/70 border border-slate-200/50 text-slate-600 font-extrabold px-2 py-0.5 rounded-md transition-colors flex items-center gap-1"
-                                >
-                                  {sub.image && (
-                                    <img src={sub.image} alt={sub.name} className="w-3 h-3 rounded-full object-cover" />
-                                  )}
-                                  <span>{sub.name}</span>
-                                </span>
-                              ))}
-                              {(!cat.subCategories || cat.subCategories.length === 0) && (
-                                <span className="text-[10px] text-red-500 font-bold">No Subcategories Defined!</span>
-                              )}
-                            </div>
+                          <div>
+                            <span className="text-[10px] font-black text-[#143C6B] uppercase tracking-wider block">First Category System</span>
+                            <h3 className="text-xs font-extrabold text-slate-800">Categories & Live Home Bubble Layout</h3>
                           </div>
-
-                          {/* Quick Stats / Footer info & CRUD Actions */}
-                          <div className="border-t border-slate-100/80 pt-3.5 flex items-center justify-between">
-                            <span className="text-[9px] text-slate-400 font-bold">Icon: <span className="text-slate-600 font-black">{cat.icon || 'shopping-bag'}</span></span>
-                            
-                            {/* Actions CRUD buttons */}
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                onClick={() => triggerEditCategory(cat)}
-                                className="flex items-center gap-1 text-[10px] font-black text-[#143C6B] bg-[#143C6B]/5 hover:bg-[#143C6B]/10 px-2.5 py-1 rounded-md cursor-pointer transition-all"
-                                id={`edit-category-btn-${cat.id}`}
-                              >
-                                <Edit2 className="w-3 h-3" />
-                                Edit & Crop
-                              </button>
-                              
-                              <button
-                                onClick={() => {
-                                  triggerConfirm(
-                                    `Are you sure you want to permanently delete the category "${cat.name}"? All product placements for this category may be affected.`,
-                                    () => handleCategoryDelete(cat.id),
-                                    "Confirm Category Deletion"
-                                  );
-                                }}
-                                className="flex items-center gap-1 text-[10px] font-black text-red-600 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-md cursor-pointer transition-all"
-                                id={`delete-category-btn-${cat.id}`}
-                              >
-                                <Trash2 className="w-3 h-3" />
-                                Delete
-                              </button>
-                            </div>
-                          </div>
-
                         </div>
-                      );
-                    })}
-                  </div>
+                        
+                        <button
+                          onClick={triggerAddCategory}
+                          className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs bg-[#143C6B] hover:bg-[#143C6B]/90 text-white font-bold rounded-xl shadow-xs cursor-pointer transition-colors"
+                          id="create-category-btn"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>Create New Category</span>
+                        </button>
+                      </div>
 
-                  {categories.length === 0 && (
-                    <div className="py-16 text-center bg-white border border-slate-200 rounded-2xl" id="empty-categories-state">
-                      <Layers className="w-12 h-12 text-slate-300 mx-auto mb-2 animate-bounce" />
-                      <h4 className="text-sm font-extrabold text-slate-700">No Custom Categories Provisioned</h4>
-                      <p className="text-xs text-slate-400 mt-1 max-w-[280px] mx-auto">Database category tables are currently empty. Press "Create New Category" to begin.</p>
+                      {/* Categories Cards layout Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="categories-cards-grid">
+                        {categories.map((cat, idx) => {
+                          const displayImg = cat.image || (cat.subCategories && cat.subCategories[0]?.image) || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300';
+                          
+                          return (
+                            <div
+                              key={cat.id}
+                              className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between space-y-4 relative group"
+                              id={`category-card-${cat.id}`}
+                            >
+                              {/* Top row with Live Circular Bubble preview and Position ranking */}
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-3">
+                                  {/* Actual Live Circular Bubble Thumbnail */}
+                                  <div
+                                    onClick={() => {
+                                      triggerEditCategory(cat);
+                                    }}
+                                    className="w-13 h-13 rounded-full overflow-hidden border-2 border-[#143C6B] ring-2 ring-[#143C6B]/20 bg-blue-50/50 flex-shrink-0 shadow-xs cursor-pointer hover:scale-105 transition-transform"
+                                    title="Click to edit category image & smart crop"
+                                  >
+                                    <img
+                                      src={displayImg}
+                                      alt={cat.name}
+                                      className="w-full h-full object-cover"
+                                      referrerPolicy="no-referrer"
+                                    />
+                                  </div>
+                                  <div>
+                                    <h4 className="text-xs font-black text-slate-800 tracking-tight leading-snug">{cat.name}</h4>
+                                    <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-widest">{cat.id}</span>
+                                  </div>
+                                </div>
+
+                                {/* Position Controls */}
+                                <div className="flex items-center gap-1 bg-slate-50 border border-slate-200/80 rounded-lg p-0.5" id={`position-adjusters-${cat.id}`}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCategoryMoveUp(idx)}
+                                    disabled={idx === 0}
+                                    className={`p-1 rounded-sm text-xs cursor-pointer transition-colors ${
+                                      idx === 0 ? 'text-slate-300' : 'text-slate-600 hover:bg-white hover:text-slate-900 shadow-2xs'
+                                    }`}
+                                    title="Move Up (Increase Display Rank)"
+                                  >
+                                    ▲
+                                  </button>
+                                  <span className="text-[9px] font-black px-1 text-slate-400 select-none">
+                                    {idx + 1}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCategoryMoveDown(idx)}
+                                    disabled={idx === categories.length - 1}
+                                    className={`p-1 rounded-sm text-xs cursor-pointer transition-colors ${
+                                      idx === categories.length - 1 ? 'text-slate-300' : 'text-slate-600 hover:bg-white hover:text-slate-900 shadow-2xs'
+                                    }`}
+                                    title="Move Down (Decrease Display Rank)"
+                                  >
+                                    ▼
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Subcategory thumbnails & pills */}
+                              <div className="space-y-2">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Subcategories ({cat.subCategories?.length || 0})</span>
+                                <div className="flex flex-wrap gap-1.5 max-h-[85px] overflow-y-auto scrollbar-thin">
+                                  {cat.subCategories && cat.subCategories.map((sub, sidx) => (
+                                    <span
+                                      key={sidx}
+                                      className="text-[9px] bg-slate-100 hover:bg-slate-200/70 border border-slate-200/50 text-slate-600 font-extrabold px-2 py-0.5 rounded-md transition-colors flex items-center gap-1"
+                                    >
+                                      {sub.image && (
+                                        <img src={sub.image} alt={sub.name} className="w-3 h-3 rounded-full object-cover" />
+                                      )}
+                                      <span>{sub.name}</span>
+                                    </span>
+                                  ))}
+                                  {(!cat.subCategories || cat.subCategories.length === 0) && (
+                                    <span className="text-[10px] text-red-500 font-bold">No Subcategories Defined!</span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Quick Stats / Footer info & CRUD Actions */}
+                              <div className="border-t border-slate-100/80 pt-3.5 flex items-center justify-between">
+                                <span className="text-[9px] text-slate-400 font-bold">Icon: <span className="text-slate-600 font-black">{cat.icon || 'shopping-bag'}</span></span>
+                                
+                                {/* Actions CRUD buttons */}
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => triggerEditCategory(cat)}
+                                    className="flex items-center gap-1 text-[10px] font-black text-[#143C6B] bg-[#143C6B]/5 hover:bg-[#143C6B]/10 px-2.5 py-1 rounded-md cursor-pointer transition-all"
+                                    id={`edit-category-btn-${cat.id}`}
+                                  >
+                                    <Edit2 className="w-3 h-3" />
+                                    Edit & Crop
+                                  </button>
+                                  
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      triggerConfirm(
+                                        `Are you sure you want to permanently delete the category "${cat.name}"? All product placements for this category may be affected.`,
+                                        () => handleCategoryDelete(cat.id),
+                                        "Confirm Category Deletion"
+                                      );
+                                    }}
+                                    className="flex items-center gap-1 text-[10px] font-black text-red-600 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-md cursor-pointer transition-all"
+                                    id={`delete-category-btn-${cat.id}`}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {categories.length === 0 && (
+                        <div className="py-16 text-center bg-white border border-slate-200 rounded-2xl" id="empty-categories-state">
+                          <Layers className="w-12 h-12 text-slate-300 mx-auto mb-2 animate-bounce" />
+                          <h4 className="text-sm font-extrabold text-slate-700">No Custom Categories Provisioned</h4>
+                          <p className="text-xs text-slate-400 mt-1 max-w-[280px] mx-auto">Database category tables are currently empty. Press "Create New Category" to begin.</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* --- 2. SECOND LEVEL CATEGORY FILTERS TAB --- */
+                    <div className="space-y-4 animate-fadeIn" id="filters-tab-content">
+                      {/* Filter Actions bar */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs" id="filter-actions-bar">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#143C6B] shadow-2xs">
+                            <Filter className="w-5 h-5 text-[#143C6B]" />
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-black text-[#143C6B] uppercase tracking-wider block">Second Category Filters</span>
+                            <h3 className="text-xs font-extrabold text-slate-800">Sidebar Filtering Groups & Custom Image Banner</h3>
+                          </div>
+                        </div>
+                        
+                        <button
+                          type="button"
+                          onClick={triggerAddFilter}
+                          className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs bg-[#143C6B] hover:bg-[#143C6B]/90 text-white font-bold rounded-xl shadow-xs cursor-pointer transition-colors"
+                          id="create-filter-btn"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>Create New Category Filter</span>
+                        </button>
+                      </div>
+
+                      {/* Filters grid list */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="filters-cards-grid">
+                        {categoryFilters.map((filt, idx) => {
+                          const displayImg = filt.image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150';
+                          return (
+                            <div
+                              key={filt.id}
+                              className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between space-y-4 relative group"
+                              id={`filter-card-${filt.id}`}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    onClick={() => triggerEditFilter(filt)}
+                                    className="w-13 h-13 rounded-xl overflow-hidden border border-slate-250 bg-slate-50 flex-shrink-0 shadow-xs cursor-pointer hover:scale-105 transition-transform"
+                                    title="Click to edit filter specifications"
+                                  >
+                                    <img
+                                      src={displayImg}
+                                      alt={filt.name}
+                                      className="w-full h-full object-cover"
+                                      referrerPolicy="no-referrer"
+                                    />
+                                  </div>
+                                  <div>
+                                    <h4 className="text-xs font-black text-slate-800 tracking-tight leading-snug">{filt.name}</h4>
+                                    <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-widest">{filt.id}</span>
+                                  </div>
+                                </div>
+
+                                {/* Filter position ranking adjusters */}
+                                <div className="flex items-center gap-1 bg-slate-50 border border-slate-200/80 rounded-lg p-0.5" id={`filter-position-adjusters-${filt.id}`}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleFilterMoveUp(idx)}
+                                    disabled={idx === 0}
+                                    className={`p-1 rounded-sm text-xs cursor-pointer transition-colors ${
+                                      idx === 0 ? 'text-slate-300' : 'text-slate-600 hover:bg-white hover:text-slate-900 shadow-2xs'
+                                    }`}
+                                    title="Move Up Display Rank"
+                                  >
+                                    ▲
+                                  </button>
+                                  <span className="text-[9px] font-black px-1 text-slate-400 select-none">
+                                    {idx + 1}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleFilterMoveDown(idx)}
+                                    disabled={idx === categoryFilters.length - 1}
+                                    className={`p-1 rounded-sm text-xs cursor-pointer transition-colors ${
+                                      idx === categoryFilters.length - 1 ? 'text-slate-300' : 'text-slate-600 hover:bg-white hover:text-slate-900 shadow-2xs'
+                                    }`}
+                                    title="Move Down Display Rank"
+                                  >
+                                    ▼
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Associated categories mapped */}
+                              <div className="space-y-2">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Mapped Shop Categories ({filt.categoryIds?.length || 0})</span>
+                                <div className="flex flex-wrap gap-1.5 max-h-[85px] overflow-y-auto scrollbar-thin">
+                                  {filt.categoryIds?.map((catId) => {
+                                    const matchingCat = categories.find(c => c.id === catId);
+                                    if (!matchingCat) return null;
+                                    return (
+                                      <span
+                                        key={catId}
+                                        className="text-[9px] bg-slate-50 border border-slate-200/50 text-slate-600 font-extrabold px-2 py-0.5 rounded-md flex items-center gap-1"
+                                      >
+                                        {matchingCat.image && (
+                                          <img src={matchingCat.image} alt="" className="w-3 h-3 rounded-full object-cover" />
+                                        )}
+                                        <span>{matchingCat.name}</span>
+                                      </span>
+                                    );
+                                  })}
+                                  {(!filt.categoryIds || filt.categoryIds.length === 0) && (
+                                    <span className="text-[10px] text-amber-600 font-bold">No Categories Mapped (Filter is Empty)</span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Actions */}
+                              <div className="border-t border-slate-100/80 pt-3.5 flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => triggerEditFilter(filt)}
+                                  className="flex items-center gap-1 text-[10px] font-black text-[#143C6B] bg-[#143C6B]/5 hover:bg-[#143C6B]/10 px-2.5 py-1 rounded-md cursor-pointer transition-all"
+                                  id={`edit-filter-btn-${filt.id}`}
+                                >
+                                  <Edit2 className="w-3 h-3" />
+                                  Edit & Map
+                                </button>
+                                
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    triggerConfirm(
+                                      `Are you sure you want to permanently delete the category filter "${filt.name}"? This will remove the sidebar section, but won't delete the categories within it.`,
+                                      () => handleFilterDelete(filt.id),
+                                      "Confirm Filter Deletion"
+                                    );
+                                  }}
+                                  className="flex items-center gap-1 text-[10px] font-black text-red-600 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-md cursor-pointer transition-all"
+                                  id={`delete-filter-btn-${filt.id}`}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {categoryFilters.length === 0 && (
+                        <div className="py-16 text-center bg-white border border-slate-200 rounded-2xl" id="empty-filters-state">
+                          <Filter className="w-12 h-12 text-slate-300 mx-auto mb-2 animate-pulse" />
+                          <h4 className="text-sm font-extrabold text-slate-700">No Category Filters Defined</h4>
+                          <p className="text-xs text-slate-400 mt-1 max-w-[280px] mx-auto">Left sidebar category mapping rules are currently empty. Press "Create New Category Filter" above.</p>
+                        </div>
+                      )}
                     </div>
                   )}
-
                 </div>
               )}
 
@@ -5275,7 +5947,7 @@ export default function AdminDashboard({
                               <div key={idx} className="flex items-center justify-between py-2 first:pt-0 last:pb-0">
                                 <div className="flex items-center gap-2.5">
                                   <img 
-                                    src={variant?.imageUrl || (item.product.images && item.product.images[0]) || ''} 
+                                    src={variant?.imageUrl || (item.product.images && item.product.images[0]) || undefined} 
                                     alt="" 
                                     className="w-10 h-10 rounded-md object-cover bg-slate-50 border border-slate-100"
                                     referrerPolicy="no-referrer"
@@ -5326,7 +5998,15 @@ export default function AdminDashboard({
                 </div>
 
                 <button
-                  onClick={() => setAdminSubView('add-coupon')}
+                  onClick={() => {
+                    setEditingCoupon(null);
+                    setCCode('');
+                    setCType('flat');
+                    setCValue(100);
+                    setCMinPurchase(499);
+                    setCDescription('');
+                    setActiveTab('add-coupon');
+                  }}
                   className="bg-lucky-magenta text-white hover:bg-opacity-95 font-extrabold text-xs px-4 py-2.5 rounded-lg flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                   id="admin-create-coupon-btn"
                 >
@@ -5351,22 +6031,39 @@ export default function AdminDashboard({
                         <span className="bg-lucky-magenta/5 border border-lucky-magenta/25 text-lucky-magenta font-black text-xs px-3 py-1 rounded-md tracking-widest uppercase">
                           {coupon.code}
                         </span>
-                        <button
-                          onClick={() => {
-                            triggerConfirm(
-                              `Are you sure you want to deactivate promo code ${coupon.code}?`,
-                              () => {
-                                onDeleteCoupon(coupon.code);
-                              },
-                              'Deactivate Coupon',
-                              'Deactivate'
-                            );
-                          }}
-                          className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors cursor-pointer"
-                          title="Revoke Coupon"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => {
+                              setEditingCoupon(coupon);
+                              setCCode(coupon.code);
+                              setCType(coupon.discountType);
+                              setCValue(coupon.value);
+                              setCMinPurchase(coupon.minPurchase);
+                              setCDescription(coupon.description);
+                              setActiveTab('edit-coupon/' + coupon.code);
+                            }}
+                            className="text-slate-600 hover:text-lucky-magenta p-1 rounded-md hover:bg-slate-50 transition-colors cursor-pointer"
+                            title="Edit Coupon"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              triggerConfirm(
+                                `Are you sure you want to deactivate promo code ${coupon.code}?`,
+                                () => {
+                                  onDeleteCoupon(coupon.code);
+                                },
+                                'Deactivate Coupon',
+                                'Deactivate'
+                              );
+                            }}
+                            className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors cursor-pointer"
+                            title="Revoke Coupon"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
 
                       <div className="space-y-1 mt-4">
@@ -5420,7 +6117,7 @@ export default function AdminDashboard({
                     >
                       <div className="w-24 h-24 bg-slate-50 rounded-lg overflow-hidden shrink-0 border border-slate-100">
                         <img 
-                          src={(p.images && p.images[0]) || ''} 
+                          src={(p.images && p.images[0]) || undefined} 
                           alt={p.title} 
                           className="w-full h-full object-cover"
                           referrerPolicy="no-referrer"
@@ -6022,7 +6719,7 @@ export default function AdminDashboard({
                     {sponsorProduct ? (
                       <div className="bg-slate-50/50 border border-slate-100 rounded-xl p-3.5 flex gap-3.5 items-center">
                         <img
-                          src={(sponsorProduct.images && sponsorProduct.images[0]) || ''}
+                          src={(sponsorProduct.images && sponsorProduct.images[0]) || undefined}
                           alt={sponsorProduct.title}
                           className="w-14 h-14 object-cover rounded-lg border border-slate-200/60"
                           referrerPolicy="no-referrer"
@@ -6159,7 +6856,7 @@ export default function AdminDashboard({
                               <td className="p-4">
                                 <div className="flex items-center gap-3">
                                   <img
-                                    src={(p.images && p.images[0]) || ''}
+                                    src={(p.images && p.images[0]) || undefined}
                                     alt={p.title}
                                     className="w-10 h-10 object-cover rounded-md border border-slate-200/50 flex-shrink-0"
                                     referrerPolicy="no-referrer"
@@ -6207,17 +6904,29 @@ export default function AdminDashboard({
         </div>
       {/* 7. BANNERS TAB */}
       {activeTab === 'banners' && (
-        <div className="space-y-4 animate-fadeIn p-4 md:p-6">
+        <div className="space-y-6 animate-fadeIn p-4 md:p-6">
           <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-3xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
                 <ImageIcon className="w-4 h-4 text-lucky-magenta" />
                 <span>Dynamic Layout Banners</span>
               </h3>
-              <p className="text-[11px] text-slate-400 font-medium mt-1">Manage promotional banners and latest news images shown on the home page.</p>
+              <p className="text-[11px] text-slate-400 font-medium mt-1">Manage single-column upper banners and side-by-side lower banners shown on the home page.</p>
             </div>
             <button
-              onClick={() => setAdminSubView('add-banner')}
+              onClick={() => {
+                setEditingBanner(null);
+                setBType('promotional');
+                setBImageUrl('');
+                setBLinkUrl('');
+                setBRow('upper');
+                setBOrder(1);
+                setBTitle('');
+                setBSubtitle('');
+                setBCode('');
+                setBTargetCategory('');
+                setActiveTab('add-banner');
+              }}
               className="bg-slate-900 text-white px-5 py-2.5 rounded-lg text-xs font-extrabold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow-md cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
@@ -6231,40 +6940,182 @@ export default function AdminDashboard({
               <h4 className="text-sm font-bold text-slate-800">No Banners Configured</h4>
               <p className="text-xs text-slate-400 mt-1">Add banners to highlight promotions or news.</p>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {banners.map((b) => (
-                <div key={b.id} className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-sm flex flex-col group relative">
-                  <div className="aspect-[3/1] w-full bg-slate-50 relative">
-                    <img src={b.imageUrl} alt={b.type} className="w-full h-full object-cover" />
-                    <div className="absolute top-2 right-2 bg-black/60 text-white text-[9px] font-black uppercase px-2 py-1 rounded">
-                      {b.type === 'promotional' ? 'Promo' : 'News'}
-                    </div>
+          ) : (() => {
+            const upperBanners = [...banners].filter(b => b.row === 'upper' || !b.row).sort((a,b) => (a.order || 0) - (b.order || 0));
+            const lowerBanners = [...banners].filter(b => b.row === 'lower').sort((a,b) => (a.order || 0) - (b.order || 0));
+
+            return (
+              <div className="space-y-8">
+                {/* Upper Row Section */}
+                <div>
+                  <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+                    <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#FF8C00]"></span>
+                      <span>Upper Row (Single Banner Layout)</span>
+                      <span className="bg-slate-100 text-slate-500 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                        {upperBanners.length}
+                      </span>
+                    </h4>
+                    <p className="text-[10px] text-slate-400 font-semibold">Aspect Ratio: ~3:1</p>
                   </div>
-                  <div className="p-3 bg-white flex items-center justify-between">
-                    <div className="text-[10px] text-slate-500 font-medium truncate pr-4">
-                      {b.linkUrl || 'No specific link associated'}
+                  
+                  {upperBanners.length === 0 ? (
+                    <div className="bg-slate-50 rounded-xl border border-dashed border-slate-200/80 p-6 text-center text-xs text-slate-400">
+                      No banners in upper row. Drag or add a banner to this slot.
                     </div>
-                    <button
-                      onClick={() => {
-                        triggerConfirm(
-                          'Are you sure you want to delete this banner?',
-                          () => {
-                            onDeleteBanner?.(b.id);
-                          },
-                          'Delete Banner',
-                          'Delete'
-                        );
-                      }}
-                      className="w-7 h-7 flex items-center justify-center rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors shrink-0 cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {upperBanners.map((b) => (
+                        <div key={b.id} className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-xs flex flex-col group relative">
+                          <div className="aspect-[3/1] w-full bg-slate-900 relative">
+                            <img src={b.imageUrl} alt={b.title || b.type} className="w-full h-full object-cover" />
+                            <div className="absolute top-2 right-2 bg-lucky-magenta text-white text-[8px] font-black uppercase px-2 py-0.5 rounded shadow-xs">
+                              ORDER: {b.order || 1}
+                            </div>
+                            <div className="absolute top-2 left-2 bg-black/60 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded shadow-xs">
+                              {b.type === 'promotional' ? 'Promo' : 'News'}
+                            </div>
+                            {/* Visual Overlay details */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2.5 text-white pointer-events-none">
+                              {b.code && <p className="text-[7px] text-[#FF8C00] font-black">CODE: {b.code}</p>}
+                              <h5 className="text-[10px] font-extrabold line-clamp-1">{b.title || 'Untitled Banner'}</h5>
+                              {b.subtitle && <p className="text-[8px] text-slate-300 font-medium line-clamp-1">{b.subtitle}</p>}
+                            </div>
+                          </div>
+                          <div className="p-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                            <div className="text-[10px] text-slate-400 font-bold truncate pr-4">
+                              {b.targetCategory ? `Redirects to: ${b.targetCategory}` : (b.linkUrl ? `Link: ${b.linkUrl}` : 'No redirect configured')}
+                            </div>
+                            <div className="flex gap-1.5 shrink-0">
+                              <button
+                                onClick={() => {
+                                  setEditingBanner(b);
+                                  setBType(b.type);
+                                  setBImageUrl(b.imageUrl);
+                                  setBLinkUrl(b.linkUrl || '');
+                                  setBRow(b.row || 'upper');
+                                  setBOrder(b.order || 1);
+                                  setBTitle(b.title || '');
+                                  setBSubtitle(b.subtitle || '');
+                                  setBCode(b.code || '');
+                                  setBTargetCategory(b.targetCategory || '');
+                                  setActiveTab('edit-banner/' + b.id);
+                                }}
+                                className="w-7 h-7 flex items-center justify-center rounded bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer shadow-3xs"
+                                title="Edit Banner"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  triggerConfirm(
+                                    'Are you sure you want to delete this banner?',
+                                    () => {
+                                      onDeleteBanner?.(b.id);
+                                    },
+                                    'Delete Banner',
+                                    'Delete'
+                                  );
+                                }}
+                                className="w-7 h-7 flex items-center justify-center rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors shrink-0 cursor-pointer"
+                                title="Delete Banner"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
+
+                {/* Below Row Section */}
+                <div>
+                  <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+                    <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-lucky-magenta"></span>
+                      <span>Below Row (Two Side-by-Side Banners Layout)</span>
+                      <span className="bg-slate-100 text-slate-500 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                        {lowerBanners.length}
+                      </span>
+                    </h4>
+                    <p className="text-[10px] text-slate-400 font-semibold">Aspect Ratio: ~2:1</p>
+                  </div>
+
+                  {lowerBanners.length === 0 ? (
+                    <div className="bg-slate-50 rounded-xl border border-dashed border-slate-200/80 p-6 text-center text-xs text-slate-400">
+                      No banners in below row. Add banners here to display two-at-a-time on /shop.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {lowerBanners.map((b) => (
+                        <div key={b.id} className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-xs flex flex-col group relative">
+                          <div className="aspect-[2/1] w-full bg-slate-900 relative">
+                            <img src={b.imageUrl} alt={b.title || b.type} className="w-full h-full object-cover" />
+                            <div className="absolute top-2 right-2 bg-lucky-magenta text-white text-[8px] font-black uppercase px-2 py-0.5 rounded shadow-xs">
+                              ORDER: {b.order || 1}
+                            </div>
+                            <div className="absolute top-2 left-2 bg-black/60 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded shadow-xs">
+                              {b.type === 'promotional' ? 'Promo' : 'News'}
+                            </div>
+                            {/* Visual Overlay details */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2.5 text-white pointer-events-none">
+                              {b.code && <p className="text-[7px] text-[#FF8C00] font-black">CODE: {b.code}</p>}
+                              <h5 className="text-[10px] font-extrabold line-clamp-1">{b.title || 'Untitled Banner'}</h5>
+                              {b.subtitle && <p className="text-[8px] text-slate-300 font-medium line-clamp-1">{b.subtitle}</p>}
+                            </div>
+                          </div>
+                          <div className="p-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                            <div className="text-[10px] text-slate-400 font-bold truncate pr-4">
+                              {b.targetCategory ? `Redirects to: ${b.targetCategory}` : (b.linkUrl ? `Link: ${b.linkUrl}` : 'No redirect configured')}
+                            </div>
+                            <div className="flex gap-1.5 shrink-0">
+                              <button
+                                onClick={() => {
+                                  setEditingBanner(b);
+                                  setBType(b.type);
+                                  setBImageUrl(b.imageUrl);
+                                  setBLinkUrl(b.linkUrl || '');
+                                  setBRow(b.row || 'upper');
+                                  setBOrder(b.order || 1);
+                                  setBTitle(b.title || '');
+                                  setBSubtitle(b.subtitle || '');
+                                  setBCode(b.code || '');
+                                  setBTargetCategory(b.targetCategory || '');
+                                  setActiveTab('edit-banner/' + b.id);
+                                }}
+                                className="w-7 h-7 flex items-center justify-center rounded bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer shadow-3xs"
+                                title="Edit Banner"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  triggerConfirm(
+                                    'Are you sure you want to delete this banner?',
+                                    () => {
+                                      onDeleteBanner?.(b.id);
+                                    },
+                                    'Delete Banner',
+                                    'Delete'
+                                  );
+                                }}
+                                className="w-7 h-7 flex items-center justify-center rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors shrink-0 cursor-pointer"
+                                title="Delete Banner"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -7049,7 +7900,7 @@ export default function AdminDashboard({
                         <div key={sku.id} className="p-3 hover:bg-slate-50/50 flex items-center justify-between gap-3 text-xs">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-lg bg-slate-50 border border-slate-150 overflow-hidden shrink-0">
-                              <img src={sku.images?.[0] || ''} alt="" className="w-full h-full object-cover" />
+                              <img src={sku.images?.[0] || undefined} alt="" className="w-full h-full object-cover" />
                             </div>
                             <div>
                               <h5 className="font-black text-slate-900">{sku.title}</h5>
@@ -7231,7 +8082,7 @@ export default function AdminDashboard({
                             <div key={idx} className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-3 text-xs font-semibold">
                               <div className="flex items-center gap-2.5">
                                 <div className="w-8 h-8 rounded-md bg-slate-50 border border-slate-100 overflow-hidden shrink-0">
-                                  <img src={item.product.images?.[0] || ''} alt="" className="w-full h-full object-cover" />
+                                  <img src={item.product.images?.[0] || undefined} alt="" className="w-full h-full object-cover" />
                                 </div>
                                 <div>
                                   <h5 className="font-black text-slate-800">{item.product.title}</h5>
@@ -7364,18 +8215,33 @@ export default function AdminDashboard({
         isOpen={isCategoryCropperOpen}
         initialImage={categoryCropperSrc}
         categoryTitle={
-          categoryCropTarget.type === 'main' 
-            ? (categoryName || 'Category Name') 
+          categoryCropTarget.type === 'main'
+            ? (categoryName || 'Category Name')
+            : categoryCropTarget.type === 'filter'
+            ? (filterName || 'Category Filter')
             : (categorySubCats[categoryCropTarget.index]?.name || 'Subcategory')
         }
         targetLabel={
           categoryCropTarget.type === 'main'
             ? 'Main Storefront Category Bubble'
+            : categoryCropTarget.type === 'filter'
+            ? 'Sidebar Category Filter Image'
             : `Subcategory: ${categorySubCats[categoryCropTarget.index]?.name || 'Item'}`
         }
         onConfirm={handleCategoryCropConfirm}
         onClose={() => setIsCategoryCropperOpen(false)}
         isLoading={isUploadingCategoryImage}
+      />
+
+      <BannerSmartCropModal
+        isOpen={isBannerCropOpen}
+        initialImage={bannerCropSrc}
+        bannerRow={bRow}
+        onConfirm={(croppedUrl) => {
+          setBImageUrl(croppedUrl);
+          setIsBannerCropOpen(false);
+        }}
+        onClose={() => setIsBannerCropOpen(false)}
       />
 
     </div>

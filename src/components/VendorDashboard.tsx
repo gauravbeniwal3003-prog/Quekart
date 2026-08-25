@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { getApiUrl } from '../utils/api';
+import { resetScrollToTop } from '../utils/scroll';
 import { 
   Building2, 
   Package, 
@@ -171,6 +172,10 @@ export default function VendorDashboard({
     }
     navigateTo(full);
   };
+
+  useEffect(() => {
+    resetScrollToTop();
+  }, [activeTabKey, activeSubPage]);
 
   // GST Validation State for post-signup upgrade
   const [isGstVerifying, setIsGstVerifying] = useState(false);
@@ -3662,7 +3667,7 @@ export default function VendorDashboard({
 
               <div className="flex gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
                 <img
-                  src={(quickStockProduct.images && quickStockProduct.images[0]) || ''}
+                  src={(quickStockProduct.images && quickStockProduct.images[0]) || undefined}
                   alt=""
                   className="w-14 h-14 object-cover rounded-lg border border-slate-200 shrink-0 bg-white"
                   referrerPolicy="no-referrer"

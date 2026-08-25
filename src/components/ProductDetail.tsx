@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { getApiUrl } from '../utils/api';
+import { resetScrollToTop } from '../utils/scroll';
 import Logo, { BrandLogo } from './Logo';
 import { 
   ChevronLeft, 
@@ -117,6 +118,49 @@ export default function ProductDetail({
   const [uploadStatusText, setUploadStatusText] = useState('');
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [photoPreviewModal, setPhotoPreviewModal] = useState<string | null>(null);
+
+  // Sticky Bottom CTA Scroll-triggered Animation States
+  const inlineContainerRef = useRef<HTMLDivElement>(null);
+  const [isSticky, setIsSticky] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile) {
+      setIsSticky(false);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsSticky(!entry.isIntersecting);
+      },
+      {
+        root: null,
+        threshold: 0.1,
+        rootMargin: "0px 0px -80px 0px"
+      }
+    );
+
+    const currentRef = inlineContainerRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [isMobile, product.id]);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -686,8 +730,12 @@ export default function ProductDetail({
 
   const currentImageSrc = allImages[activeImageIndex] || currentVariant.imageUrl || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=600';
 
+  useEffect(() => {
+    resetScrollToTop();
+  }, [product.id]);
+
   return (
-    <div className="bg-[#F4F6F8] min-h-screen pb-28 text-slate-800 antialiased" id="product-detail-page">
+    <div className="bg-[#F4F6F8] min-h-screen pb-44 text-slate-800 antialiased" id="product-detail-page">
       {/* Toast Notification */}
       {showToast && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-[#0B1E36] text-white text-xs font-semibold py-2.5 px-5 rounded-full flex items-center gap-2 shadow-xl animate-fade-in border border-slate-700">
@@ -1202,28 +1250,45 @@ export default function ProductDetail({
             </div>
           </div>
 
-          {/* Dual Action Buttons (In-Page) */}
-          <div className="grid grid-cols-2 gap-2.5 pt-1">
-            <button
-              onClick={handleBuyNowClick}
-              className="py-3 bg-gradient-to-r from-[#0B1E36] via-[#143C6B] to-[#0B1E36] hover:brightness-110 active:scale-[0.99] text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-md transition-all cursor-pointer uppercase tracking-wider flex items-center justify-center gap-1.5"
-              id="btn-buy-now-inpage"
-            >
-              <div className="flex items-center text-[#E5A812]">
-                <Play className="w-3.5 h-3.5 fill-current" />
-                <Play className="w-3.5 h-3.5 fill-current -ml-1.5" />
-              </div>
-              <span>Buy now</span>
-            </button>
+          {/* Dual Action Buttons (In-Page / Sticky wrapper) */}
+          <div 
+            ref={inlineContainerRef} 
+            className="grid grid-cols-2 gap-2.5 pt-1 h-[52px] relative"
+            id="product-actions-inline-container"
+          >
+            {!isSticky ? (
+              <>
+                <motion.button
+                  layoutId="btn-buy-now-shared"
+                  onClick={handleBuyNowClick}
+                  className="py-3 bg-gradient-to-r from-[#0B1E36] via-[#143C6B] to-[#0B1E36] hover:brightness-110 active:scale-[0.99] text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-md transition-all cursor-pointer uppercase tracking-wider flex items-center justify-center gap-1.5 w-full h-full"
+                  id="btn-buy-now-inpage"
+                  transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+                >
+                  <motion.div layout="position" className="flex items-center text-[#E5A812]">
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    <Play className="w-3.5 h-3.5 fill-current -ml-1.5" />
+                  </motion.div>
+                  <motion.span layout="position">Buy now</motion.span>
+                </motion.button>
 
-            <button
-              onClick={handleAddToCartClick}
-              className="py-3 bg-white hover:bg-slate-50 active:scale-[0.99] text-[#143C6B] border-2 border-[#143C6B] font-extrabold text-xs sm:text-sm rounded-xl shadow-3xs transition-all cursor-pointer uppercase tracking-wider flex items-center justify-center gap-1.5"
-              id="btn-add-to-cart-inpage"
-            >
-              <ShoppingCart className="w-4 h-4 stroke-[2.4]" />
-              <span>Add to cart</span>
-            </button>
+                <motion.button
+                  layoutId="btn-add-to-cart-shared"
+                  onClick={handleAddToCartClick}
+                  className="py-3 bg-white hover:bg-slate-50 active:scale-[0.99] text-[#143C6B] border-2 border-[#143C6B] font-extrabold text-xs sm:text-sm rounded-xl shadow-3xs transition-all cursor-pointer uppercase tracking-wider flex items-center justify-center gap-1.5 w-full h-full"
+                  id="btn-add-to-cart-inpage"
+                  transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+                >
+                  <motion.div layout="position" className="flex items-center gap-1.5">
+                    <ShoppingCart className="w-4 h-4 stroke-[2.4]" />
+                    <motion.span layout="position">Add to cart</motion.span>
+                  </motion.div>
+                </motion.button>
+              </>
+            ) : (
+              // Invisible placeholder to prevent layout shift while sticky
+              <div className="col-span-2 h-[52px]" />
+            )}
           </div>
         </section>
 
@@ -1672,7 +1737,7 @@ export default function ProductDetail({
                   {/* Thumbnail with Heart Icon */}
                   <div className="relative aspect-square w-full bg-slate-50 overflow-hidden">
                     <img
-                      src={(item.images && item.images[0]) || (item.variants && item.variants[0]?.imageUrl) || ''}
+                      src={(item.images && item.images[0]) || (item.variants && item.variants[0]?.imageUrl) || undefined}
                       alt={item.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       referrerPolicy="no-referrer"
@@ -1741,34 +1806,52 @@ export default function ProductDetail({
       </main>
 
       {/* STICKY BOTTOM BAR: BUY NOW CTA (Visible only on mobile/tablet, hidden on desktop where in-page action exists) */}
-      <footer className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 p-2.5 shadow-2xl lg:hidden" id="sticky-bottom-cta">
-        <div className="max-w-4xl mx-auto flex items-center gap-2">
-          
-          {/* Add to cart icon button for quick shopping */}
-          <button
-            onClick={handleAddToCartClick}
-            className="w-12 h-12 rounded-xl border-2 border-[#143C6B] text-[#143C6B] hover:bg-[#E8EEF5] flex items-center justify-center transition-colors cursor-pointer flex-shrink-0 shadow-3xs"
-            title="Add to Cart"
-            id="btn-add-to-cart-sticky"
+      <AnimatePresence>
+        {isSticky && isMobile && (
+          <motion.footer
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+            className="fixed left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-150 p-2.5 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] lg:hidden"
+            style={{ bottom: '64px' }}
+            id="sticky-bottom-cta"
           >
-            <ShoppingCart className="w-5 h-5 stroke-[2.4]" />
-          </button>
+            <div className="max-w-4xl mx-auto flex items-center gap-2">
+              
+              {/* Add to cart button */}
+              <motion.button
+                layoutId="btn-add-to-cart-shared"
+                onClick={handleAddToCartClick}
+                className="w-12 h-12 rounded-xl border-2 border-[#143C6B] text-[#143C6B] hover:bg-[#E8EEF5] flex items-center justify-center transition-colors cursor-pointer flex-shrink-0 shadow-3xs bg-white"
+                title="Add to Cart"
+                id="btn-add-to-cart-sticky"
+                transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+              >
+                <motion.div layout="position">
+                  <ShoppingCart className="w-5 h-5 stroke-[2.4]" />
+                </motion.div>
+              </motion.button>
 
-          {/* Full Prominent "▶▶ Buy Now" Button matching Quekart Theme */}
-          <button
-            onClick={handleBuyNowClick}
-            className="flex-1 bg-gradient-to-r from-[#0B1E36] via-[#143C6B] to-[#0B1E36] hover:brightness-110 active:scale-[0.99] text-white font-extrabold text-base py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer uppercase tracking-wider"
-            id="btn-buy-now-sticky"
-          >
-            <div className="flex items-center text-[#E5A812]">
-              <Play className="w-4 h-4 fill-current rotate-0" />
-              <Play className="w-4 h-4 fill-current rotate-0 -ml-1.5" />
+              {/* Full Prominent "▶▶ Buy Now" Button matching Quekart Theme */}
+              <motion.button
+                layoutId="btn-buy-now-shared"
+                onClick={handleBuyNowClick}
+                className="flex-1 bg-gradient-to-r from-[#0B1E36] via-[#143C6B] to-[#0B1E36] hover:brightness-110 active:scale-[0.99] text-white font-extrabold text-base py-3 px-6 rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer uppercase tracking-wider h-12"
+                id="btn-buy-now-sticky"
+                transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+              >
+                <motion.div layout="position" className="flex items-center text-[#E5A812]">
+                  <Play className="w-4 h-4 fill-current rotate-0" />
+                  <Play className="w-4 h-4 fill-current rotate-0 -ml-1.5" />
+                </motion.div>
+                <motion.span layout="position">Buy Now</motion.span>
+              </motion.button>
+
             </div>
-            <span>Buy Now</span>
-          </button>
-
-        </div>
-      </footer>
+          </motion.footer>
+        )}
+      </AnimatePresence>
 
       {/* SPECIAL OFFER MODAL */}
       {showSpecialOfferModal && (
