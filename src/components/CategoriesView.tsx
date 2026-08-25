@@ -108,23 +108,54 @@ export default function CategoriesView({
                   <div key={cat.id} className="pb-4 last:border-0" id={`category-group-${cat.id}`}>
                     {/* Subcategories 1:1 square grid directly */}
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-y-5 gap-x-3">
-                      {cat.subCategories?.map((sub, index) => (
+                      {cat.subCategories && cat.subCategories.length > 0 ? (
+                        cat.subCategories.map((sub, index) => (
+                          <motion.button
+                            key={index}
+                            initial={{ opacity: 0, scale: 0.85, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            transition={{ duration: 0.2, delay: Math.min(index * 0.03, 0.3) }}
+                            whileHover={{ scale: 1.08 }}
+                            whileTap={{ scale: 0.92 }}
+                            onClick={() => handleSubCategoryClick(sub.name)}
+                            className="flex flex-col items-center cursor-pointer group transition-all"
+                            id={`subcategory-item-${cat.id}-${index}`}
+                          >
+                            {/* Image 1:1 Square Frame */}
+                            <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl overflow-hidden aspect-square bg-blue-50/50 border border-blue-100/40 p-0.5 flex items-center justify-center shadow-xs">
+                              <img
+                                src={sub.image || undefined}
+                                alt={sub.name}
+                                className="w-full h-full object-cover rounded-lg group-hover:scale-110 transition-transform duration-300"
+                                referrerPolicy="no-referrer"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300';
+                                }}
+                              />
+                            </div>
+
+                            {/* Label */}
+                            <span className="text-[10px] text-gray-600 font-semibold text-center mt-1.5 max-w-[72px] leading-tight line-clamp-2 group-hover:text-lucky-magenta transition-colors">
+                              {sub.name}
+                            </span>
+                          </motion.button>
+                        ))
+                      ) : (
                         <motion.button
-                          key={index}
                           initial={{ opacity: 0, scale: 0.85, y: 10 }}
                           animate={{ opacity: 1, scale: 1, y: 0 }}
-                          transition={{ duration: 0.2, delay: Math.min(index * 0.03, 0.3) }}
+                          transition={{ duration: 0.2 }}
                           whileHover={{ scale: 1.08 }}
                           whileTap={{ scale: 0.92 }}
-                          onClick={() => handleSubCategoryClick(sub.name)}
+                          onClick={() => handleSubCategoryClick(cat.name)}
                           className="flex flex-col items-center cursor-pointer group transition-all"
-                          id={`subcategory-item-${cat.id}-${index}`}
+                          id={`category-item-${cat.id}`}
                         >
                           {/* Image 1:1 Square Frame */}
                           <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl overflow-hidden aspect-square bg-blue-50/50 border border-blue-100/40 p-0.5 flex items-center justify-center shadow-xs">
                             <img
-                              src={sub.image || undefined}
-                              alt={sub.name}
+                              src={cat.image || undefined}
+                              alt={cat.name}
                               className="w-full h-full object-cover rounded-lg group-hover:scale-110 transition-transform duration-300"
                               referrerPolicy="no-referrer"
                               onError={(e) => {
@@ -135,10 +166,10 @@ export default function CategoriesView({
 
                           {/* Label */}
                           <span className="text-[10px] text-gray-600 font-semibold text-center mt-1.5 max-w-[72px] leading-tight line-clamp-2 group-hover:text-lucky-magenta transition-colors">
-                            {sub.name}
+                            {cat.name}
                           </span>
                         </motion.button>
-                      ))}
+                      )}
                     </div>
                   </div>
                 ))}

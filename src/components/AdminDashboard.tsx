@@ -750,16 +750,14 @@ export default function AdminDashboard({
       setCategoryError('Category Name is required');
       return;
     }
-    if (categorySubCats.length === 0) {
-      setCategoryError('At least one subcategory is required');
-      return;
-    }
     
-    // Check if subcategories are named
-    for (let s of categorySubCats) {
-      if (!s.name.trim()) {
-        setCategoryError('All subcategories must have a name');
-        return;
+    // Check if subcategories are named (if any subcategories exist)
+    if (categorySubCats && categorySubCats.length > 0) {
+      for (let s of categorySubCats) {
+        if (!s.name.trim()) {
+          setCategoryError('All added subcategories must have a name (or remove empty subcategory rows)');
+          return;
+        }
       }
     }
 
@@ -769,10 +767,10 @@ export default function AdminDashboard({
     const generatedId = editingCategory?.id || 'cat-' + categoryName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     const payload: Category = {
       id: generatedId,
-      name: categoryName,
+      name: categoryName.trim(),
       icon: categoryIcon,
-      image: categoryImage || (categorySubCats[0]?.image) || '',
-      subCategories: categorySubCats
+      image: categoryImage || (categorySubCats && categorySubCats[0]?.image) || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300',
+      subCategories: categorySubCats || []
     };
 
     try {
@@ -1052,9 +1050,7 @@ export default function AdminDashboard({
     setCategoryName('');
     setCategoryIcon('shopping-bag');
     setCategoryImage('https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300');
-    setCategorySubCats([
-      { name: 'All Collection', image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300' }
-    ]);
+    setCategorySubCats([]);
     setCategoryError(null);
   };
 
@@ -5716,8 +5712,8 @@ export default function AdminDashboard({
                   <div className="space-y-4 border-t border-slate-100 pt-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider">Subcategories List ({categorySubCats.length})</h4>
-                        <p className="text-[10px] text-slate-400 mt-0.5">Every category requires at least one leaf subcategory with custom image</p>
+                        <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider">Subcategories List ({categorySubCats.length}) <span className="text-[10px] text-slate-400 font-normal lowercase">(optional)</span></h4>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Subcategories are optional. You can add leaf subcategories with 1:1 square photos if desired.</p>
                       </div>
                       <button
                         type="button"
@@ -5730,90 +5726,97 @@ export default function AdminDashboard({
                       </button>
                     </div>
 
-                    <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1" id="subcategories-form-list">
-                      {categorySubCats.map((sub, idx) => (
-                        <div key={idx} className="flex gap-3 items-start bg-slate-50/70 border border-slate-200 p-3 rounded-xl relative group/sub" id={`subcategory-row-${idx}`}>
-                          
-                          {/* 1:1 Square Preview & Quick Crop Trigger */}
-                          <div
-                            onClick={() => {
-                              setActiveSubCropIndex(idx);
-                              subCategoryFileInputRef.current?.click();
-                            }}
-                            className="relative group cursor-pointer w-12 h-12 rounded-xl overflow-hidden aspect-square flex-shrink-0 border-2 border-slate-200 bg-white shadow-2xs"
-                            title="Click to Upload & Smart Crop subcategory photo"
-                          >
-                            <img
-                              src={sub.image || 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=200&h=200&fit=crop'}
-                              alt="Sub preview"
-                              className="w-full h-full object-cover"
-                              referrerPolicy="no-referrer"
-                            />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[8px] font-bold">
-                              Crop
-                            </div>
-                          </div>
-
-                          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <span className="text-[10px] font-bold text-slate-500 uppercase">Subcategory Title</span>
-                              <input
-                                type="text"
-                                value={sub.name}
-                                onChange={(e) => {
-                                  const updated = [...categorySubCats];
-                                  updated[idx].name = e.target.value;
-                                  setCategorySubCats(updated);
-                                }}
-                                placeholder="e.g. Designer Kurtis"
-                                className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-hidden font-semibold"
-                                id={`subcategory-name-input-${idx}`}
+                    {categorySubCats.length === 0 ? (
+                      <div className="p-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 text-center" id="empty-subcategories-prompt">
+                        <p className="text-xs font-semibold text-slate-500">No subcategories added</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">This category will operate as a standalone direct category. Click "Add Subcategory" if you wish to define sub-level categories.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1" id="subcategories-form-list">
+                        {categorySubCats.map((sub, idx) => (
+                          <div key={idx} className="flex gap-3 items-start bg-slate-50/70 border border-slate-200 p-3 rounded-xl relative group/sub" id={`subcategory-row-${idx}`}>
+                            
+                            {/* 1:1 Square Preview & Quick Crop Trigger */}
+                            <div
+                              onClick={() => {
+                                setActiveSubCropIndex(idx);
+                                subCategoryFileInputRef.current?.click();
+                              }}
+                              className="relative group cursor-pointer w-12 h-12 rounded-xl overflow-hidden aspect-square flex-shrink-0 border-2 border-slate-200 bg-white shadow-2xs"
+                              title="Click to Upload & Smart Crop subcategory photo"
+                            >
+                              <img
+                                src={sub.image || 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=200&h=200&fit=crop'}
+                                alt="Sub preview"
+                                className="w-full h-full object-cover"
+                                referrerPolicy="no-referrer"
                               />
-                            </div>
-
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-bold text-slate-500 uppercase">Image URL</span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenCategoryCropper(sub.image, { type: 'sub', index: idx })}
-                                  className="text-[9px] font-bold text-[#143C6B] hover:underline cursor-pointer flex items-center gap-0.5"
-                                >
-                                  <Sparkles className="w-2.5 h-2.5" />
-                                  Smart Crop
-                                </button>
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[8px] font-bold">
+                                Crop
                               </div>
-                              <input
-                                type="text"
-                                value={sub.image}
-                                onChange={(e) => {
-                                  const updated = [...categorySubCats];
-                                  updated[idx].image = e.target.value;
-                                  setCategorySubCats(updated);
-                                }}
-                                placeholder="https://unsplash..."
-                                className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-hidden font-semibold"
-                                id={`subcategory-image-input-${idx}`}
-                              />
                             </div>
-                          </div>
 
-                          {/* Delete inline subcategory button */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const updated = categorySubCats.filter((_, i) => i !== idx);
-                              setCategorySubCats(updated);
-                            }}
-                            className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 cursor-pointer self-center transition-colors"
-                            title="Remove subcategory"
-                            id={`remove-subcategory-btn-${idx}`}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
+                            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div className="space-y-1">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase">Subcategory Title</span>
+                                <input
+                                  type="text"
+                                  value={sub.name}
+                                  onChange={(e) => {
+                                    const updated = [...categorySubCats];
+                                    updated[idx].name = e.target.value;
+                                    setCategorySubCats(updated);
+                                  }}
+                                  placeholder="e.g. Designer Kurtis"
+                                  className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-hidden font-semibold"
+                                  id={`subcategory-name-input-${idx}`}
+                                />
+                              </div>
+
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] font-bold text-slate-500 uppercase">Image URL</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenCategoryCropper(sub.image, { type: 'sub', index: idx })}
+                                    className="text-[9px] font-bold text-[#143C6B] hover:underline cursor-pointer flex items-center gap-0.5"
+                                  >
+                                    <Sparkles className="w-2.5 h-2.5" />
+                                    Smart Crop
+                                  </button>
+                                </div>
+                                <input
+                                  type="text"
+                                  value={sub.image}
+                                  onChange={(e) => {
+                                    const updated = [...categorySubCats];
+                                    updated[idx].image = e.target.value;
+                                    setCategorySubCats(updated);
+                                  }}
+                                  placeholder="https://unsplash..."
+                                  className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-hidden font-semibold"
+                                  id={`subcategory-image-input-${idx}`}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Delete inline subcategory button */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = categorySubCats.filter((_, i) => i !== idx);
+                                setCategorySubCats(updated);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 cursor-pointer self-center transition-colors"
+                              title="Remove subcategory"
+                              id={`remove-subcategory-btn-${idx}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Form Submission Actions */}
@@ -5970,19 +5973,20 @@ export default function AdminDashboard({
                               <div className="space-y-2">
                                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Subcategories ({cat.subCategories?.length || 0})</span>
                                 <div className="flex flex-wrap gap-1.5 max-h-[85px] overflow-y-auto scrollbar-thin">
-                                  {cat.subCategories && cat.subCategories.map((sub, sidx) => (
-                                    <span
-                                      key={sidx}
-                                      className="text-[9px] bg-slate-100 hover:bg-slate-200/70 border border-slate-200/50 text-slate-600 font-extrabold px-2 py-0.5 rounded-md transition-colors flex items-center gap-1"
-                                    >
-                                      {sub.image && (
-                                        <img src={sub.image} alt={sub.name} className="w-3.5 h-3.5 rounded-sm aspect-square object-cover" />
-                                      )}
-                                      <span>{sub.name}</span>
-                                    </span>
-                                  ))}
-                                  {(!cat.subCategories || cat.subCategories.length === 0) && (
-                                    <span className="text-[10px] text-red-500 font-bold">No Subcategories Defined!</span>
+                                  {cat.subCategories && cat.subCategories.length > 0 ? (
+                                    cat.subCategories.map((sub, sidx) => (
+                                      <span
+                                        key={sidx}
+                                        className="text-[9px] bg-slate-100 hover:bg-slate-200/70 border border-slate-200/50 text-slate-600 font-extrabold px-2 py-0.5 rounded-md transition-colors flex items-center gap-1"
+                                      >
+                                        {sub.image && (
+                                          <img src={sub.image} alt={sub.name} className="w-3.5 h-3.5 rounded-sm aspect-square object-cover" />
+                                        )}
+                                        <span>{sub.name}</span>
+                                      </span>
+                                    ))
+                                  ) : (
+                                    <span className="text-[10px] text-slate-400 font-medium italic">Direct Category (No subcategories)</span>
                                   )}
                                 </div>
                               </div>
