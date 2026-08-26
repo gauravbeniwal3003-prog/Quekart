@@ -11,6 +11,7 @@ import { useProductImpressionObserver } from '../hooks/useProductImpressionObser
 import { trackProductView } from '../utils/analytics';
 import { getApiUrl } from '../utils/api';
 import { SmartImage } from './common/SmartImage';
+import { CategoryIcon } from './common/CategoryIcon';
 import { ProductCardSkeleton, ProductGridSkeleton, BannerSkeleton, CategoryRowSkeleton } from './common/Skeletons';
 
 interface HomeFeedProps {
@@ -447,26 +448,27 @@ export default function HomeFeed({
   
   // Custom 'All Categories' item from DB/state if present
   const allCatObj = dynamicCategories.find(c => c && (c.id === 'cat-all' || c.name.toLowerCase() === 'all categories'));
-  const allCatImage = allCatObj?.image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150';
+  const allCatImage = allCatObj?.image;
   const allCatLabel = allCatObj?.name || 'All Categories';
+  const allCatIcon = allCatObj?.icon || 'shopping-bag';
 
   // Exclude 'cat-all' from the dynamic list loop so it doesn't duplicate
   const userCategories = dynamicCategories.filter(c => c && c.id !== 'cat-all' && c.name.toLowerCase() !== 'all categories');
 
   const categoryBubbles = [
-    { label: allCatLabel, value: 'All', bg: 'bg-blue-100', img: allCatImage },
+    { label: allCatLabel, value: 'All', bg: 'bg-blue-100', img: allCatImage, icon: allCatIcon },
     ...userCategories.map((cat, index) => {
       if (!cat) return null;
       const colors = ['bg-pink-50', 'bg-blue-50', 'bg-yellow-50', 'bg-orange-50', 'bg-green-50', 'bg-purple-50', 'bg-teal-50'];
       const bg = colors[index % colors.length];
-      const img = cat.image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150';
       return {
         label: cat.name || 'Category',
         value: cat.name || '',
         bg,
-        img
+        img: cat.image,
+        icon: cat.icon || 'shopping-bag'
       };
-    }).filter(Boolean) as { label: string; value: string; bg: string; img: string }[]
+    }).filter(Boolean) as { label: string; value: string; bg: string; img?: string; icon?: string }[]
   ];
 
   return (
@@ -498,15 +500,26 @@ export default function HomeFeed({
               <div className={`w-12 h-12 rounded-xl overflow-hidden aspect-square flex items-center justify-center relative transition-all duration-200 border-2 ${
                 isActive ? 'border-[#143C6B] scale-105 shadow-md ring-2 ring-[#143C6B]/20' : 'border-gray-100 group-hover:border-blue-300'
               } ${item.bg}`}>
-                <img
-                  src={item.img}
-                  alt={item.label}
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150';
-                  }}
-                />
+                {item.img ? (
+                  <img
+                    src={item.img}
+                    alt={item.label}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                      const parent = (e.target as HTMLImageElement).parentElement;
+                      if (parent && !parent.querySelector('svg')) {
+                        const iconEl = document.createElement('div');
+                        iconEl.className = 'flex items-center justify-center w-full h-full text-[#143C6B] font-black text-xs';
+                        iconEl.innerText = item.label.charAt(0).toUpperCase();
+                        parent.appendChild(iconEl);
+                      }
+                    }}
+                  />
+                ) : (
+                  <CategoryIcon icon={item.icon} className="w-5 h-5 text-[#143C6B]" />
+                )}
               </div>
               <span className={`text-[10px] mt-1 text-center font-medium w-full truncate tracking-tight text-gray-700 px-0.5 ${
                 isActive ? 'text-[#143C6B] font-black' : 'font-semibold'
@@ -543,15 +556,26 @@ export default function HomeFeed({
                   <div className={`w-12 h-12 rounded-xl overflow-hidden aspect-square flex items-center justify-center relative transition-all duration-200 border-2 ${
                     isActive ? 'border-[#143C6B] scale-105 shadow-md ring-2 ring-[#143C6B]/20' : 'border-gray-100 group-hover:border-blue-300'
                   } ${item.bg}`}>
-                    <img
-                      src={item.img}
-                      alt={item.label}
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150';
-                      }}
-                    />
+                    {item.img ? (
+                      <img
+                        src={item.img}
+                        alt={item.label}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          const parent = (e.target as HTMLImageElement).parentElement;
+                          if (parent && !parent.querySelector('svg')) {
+                            const iconEl = document.createElement('div');
+                            iconEl.className = 'flex items-center justify-center w-full h-full text-[#143C6B] font-black text-xs';
+                            iconEl.innerText = item.label.charAt(0).toUpperCase();
+                            parent.appendChild(iconEl);
+                          }
+                        }}
+                      />
+                    ) : (
+                      <CategoryIcon icon={item.icon} className="w-5 h-5 text-[#143C6B]" />
+                    )}
                   </div>
                   <span className={`text-[10px] mt-1 text-center font-medium w-full truncate tracking-tight text-gray-700 px-0.5 ${
                     isActive ? 'text-[#143C6B] font-black' : 'font-semibold'

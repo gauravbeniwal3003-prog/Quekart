@@ -607,10 +607,21 @@ app.use((req, res, next) => {
 // 1. Lightweight Request Rate Limiter (Prevents DDoS and brute forcing)
 const ipRequestCounts = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
-const MAX_REQUESTS_PER_WINDOW = 120; // limit each IP to 120 requests per minute
+const MAX_REQUESTS_PER_WINDOW = 1000; // limit each IP to 1000 API requests per minute
 
 app.use((req, res, next) => {
-  const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || 'unknown';
+  // NEVER rate-limit non-API routes (SPA page navigation like /admin/categories, /shop, static assets, images)
+  if (!req.path.startsWith('/api')) {
+    return next();
+  }
+
+  // Exempt high-frequency non-critical analytics tracking from strict API rate limits
+  if (req.path.startsWith('/api/analytics')) {
+    return next();
+  }
+
+  const rawIp = (req.headers['x-forwarded-for'] as string || '');
+  const ip = rawIp.split(',')[0].trim() || req.ip || req.socket.remoteAddress || 'unknown';
   const now = Date.now();
   const record = ipRequestCounts.get(ip);
 

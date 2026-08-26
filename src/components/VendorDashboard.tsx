@@ -58,7 +58,10 @@ import {
   Copy,
   ArrowUpRight,
   ArrowDownLeft,
-  Wallet
+  Wallet,
+  Share2,
+  Store,
+  MessageCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, Order, Vendor, Category } from '../types';
@@ -70,6 +73,14 @@ import { MASTER_CATEGORIES, MasterCategory, getSubcategoriesForCategory } from '
 import { fetchVendorAnalytics } from '../utils/analytics';
 import { ReturnPolicyAccordion, SizeAndParametersManager } from './ProductFormControls';
 import { VendorUpiPricingSelector } from './VendorUpiPricingSelector';
+
+export function WhatsAppIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.99c-.002 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c-.001 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662a11.834 11.834 0 005.71 1.455h.005c6.554 0 11.89-5.335 11.893-11.893 0-3.177-1.238-6.164-3.489-8.415" />
+    </svg>
+  );
+}
 
 interface VendorDashboardProps {
   categories?: Category[];
@@ -211,6 +222,46 @@ export default function VendorDashboard({
            currentVendor.gstinVerified === true || 
            (!!currentVendor.gstin && currentVendor.gstin.trim().length === 15);
   }, [currentVendor]);
+
+  // Storefront URLs and WhatsApp Share Link Helpers
+  const [isCopied, setIsCopied] = useState(false);
+
+  const storeRelativeUrl = useMemo(() => {
+    if (!currentVendor) return '/shop';
+    return `/shop/store/${encodeURIComponent(currentVendor.id || currentVendor.name)}`;
+  }, [currentVendor?.id, currentVendor?.name]);
+
+  const fullStoreUrl = useMemo(() => {
+    if (!currentVendor) return window.location.href;
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    return `${origin}/shop/store/${encodeURIComponent(currentVendor.id || currentVendor.name)}`;
+  }, [currentVendor?.id, currentVendor?.name]);
+
+  const whatsappMessage = useMemo(() => {
+    if (!currentVendor) return '';
+    return `🛍️ *${currentVendor.name}* is live on QueKart!\n\nBrowse our latest product collection, check prices & order directly with fast delivery:\n\n👇 Click link to view store:\n${fullStoreUrl}`;
+  }, [currentVendor?.name, fullStoreUrl]);
+
+  const whatsappShareUrl = useMemo(() => {
+    return `https://api.whatsapp.com/send?text=${encodeURIComponent(whatsappMessage)}`;
+  }, [whatsappMessage]);
+
+  const handleCopyStoreLink = (url: string) => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = url;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2500);
+    } catch (_) {}
+  };
 
   // Function to simulate government GST portal validation
   const simulateGstVerification = async (gstNumber: string, businessName: string): Promise<boolean> => {
@@ -1006,13 +1057,40 @@ export default function VendorDashboard({
             </div>
           </div>
 
-          {/* Right: Profile Pill & Live Status */}
+          {/* Right: Storefront Quick Actions, WhatsApp Share & Profile Pill */}
           {currentVendor ? (
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+              {/* 1-Click Public Storefront Preview Header Button */}
+              <a
+                href={storeRelativeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-extrabold shadow-3xs hover:shadow-xs transition-all border border-emerald-400/30 cursor-pointer active:scale-95"
+                title="View Live Public Storefront in New Tab"
+                id="vendor-header-view-store-btn"
+              >
+                <Eye className="w-3.5 h-3.5 text-white" />
+                <span className="hidden xs:inline">View Store</span>
+                <ExternalLink className="w-3 h-3 text-emerald-100 opacity-80" />
+              </a>
+
+              {/* Quick WhatsApp Share Button */}
+              <a
+                href={whatsappShareUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 bg-[#25D366] hover:bg-[#1ebd58] text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-extrabold shadow-3xs hover:shadow-xs transition-all border border-emerald-300/30 cursor-pointer active:scale-95"
+                title="Share Store Catalog Link on WhatsApp"
+                id="vendor-header-whatsapp-share-btn"
+              >
+                <WhatsAppIcon className="w-3.5 h-3.5 text-white" />
+                <span className="hidden md:inline">Share Store</span>
+              </a>
+
               {/* Vendor Store Name on larger screens */}
               <div 
                 onClick={() => goToVendorRoute('profile')}
-                className="hidden sm:flex items-center gap-2.5 liquid-glass hover:bg-white/90 border border-white/90 px-3 py-1.5 rounded-2xl cursor-pointer transition-all shadow-3xs group"
+                className="hidden lg:flex items-center gap-2.5 liquid-glass hover:bg-white/90 border border-white/90 px-3 py-1.5 rounded-2xl cursor-pointer transition-all shadow-3xs group"
               >
                 <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-[#143C6B] to-[#1E4E8C] text-white flex items-center justify-center text-xs font-black shadow-xs ring-2 ring-[#C89D1F]/40 shrink-0">
                   {(currentVendor.name || 'V').charAt(0).toUpperCase()}
@@ -1155,9 +1233,37 @@ export default function VendorDashboard({
                 {/* Section 2: Store & Inventory Tools */}
                 <div>
                   <div className="text-[10px] font-black uppercase tracking-wider text-[#143C6B] px-2 mb-1.5">
-                    STORE TOOLS
+                    STORE TOOLS & PROMOTION
                   </div>
                   <div className="space-y-1">
+                    <a
+                      href={storeRelativeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setIsSidebarOpen(false)}
+                      className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-bold transition-all text-emerald-800 bg-emerald-50/80 hover:bg-emerald-100 border border-emerald-200/80 cursor-pointer shadow-3xs"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Store className="w-4 h-4 shrink-0 text-emerald-600" />
+                        <span className="truncate">View Public Storefront</span>
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    </a>
+
+                    <a
+                      href={whatsappShareUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setIsSidebarOpen(false)}
+                      className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-bold transition-all text-emerald-900 bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/30 cursor-pointer shadow-3xs mb-1"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <WhatsAppIcon className="w-4 h-4 shrink-0 text-[#25D366]" />
+                        <span className="truncate">Share Store on WhatsApp</span>
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    </a>
+
                     {[
                       { id: 'add-product', label: '+ Add New Product', icon: Plus, path: 'products/add' },
                       { id: 'export', label: 'Download Reports (Excel)', icon: FileSpreadsheet, path: 'export' },
@@ -1264,6 +1370,91 @@ export default function VendorDashboard({
                         <Plus className="w-4 h-4 text-[#C89D1F]" />
                         <span>+ List New Product</span>
                       </button>
+                    </div>
+                  </div>
+
+                  {/* PROMINENT PUBLIC STOREFRONT & WHATSAPP SHARE CARD */}
+                  <div className="liquid-glass-card rounded-2xl border-2 border-emerald-500/20 bg-gradient-to-br from-emerald-50/70 via-white to-blue-50/40 p-4 sm:p-5 shadow-xs relative overflow-hidden" id="vendor-storefront-promo-card">
+                    {/* Subtle glow background element */}
+                    <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-emerald-500/10 rounded-full pointer-events-none blur-xl" />
+                    
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative z-10">
+                      {/* Left Info Column */}
+                      <div className="space-y-1.5 max-w-2xl">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="inline-flex items-center gap-1 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black text-[10px] uppercase px-2.5 py-0.5 rounded-full tracking-wider shadow-2xs">
+                            <Sparkles className="w-3 h-3 text-amber-200" />
+                            Live Storefront Catalog
+                          </span>
+                          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-md border border-emerald-200/80">
+                            🟢 Ready for Customers
+                          </span>
+                        </div>
+
+                        <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                          <span>Promote Your Storefront to Customers</span>
+                        </h3>
+
+                        <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                          Share your direct catalog link with buyers on <strong>WhatsApp Business</strong>, <strong>Instagram Bio</strong>, or <strong>Facebook</strong> to boost orders and direct customer traffic.
+                        </p>
+
+                        {/* URL Display Box */}
+                        <div className="pt-1 flex items-center gap-2">
+                          <div className="flex-1 bg-white border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-700 truncate shadow-2xs flex items-center gap-2">
+                            <Store className="w-4 h-4 text-[#143C6B] shrink-0" />
+                            <span className="truncate select-all">{fullStoreUrl}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right Action Buttons */}
+                      <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 w-full md:w-auto shrink-0 pt-1 md:pt-0">
+                        {/* 1-Click Storefront Preview Button */}
+                        <a
+                          href={storeRelativeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 sm:flex-none bg-[#143C6B] hover:bg-[#0D2C4E] text-white text-xs font-extrabold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md shadow-[#143C6B]/20 border border-[#C89D1F]/30 transition-all cursor-pointer active:scale-98"
+                          id="vendor-card-view-store-btn"
+                        >
+                          <Eye className="w-4 h-4 text-[#C89D1F]" />
+                          <span>View My Store</span>
+                          <ExternalLink className="w-3.5 h-3.5 text-slate-300" />
+                        </a>
+
+                        {/* WhatsApp Share Button */}
+                        <a
+                          href={whatsappShareUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 sm:flex-none bg-[#25D366] hover:bg-[#1ebf58] text-white text-xs font-black py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 border border-emerald-300/40 transition-all cursor-pointer active:scale-98"
+                          id="vendor-card-whatsapp-btn"
+                        >
+                          <WhatsAppIcon className="w-4 h-4 text-white" />
+                          <span>Share on WhatsApp</span>
+                        </a>
+
+                        {/* Copy Link Button */}
+                        <button
+                          onClick={() => handleCopyStoreLink(fullStoreUrl)}
+                          className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold py-2.5 px-3.5 rounded-xl flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer active:scale-98 shrink-0"
+                          id="vendor-card-copy-link-btn"
+                          title="Copy Storefront URL"
+                        >
+                          {isCopied ? (
+                            <>
+                              <Check className="w-4 h-4 text-emerald-600 stroke-[2.5]" />
+                              <span className="text-emerald-700 font-extrabold">Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-4 h-4 text-slate-500" />
+                              <span>Copy Link</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -1490,13 +1681,38 @@ export default function VendorDashboard({
                         <p className="text-xs text-slate-500 font-medium">Manage wholesale prices, stock sizes and live listings.</p>
                       </div>
 
-                      <button
-                        onClick={() => goToVendorRoute('products/add')}
-                        className="bg-[#143C6B] hover:bg-[#0D2C4E] text-white text-xs font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>+ List New Product</span>
-                      </button>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <a
+                          href={storeRelativeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-extrabold py-2 px-3.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-3xs"
+                          title="View Live Public Storefront"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>View Storefront</span>
+                          <ExternalLink className="w-3 h-3 text-emerald-600" />
+                        </a>
+
+                        <a
+                          href={whatsappShareUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-[#25D366] hover:bg-[#1ebf58] text-white text-xs font-black py-2 px-3.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-3xs"
+                          title="Share Catalog on WhatsApp"
+                        >
+                          <WhatsAppIcon className="w-3.5 h-3.5 text-white" />
+                          <span>Share Catalog</span>
+                        </a>
+
+                        <button
+                          onClick={() => goToVendorRoute('products/add')}
+                          className="bg-[#143C6B] hover:bg-[#0D2C4E] text-white text-xs font-bold py-2 px-4 rounded-xl flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-98 transition-all"
+                        >
+                          <Plus className="w-4 h-4 text-[#C89D1F]" />
+                          <span>+ List New Product</span>
+                        </button>
+                      </div>
                     </div>
 
                     {/* Search and Filters */}
@@ -2804,6 +3020,67 @@ export default function VendorDashboard({
                         </div>
                       </div>
                     )}
+
+                    {/* Public Storefront Link & WhatsApp Promotion Card */}
+                    <div className="bg-gradient-to-br from-emerald-50/90 via-white to-blue-50/50 rounded-xl border border-emerald-200/90 p-4 shadow-3xs space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <Store className="w-4 h-4 text-emerald-600" />
+                          <h4 className="text-xs font-black text-slate-900 uppercase">Public Storefront Catalog</h4>
+                        </div>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md">
+                          Live & Shareable
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          readOnly
+                          value={fullStoreUrl}
+                          className="flex-1 bg-white border border-slate-200 text-slate-700 text-xs font-mono font-bold px-3 py-2 rounded-xl select-all focus:outline-none"
+                        />
+                        <button
+                          onClick={() => handleCopyStoreLink(fullStoreUrl)}
+                          className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold py-2 px-3 rounded-xl flex items-center gap-1 shadow-3xs cursor-pointer active:scale-95 shrink-0"
+                        >
+                          {isCopied ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
+                              <span className="text-emerald-700 font-extrabold">Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5 text-slate-500" />
+                              <span>Copy Link</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <a
+                          href={storeRelativeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 bg-[#143C6B] hover:bg-[#0D2C4E] text-white text-xs font-extrabold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-3xs cursor-pointer transition-all active:scale-98"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-[#C89D1F]" />
+                          <span>View Public Storefront</span>
+                          <ExternalLink className="w-3 h-3 text-slate-300" />
+                        </a>
+
+                        <a
+                          href={whatsappShareUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 bg-[#25D366] hover:bg-[#1ebf58] text-white text-xs font-black py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-3xs cursor-pointer transition-all active:scale-98"
+                        >
+                          <WhatsAppIcon className="w-3.5 h-3.5 text-white" />
+                          <span>Share on WhatsApp</span>
+                        </a>
+                      </div>
+                    </div>
 
                     {/* Attributes Table */}
                     <div className="space-y-2.5 divide-y divide-slate-100 text-xs">

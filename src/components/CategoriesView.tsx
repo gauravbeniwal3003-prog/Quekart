@@ -4,6 +4,7 @@ import { Sparkles, ShoppingBag } from 'lucide-react';
 import { Category, CategoryFilter } from '../types';
 import { resetScrollToTop } from '../utils/scroll';
 import { SmartImage } from './common/SmartImage';
+import { CategoryIcon } from './common/CategoryIcon';
 
 interface CategoriesViewProps {
   categoryFilters?: CategoryFilter[];
@@ -126,14 +127,18 @@ export default function CategoriesView({
                     className="flex flex-col items-center cursor-pointer group transition-all"
                     id={`category-item-${cat.id}`}
                   >
-                    {/* Image 1:1 Square Frame */}
+                    {/* Image 1:1 Square Frame or Icon */}
                     <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl overflow-hidden aspect-square bg-blue-50/50 border border-blue-100/40 p-0.5 flex items-center justify-center shadow-xs">
-                      <SmartImage
-                        src={cat.image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300'}
-                        alt={cat.name}
-                        aspectRatioClassName="aspect-square"
-                        containerClassName="w-full h-full rounded-lg"
-                      />
+                      {cat.image ? (
+                        <SmartImage
+                          src={cat.image}
+                          alt={cat.name}
+                          aspectRatioClassName="aspect-square"
+                          containerClassName="w-full h-full rounded-lg"
+                        />
+                      ) : (
+                        <CategoryIcon icon={cat.icon} className="w-7 h-7 text-[#143C6B]" />
+                      )}
                     </div>
 
                     {/* Label */}

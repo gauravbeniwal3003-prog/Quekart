@@ -337,7 +337,18 @@ export default function App() {
         setCoupons(couponsData);
       }
       if (categoriesData && Array.isArray(categoriesData)) {
-        setCategories(categoriesData);
+        const hasAllCat = categoriesData.some(c => c && (c.id === 'cat-all' || c.name.toLowerCase() === 'all categories'));
+        if (!hasAllCat) {
+          const allCat: Category = {
+            id: 'cat-all',
+            name: 'All Categories',
+            icon: 'shopping-bag',
+            image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300'
+          };
+          setCategories([allCat, ...categoriesData]);
+        } else {
+          setCategories(categoriesData);
+        }
       }
       if (categoryFiltersData && Array.isArray(categoryFiltersData)) {
         setCategoryFilters(categoryFiltersData);

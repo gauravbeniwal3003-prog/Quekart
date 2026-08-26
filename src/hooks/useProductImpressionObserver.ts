@@ -28,9 +28,9 @@ export function useProductImpressionObserver(containerRef?: RefObject<HTMLElemen
             trackedProductIdsRef.current.add(productId);
             pendingBatchRef.current.add(productId);
 
-            // Debounce batch sending by 300ms
+            // Debounce batch sending by 1000ms
             if (batchTimeoutRef.current) clearTimeout(batchTimeoutRef.current);
-            batchTimeoutRef.current = setTimeout(flushBatch, 300);
+            batchTimeoutRef.current = setTimeout(flushBatch, 1000);
 
             // Unobserve element after capturing impression
             observer.unobserve(entry.target);
@@ -57,7 +57,7 @@ export function useProductImpressionObserver(containerRef?: RefObject<HTMLElemen
     };
 
     observeElements();
-    const interval = setInterval(observeElements, 1000);
+    const interval = setInterval(observeElements, 3000);
 
     return () => {
       clearInterval(interval);
