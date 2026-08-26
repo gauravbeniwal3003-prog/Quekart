@@ -108,7 +108,7 @@ export const initialBanners: Banner[] = [
     subtitle: 'Up to 80% OFF on Designer Sarees, Kurtis & Festive Gift Sets',
     code: 'RAKHI80',
     targetCategory: 'Kurti, Saree & Ethnic Wear',
-    row: 'upper',
+    row: 'main',
     order: 1
   },
   {
@@ -119,7 +119,7 @@ export const initialBanners: Banner[] = [
     subtitle: 'Flat ₹100 Instant Discount on Royal Kundan & Gold Jewellery',
     code: 'FESTIVE100',
     targetCategory: 'Jewellery & Accessories',
-    row: 'lower',
+    row: 'double',
     order: 1
   },
   {
@@ -130,7 +130,7 @@ export const initialBanners: Banner[] = [
     subtitle: 'Buy 2 Get 1 FREE on All Festive Apparel & Sherwanis',
     code: 'BUY2GET1',
     targetCategory: 'Men Fashion',
-    row: 'lower',
+    row: 'double',
     order: 2
   }
 ];

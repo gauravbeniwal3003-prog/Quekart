@@ -63,6 +63,7 @@ export interface Product {
   returnDays?: number; // e.g. 7, 10, 15, 30 days
   returnPolicyText?: string; // Custom policy descriptor
   hasUpiOffer?: boolean; // Vendor toggle: UPI extra offer enabled
+  upiPrice?: number; // Optional explicit UPI/Prepaid discounted price set by vendor
   upiDiscountType?: 'percentage' | 'flat'; // UPI discount structure
   upiDiscountValue?: number; // e.g. 5 for 5% or 30 for ₹30 flat off
   upiOfferText?: string; // e.g. "Extra 5% OFF with UPI / Instant ₹30 Discount"
@@ -278,7 +279,7 @@ export interface Banner {
   subtitle?: string;
   code?: string;
   targetCategory?: string;
-  row?: 'upper' | 'lower';
+  row?: 'main' | 'double' | 'upper' | 'lower';
   order?: number;
 }
 

@@ -340,7 +340,7 @@ export default function App() {
       if (categoryFiltersData && Array.isArray(categoryFiltersData)) {
         setCategoryFilters(categoryFiltersData);
       }
-      if (bannersData && Array.isArray(bannersData)) {
+      if (bannersData && Array.isArray(bannersData) && bannersData.length > 0) {
         setBanners(bannersData);
       }
     } catch (err) {
@@ -859,7 +859,7 @@ export default function App() {
                 ? 'overflow-hidden h-[100dvh] max-h-[100dvh] pb-0 bg-white'
                 : (activeTab === 'categories' && !activeSubPage) 
                 ? 'overflow-hidden pb-16 md:pb-0 bg-gray-50' 
-                : 'overflow-y-auto pb-20 md:pb-10 bg-gray-50'
+                : 'overflow-y-auto pb-28 md:pb-14 bg-gray-50'
             }`} 
             id="applet-content-viewport"
           >

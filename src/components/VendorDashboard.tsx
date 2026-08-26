@@ -69,6 +69,7 @@ import { VendorAnalyticsView } from './VendorAnalyticsView';
 import { MASTER_CATEGORIES, MasterCategory, getSubcategoriesForCategory } from '../data/categoriesData';
 import { fetchVendorAnalytics } from '../utils/analytics';
 import { ReturnPolicyAccordion, SizeAndParametersManager } from './ProductFormControls';
+import { VendorUpiPricingSelector } from './VendorUpiPricingSelector';
 
 interface VendorDashboardProps {
   products: Product[];
@@ -313,6 +314,7 @@ export default function VendorDashboard({
 
   // UPI Offers & Instant Promotions Configuration
   const [pHasUpiOffer, setPHasUpiOffer] = useState<boolean>(true);
+  const [pUpiPrice, setPUpiPrice] = useState<number>(269);
   const [pUpiDiscountType, setPUpiDiscountType] = useState<'percentage' | 'flat'>('percentage');
   const [pUpiDiscountValue, setPUpiDiscountValue] = useState<number>(5);
   const [pUpiOfferText, setPUpiOfferText] = useState<string>('Extra 5% Instant Discount on UPI Payment');
@@ -628,6 +630,7 @@ export default function VendorDashboard({
         setPReturnDays(target.returnDays ?? 7);
         setPReturnPolicyText(target.returnPolicyText || '');
         setPHasUpiOffer(target.hasUpiOffer !== false);
+        setPUpiPrice(target.upiPrice ? Number(target.upiPrice) : (target.upiDiscountType === 'percentage' ? Math.max(1, Math.round(target.price * (1 - (target.upiDiscountValue || 5) / 100))) : Math.max(1, target.price - (target.upiDiscountValue || 30))));
         setPUpiDiscountType(target.upiDiscountType || 'percentage');
         setPUpiDiscountValue(target.upiDiscountValue ?? 5);
         setPUpiOfferText(target.upiOfferText || 'Extra 5% Instant Discount on UPI Payment');
@@ -651,6 +654,7 @@ export default function VendorDashboard({
       setPReturnDays(7);
       setPReturnPolicyText('');
       setPHasUpiOffer(true);
+      setPUpiPrice(269);
       setPUpiDiscountType('percentage');
       setPUpiDiscountValue(5);
       setPUpiOfferText('Extra 5% Instant Discount on UPI Payment');
@@ -793,6 +797,12 @@ export default function VendorDashboard({
       ? `${pReturnDays || 7} Days Replacement / Exchange Only`
       : `${pReturnDays || 7} Days Easy Return & 100% Refund`;
 
+    const finalUpiPrice = pHasUpiOffer
+      ? (pUpiPrice > 0 && pUpiPrice <= pPrice 
+          ? pUpiPrice 
+          : Math.max(1, pPrice - (pUpiDiscountType === 'percentage' ? Math.round((pPrice * pUpiDiscountValue) / 100) : pUpiDiscountValue)))
+      : pPrice;
+
     const finalUpiText = pHasUpiOffer
       ? (pUpiOfferText.trim() || (pUpiDiscountType === 'percentage' ? `Extra ${pUpiDiscountValue}% OFF on UPI Payment` : `Instant ₹${pUpiDiscountValue} OFF on UPI Payment`))
       : '';
@@ -813,6 +823,7 @@ export default function VendorDashboard({
       returnDays: pReturnPolicyType === 'no_return' ? 0 : (Number(pReturnDays) || 7),
       returnPolicyText: finalReturnPolicyText,
       hasUpiOffer: pHasUpiOffer,
+      upiPrice: finalUpiPrice,
       upiDiscountType: pUpiDiscountType,
       upiDiscountValue: Number(pUpiDiscountValue) || 0,
       upiOfferText: finalUpiText,

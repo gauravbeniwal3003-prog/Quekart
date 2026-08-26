@@ -156,13 +156,18 @@
   transform: rotate(180deg);
 }
 
-/* Force mobile-friendly layouts without unwanted left/right scroll */
+/* Force mobile-friendly layouts and ultra-smooth 60FPS rendering */
 html, body {
   max-width: 100%;
   overflow-x: hidden;
   margin: 0;
   padding: 0;
   width: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 #root {
@@ -170,3 +175,19 @@ html, body {
   overflow-x: hidden;
   width: 100%;
 }
+
+/* 60FPS Hardware Acceleration & Low-End Device Optimizations */
+.gpu-layer {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Optimize off-screen rendering performance for product lists */
+.content-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 320px;
+}
+

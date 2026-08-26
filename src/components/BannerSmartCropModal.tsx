@@ -5,7 +5,7 @@ import { X, Check, ZoomIn, ZoomOut, RotateCcw, ImageIcon, Loader2, Upload } from
 export interface BannerSmartCropModalProps {
   isOpen: boolean;
   initialImage: string;
-  bannerRow: 'upper' | 'lower';
+  bannerRow: 'main' | 'double' | 'upper' | 'lower';
   onConfirm: (croppedDataUrl: string) => void | Promise<void>;
   onClose: () => void;
   isLoading?: boolean;
@@ -36,11 +36,11 @@ export default function BannerSmartCropModal({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Aspect ratio configuration: upper row is 3:1, lower is 2:1
-  const isUpper = bannerRow === 'upper';
-  const targetWidth = isUpper ? 900 : 600;
+  // Aspect ratio configuration: main row is ~3.2:1, double row is ~2.2:1
+  const isMain = bannerRow === 'main' || bannerRow === 'upper';
+  const targetWidth = isMain ? 900 : 600;
   const targetHeight = 300;
-  const aspectRatioClass = isUpper ? 'aspect-[3/1]' : 'aspect-[2/1]';
+  const aspectRatioClass = isMain ? 'aspect-[3.2/1]' : 'aspect-[2.2/1]';
 
   useEffect(() => {
     if (isOpen) {
@@ -190,7 +190,7 @@ export default function BannerSmartCropModal({
           <div>
             <h3 className="text-sm font-black text-slate-800">Real-Time Banner Cropper</h3>
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
-              Target Slot: {isUpper ? 'Upper Row (3:1 Single Poster)' : 'Below Row (2:1 Double Posters)'}
+              Target Slot: {isMain ? 'Main Banner (Single Top Poster)' : 'Double Banners (2-in-1 Row Posters)'}
             </p>
           </div>
           <button 

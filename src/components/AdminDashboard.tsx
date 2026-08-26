@@ -1026,7 +1026,7 @@ export default function AdminDashboard({
       setBType('promotional');
       setBImageUrl('');
       setBLinkUrl('');
-      setBRow('upper');
+      setBRow('main');
       setBOrder(1);
       setBTitle('');
       setBSubtitle('');
@@ -1041,7 +1041,7 @@ export default function AdminDashboard({
         setBType(foundBanner.type);
         setBImageUrl(foundBanner.imageUrl);
         setBLinkUrl(foundBanner.linkUrl || '');
-        setBRow(foundBanner.row || 'upper');
+        setBRow(foundBanner.row || 'main');
         setBOrder(foundBanner.order || 1);
         setBTitle(foundBanner.title || '');
         setBSubtitle(foundBanner.subtitle || '');
@@ -1062,7 +1062,7 @@ export default function AdminDashboard({
   const [bType, setBType] = useState<'promotional' | 'news'>('promotional');
   const [bImageUrl, setBImageUrl] = useState('');
   const [bLinkUrl, setBLinkUrl] = useState('');
-  const [bRow, setBRow] = useState<'upper' | 'lower'>('upper');
+  const [bRow, setBRow] = useState<'main' | 'double' | 'upper' | 'lower'>('main');
   const [bOrder, setBOrder] = useState<number>(1);
   const [bTitle, setBTitle] = useState('');
   const [bSubtitle, setBSubtitle] = useState('');
@@ -1529,7 +1529,7 @@ export default function AdminDashboard({
     setBImageUrl('');
     setBLinkUrl('');
     setBType('promotional');
-    setBRow('upper');
+    setBRow('main');
     setBOrder(1);
     setBTitle('');
     setBSubtitle('');
@@ -2647,14 +2647,14 @@ export default function AdminDashboard({
             </div>
 
             <div>
-              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Target Banner Row *</label>
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Target Banner Area *</label>
               <select
                 value={bRow}
                 onChange={(e) => setBRow(e.target.value as any)}
                 className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2.5 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
               >
-                <option value="upper">Upper Row (Single Banner)</option>
-                <option value="lower">Below Row (Two Banners)</option>
+                <option value="main">Main Banner (Upper Main Banner Area)</option>
+                <option value="double">Double Banners (Below Row - 2 Banners in 1 Row)</option>
               </select>
             </div>
           </div>
@@ -2775,7 +2775,7 @@ export default function AdminDashboard({
                 <p className="text-[9px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Live Poster Rendering (as seen in /shop):</p>
                 
                 <div className={`bg-slate-100 rounded-xl overflow-hidden border border-slate-200/80 relative shadow-md group ${
-                  bRow === 'upper' ? 'aspect-[3.2/1]' : 'aspect-[2.2/1]'
+                  (bRow === 'main' || bRow === 'upper') ? 'aspect-[3.2/1]' : 'aspect-[2.2/1]'
                 }`}>
                   <img src={bImageUrl.trim()} alt="Preview" className="w-full h-full object-cover object-center animate-fadeIn" />
                   <div className="absolute inset-0 bg-gradient-to-r from-[#143C6B]/90 via-[#143C6B]/60 to-transparent flex flex-col justify-between p-3 sm:p-4 text-white pointer-events-none select-none">
@@ -7281,7 +7281,7 @@ export default function AdminDashboard({
                 <ImageIcon className="w-4 h-4 text-lucky-magenta" />
                 <span>Dynamic Layout Banners</span>
               </h3>
-              <p className="text-[11px] text-slate-400 font-medium mt-1">Manage single-column upper banners and side-by-side lower banners shown on the home page.</p>
+              <p className="text-[11px] text-slate-400 font-medium mt-1">Manage Main Banner (upper single banner area) and Double Banners (below 2 banners in 1 row area) shown on the home page.</p>
             </div>
             <button
               onClick={() => {
@@ -7289,7 +7289,7 @@ export default function AdminDashboard({
                 setBType('promotional');
                 setBImageUrl('');
                 setBLinkUrl('');
-                setBRow('upper');
+                setBRow('main');
                 setBOrder(1);
                 setBTitle('');
                 setBSubtitle('');
@@ -7311,31 +7311,31 @@ export default function AdminDashboard({
               <p className="text-xs text-slate-400 mt-1">Add banners to highlight promotions or news.</p>
             </div>
           ) : (() => {
-            const upperBanners = [...banners].filter(b => b.row === 'upper' || !b.row).sort((a,b) => (a.order || 0) - (b.order || 0));
-            const lowerBanners = [...banners].filter(b => b.row === 'lower').sort((a,b) => (a.order || 0) - (b.order || 0));
+            const mainBanners = [...banners].filter(b => b.row === 'main' || b.row === 'upper' || !b.row).sort((a,b) => (a.order || 0) - (b.order || 0));
+            const doubleBanners = [...banners].filter(b => b.row === 'double' || b.row === 'lower').sort((a,b) => (a.order || 0) - (b.order || 0));
 
             return (
               <div className="space-y-8">
-                {/* Upper Row Section */}
+                {/* Main Banner Section */}
                 <div>
                   <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
                     <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-[#FF8C00]"></span>
-                      <span>Upper Row (Single Banner Layout)</span>
+                      <span>Main Banner Area (Single Banner Layout)</span>
                       <span className="bg-slate-100 text-slate-500 text-[10px] px-2 py-0.5 rounded-full font-bold">
-                        {upperBanners.length}
+                        {mainBanners.length}
                       </span>
                     </h4>
-                    <p className="text-[10px] text-slate-400 font-semibold">Aspect Ratio: ~3:1</p>
+                    <p className="text-[10px] text-slate-400 font-semibold">Aspect Ratio: ~3.2:1</p>
                   </div>
                   
-                  {upperBanners.length === 0 ? (
+                  {mainBanners.length === 0 ? (
                     <div className="bg-slate-50 rounded-xl border border-dashed border-slate-200/80 p-6 text-center text-xs text-slate-400">
-                      No banners in upper row. Drag or add a banner to this slot.
+                      No banners in Main Banner area. Add a banner to this slot.
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {upperBanners.map((b) => (
+                      {mainBanners.map((b) => (
                         <div key={b.id} className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-xs flex flex-col group relative">
                           <div className="aspect-[3/1] w-full bg-slate-900 relative">
                             <img src={b.imageUrl || 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&q=80&w=900'} alt={b.title || b.type} className="w-full h-full object-cover" />
@@ -7363,7 +7363,7 @@ export default function AdminDashboard({
                                   setBType(b.type);
                                   setBImageUrl(b.imageUrl);
                                   setBLinkUrl(b.linkUrl || '');
-                                  setBRow(b.row || 'upper');
+                                  setBRow(b.row || 'main');
                                   setBOrder(b.order || 1);
                                   setBTitle(b.title || '');
                                   setBSubtitle(b.subtitle || '');
@@ -7400,26 +7400,26 @@ export default function AdminDashboard({
                   )}
                 </div>
 
-                {/* Below Row Section */}
+                {/* Double Banner Section */}
                 <div>
                   <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
                     <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-lucky-magenta"></span>
-                      <span>Below Row (Two Side-by-Side Banners Layout)</span>
+                      <span>Double Banner Area (Two Side-by-Side Banners Layout)</span>
                       <span className="bg-slate-100 text-slate-500 text-[10px] px-2 py-0.5 rounded-full font-bold">
-                        {lowerBanners.length}
+                        {doubleBanners.length}
                       </span>
                     </h4>
-                    <p className="text-[10px] text-slate-400 font-semibold">Aspect Ratio: ~2:1</p>
+                    <p className="text-[10px] text-slate-400 font-semibold">Aspect Ratio: ~2.2:1</p>
                   </div>
 
-                  {lowerBanners.length === 0 ? (
+                  {doubleBanners.length === 0 ? (
                     <div className="bg-slate-50 rounded-xl border border-dashed border-slate-200/80 p-6 text-center text-xs text-slate-400">
-                      No banners in below row. Add banners here to display two-at-a-time on /shop.
+                      No banners in Double Banner area. Add banners here to display two-at-a-time on /shop.
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {lowerBanners.map((b) => (
+                      {doubleBanners.map((b) => (
                         <div key={b.id} className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-xs flex flex-col group relative">
                           <div className="aspect-[2/1] w-full bg-slate-900 relative">
                             <img src={b.imageUrl || 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&q=80&w=600'} alt={b.title || b.type} className="w-full h-full object-cover" />
@@ -7447,7 +7447,7 @@ export default function AdminDashboard({
                                   setBType(b.type);
                                   setBImageUrl(b.imageUrl);
                                   setBLinkUrl(b.linkUrl || '');
-                                  setBRow(b.row || 'upper');
+                                  setBRow(b.row || 'double');
                                   setBOrder(b.order || 1);
                                   setBTitle(b.title || '');
                                   setBSubtitle(b.subtitle || '');

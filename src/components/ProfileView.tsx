@@ -493,7 +493,7 @@ export default function ProfileView({
   );
 
   return (
-    <div className={`min-h-screen pb-24 transition-colors duration-300 ${simulatedTwilightTheme ? 'bg-slate-900 text-slate-100' : 'bg-gray-50 text-gray-800'}`} id="profile-container">
+    <div className={`min-h-screen pb-32 sm:pb-28 transition-colors duration-300 ${simulatedTwilightTheme ? 'bg-slate-900 text-slate-100' : 'bg-gray-50 text-gray-800'}`} id="profile-container">
       
       {/* ==================== A. MAIN ACCOUNT PROFILE MENU VIEW ==================== */}
       {activeSubPage === null && (
@@ -780,56 +780,10 @@ export default function ProfileView({
             </div>
           </div>
 
-          {/* Made with love for Bharat - Bottom Illustration Banner */}
-          <div className="mt-8 px-4 flex flex-col items-center" id="bharat-banner-wrapper">
-            <div className={`w-full rounded-2xl p-5 border flex items-center justify-between overflow-hidden relative shadow-2xs ${simulatedTwilightTheme ? 'bg-slate-800 border-slate-700' : 'bg-[#f4f7fa] border-gray-100'}`} id="bharat-banner">
-              {/* Confetti decorative circles */}
-              <div className="absolute top-2 right-12 w-2 h-2 rounded-full bg-blue-300 opacity-60"></div>
-              <div className="absolute bottom-3 left-20 w-1.5 h-1.5 rounded-full bg-yellow-400 opacity-60"></div>
-              <div className="absolute top-1/2 left-28 w-2.5 h-2.5 rounded-full bg-blue-300 opacity-40"></div>
-
-              <div className="flex flex-col max-w-[55%]" id="bharat-banner-text">
-                <h4 className="text-[17px] italic leading-tight font-sans tracking-wide">
-                  Made with <span className="text-[#e11d48] font-bold">love</span>
-                </h4>
-                <h4 className="text-[17px] italic leading-tight font-bold tracking-wide mt-0.5">
-                  for Bharat
-                </h4>
-              </div>
-
-              {/* Vector representation of hands holding Indian Flag */}
-              <div className="relative w-28 h-20 flex-shrink-0" id="bharat-banner-graphic">
-                {/* Indian Flag SVG */}
-                <svg viewBox="0 0 120 100" className="w-full h-full">
-                  {/* Flag Pole */}
-                  <line x1="55" y1="35" x2="55" y2="85" stroke="#4b5563" strokeWidth="2.5" strokeLinecap="round" />
-                  {/* Flag Ripples */}
-                  <g>
-                    {/* Saffron */}
-                    <path d="M55,35 Q65,30 75,35 Q85,40 95,35 L95,44 Q85,49 75,44 Q65,39 55,44 Z" fill="#FF9933" />
-                    {/* White */}
-                    <path d="M55,44 Q65,39 75,44 Q85,49 95,44 L95,53 Q85,58 75,53 Q65,48 55,53 Z" fill="#FFFFFF" />
-                    {/* Green */}
-                    <path d="M55,53 Q65,48 75,53 Q85,58 95,53 L95,62 Q85,67 75,62 Q65,57 55,62 Z" fill="#138808" />
-                    {/* Ashoka Chakra */}
-                    <circle cx="75" cy="48.5" r="3" fill="none" stroke="#000080" strokeWidth="0.8" />
-                    <path d="M75,45.5 L75,51.5 M72,48.5 L78,48.5 M73,46.5 L77,50.5 M73,50.5 L77,46.5" stroke="#000080" strokeWidth="0.4" />
-                  </g>
-
-                  {/* Hands */}
-                  <path d="M25,75 Q28,62 38,62 Q45,62 48,70 Q43,82 25,85 Z" fill="#e09e7c" />
-                  <path d="M38,62 C40,50 48,50 46,65" stroke="#bf8162" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-                  <path d="M48,82 Q56,72 65,72 Q72,72 75,82 Q65,92 48,85 Z" fill="#e09e7c" />
-                  <circle cx="53" cy="78" r="3" fill="#bf8162" />
-                  <circle cx="57" cy="78" r="3" fill="#bf8162" />
-                  <circle cx="61" cy="78" r="3" fill="#bf8162" />
-                </svg>
-              </div>
-            </div>
-
-            {/* App Version indicator */}
-            <span className="text-[10px] text-gray-400 font-semibold tracking-wide mt-3" id="app-version-text">
-              App Version: 28.4 (QueKart-Build-841)
+          {/* App Version indicator */}
+          <div className="mt-6 mb-12 sm:mb-8 pb-10 px-4 flex flex-col items-center" id="profile-footer-version">
+            <span className="text-[11px] text-gray-400 font-semibold tracking-wide" id="app-version-text">
+              QueKart v28.4 (Official Build)
             </span>
           </div>
         </motion.div>

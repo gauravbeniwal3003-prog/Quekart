@@ -4,6 +4,7 @@ import { X, Trash2, ShieldCheck, MapPin, CheckCircle, ArrowLeft, CreditCard, Tic
 import { CartItem, Order, Coupon } from '../types';
 import { getApiUrl } from '../utils/api';
 import { resetScrollToTop } from '../utils/scroll';
+import { getProductPricing } from '../utils/pricing';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -72,14 +73,15 @@ export default function CartDrawer({
   const totalDiscount = originalItemsPrice - itemsPrice;
   const deliveryCharge = 0; // Free delivery representation
   
-  // UPI offer calculation (Dynamically computed from each product's vendor settings)
+  // UPI offer calculation (Dynamically computed from each product's vendor settings & upiPrice)
   const upiOfferDiscount = cart.reduce((sum, item) => {
     if (item.product.hasUpiOffer === false) return sum;
     const vPrice = item.product.variants[item.selectedVariantIndex]?.price || item.product.price;
-    const discount = item.product.upiDiscountType === 'flat'
-      ? (item.product.upiDiscountValue || 30)
-      : Math.round((vPrice * (item.product.upiDiscountValue || 5)) / 100);
-    return sum + (discount * item.quantity);
+    const pricing = getProductPricing({
+      ...item.product,
+      price: vPrice,
+    });
+    return sum + (pricing.upiDiscountAmount * item.quantity);
   }, 0);
   
   // Validate applied coupon against current items price

@@ -365,7 +365,7 @@ export default function Header({
           
           {/* Logo & Refer row on Mobile, Logo on Left on Desktop - Hardware Accelerated Ultra-Smooth Collapse */}
           <div 
-            className={`md:block flex-shrink-0 w-full md:w-auto transition-[height,opacity] duration-200 ease-out overflow-hidden ${
+            className={`md:block flex-shrink-0 w-full md:w-auto transition-[height,opacity] duration-150 ease-out overflow-hidden ${
               isScrolled 
                 ? 'h-0 opacity-0 pointer-events-none md:h-auto md:opacity-100 md:pointer-events-auto' 
                 : 'h-10 opacity-100 pointer-events-auto mb-1 md:mb-0'
@@ -427,17 +427,6 @@ export default function Header({
 
           {/* Search Bar Container */}
           <div className="flex items-center gap-1.5 md:gap-2 w-full md:w-auto flex-1 min-w-0">
-            {/* Inline mini logo on mobile when scrolled */}
-            <div 
-              className={`md:hidden flex items-center flex-shrink-0 transition-[width,opacity] duration-200 ease-out overflow-hidden ${
-                isScrolled 
-                  ? 'w-[96px] opacity-100 pointer-events-auto pr-1' 
-                  : 'w-0 opacity-0 pointer-events-none pr-0'
-              }`}
-            >
-              <BrandLogo size="sm" onClick={() => onSelectTab('home')} />
-            </div>
-
             {/* Search Bar (responsive width) */}
             <div className="relative flex flex-col flex-1 max-w-2xl md:mx-auto w-full min-w-0" id="search-container" ref={containerRef}>
               <div className="relative flex items-center w-full">
@@ -446,7 +435,7 @@ export default function Header({
                 </div>
                 <input
                   type="text"
-                  placeholder="Search by Keyword, Product or Category..."
+                  placeholder={isScrolled ? "Search products..." : "Search products, categories..."}
                   value={searchQuery}
                   onChange={(e) => {
                     onSearch(e.target.value);
@@ -634,38 +623,6 @@ export default function Header({
                 )}
               </div>
             )}
-          </div>
-
-          {/* Inline Mobile Actions when Scrolled (Wishlist & Cart) */}
-          <div 
-            className={`md:hidden flex items-center flex-shrink-0 transition-[width,opacity] duration-200 ease-out overflow-hidden ${
-              isScrolled 
-                ? 'w-[68px] opacity-100 pointer-events-auto gap-1' 
-                : 'w-0 opacity-0 pointer-events-none gap-0'
-            }`}
-          >
-            <button
-              onClick={() => onSelectTab('wishlist')}
-              className="p-1 hover:bg-gray-100 rounded-full relative cursor-pointer text-gray-700 transition-colors"
-              id="wishlist-header-btn-scrolled"
-              aria-label="Wishlist"
-            >
-              <Heart className="w-5 h-5 stroke-2 hover:fill-red-500 hover:text-red-500 transition-colors" />
-            </button>
-            
-            <button
-              onClick={onOpenCart}
-              className="p-1 hover:bg-gray-100 rounded-full relative cursor-pointer text-gray-700 transition-colors"
-              id="cart-header-btn-scrolled"
-              aria-label="Cart"
-            >
-              <ShoppingCart className="w-5 h-5 stroke-2" />
-              {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 bg-lucky-magenta text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
-                  {totalItems}
-                </span>
-              )}
-            </button>
           </div>
         </div>
 

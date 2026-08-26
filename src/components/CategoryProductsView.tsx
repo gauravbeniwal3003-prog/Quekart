@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect, MouseEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Heart, ShoppingBag, Loader2, ChevronDown, Check, Star, X, Sparkles, Filter } from 'lucide-react';
+import { ArrowLeft, Heart, ShoppingBag, Loader2, ChevronDown, Check, Star, X, Sparkles, Filter, Zap } from 'lucide-react';
 import { Product, Category } from '../types';
 import { resetScrollToTop } from '../utils/scroll';
 import { useInfiniteProductPagination } from '../hooks/useInfiniteProductPagination';
+import { getProductPricing } from '../utils/pricing';
 import { HighlightedText } from './HighlightedText';
 import { useProductImpressionObserver } from '../hooks/useProductImpressionObserver';
 import { trackProductView } from '../utils/analytics';
@@ -580,15 +581,44 @@ export default function CategoryProductsView({
                           )}
                         </div>
 
-                        {/* Price Display Block: Original (left, gray with line-through) and Final (right, bold accent) */}
-                        <div className="flex items-baseline justify-between pt-1">
-                          <span className="text-[11px] text-gray-400 line-through font-semibold">
-                            ₹{product.originalPrice}
-                          </span>
-                          <span className="text-sm font-black text-[#143C6B] premium-rupee">
-                            ₹{product.price}
-                          </span>
-                        </div>
+                        {(() => {
+                          const pricing = getProductPricing(product);
+                          return (
+                            <>
+                              {/* Price Display Block: Original and Effective Final */}
+                              <div className="flex items-baseline justify-between pt-1">
+                                <span className="text-[11px] text-gray-400 line-through font-semibold">
+                                  ₹{pricing.originalPrice}
+                                </span>
+                                <span className="text-sm font-black text-[#143C6B] premium-rupee">
+                                  ₹{pricing.effectivePrice}
+                                </span>
+                              </div>
+
+                              {/* Dual COD & UPI representation */}
+                              <div className="mt-1 space-y-0.5 border-t border-slate-50 pt-1">
+                                {pricing.hasUpiOffer && (
+                                  <div className="text-[10px] font-extrabold text-[#143C6B] flex items-center justify-between">
+                                    <span className="flex items-center gap-0.5">
+                                      <Zap className="w-2.5 h-2.5 text-emerald-600 fill-emerald-600" />
+                                      ₹{pricing.upiPrice} with UPI
+                                    </span>
+                                  </div>
+                                )}
+                                {pricing.isCodAvailable ? (
+                                  <div className="text-[10px] text-slate-500 font-semibold flex items-center gap-1">
+                                    <span className="text-emerald-600 text-[9px] font-bold">✔</span>
+                                    <span>₹{pricing.codPrice} with COD</span>
+                                  </div>
+                                ) : (
+                                  <div className="text-[9.5px] text-indigo-700 font-bold">
+                                    Online Payment Only
+                                  </div>
+                                )}
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   </motion.div>

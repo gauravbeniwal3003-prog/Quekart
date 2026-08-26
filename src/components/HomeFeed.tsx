@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowUpDown, ChevronDown, ChevronUp, SlidersHorizontal, Heart, Sparkles, CheckCircle2, Loader2, Search, ShoppingBag, Tag, X, Star, Check, RotateCcw } from 'lucide-react';
+import { ArrowUpDown, ChevronDown, ChevronUp, SlidersHorizontal, Heart, Sparkles, CheckCircle2, Loader2, Search, ShoppingBag, Tag, X, Star, Check, RotateCcw, Zap } from 'lucide-react';
 import { Product, Banner, Category } from '../types';
+import { initialBanners } from '../data';
 import { useInfiniteProductPagination } from '../hooks/useInfiniteProductPagination';
 import { sortHomeFeedByPerformance } from '../utils/productSorting';
+import { getProductPricing } from '../utils/pricing';
 import { HighlightedText } from './HighlightedText';
 import { useProductImpressionObserver } from '../hooks/useProductImpressionObserver';
 import { trackProductView } from '../utils/analytics';
@@ -68,16 +70,33 @@ export default function HomeFeed({
   // Category Bubbles expand/collapse state (3 categories + See More initially)
   const [isCategoriesExpanded, setIsCategoriesExpanded] = useState(false);
 
-  // Separate banners by configured row or default fallback
-  const row1Banners = useMemo(() => {
-    const filtered = banners.filter((b) => b.row === 'upper');
-    return filtered.length > 0 ? filtered : (banners.length > 0 ? [banners[0]] : []);
+  // Fallback to initialBanners if banners array is empty
+  const displayBanners = useMemo(() => {
+    return (banners && banners.length > 0) ? banners : initialBanners;
   }, [banners]);
 
+  // Separate banners by placement (Main Banner vs Double Banners) with robust fallbacks
+  const row1Banners = useMemo(() => {
+    const mainMatches = displayBanners.filter((b) => b.row === 'main' || b.id === 'banner-rakhi-1');
+    if (mainMatches.length > 0) return mainMatches;
+
+    const upperMatches = displayBanners.filter((b) => b.row === 'upper');
+    if (upperMatches.length > 0) return upperMatches;
+
+    return displayBanners.length > 0 ? [displayBanners[0]] : initialBanners.slice(0, 1);
+  }, [displayBanners]);
+
   const row2Banners = useMemo(() => {
-    const filtered = banners.filter((b) => b.row === 'lower');
-    return filtered.length > 0 ? filtered : (banners.length > 1 ? banners.slice(1) : banners);
-  }, [banners]);
+    const doubleMatches = displayBanners.filter((b) => b.row === 'double' || b.row === 'lower' || b.id === 'banner-rakhi-2' || b.id === 'banner-rakhi-3');
+    if (doubleMatches.length > 0) return doubleMatches;
+
+    // Fallback: use any banners not in row 1
+    const remaining = displayBanners.filter((b) => !row1Banners.some((r1) => r1.id === b.id));
+    if (remaining.length > 0) return remaining;
+
+    // Fallback to default double banners from initialBanners
+    return initialBanners.filter((b) => b.row === 'double' || b.id === 'banner-rakhi-2' || b.id === 'banner-rakhi-3');
+  }, [displayBanners, row1Banners]);
 
   // Banner Carousel Index tracking & automatic loop animation state
   const [row1Index, setRow1Index] = useState(0);
@@ -573,7 +592,7 @@ export default function HomeFeed({
       </motion.div>
 
       {/* Dynamic Banners Poster Section */}
-      {banners && banners.length > 0 && (() => {
+      {displayBanners && displayBanners.length > 0 && (() => {
         const row1Slides = [...row1Banners, ...row1Banners, ...row1Banners];
         const row2Slides = [...row2Banners, ...row2Banners, ...row2Banners];
         return (
@@ -1476,29 +1495,49 @@ export default function HomeFeed({
                         </span>
                       </div>
 
-                      {/* Price and Strikethrough Row */}
-                      <div className="flex items-baseline gap-1.5 flex-wrap overflow-hidden">
-                        <span className="text-[16px] font-black text-slate-900 premium-rupee">
-                          ₹{product.price}
-                        </span>
-                        <span className="text-xs text-gray-400 line-through font-medium">
-                          ₹{product.originalPrice}
-                        </span>
-                        <span className="text-xs text-lucky-green font-extrabold tracking-tight">
-                          {product.discountPercent}% off
-                        </span>
-                        {product.hasUpiOffer && (
-                          <span className="text-[9px] bg-emerald-50 text-emerald-700 font-extrabold px-1.5 py-0.2 rounded-sm border border-emerald-200/50 uppercase tracking-wider">
-                            UPI
-                          </span>
-                        )}
-                      </div>
+                      {(() => {
+                        const pricing = getProductPricing(product);
+                        return (
+                          <>
+                            {/* Price and Strikethrough Row */}
+                            <div className="flex items-baseline gap-1.5 flex-wrap overflow-hidden">
+                              <span className="text-[16px] font-black text-slate-900 premium-rupee">
+                                ₹{pricing.effectivePrice}
+                              </span>
+                              <span className="text-xs text-gray-400 line-through font-medium">
+                                ₹{pricing.originalPrice}
+                              </span>
+                              <span className="text-xs text-lucky-green font-extrabold tracking-tight">
+                                {pricing.discountPercent}% off
+                              </span>
+                            </div>
 
-                      {/* COD Info - True Lucky Style */}
-                      <div className="text-[11px] text-slate-500 font-bold mt-1 flex items-center gap-1">
-                        <span className="text-emerald-600 text-[10px]">✔</span>
-                        <span>₹{product.codPrice} with COD</span>
-                      </div>
+                            {/* Dual Price Representation: COD & UPI Options */}
+                            <div className="mt-1 space-y-0.5">
+                              {/* UPI Special Price (only if explicitly enabled by vendor) */}
+                              {pricing.hasUpiOffer && (
+                                <div className="text-[11px] font-extrabold text-[#143C6B] flex items-center gap-1">
+                                  <span className="text-emerald-600 text-[10px]">⚡</span>
+                                  <span className="text-slate-900 font-bold">₹{pricing.upiPrice} with UPI</span>
+                                </div>
+                              )}
+
+                              {/* COD Price */}
+                              {pricing.isCodAvailable ? (
+                                <div className="text-[11px] text-slate-500 font-semibold flex items-center gap-1">
+                                  <span className="text-emerald-600 text-[10px] font-bold">✔</span>
+                                  <span>₹{pricing.codPrice} with COD</span>
+                                </div>
+                              ) : (
+                                <div className="text-[10.5px] text-indigo-700 font-bold flex items-center gap-1">
+                                  <span className="text-indigo-600 text-[10px]">⚡</span>
+                                  <span>Online Payment Only</span>
+                                </div>
+                              )}
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
 
                     {/* Bottom Stats Row */}

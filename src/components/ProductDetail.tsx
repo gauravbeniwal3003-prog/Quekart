@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { getApiUrl } from '../utils/api';
 import { resetScrollToTop } from '../utils/scroll';
+import { getProductPricing } from '../utils/pricing';
 import Logo, { BrandLogo } from './Logo';
 import { 
   ChevronLeft, 
@@ -28,6 +29,7 @@ import {
   MessageSquare,
   Loader2,
   Eye,
+  Zap,
   Edit3,
   UserCheck,
   ShieldCheck,
@@ -1018,49 +1020,110 @@ export default function ProductDetail({
                 </div>
               </div>
 
-              {/* Pricing Row */}
-              <div className="mt-3 flex items-baseline gap-2 flex-wrap" id="pricing-row">
-                {/* Current Price */}
-                <span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                  ₹{currentVariant.price}
-                </span>
-                {/* Original Price Strikethrough */}
-                <span className="text-sm text-slate-400 line-through font-normal">
-                  {currentVariant.originalPrice}
-                </span>
-                {/* Discount Percentage */}
-                <span className="text-sm font-semibold text-slate-700">
-                  {product.discountPercent}% off
-                </span>
-                {/* Info tooltip icon */}
-                <button 
-                  onClick={() => triggerToast("Inclusive of all taxes & lowest price guarantee.")}
-                  className="text-slate-400 hover:text-slate-600 cursor-pointer"
-                  title="Price Details"
-                >
-                  <Info className="w-3.5 h-3.5 inline" />
-                </button>
-              </div>
+              {(() => {
+                const pricing = getProductPricing({
+                  ...product,
+                  price: currentVariant.price,
+                  originalPrice: currentVariant.originalPrice,
+                });
 
-              {/* "Discount Applied ✔" Green Badge */}
-              <div className="mt-2">
-                <span className="inline-flex items-center gap-1 bg-[#E8F8F0] text-[#059669] text-xs font-semibold px-2.5 py-0.5 rounded-md border border-[#D1F2E0]">
-                  <span>Discount Applied</span>
-                  <Check className="w-3.5 h-3.5 stroke-[3] text-[#059669]" />
-                </span>
-              </div>
+                return (
+                  <>
+                    {/* Pricing Row */}
+                    <div className="mt-3 flex items-baseline gap-2 flex-wrap" id="pricing-row">
+                      {/* Current Effective Price */}
+                      <span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                        ₹{pricing.effectivePrice}
+                      </span>
+                      {/* Original Price Strikethrough */}
+                      <span className="text-sm text-slate-400 line-through font-normal">
+                        ₹{pricing.originalPrice}
+                      </span>
+                      {/* Discount Percentage */}
+                      <span className="text-sm font-extrabold text-emerald-700">
+                        {pricing.discountPercent}% off
+                      </span>
+                      {/* Info tooltip icon */}
+                      <button 
+                        onClick={() => triggerToast("Inclusive of all taxes & lowest price guarantee.")}
+                        className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                        title="Price Details"
+                      >
+                        <Info className="w-3.5 h-3.5 inline" />
+                      </button>
+                    </div>
 
-              {/* "₹47 with 1 Special Offer >" Clickable Teaser */}
-              <div className="mt-2.5">
-                <button
-                  onClick={() => setShowSpecialOfferModal(true)}
-                  className="text-xs sm:text-sm font-bold text-[#059669] hover:underline flex items-center gap-1 cursor-pointer"
-                  id="btn-special-offer"
-                >
-                  <span>₹{specialOfferPrice} with 1 Special Offer</span>
-                  <ChevronRight className="w-4 h-4 stroke-[2.5]" />
-                </button>
-              </div>
+                    {/* Dual Pricing Selector / Summary Cards */}
+                    <div className="mt-3.5 grid grid-cols-1 sm:grid-cols-2 gap-2.5" id="product-dual-price-cards">
+                      {/* 1. UPI / Online Payment Card */}
+                      {pricing.hasUpiOffer ? (
+                        <div className="bg-gradient-to-br from-purple-50/90 to-indigo-50/50 border border-purple-200/80 rounded-xl p-2.5 flex flex-col justify-between shadow-3xs">
+                          <div className="flex items-center justify-between gap-1 mb-1">
+                            <span className="text-[10.5px] font-black text-purple-900 flex items-center gap-1 uppercase tracking-wider">
+                              <Zap className="w-3 h-3 text-purple-600 fill-purple-600" />
+                              UPI / Online Price
+                            </span>
+                          </div>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-lg font-black text-purple-950">₹{pricing.upiPrice}</span>
+                            <span className="text-[10px] text-purple-700 font-bold">with UPI / Cards / Netbanking</span>
+                          </div>
+                          <p className="text-[9.5px] text-purple-600/90 font-medium mt-0.5">
+                            GPay, PhonePe, Paytm, BHIM, Cards
+                          </p>
+                        </div>
+                      ) : null}
+
+                      {/* 2. Cash on Delivery (COD) Card */}
+                      {pricing.isCodAvailable ? (
+                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex flex-col justify-between shadow-3xs">
+                          <div className="flex items-center justify-between gap-1 mb-1">
+                            <span className="text-[10.5px] font-black text-slate-700 flex items-center gap-1 uppercase tracking-wider">
+                              <Banknote className="w-3 h-3 text-emerald-600" />
+                              Cash on Delivery
+                            </span>
+                            <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded-full border border-emerald-200">
+                              Doorstep Pay
+                            </span>
+                          </div>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-lg font-black text-slate-900">₹{pricing.codPrice}</span>
+                            <span className="text-[10px] text-slate-500 font-bold">with COD</span>
+                          </div>
+                          <p className="text-[9.5px] text-slate-500 font-medium mt-0.5">
+                            Pay in cash when package arrives
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="bg-indigo-50/70 border border-indigo-100 rounded-xl p-2.5 flex items-center gap-2">
+                          <Zap className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                          <span className="text-[11px] text-indigo-900 font-bold">
+                            Online Payment Only (COD unavailable)
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* "Discount Applied ✔" Green Badge */}
+                    <div className="mt-2.5 flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 bg-[#E8F8F0] text-[#059669] text-xs font-semibold px-2.5 py-0.5 rounded-md border border-[#D1F2E0]">
+                        <span>Best Price Guaranteed</span>
+                        <Check className="w-3.5 h-3.5 stroke-[3] text-[#059669]" />
+                      </span>
+                      {pricing.upiDiscountAmount > 0 && (
+                        <button
+                          onClick={() => setShowSpecialOfferModal(true)}
+                          className="text-xs font-bold text-[#059669] hover:underline flex items-center gap-0.5 cursor-pointer"
+                          id="btn-special-offer"
+                        >
+                          <span>{pricing.upiOfferText}</span>
+                          <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                        </button>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
 
               {/* Rating Badge (Real Dynamic Ratings) */}
               {realRatingData.hasRatings ? (
