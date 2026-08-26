@@ -821,6 +821,7 @@ export default function App() {
       ) : activePortal === 'vendor' ? (
         /* 2. VENDOR PORTAL (Isolated Supplier Web App at /vendor) */
         <VendorDashboard
+          categories={categories}
           products={products}
           orders={orders}
           onAddProduct={handleVendorAddProduct}

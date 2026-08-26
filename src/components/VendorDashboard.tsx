@@ -61,7 +61,7 @@ import {
   Wallet
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Product, Order, Vendor } from '../types';
+import { Product, Order, Vendor, Category } from '../types';
 import Logo, { BrandLogo, QueKartLogoText } from './Logo';
 import VendorAuthView from './VendorAuthView';
 import VendorExportReports from './VendorExportReports';
@@ -72,6 +72,7 @@ import { ReturnPolicyAccordion, SizeAndParametersManager } from './ProductFormCo
 import { VendorUpiPricingSelector } from './VendorUpiPricingSelector';
 
 interface VendorDashboardProps {
+  categories?: Category[];
   products: Product[];
   orders: Order[];
   onAddProduct: (product: Product) => Promise<void>;
@@ -86,6 +87,7 @@ interface VendorDashboardProps {
 }
 
 export default function VendorDashboard({
+  categories = [],
   products,
   orders,
   onAddProduct,
@@ -1781,7 +1783,7 @@ export default function VendorDashboard({
                       {/* COMPREHENSIVE CATEGORIES DATABASE SELECTOR */}
                       <div>
                         <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
-                          Primary Category * ({MASTER_CATEGORIES.length} Master Groups)
+                          Primary Category * ({categories.length > 0 ? categories.length : MASTER_CATEGORIES.length} Live Categories)
                         </label>
                         <select
                           value={pCategory}
@@ -1789,11 +1791,19 @@ export default function VendorDashboard({
                           className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 bg-white focus:outline-hidden focus:border-[#143C6B]"
                           id="vendor-category-select"
                         >
-                          {MASTER_CATEGORIES.map(cat => (
-                            <option key={cat.id} value={cat.name}>
-                              {cat.name} ({cat.group})
-                            </option>
-                          ))}
+                          {categories.length > 0 ? (
+                            categories.map(cat => (
+                              <option key={cat.id} value={cat.name}>
+                                {cat.name}
+                              </option>
+                            ))
+                          ) : (
+                            MASTER_CATEGORIES.map(cat => (
+                              <option key={cat.id} value={cat.name}>
+                                {cat.name} ({cat.group})
+                              </option>
+                            ))
+                          )}
                         </select>
                       </div>
                     </div>

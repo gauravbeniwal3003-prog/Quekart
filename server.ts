@@ -515,10 +515,11 @@ async function testAndSeedSupabase() {
           }
         }
       } else {
-        console.log(`📊 Categories in Supabase: ${existingCategoryIds.size}. Upserting database records...`);
-        for (let i = 0; i < localCategories.length; i++) {
-          const c = localCategories[i];
-          await supabase.from('categories').upsert({ id: c.id, data: c, position: i });
+        console.log(`📊 Categories in Supabase: ${existingCategoryIds.size}. Syncing live database categories...`);
+        const { data: dbCatRows } = await supabase.from('categories').select('*').order('position', { ascending: true });
+        if (dbCatRows) {
+          localCategories = dbCatRows.map((r: any) => r.data || r);
+          saveMockDataFile();
         }
       }
     } else {
@@ -539,10 +540,11 @@ async function testAndSeedSupabase() {
           }
         }
       } else {
-        console.log(`📊 Category Filters in Supabase: ${existingFilterIds.size}. Upserting database records...`);
-        for (let i = 0; i < localCategoryFilters.length; i++) {
-          const f = localCategoryFilters[i];
-          await supabase.from('category_filters').upsert({ id: f.id, data: f, position: i });
+        console.log(`📊 Category Filters in Supabase: ${existingFilterIds.size}. Syncing live database category filters...`);
+        const { data: dbFiltRows } = await supabase.from('category_filters').select('*').order('position', { ascending: true });
+        if (dbFiltRows) {
+          localCategoryFilters = dbFiltRows.map((r: any) => r.data || r);
+          saveMockDataFile();
         }
       }
     } else {
@@ -562,9 +564,11 @@ async function testAndSeedSupabase() {
           }
         }
       } else {
-        console.log(`📊 Banners in Supabase: ${existingBannerIds.size}. Upserting database records...`);
-        for (const b of localBanners) {
-          await supabase.from('banners').upsert({ id: b.id, data: b });
+        console.log(`📊 Banners in Supabase: ${existingBannerIds.size}. Syncing live database banners...`);
+        const { data: dbBannerRows } = await supabase.from('banners').select('*');
+        if (dbBannerRows) {
+          localBanners = dbBannerRows.map((r: any) => r.data || r);
+          saveMockDataFile();
         }
       }
     } else {
@@ -3879,8 +3883,10 @@ app.get('/api/categories', async (req, res) => {
   try {
     if (useSupabase && supabase) {
       const { data, error } = await supabase.from('categories').select('*').order('position', { ascending: true });
-      if (!error && data && data.length > 0) {
-        return res.json(data.map((row: any) => row.data));
+      if (!error && data) {
+        localCategories = data.map((row: any) => row.data);
+        saveMockDataFile();
+        return res.json(localCategories);
       }
     }
     res.json(localCategories);
@@ -4009,8 +4015,10 @@ app.get('/api/category-filters', async (req, res) => {
   try {
     if (useSupabase && supabase) {
       const { data, error } = await supabase.from('category_filters').select('*').order('position', { ascending: true });
-      if (!error && data && data.length > 0) {
-        return res.json(data.map((row: any) => row.data));
+      if (!error && data) {
+        localCategoryFilters = data.map((row: any) => row.data);
+        saveMockDataFile();
+        return res.json(localCategoryFilters);
       }
     }
     res.json(localCategoryFilters);

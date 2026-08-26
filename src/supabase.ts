@@ -167,7 +167,7 @@ export async function fetchProductsUnified(): Promise<Product[]> {
  */
 export async function fetchCategoriesUnified(): Promise<Category[]> {
   const apiCats = await fetchSafeJson(getApiUrl('/api/categories'));
-  if (apiCats && Array.isArray(apiCats) && apiCats.length > 0) {
+  if (apiCats && Array.isArray(apiCats)) {
     return apiCats;
   }
 
@@ -175,7 +175,7 @@ export async function fetchCategoriesUnified(): Promise<Category[]> {
   if (sb) {
     try {
       const { data, error } = await sb.from('categories').select('*').order('position', { ascending: true });
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         return data.map((r: any) => r.data || r);
       }
     } catch (_) {}
@@ -189,7 +189,7 @@ export async function fetchCategoriesUnified(): Promise<Category[]> {
  */
 export async function fetchCategoryFiltersUnified(): Promise<CategoryFilter[]> {
   const apiFilters = await fetchSafeJson(getApiUrl('/api/category-filters'));
-  if (apiFilters && Array.isArray(apiFilters) && apiFilters.length > 0) {
+  if (apiFilters && Array.isArray(apiFilters)) {
     return apiFilters;
   }
 
@@ -197,7 +197,7 @@ export async function fetchCategoryFiltersUnified(): Promise<CategoryFilter[]> {
   if (sb) {
     try {
       const { data, error } = await sb.from('category_filters').select('*').order('position', { ascending: true });
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         return data.map((r: any) => r.data || r);
       }
     } catch (_) {}
