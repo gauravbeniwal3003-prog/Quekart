@@ -128,6 +128,19 @@ export interface Vendor {
   upiId?: string;
 }
 
+export interface SavedAddress {
+  id: string;
+  label: 'Home' | 'Office' | 'Other' | string;
+  name: string;
+  phone: string;
+  addressLine: string;
+  city: string;
+  state: string;
+  pincode: string;
+  alternativePhone?: string;
+  isDefault?: boolean;
+}
+
 export interface AppUser {
   id: string;
   name: string;
@@ -141,16 +154,7 @@ export interface AppUser {
   state?: string;
   pincode?: string;
   isProfileComplete?: boolean;
-  savedAddresses?: Array<{
-    id: string;
-    name: string;
-    phone: string;
-    addressLine: string;
-    city: string;
-    state: string;
-    pincode: string;
-    isDefault?: boolean;
-  }>;
+  savedAddresses?: SavedAddress[];
   createdAt: string;
   status?: 'active' | 'banned';
   isBanned?: boolean;

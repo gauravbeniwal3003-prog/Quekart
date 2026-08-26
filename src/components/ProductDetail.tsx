@@ -842,7 +842,7 @@ export default function ProductDetail({
       </header>
 
       {/* MAIN CONTAINER */}
-      <main className="max-w-7xl mx-auto px-0 sm:px-4 lg:px-6 py-0 sm:py-3 lg:py-6 space-y-4 sm:space-y-6">
+      <main className="max-w-7xl mx-auto px-0 sm:px-4 lg:px-6 py-0 sm:py-3 lg:py-6 pb-36 lg:pb-6 space-y-4 sm:space-y-6">
         
         {/* RESPONSIVE 2-COLUMN GRID FOR DESKTOP (SINGLE COLUMN FOR MOBILE) */}
         <div className="lg:grid lg:grid-cols-12 lg:gap-8 items-start">
@@ -1280,80 +1280,7 @@ export default function ProductDetail({
           </div>
         </section>
 
-        {/* QUANTITY SELECTOR & IN-PAGE DUAL CTA BUTTONS (Screenshot 1 & 3 Format) */}
-        <section className="bg-white p-4 border-y sm:border border-slate-100 sm:rounded-2xl shadow-3xs space-y-3.5" id="product-quantity-actions-section">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Quantity :</span>
-              <div className="flex items-center border border-slate-300 rounded-xl overflow-hidden bg-slate-50 shadow-3xs">
-                <button
-                  onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
-                  className="w-8 h-8 flex items-center justify-center text-slate-700 hover:bg-slate-200 font-bold text-sm cursor-pointer disabled:opacity-40"
-                  disabled={quantity <= 1}
-                >
-                  -
-                </button>
-                <span className="w-10 text-center text-xs font-black text-slate-900 bg-white py-1.5 border-x border-slate-200">
-                  {quantity}
-                </span>
-                <button
-                  onClick={() => setQuantity(prev => prev + 1)}
-                  className="w-8 h-8 flex items-center justify-center text-slate-700 hover:bg-slate-200 font-bold text-sm cursor-pointer"
-                >
-                  +
-                </button>
-              </div>
-            </div>
 
-            <div className="text-right">
-              <span className="text-[10px] text-slate-400 font-bold uppercase block">Total Price</span>
-              <span className="text-base font-black text-slate-950">
-                ₹{(currentVariant.price * quantity).toFixed(2)}
-              </span>
-            </div>
-          </div>
-
-          {/* Dual Action Buttons (In-Page / Sticky wrapper) */}
-          <div 
-            ref={inlineContainerRef} 
-            className="grid grid-cols-2 gap-2.5 pt-1 h-[52px] relative"
-            id="product-actions-inline-container"
-          >
-            {!isSticky ? (
-              <>
-                <motion.button
-                  layoutId="btn-buy-now-shared"
-                  onClick={handleBuyNowClick}
-                  className="py-3 bg-gradient-to-r from-[#0B1E36] via-[#143C6B] to-[#0B1E36] hover:brightness-110 active:scale-[0.99] text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-md transition-all cursor-pointer uppercase tracking-wider flex items-center justify-center gap-1.5 w-full h-full"
-                  id="btn-buy-now-inpage"
-                  transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-                >
-                  <motion.div layout="position" className="flex items-center text-[#E5A812]">
-                    <Play className="w-3.5 h-3.5 fill-current" />
-                    <Play className="w-3.5 h-3.5 fill-current -ml-1.5" />
-                  </motion.div>
-                  <motion.span layout="position">Buy now</motion.span>
-                </motion.button>
-
-                <motion.button
-                  layoutId="btn-add-to-cart-shared"
-                  onClick={handleAddToCartClick}
-                  className="py-3 bg-white hover:bg-slate-50 active:scale-[0.99] text-[#143C6B] border-2 border-[#143C6B] font-extrabold text-xs sm:text-sm rounded-xl shadow-3xs transition-all cursor-pointer uppercase tracking-wider flex items-center justify-center gap-1.5 w-full h-full"
-                  id="btn-add-to-cart-inpage"
-                  transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-                >
-                  <motion.div layout="position" className="flex items-center gap-1.5">
-                    <ShoppingCart className="w-4 h-4 stroke-[2.4]" />
-                    <motion.span layout="position">Add to cart</motion.span>
-                  </motion.div>
-                </motion.button>
-              </>
-            ) : (
-              // Invisible placeholder to prevent layout shift while sticky
-              <div className="col-span-2 h-[52px]" />
-            )}
-          </div>
-        </section>
 
         {/* SEGMENTED TABS: [ Specification ] and [ Reviews ] (Screenshot 1 Format) */}
         <section className="bg-white p-2 border-y sm:border border-slate-100 sm:rounded-2xl shadow-3xs" id="product-detail-segmented-tabs">
@@ -1868,53 +1795,41 @@ export default function ProductDetail({
 
       </main>
 
-      {/* STICKY BOTTOM BAR: BUY NOW CTA (Visible only on mobile/tablet, hidden on desktop where in-page action exists) */}
-      <AnimatePresence>
-        {isSticky && isMobile && (
-          <motion.footer
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-            className="fixed left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-150 p-2.5 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] lg:hidden"
-            style={{ bottom: '64px' }}
-            id="sticky-bottom-cta"
-          >
-            <div className="max-w-4xl mx-auto flex items-center gap-2">
-              
-              {/* Add to cart button */}
-              <motion.button
-                layoutId="btn-add-to-cart-shared"
-                onClick={handleAddToCartClick}
-                className="w-12 h-12 rounded-xl border-2 border-[#143C6B] text-[#143C6B] hover:bg-[#E8EEF5] flex items-center justify-center transition-colors cursor-pointer flex-shrink-0 shadow-3xs bg-white"
-                title="Add to Cart"
-                id="btn-add-to-cart-sticky"
-                transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-              >
-                <motion.div layout="position">
-                  <ShoppingCart className="w-5 h-5 stroke-[2.4]" />
-                </motion.div>
-              </motion.button>
+      {/* STICKY BOTTOM BAR: BUY NOW CTA (Pinned permanently on mobile/tablet directly above the bottom navigation bar) */}
+      {isMobile && (
+        <div
+          className="fixed left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 p-2.5 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] lg:hidden"
+          style={{ bottom: '58px' }}
+          id="sticky-bottom-cta"
+        >
+          <div className="max-w-4xl mx-auto flex items-center gap-2">
+            
+            {/* Add to cart button */}
+            <button
+              onClick={handleAddToCartClick}
+              className="w-12 h-12 rounded-xl border-2 border-[#143C6B] text-[#143C6B] hover:bg-[#E8EEF5] active:scale-95 flex items-center justify-center transition-all cursor-pointer flex-shrink-0 shadow-3xs bg-white"
+              title="Add to Cart"
+              id="btn-add-to-cart-sticky"
+            >
+              <ShoppingCart className="w-5 h-5 stroke-[2.4]" />
+            </button>
 
-              {/* Full Prominent "▶▶ Buy Now" Button matching Quekart Theme */}
-              <motion.button
-                layoutId="btn-buy-now-shared"
-                onClick={handleBuyNowClick}
-                className="flex-1 bg-gradient-to-r from-[#0B1E36] via-[#143C6B] to-[#0B1E36] hover:brightness-110 active:scale-[0.99] text-white font-extrabold text-base py-3 px-6 rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer uppercase tracking-wider h-12"
-                id="btn-buy-now-sticky"
-                transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-              >
-                <motion.div layout="position" className="flex items-center text-[#E5A812]">
-                  <Play className="w-4 h-4 fill-current rotate-0" />
-                  <Play className="w-4 h-4 fill-current rotate-0 -ml-1.5" />
-                </motion.div>
-                <motion.span layout="position">Buy Now</motion.span>
-              </motion.button>
+            {/* Full Prominent "▶▶ Buy Now" Button matching Quekart Theme */}
+            <button
+              onClick={handleBuyNowClick}
+              className="flex-1 bg-gradient-to-r from-[#0B1E36] via-[#143C6B] to-[#0B1E36] hover:brightness-110 active:scale-[0.99] text-white font-extrabold text-base py-3 px-6 rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer uppercase tracking-wider h-12"
+              id="btn-buy-now-sticky"
+            >
+              <div className="flex items-center text-[#E5A812]">
+                <Play className="w-4 h-4 fill-current rotate-0" />
+                <Play className="w-4 h-4 fill-current rotate-0 -ml-1.5" />
+              </div>
+              <span>BUY NOW</span>
+            </button>
 
-            </div>
-          </motion.footer>
-        )}
-      </AnimatePresence>
+          </div>
+        </div>
+      )}
 
       {/* SPECIAL OFFER MODAL */}
       {showSpecialOfferModal && (

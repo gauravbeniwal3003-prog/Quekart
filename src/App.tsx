@@ -439,20 +439,21 @@ export default function App() {
   };
 
   // Cart operations
-  const handleAddToCart = (product: Product, size: string, variantIndex: number) => {
+  const handleAddToCart = (product: Product, size: string, variantIndex: number, qtyToAdd: number = 1) => {
     if (!currentUser) {
       triggerRequireLogin('Add to Cart', 'Sign in with your mobile number to add items to your shopping cart.');
       return;
     }
     const cartItemId = `${product.id}-${variantIndex}-${size}`;
+    const amount = qtyToAdd > 0 ? qtyToAdd : 1;
     setCart((prevCart) => {
       const existing = prevCart.find((item) => item.id === cartItemId);
       if (existing) {
         return prevCart.map((item) =>
-          item.id === cartItemId ? { ...item, quantity: item.quantity + 1 } : item
+          item.id === cartItemId ? { ...item, quantity: item.quantity + amount } : item
         );
       }
-      return [...prevCart, { id: cartItemId, product, selectedSize: size, selectedVariantIndex: variantIndex, quantity: 1 }];
+      return [...prevCart, { id: cartItemId, product, selectedSize: size, selectedVariantIndex: variantIndex, quantity: amount }];
     });
   };
 
@@ -503,14 +504,23 @@ export default function App() {
   };
 
   // Direct checkout buy now
-  const handleDirectBuyNow = (product: Product, size: string, variantIndex: number) => {
+  const handleDirectBuyNow = (product: Product, size: string, variantIndex: number, qtyToAdd: number = 1) => {
     if (!currentUser) {
       triggerRequireLogin('Buy Now', 'Sign in with your mobile number to proceed directly to checkout.');
       return;
     }
-    // Add item first
-    handleAddToCart(product, size, variantIndex);
-    // Navigate to cart
+    const cartItemId = `${product.id}-${variantIndex}-${size}`;
+    const amount = qtyToAdd > 0 ? qtyToAdd : 1;
+    setCart((prevCart) => {
+      const existing = prevCart.find((item) => item.id === cartItemId);
+      if (existing) {
+        return prevCart.map((item) =>
+          item.id === cartItemId ? { ...item, quantity: amount } : item
+        );
+      }
+      return [...prevCart, { id: cartItemId, product, selectedSize: size, selectedVariantIndex: variantIndex, quantity: amount }];
+    });
+    // Navigate to cart/checkout billing
     navigateTo('/cart');
   };
 
