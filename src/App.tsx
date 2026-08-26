@@ -267,6 +267,18 @@ export default function App() {
     }
   });
 
+  // Track guest browsing state in React state for instant 1-click Skip login re-renders
+  const [isBrowsingGuest, setIsBrowsingGuest] = useState<boolean>(() => {
+    try {
+      const sessionVal = safeGetSessionStorage('quekart_browsing_guest');
+      const localVal = safeGetLocalStorage('quekart_browsing_guest');
+      if (sessionVal === 'true' || localVal === 'true') return true;
+      return true; // Default guest browsing to enabled so storefront & bottom nav render instantly
+    } catch (_) {
+      return true;
+    }
+  });
+
   const handleLoginUserSuccess = (user: any, token: string) => {
     setCurrentUser(user);
     safeSetLocalStorage('quekart_current_user', JSON.stringify(user));
@@ -304,14 +316,32 @@ export default function App() {
   // Database-driven coupons state
   const [coupons, setCoupons] = useState<Coupon[]>(initialCoupons);
 
-  // Database-driven categories state
-  const [categories, setCategories] = useState<Category[]>([]);
+  // Database-driven categories state (pre-initialized from cache)
+  const [categories, setCategories] = useState<Category[]>(() => {
+    try {
+      const cached = safeGetLocalStorage('quekart_cached_categories');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (_) {}
+    return [];
+  });
 
   // Database-driven category filters state (left sidebar on /shop/categories)
   const [categoryFilters, setCategoryFilters] = useState<CategoryFilter[]>([]);
 
-  // Dynamic persistent banners state
-  const [banners, setBanners] = useState<Banner[]>(initialBanners);
+  // Dynamic persistent banners state (pre-initialized from cache)
+  const [banners, setBanners] = useState<Banner[]>(() => {
+    try {
+      const cached = safeGetLocalStorage('quekart_cached_banners');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (_) {}
+    return initialBanners;
+  });
   const [isLoadingShopData, setIsLoadingShopData] = useState<boolean>(false);
 
   // Fetch / Refresh shop data from server-side or Supabase direct
@@ -881,21 +911,22 @@ export default function App() {
           {/* Dynamic content rendering body */}
           <div 
             className={`flex-1 flex flex-col min-h-0 ${
-              (!currentUser && (activeTab === 'user' || (activeTab === 'home' && !(safeGetSessionStorage('quekart_browsing_guest') === 'true' || safeGetLocalStorage('quekart_browsing_guest') === 'true'))))
+              (!currentUser && activeTab === 'user' && (activeSubPage === 'login' || activeSubPage === 'signup'))
                 ? 'overflow-hidden h-[100dvh] max-h-[100dvh] pb-0 bg-white'
                 : (activeTab === 'categories' && !activeSubPage) 
-                ? 'overflow-hidden pb-16 md:pb-0 bg-gray-50' 
-                : 'overflow-y-auto pb-28 md:pb-14 bg-gray-50'
+                ? 'overflow-hidden pb-20 md:pb-14 bg-gray-50' 
+                : 'overflow-y-auto pb-28 md:pb-16 bg-gray-50'
             }`} 
             id="applet-content-viewport"
           >
-            {/* If user is not logged in and on shop root or user/login tab, present OTP auth first */}
-            {!currentUser && (activeTab === 'user' || (activeTab === 'home' && !(safeGetSessionStorage('quekart_browsing_guest') === 'true' || safeGetLocalStorage('quekart_browsing_guest') === 'true'))) ? (
+            {/* If user explicitly clicked login/signup or is on auth tab without logging in */}
+            {!currentUser && activeTab === 'user' && (activeSubPage === 'login' || activeSubPage === 'signup') ? (
               <UserAuthView
                 onLoginSuccess={handleLoginUserSuccess}
                 onSkip={() => {
                   safeSetSessionStorage('quekart_browsing_guest', 'true');
                   safeSetLocalStorage('quekart_browsing_guest', 'true');
+                  setIsBrowsingGuest(true);
                   navigateTo('/shop');
                 }}
                 navigateTo={navigateTo}
@@ -1203,8 +1234,8 @@ export default function App() {
             )}
           </div>
           
-          {/* Global Bottom Navigation shown across customer storefront (hidden on login page) */}
-          {!((activeTab === 'user' || (activeTab === 'home' && !safeGetSessionStorage('quekart_browsing_guest'))) && !currentUser) && (
+          {/* Global Bottom Navigation shown across customer storefront (hidden on dedicated login/signup pages) */}
+          {activePortal === 'customer' && !(activeTab === 'user' && (activeSubPage === 'login' || activeSubPage === 'signup')) && (
             <BottomNav
               activeTab={activeTab}
               cartCount={cart.reduce((acc, item) => acc + item.quantity, 0)}

@@ -19,7 +19,7 @@ export default function BottomNav({ activeTab, onSelectTab, cartCount = 0, isCar
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-gray-200/80 py-1.5 px-3 flex items-center justify-around shadow-lg" id="lucky-bottom-nav">
+    <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-white/95 backdrop-blur-md border-t border-gray-200/80 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] px-3 flex items-center justify-around shadow-lg" id="lucky-bottom-nav">
       <div className="max-w-md mx-auto w-full flex items-center justify-around">
         {navItems.map((item) => {
           const Icon = item.icon;

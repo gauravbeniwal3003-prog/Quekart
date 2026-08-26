@@ -167,7 +167,8 @@ export async function fetchProductsUnified(): Promise<Product[]> {
  */
 export async function fetchCategoriesUnified(): Promise<Category[]> {
   const apiCats = await fetchSafeJson(getApiUrl('/api/categories'));
-  if (apiCats && Array.isArray(apiCats)) {
+  if (apiCats && Array.isArray(apiCats) && apiCats.length > 0) {
+    try { localStorage.setItem('quekart_cached_categories', JSON.stringify(apiCats)); } catch (_) {}
     return apiCats;
   }
 
@@ -175,11 +176,18 @@ export async function fetchCategoriesUnified(): Promise<Category[]> {
   if (sb) {
     try {
       const { data, error } = await sb.from('categories').select('*').order('position', { ascending: true });
-      if (!error && data) {
-        return data.map((r: any) => r.data || r);
+      if (!error && data && data.length > 0) {
+        const mapped = data.map((r: any) => r.data || r);
+        try { localStorage.setItem('quekart_cached_categories', JSON.stringify(mapped)); } catch (_) {}
+        return mapped;
       }
     } catch (_) {}
   }
+
+  try {
+    const cached = localStorage.getItem('quekart_cached_categories');
+    if (cached) return JSON.parse(cached);
+  } catch (_) {}
 
   return [];
 }
@@ -211,7 +219,8 @@ export async function fetchCategoryFiltersUnified(): Promise<CategoryFilter[]> {
  */
 export async function fetchBannersUnified(): Promise<Banner[]> {
   const apiBanners = await fetchSafeJson(getApiUrl('/api/banners'));
-  if (apiBanners && Array.isArray(apiBanners)) {
+  if (apiBanners && Array.isArray(apiBanners) && apiBanners.length > 0) {
+    try { localStorage.setItem('quekart_cached_banners', JSON.stringify(apiBanners)); } catch (_) {}
     return apiBanners;
   }
 
@@ -219,11 +228,18 @@ export async function fetchBannersUnified(): Promise<Banner[]> {
   if (sb) {
     try {
       const { data, error } = await sb.from('banners').select('*');
-      if (!error && data) {
-        return data.map((r: any) => r.data || r);
+      if (!error && data && data.length > 0) {
+        const mapped = data.map((r: any) => r.data || r);
+        try { localStorage.setItem('quekart_cached_banners', JSON.stringify(mapped)); } catch (_) {}
+        return mapped;
       }
     } catch (_) {}
   }
+
+  try {
+    const cached = localStorage.getItem('quekart_cached_banners');
+    if (cached) return JSON.parse(cached);
+  } catch (_) {}
 
   return [];
 }

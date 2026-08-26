@@ -715,14 +715,23 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo, isSig
           <div className="absolute top-0 inset-x-0 h-[60vh] overflow-hidden z-0 select-none bg-slate-50/50">
             
             {/* Top Right Floating Skip Login Button */}
-            <div className="absolute top-3 right-3 z-40">
+            <div className="absolute top-3 right-3 z-50">
               <button
                 type="button"
-                onClick={handleSkip}
-                className="bg-white/90 hover:bg-white text-slate-800 text-[11px] font-extrabold px-3.5 py-1.5 rounded-full shadow-md border border-slate-200/80 transition-all active:scale-95 cursor-pointer backdrop-blur-md"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSkip();
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSkip();
+                }}
+                className="bg-white hover:bg-slate-50 text-slate-900 text-[12px] font-black px-4 py-2 rounded-full shadow-lg border border-slate-300 transition-all active:scale-90 cursor-pointer backdrop-blur-md relative z-50 touch-manipulation"
                 id="skip-login-btn"
               >
-                Skip login
+                Skip login →
               </button>
             </div>
 
