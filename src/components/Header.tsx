@@ -46,24 +46,28 @@ export default function Header({
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
 
+  const isScrolledRef = useRef(false);
+
   useEffect(() => {
-    let ticking = false;
+    let rAFId: number | null = null;
+
+    const checkScroll = () => {
+      const viewport = document.getElementById('applet-content-viewport');
+      const scrollTop = viewport ? viewport.scrollTop : (window.scrollY || document.documentElement.scrollTop || 0);
+      
+      // Hysteresis threshold: 55px to collapse into single row, 15px to expand back to dual row
+      const shouldBeScrolled = isScrolledRef.current ? scrollTop > 15 : scrollTop > 55;
+      
+      if (shouldBeScrolled !== isScrolledRef.current) {
+        isScrolledRef.current = shouldBeScrolled;
+        setIsScrolled(shouldBeScrolled);
+      }
+      rAFId = null;
+    };
 
     const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          const viewport = document.getElementById('applet-content-viewport');
-          const scrollTop = viewport ? viewport.scrollTop : (window.scrollY || document.documentElement.scrollTop || 0);
-          
-          // Use hysteresis threshold (50px to collapse, 15px to expand) to prevent scroll bouncing/flickering
-          if (scrollTop > 50) {
-            setIsScrolled(true);
-          } else if (scrollTop < 15) {
-            setIsScrolled(false);
-          }
-          ticking = false;
-        });
-        ticking = true;
+      if (rAFId === null) {
+        rAFId = window.requestAnimationFrame(checkScroll);
       }
     };
 
@@ -73,9 +77,12 @@ export default function Header({
     }
     window.addEventListener('scroll', handleScroll, { passive: true });
 
-    handleScroll();
+    checkScroll();
 
     return () => {
+      if (rAFId !== null) {
+        window.cancelAnimationFrame(rAFId);
+      }
       if (viewport) {
         viewport.removeEventListener('scroll', handleScroll);
       }
@@ -150,42 +157,39 @@ export default function Header({
   // Compute suggestions based on products & current input
   const query = searchQuery.trim().toLowerCase();
   
-  let suggestionsList: { text: string; type: 'category' | 'subcategory' | 'product'; subText?: string }[] = [];
-
-  if (query) {
+  const suggestionsList = React.useMemo(() => {
+    if (!query) return [];
     const matchedCategories = new Set<string>();
     const matchedSubcategories = new Set<string>();
     const matchedProducts: { text: string; subText?: string }[] = [];
 
-    products.forEach((p) => {
-      // Category match
-      if (p.category.toLowerCase().includes(query)) {
+    for (let i = 0; i < products.length; i++) {
+      const p = products[i];
+      if (!p) continue;
+      if (p.category && p.category.toLowerCase().includes(query)) {
         matchedCategories.add(p.category);
       }
-      // Subcategory match
-      if (p.subCategory.toLowerCase().includes(query)) {
+      if (p.subCategory && p.subCategory.toLowerCase().includes(query)) {
         matchedSubcategories.add(p.subCategory);
       }
-      // Product title match
-      if (p.title.toLowerCase().includes(query)) {
+      if (p.title && p.title.toLowerCase().includes(query)) {
         matchedProducts.push({ text: p.title, subText: p.category });
       }
-    });
+    }
 
-    // Populate suggestions
+    const list: { text: string; type: 'category' | 'subcategory' | 'product'; subText?: string }[] = [];
     matchedCategories.forEach(cat => {
-      suggestionsList.push({ text: cat, type: 'category' });
+      list.push({ text: cat, type: 'category' });
     });
     matchedSubcategories.forEach(sub => {
-      suggestionsList.push({ text: sub, type: 'subcategory' });
+      list.push({ text: sub, type: 'subcategory' });
     });
     matchedProducts.slice(0, 5).forEach(prod => {
-      suggestionsList.push({ text: prod.text, type: 'product', subText: prod.subText });
+      list.push({ text: prod.text, type: 'product', subText: prod.subText });
     });
 
-    // Trim list
-    suggestionsList = suggestionsList.slice(0, 8);
-  }
+    return list.slice(0, 8);
+  }, [query, products]);
 
   const handleSuggestionClick = (text: string, type?: 'category' | 'subcategory' | 'product') => {
     saveSearchToHistory(text);
@@ -348,21 +352,26 @@ export default function Header({
   };
 
   return (
-    <header className={`sticky top-0 z-50 bg-white/95 backdrop-blur-md transition-[padding,box-shadow,background-color,border-color] duration-300 ease-out ${isScrolled ? 'shadow-md border-b border-gray-200 py-1.5 md:py-2.5 px-4 md:px-8' : 'border-b border-gray-100 shadow-xs py-2 md:py-3 px-4 md:px-8'}`} id="lucky-header">
+    <header 
+      className={`sticky top-0 z-50 bg-white transition-shadow duration-150 py-2 md:py-3 px-3 md:px-8 border-b ${
+        isScrolled ? 'shadow-xs border-gray-200' : 'border-gray-100'
+      }`} 
+      id="lucky-header"
+    >
       {/* Container to restrict max width on desktop but let it stay fluid */}
       <div className="max-w-7xl mx-auto w-full">
         {/* Top Header Row */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1 md:gap-6">
           
-          {/* Logo & Refer row on Mobile, Logo on Left on Desktop - Smooth CSS Grid transition */}
+          {/* Logo & Refer row on Mobile, Logo on Left on Desktop - Hardware Accelerated Ultra-Smooth Collapse */}
           <div 
-            className={`grid transition-[grid-template-rows,opacity,margin] duration-300 ease-out md:block flex-shrink-0 w-full md:w-auto ${
+            className={`md:block flex-shrink-0 w-full md:w-auto transition-[height,opacity] duration-200 ease-out overflow-hidden ${
               isScrolled 
-                ? 'grid-rows-[0fr] opacity-0 mb-0 pointer-events-none md:grid-rows-[1fr] md:opacity-100 md:pointer-events-auto md:mb-0' 
-                : 'grid-rows-[1fr] opacity-100 mb-1 md:mb-0 pointer-events-auto'
+                ? 'h-0 opacity-0 pointer-events-none md:h-auto md:opacity-100 md:pointer-events-auto' 
+                : 'h-10 opacity-100 pointer-events-auto mb-1 md:mb-0'
             }`}
           >
-            <div className="overflow-hidden min-h-0 flex items-center justify-between md:justify-start gap-3 w-full">
+            <div className="min-h-0 flex items-center justify-between md:justify-start gap-3 w-full h-10">
               {/* Left Section (Profile & Refer) - Mobile Only */}
               <div className="flex items-center gap-2 md:hidden flex-shrink-0">
                 <button
@@ -417,13 +426,13 @@ export default function Header({
           </div>
 
           {/* Search Bar Container */}
-          <div className="flex items-center gap-2 w-full md:w-auto flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 md:gap-2 w-full md:w-auto flex-1 min-w-0">
             {/* Inline mini logo on mobile when scrolled */}
             <div 
-              className={`transition-[max-width,opacity,transform] duration-300 ease-out md:hidden flex items-center flex-shrink-0 overflow-hidden transform-gpu ${
+              className={`md:hidden flex items-center flex-shrink-0 transition-[width,opacity] duration-200 ease-out overflow-hidden ${
                 isScrolled 
-                  ? 'max-w-[115px] opacity-100 scale-100 pointer-events-auto pr-1' 
-                  : 'max-w-0 opacity-0 scale-90 pointer-events-none pr-0'
+                  ? 'w-[96px] opacity-100 pointer-events-auto pr-1' 
+                  : 'w-0 opacity-0 pointer-events-none pr-0'
               }`}
             >
               <BrandLogo size="sm" onClick={() => onSelectTab('home')} />
@@ -446,7 +455,7 @@ export default function Header({
                   }}
                   onFocus={() => setShowSuggestions(true)}
                   onKeyDown={handleKeyDown}
-                  className={`w-full pl-10 md:pl-11 ${searchQuery ? 'pr-24 md:pr-28' : 'pr-16 md:pr-20'} py-1.5 md:py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs md:text-sm text-gray-800 placeholder-gray-400 focus:outline-hidden focus:border-lucky-magenta focus:bg-white transition-[background-color,border-color,box-shadow,padding] duration-200 shadow-inner`}
+                  className={`w-full pl-10 md:pl-11 ${searchQuery ? 'pr-24 md:pr-28' : 'pr-16 md:pr-20'} py-2 md:py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs md:text-sm text-gray-800 placeholder-gray-400 focus:outline-hidden focus:border-lucky-magenta focus:bg-white transition-colors duration-150 shadow-inner`}
                   id="search-input"
                   autoComplete="off"
                 />
@@ -625,6 +634,38 @@ export default function Header({
                 )}
               </div>
             )}
+          </div>
+
+          {/* Inline Mobile Actions when Scrolled (Wishlist & Cart) */}
+          <div 
+            className={`md:hidden flex items-center flex-shrink-0 transition-[width,opacity] duration-200 ease-out overflow-hidden ${
+              isScrolled 
+                ? 'w-[68px] opacity-100 pointer-events-auto gap-1' 
+                : 'w-0 opacity-0 pointer-events-none gap-0'
+            }`}
+          >
+            <button
+              onClick={() => onSelectTab('wishlist')}
+              className="p-1 hover:bg-gray-100 rounded-full relative cursor-pointer text-gray-700 transition-colors"
+              id="wishlist-header-btn-scrolled"
+              aria-label="Wishlist"
+            >
+              <Heart className="w-5 h-5 stroke-2 hover:fill-red-500 hover:text-red-500 transition-colors" />
+            </button>
+            
+            <button
+              onClick={onOpenCart}
+              className="p-1 hover:bg-gray-100 rounded-full relative cursor-pointer text-gray-700 transition-colors"
+              id="cart-header-btn-scrolled"
+              aria-label="Cart"
+            >
+              <ShoppingCart className="w-5 h-5 stroke-2" />
+              {totalItems > 0 && (
+                <span className="absolute -top-1 -right-1 bg-lucky-magenta text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
+                  {totalItems}
+                </span>
+              )}
+            </button>
           </div>
         </div>
 

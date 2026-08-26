@@ -410,7 +410,15 @@ export default function App() {
     if (category === 'All') {
       setSelectedCategory('All');
     } else {
-      setSelectedCategory((prev) => (prev === category ? 'All' : category));
+      navigateTo('/shop/categories/' + encodeURIComponent(category));
+    }
+  };
+
+  const handleCategoryBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      navigateTo('/shop');
     }
   };
 
@@ -905,7 +913,7 @@ export default function App() {
             ) : (
               <>
                 {/* Render Header on customer storefront tabs */}
-                {activeTab !== 'profile' && activeTab !== 'user' && activeTab !== 'logo' && (
+                {activeTab !== 'profile' && activeTab !== 'user' && activeTab !== 'logo' && !(activeTab === 'categories' && activeSubPage) && (
                   <Header
                     cart={cart}
                     onOpenCart={() => navigateTo('/shop/cart')}
@@ -951,7 +959,12 @@ export default function App() {
                         <CategoryProductsView
                           filterName={decodeURIComponent(activeSubPage)}
                           products={products}
-                          onBack={() => navigateTo('/shop/categories')}
+                          categories={categories}
+                          cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
+                          wishlistCount={wishlist.length}
+                          onOpenCart={() => navigateTo('/shop/cart')}
+                          onOpenWishlist={() => navigateTo('/shop/wishlist')}
+                          onBack={handleCategoryBack}
                           onSelectProduct={(id) => navigateTo('/shop/product/' + id)}
                           wishlist={wishlist}
                           onToggleWishlist={handleToggleWishlist}

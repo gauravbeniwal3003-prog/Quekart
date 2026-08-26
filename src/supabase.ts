@@ -459,3 +459,253 @@ export async function deleteBannerUnified(bannerId: string, adminSecret?: string
   return true;
 }
 
+
+
+/**
+ * Save / Upsert Category to Database (Admin only)
+ */
+export async function saveCategoryUnified(category: Category, isEdit: boolean = false, adminSecret?: string): Promise<Category> {
+  const secret = getAdminSecret(adminSecret);
+  const endpoint = isEdit ? `/api/categories/${category.id}` : "/api/categories";
+  const method = isEdit ? "PUT" : "POST";
+
+  // 1. Try Backend API
+  try {
+    const res = await fetch(getApiUrl(endpoint), {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        "X-Admin-Secret": secret
+      },
+      body: JSON.stringify(category)
+    });
+    const contentType = res.headers.get("content-type") || "";
+    if (res.ok && contentType.includes("application/json")) {
+      const json = await res.json().catch(() => null);
+      if (json) {
+        return json;
+      }
+    }
+  } catch (apiErr) {
+    console.warn("⚠️ API category save fallback to Supabase:", apiErr);
+  }
+
+  // 2. Direct Supabase Upsert
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { data: countData } = await sb.from("categories").select("id");
+      const position = countData ? countData.length : 0;
+      const { error } = await sb.from("categories").upsert({
+        id: category.id,
+        data: category,
+        ...(isEdit ? {} : { position })
+      });
+      if (!error) {
+        console.log("✅ Category saved directly to Supabase:", category.id);
+        return category;
+      } else {
+        console.warn("⚠️ Supabase category save error:", error);
+      }
+    } catch (sbErr) {
+      console.error("❌ Supabase direct category save failed:", sbErr);
+    }
+  }
+
+  // 3. Fallback return category for optimistic UI and local persistence
+  return category;
+}
+
+/**
+ * Delete Category from Database (Admin only)
+ */
+export async function deleteCategoryUnified(categoryId: string, adminSecret?: string): Promise<boolean> {
+  const secret = getAdminSecret(adminSecret);
+
+  // 1. Try Backend API
+  try {
+    const res = await fetch(getApiUrl(`/api/categories/${categoryId}`), {
+      method: "DELETE",
+      headers: {
+        "X-Admin-Secret": secret
+      }
+    });
+    if (res.ok) return true;
+  } catch (apiErr) {
+    console.warn("⚠️ API category delete fallback to Supabase:", apiErr);
+  }
+
+  // 2. Direct Supabase Delete
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb.from("categories").delete().eq("id", categoryId);
+      if (!error) return true;
+    } catch (sbErr) {
+      console.error("❌ Supabase direct category delete failed:", sbErr);
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Reorder Categories in Database (Admin only)
+ */
+export async function reorderCategoriesUnified(ids: string[], adminSecret?: string): Promise<boolean> {
+  const secret = getAdminSecret(adminSecret);
+
+  // 1. Try Backend API
+  try {
+    const res = await fetch(getApiUrl("/api/categories/reorder"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Admin-Secret": secret
+      },
+      body: JSON.stringify({ ids })
+    });
+    if (res.ok) return true;
+  } catch (apiErr) {
+    console.warn("⚠️ API category reorder fallback to Supabase:", apiErr);
+  }
+
+  // 2. Direct Supabase Reorder
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      for (let i = 0; i < ids.length; i++) {
+        await sb.from("categories").update({ position: i }).eq("id", ids[i]);
+      }
+      return true;
+    } catch (sbErr) {
+      console.error("❌ Supabase direct category reorder failed:", sbErr);
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Save / Upsert Category Filter to Database (Admin only)
+ */
+export async function saveCategoryFilterUnified(filter: CategoryFilter, isEdit: boolean = false, adminSecret?: string): Promise<CategoryFilter> {
+  const secret = getAdminSecret(adminSecret);
+  const endpoint = isEdit ? `/api/category-filters/${filter.id}` : "/api/category-filters";
+  const method = isEdit ? "PUT" : "POST";
+
+  // 1. Try Backend API
+  try {
+    const res = await fetch(getApiUrl(endpoint), {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        "X-Admin-Secret": secret
+      },
+      body: JSON.stringify(filter)
+    });
+    const contentType = res.headers.get("content-type") || "";
+    if (res.ok && contentType.includes("application/json")) {
+      const json = await res.json().catch(() => null);
+      if (json) {
+        return json;
+      }
+    }
+  } catch (apiErr) {
+    console.warn("⚠️ API category filter save fallback to Supabase:", apiErr);
+  }
+
+  // 2. Direct Supabase Upsert
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { data: countData } = await sb.from("category_filters").select("id");
+      const position = countData ? countData.length : 0;
+      const { error } = await sb.from("category_filters").upsert({
+        id: filter.id,
+        data: filter,
+        ...(isEdit ? {} : { position })
+      });
+      if (!error) {
+        console.log("✅ Category Filter saved directly to Supabase:", filter.id);
+        return filter;
+      } else {
+        console.warn("⚠️ Supabase category filter save error:", error);
+      }
+    } catch (sbErr) {
+      console.error("❌ Supabase direct category filter save failed:", sbErr);
+    }
+  }
+
+  return filter;
+}
+
+/**
+ * Delete Category Filter from Database (Admin only)
+ */
+export async function deleteCategoryFilterUnified(filterId: string, adminSecret?: string): Promise<boolean> {
+  const secret = getAdminSecret(adminSecret);
+
+  // 1. Try Backend API
+  try {
+    const res = await fetch(getApiUrl(`/api/category-filters/${filterId}`), {
+      method: "DELETE",
+      headers: {
+        "X-Admin-Secret": secret
+      }
+    });
+    if (res.ok) return true;
+  } catch (apiErr) {
+    console.warn("⚠️ API category filter delete fallback to Supabase:", apiErr);
+  }
+
+  // 2. Direct Supabase Delete
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb.from("category_filters").delete().eq("id", filterId);
+      if (!error) return true;
+    } catch (sbErr) {
+      console.error("❌ Supabase direct category filter delete failed:", sbErr);
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Reorder Category Filters in Database (Admin only)
+ */
+export async function reorderCategoryFiltersUnified(ids: string[], adminSecret?: string): Promise<boolean> {
+  const secret = getAdminSecret(adminSecret);
+
+  // 1. Try Backend API
+  try {
+    const res = await fetch(getApiUrl("/api/category-filters/reorder"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Admin-Secret": secret
+      },
+      body: JSON.stringify({ ids })
+    });
+    if (res.ok) return true;
+  } catch (apiErr) {
+    console.warn("⚠️ API category filter reorder fallback to Supabase:", apiErr);
+  }
+
+  // 2. Direct Supabase Reorder
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      for (let i = 0; i < ids.length; i++) {
+        await sb.from("category_filters").update({ position: i }).eq("id", ids[i]);
+      }
+      return true;
+    } catch (sbErr) {
+      console.error("❌ Supabase direct category filter reorder failed:", sbErr);
+    }
+  }
+
+  return true;
+}

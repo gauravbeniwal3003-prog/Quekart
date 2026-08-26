@@ -66,7 +66,10 @@ export function useInfiniteProductPagination(
 
   // Also monitor window scroll position as a fallback for fast scroll
   useEffect(() => {
-    const handleScroll = () => {
+    let rAF: number | null = null;
+
+    const checkWindowScroll = () => {
+      rAF = null;
       if (!hasMore || isLoadingMore) return;
       const scrollPosition = window.innerHeight + window.scrollY;
       const thresholdPosition = document.body.offsetHeight - 600;
@@ -76,8 +79,19 @@ export function useInfiniteProductPagination(
       }
     };
 
+    const handleScroll = () => {
+      if (rAF === null) {
+        rAF = window.requestAnimationFrame(checkWindowScroll);
+      }
+    };
+
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      if (rAF !== null) {
+        window.cancelAnimationFrame(rAF);
+      }
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, [hasMore, isLoadingMore, loadNextBatch]);
 
   const visibleProducts = allProducts.slice(0, visibleCount);

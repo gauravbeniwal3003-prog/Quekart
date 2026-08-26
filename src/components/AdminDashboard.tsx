@@ -68,6 +68,14 @@ import { fetchAdminAnalytics } from '../utils/analytics';
 import { ReturnPolicyAccordion, SizeAndParametersManager } from './ProductFormControls';
 import CategorySmartCropModal from './CategorySmartCropModal';
 import BannerSmartCropModal from './BannerSmartCropModal';
+import {
+  saveCategoryUnified,
+  deleteCategoryUnified,
+  reorderCategoriesUnified,
+  saveCategoryFilterUnified,
+  deleteCategoryFilterUnified,
+  reorderCategoryFiltersUnified
+} from '../supabase';
 
 interface AdminDashboardProps {
   products: Product[];
@@ -669,19 +677,9 @@ export default function AdminDashboard({
   // Helper functions for category management
   const handleCategoryDelete = async (catId: string) => {
     try {
-      const res = await fetch(getApiUrl(`/api/categories/${catId}`), {
-        method: 'DELETE',
-        headers: {
-          'x-admin-secret': adminPasscode
-        }
-      });
-      if (res.ok) {
-        onSetCategories(categories.filter(c => c.id !== catId));
-        onRefreshShopData();
-      } else {
-        const err = await res.json();
-        alert(err.detail || 'Failed to delete category');
-      }
+      await deleteCategoryUnified(catId, adminPasscode);
+      onSetCategories(categories.filter(c => c.id !== catId));
+      onRefreshShopData();
     } catch (err) {
       console.error(err);
       alert('Network error deleting category');
@@ -699,18 +697,7 @@ export default function AdminDashboard({
     onSetCategories(newCats);
 
     try {
-      const res = await fetch(getApiUrl('/api/categories/reorder'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-secret': adminPasscode
-        },
-        body: JSON.stringify({ ids: newCats.map(c => c.id) })
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        console.error('Failed to persist reordering:', err);
-      }
+      await reorderCategoriesUnified(newCats.map(c => c.id), adminPasscode);
     } catch (err) {
       console.error('Network error during category reordering:', err);
     }
@@ -727,18 +714,7 @@ export default function AdminDashboard({
     onSetCategories(newCats);
 
     try {
-      const res = await fetch(getApiUrl('/api/categories/reorder'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-secret': adminPasscode
-        },
-        body: JSON.stringify({ ids: newCats.map(c => c.id) })
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        console.error('Failed to persist reordering:', err);
-      }
+      await reorderCategoriesUnified(newCats.map(c => c.id), adminPasscode);
     } catch (err) {
       console.error('Network error during category reordering:', err);
     }
@@ -774,37 +750,22 @@ export default function AdminDashboard({
     };
 
     try {
-      const url = categoryFormMode === 'edit' ? `/api/categories/${editingCategory?.id}` : '/api/categories';
-      const method = categoryFormMode === 'edit' ? 'PUT' : 'POST';
+      const isEdit = categoryFormMode === 'edit';
+      const savedData = await saveCategoryUnified(payload, isEdit, adminPasscode);
 
-      const res = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-secret': adminPasscode
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (res.ok) {
-        const savedData = await res.json();
-        if (categoryFormMode === 'edit') {
-          onSetCategories(categories.map(c => c.id === editingCategory?.id ? savedData : c));
-        } else {
-          onSetCategories([...categories, savedData]);
-        }
-        onRefreshShopData();
-        // Reset and close form
-        setCategoryFormMode(null);
-        setEditingCategory(null);
-        setCategoryName('');
-        setCategoryIcon('shopping-bag');
-        setCategoryImage('');
-        setCategorySubCats([]);
+      if (isEdit) {
+        onSetCategories(categories.map(c => c.id === editingCategory?.id ? savedData : c));
       } else {
-        const err = await res.json();
-        setCategoryError(err.detail || 'Failed to save category');
+        onSetCategories([...categories, savedData]);
       }
+      onRefreshShopData();
+      // Reset and close form
+      setCategoryFormMode(null);
+      setEditingCategory(null);
+      setCategoryName('');
+      setCategoryIcon('shopping-bag');
+      setCategoryImage('');
+      setCategorySubCats([]);
     } catch (err) {
       console.error(err);
       setCategoryError('Network error saving category');
@@ -895,19 +856,9 @@ export default function AdminDashboard({
 
   const handleFilterDelete = async (filterId: string) => {
     try {
-      const res = await fetch(getApiUrl(`/api/category-filters/${filterId}`), {
-        method: 'DELETE',
-        headers: {
-          'x-admin-secret': adminPasscode
-        }
-      });
-      if (res.ok) {
-        onSetCategoryFilters(categoryFilters.filter(f => f.id !== filterId));
-        onRefreshShopData();
-      } else {
-        const err = await res.json();
-        alert(err.error || err.detail || err.message || 'Failed to delete category filter');
-      }
+      await deleteCategoryFilterUnified(filterId, adminPasscode);
+      onSetCategoryFilters(categoryFilters.filter(f => f.id !== filterId));
+      onRefreshShopData();
     } catch (err) {
       console.error(err);
       alert('Network error deleting category filter');
@@ -925,18 +876,7 @@ export default function AdminDashboard({
     onSetCategoryFilters(newFilters);
 
     try {
-      const res = await fetch(getApiUrl('/api/category-filters/reorder'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-secret': adminPasscode
-        },
-        body: JSON.stringify({ ids: newFilters.map(f => f.id) })
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        console.error('Failed to persist category filters reordering:', err);
-      }
+      await reorderCategoryFiltersUnified(newFilters.map(f => f.id), adminPasscode);
     } catch (err) {
       console.error('Network error during category filters reordering:', err);
     }
@@ -953,18 +893,7 @@ export default function AdminDashboard({
     onSetCategoryFilters(newFilters);
 
     try {
-      const res = await fetch(getApiUrl('/api/category-filters/reorder'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-secret': adminPasscode
-        },
-        body: JSON.stringify({ ids: newFilters.map(f => f.id) })
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        console.error('Failed to persist category filters reordering:', err);
-      }
+      await reorderCategoryFiltersUnified(newFilters.map(f => f.id), adminPasscode);
     } catch (err) {
       console.error('Network error during category filters reordering:', err);
     }
@@ -989,35 +918,20 @@ export default function AdminDashboard({
     };
 
     try {
-      const url = filterFormMode === 'edit' ? `/api/category-filters/${editingFilter?.id}` : '/api/category-filters';
-      const method = filterFormMode === 'edit' ? 'PUT' : 'POST';
+      const isEdit = filterFormMode === 'edit';
+      const savedData = await saveCategoryFilterUnified(payload, isEdit, adminPasscode);
 
-      const res = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-secret': adminPasscode
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (res.ok) {
-        const savedData = await res.json();
-        if (filterFormMode === 'edit') {
-          onSetCategoryFilters(categoryFilters.map(f => f.id === editingFilter?.id ? savedData : f));
-        } else {
-          onSetCategoryFilters([...categoryFilters, savedData]);
-        }
-        onRefreshShopData();
-        setFilterFormMode(null);
-        setEditingFilter(null);
-        setFilterName('');
-        setFilterImage('');
-        setFilterCategoryIds([]);
+      if (isEdit) {
+        onSetCategoryFilters(categoryFilters.map(f => f.id === editingFilter?.id ? savedData : f));
       } else {
-        const err = await res.json();
-        setFilterError(err.detail || 'Failed to save category filter');
+        onSetCategoryFilters([...categoryFilters, savedData]);
       }
+      onRefreshShopData();
+      setFilterFormMode(null);
+      setEditingFilter(null);
+      setFilterName('');
+      setFilterImage('');
+      setFilterCategoryIds([]);
     } catch (err) {
       console.error(err);
       setFilterError('Network error saving category filter');

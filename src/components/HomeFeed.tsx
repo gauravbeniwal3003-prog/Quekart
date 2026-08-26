@@ -396,6 +396,23 @@ export default function HomeFeed({
     }
   }, [searchQuery, filteredProducts.length]);
 
+  // Helper to select category and scroll smoothly to products list
+  const handleSelectCategoryAndScroll = (categoryVal: string) => {
+    onSelectCategory(categoryVal);
+    // Only scroll if they chose All (staying on home feed) or another category already active
+    setTimeout(() => {
+      const el = document.getElementById('filters-bar');
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        window.scrollTo({
+          top: rect.top + scrollTop - 80, // Offset for sticky headers
+          behavior: 'smooth'
+        });
+      }
+    }, 100);
+  };
+
   // Dynamic Category bubbles loaded from categories prop
   const dynamicCategories = (categories && categories.length > 0 ? categories : []).filter(Boolean);
   const categoryBubbles = [
@@ -418,26 +435,26 @@ export default function HomeFeed({
 
   return (
     <div className="pb-20 max-w-7xl mx-auto w-full px-0 md:px-4" id="home-feed-container">
-      {/* Categories Grid (3 categories + See More initially in a single 4-column row, expanding to all categories + See Less) */}
+      {/* Categories Grid (4 categories + See More initially in a single 5-column row, expanding to all categories + See Less) */}
       <motion.div
         layout
         transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-        className="bg-white py-4 px-3 border-b border-gray-100 grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-y-4 gap-x-2 justify-items-center shadow-3xs overflow-hidden"
+        className="bg-white py-4 px-3 border-b border-gray-100 grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-y-4 gap-x-2 justify-items-center shadow-3xs overflow-hidden"
         id="category-bubbles-slider"
       >
-        {/* Permanent first 3 categories */}
-        {categoryBubbles.slice(0, 3).map((item, index) => {
+        {/* Permanent first 4 categories */}
+        {categoryBubbles.slice(0, 4).map((item, index) => {
           const isActive = selectedCategory === item.value;
           return (
             <motion.button
               layout
               key={`cat-perm-${index}-${item.value}`}
-              onClick={() => onSelectCategory(item.value)}
+              onClick={() => handleSelectCategoryAndScroll(item.value)}
               className="flex flex-col items-center cursor-pointer group w-full max-w-[80px]"
               id={`bubble-${index}`}
               whileTap={{ scale: 0.94 }}
             >
-              <div className={`w-14 h-14 rounded-xl overflow-hidden aspect-square flex items-center justify-center relative transition-all duration-200 border-2 ${
+              <div className={`w-12 h-12 rounded-xl overflow-hidden aspect-square flex items-center justify-center relative transition-all duration-200 border-2 ${
                 isActive ? 'border-[#143C6B] scale-105 shadow-md ring-2 ring-[#143C6B]/20' : 'border-gray-100 group-hover:border-blue-300'
               } ${item.bg}`}>
                 <img
@@ -459,11 +476,11 @@ export default function HomeFeed({
           );
         })}
 
-        {/* Expandable categories (items beyond index 2) */}
+        {/* Expandable categories (items beyond index 3) */}
         <AnimatePresence>
           {isCategoriesExpanded &&
-            categoryBubbles.slice(3).map((item, subIndex) => {
-              const actualIndex = subIndex + 3;
+            categoryBubbles.slice(4).map((item, subIndex) => {
+              const actualIndex = subIndex + 4;
               const isActive = selectedCategory === item.value;
               return (
                 <motion.button
@@ -478,11 +495,11 @@ export default function HomeFeed({
                     ease: [0.22, 1, 0.36, 1]
                   }}
                   whileTap={{ scale: 0.94 }}
-                  onClick={() => onSelectCategory(item.value)}
+                  onClick={() => handleSelectCategoryAndScroll(item.value)}
                   className="flex flex-col items-center cursor-pointer group w-full max-w-[80px]"
                   id={`bubble-${actualIndex}`}
                 >
-                  <div className={`w-14 h-14 rounded-xl overflow-hidden aspect-square flex items-center justify-center relative transition-all duration-200 border-2 ${
+                  <div className={`w-12 h-12 rounded-xl overflow-hidden aspect-square flex items-center justify-center relative transition-all duration-200 border-2 ${
                     isActive ? 'border-[#143C6B] scale-105 shadow-md ring-2 ring-[#143C6B]/20' : 'border-gray-100 group-hover:border-blue-300'
                   } ${item.bg}`}>
                     <img
@@ -507,7 +524,7 @@ export default function HomeFeed({
 
         {/* AnimatePresence for See More / See Less buttons */}
         <AnimatePresence mode="wait">
-          {!isCategoriesExpanded && categoryBubbles.length > 3 ? (
+          {!isCategoriesExpanded && categoryBubbles.length > 4 ? (
             <motion.button
               layout
               key="btn-see-more"
@@ -522,14 +539,14 @@ export default function HomeFeed({
               id="see-more-categories-bubble"
               title="View all categories"
             >
-              <div className="w-14 h-14 rounded-xl overflow-hidden aspect-square flex flex-col items-center justify-center relative transition-all border-2 border-blue-200/90 bg-gradient-to-b from-blue-50 to-indigo-50/70 group-hover:border-[#143C6B] group-hover:bg-blue-100 shadow-2xs group-hover:scale-105">
+              <div className="w-12 h-12 rounded-xl overflow-hidden aspect-square flex flex-col items-center justify-center relative transition-all border-2 border-blue-200/90 bg-gradient-to-b from-blue-50 to-indigo-50/70 group-hover:border-[#143C6B] group-hover:bg-blue-100 shadow-2xs group-hover:scale-105">
                 <ChevronDown className="w-5 h-5 text-[#143C6B] group-hover:translate-y-0.5 transition-transform stroke-[2.5]" />
               </div>
               <span className="text-[10px] mt-1 text-center font-black tracking-tight text-[#143C6B] px-0.5 whitespace-nowrap">
                 See More
               </span>
             </motion.button>
-          ) : isCategoriesExpanded && categoryBubbles.length > 3 ? (
+          ) : isCategoriesExpanded && categoryBubbles.length > 4 ? (
             <motion.button
               layout
               key="btn-see-less"
@@ -544,7 +561,7 @@ export default function HomeFeed({
               id="see-less-categories-bubble"
               title="Collapse categories"
             >
-              <div className="w-14 h-14 rounded-xl overflow-hidden aspect-square flex flex-col items-center justify-center relative transition-all border-2 border-slate-300 bg-gradient-to-b from-slate-50 to-slate-100 group-hover:border-slate-500 group-hover:bg-slate-200 shadow-2xs group-hover:scale-105">
+              <div className="w-12 h-12 rounded-xl overflow-hidden aspect-square flex flex-col items-center justify-center relative transition-all border-2 border-slate-300 bg-gradient-to-b from-slate-50 to-slate-100 group-hover:border-slate-500 group-hover:bg-slate-200 shadow-2xs group-hover:scale-105">
                 <ChevronUp className="w-5 h-5 text-slate-700 group-hover:-translate-y-0.5 transition-transform stroke-[2.5]" />
               </div>
               <span className="text-[10px] mt-1 text-center font-black tracking-tight text-slate-700 px-0.5 whitespace-nowrap">
@@ -910,7 +927,7 @@ export default function HomeFeed({
           {selectedCategory !== 'All' && (
             <span className="inline-flex items-center gap-1 bg-white border border-slate-200 text-slate-800 px-2.5 py-1 rounded-full text-[11px] font-bold shadow-3xs flex-shrink-0">
               <span>{selectedCategory}</span>
-              <button onClick={() => onSelectCategory('All')} className="text-slate-400 hover:text-red-500 cursor-pointer">
+              <button onClick={() => handleSelectCategoryAndScroll('All')} className="text-slate-400 hover:text-red-500 cursor-pointer">
                 <X className="w-3 h-3" />
               </button>
             </span>
@@ -1350,7 +1367,7 @@ export default function HomeFeed({
               <Sparkles className="w-12 h-12 text-blue-300 mb-3 animate-spin" />
               <p className="text-gray-600 font-bold text-sm">No items match your active filters.</p>
               <button
-                onClick={() => { onSelectCategory('All'); setSelectedGender('All'); }}
+                onClick={() => { handleSelectCategoryAndScroll('All'); setSelectedGender('All'); }}
                 className="mt-4 text-xs bg-lucky-magenta text-white px-5 py-2 rounded-full font-bold hover:bg-opacity-90 cursor-pointer shadow-md transition-transform active:scale-95"
                 id="reset-filters-grid-btn"
               >

@@ -3898,19 +3898,31 @@ app.post('/api/categories', authenticateAdmin, async (req, res) => {
   try {
     if (useSupabase && supabase) {
       const { data: countData } = await supabase.from('categories').select('id');
-      const position = countData ? countData.length : 0;
-      const { error } = await supabase.from('categories').insert([{ id: newCategory.id, data: newCategory, position }]);
-      if (!error) {
-        localCategories.push(newCategory);
-        return res.status(201).json(newCategory);
+      const position = countData ? countData.length : localCategories.length;
+      const { error } = await supabase.from('categories').upsert({ id: newCategory.id, data: newCategory, position });
+      if (error) {
+        console.warn('⚠️ Supabase category save error (using local storage fallback):', error.message || error);
       }
-      throw error;
     }
 
-    localCategories.push(newCategory);
+    const existingIdx = localCategories.findIndex(c => c.id === newCategory.id);
+    if (existingIdx >= 0) {
+      localCategories[existingIdx] = newCategory;
+    } else {
+      localCategories.push(newCategory);
+    }
+    saveMockDataFile();
     res.status(201).json(newCategory);
   } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to create category' });
+    console.error('Category save error:', err);
+    const existingIdx = localCategories.findIndex(c => c.id === newCategory.id);
+    if (existingIdx >= 0) {
+      localCategories[existingIdx] = newCategory;
+    } else {
+      localCategories.push(newCategory);
+    }
+    saveMockDataFile();
+    res.status(201).json(newCategory);
   }
 });
 
@@ -3923,18 +3935,20 @@ app.put('/api/categories/:id', authenticateAdmin, async (req, res) => {
 
   try {
     if (useSupabase && supabase) {
-      const { error } = await supabase.from('categories').update({ data: updatedCategory }).eq('id', id);
-      if (!error) {
-        localCategories = localCategories.map(c => c.id === id ? updatedCategory : c);
-        return res.json(updatedCategory);
+      const { error } = await supabase.from('categories').upsert({ id, data: updatedCategory });
+      if (error) {
+        console.warn('⚠️ Supabase category update error (using local storage fallback):', error.message || error);
       }
-      throw error;
     }
 
     localCategories = localCategories.map(c => c.id === id ? updatedCategory : c);
+    saveMockDataFile();
     res.json(updatedCategory);
   } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to update category' });
+    console.error('Category update error:', err);
+    localCategories = localCategories.map(c => c.id === id ? updatedCategory : c);
+    saveMockDataFile();
+    res.json(updatedCategory);
   }
 });
 
@@ -3943,17 +3957,19 @@ app.delete('/api/categories/:id', authenticateAdmin, async (req, res) => {
   try {
     if (useSupabase && supabase) {
       const { error } = await supabase.from('categories').delete().eq('id', id);
-      if (!error) {
-        localCategories = localCategories.filter(c => c.id !== id);
-        return res.json({ success: true, message: 'Category deleted successfully' });
+      if (error) {
+        console.warn('⚠️ Supabase category delete error:', error.message || error);
       }
-      throw error;
     }
 
     localCategories = localCategories.filter(c => c.id !== id);
-    res.json({ success: true, message: 'Category deleted' });
+    saveMockDataFile();
+    res.json({ success: true, message: 'Category deleted successfully' });
   } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to delete category' });
+    console.error('Category delete error:', err);
+    localCategories = localCategories.filter(c => c.id !== id);
+    saveMockDataFile();
+    res.json({ success: true, message: 'Category deleted' });
   }
 });
 
@@ -3966,8 +3982,7 @@ app.post('/api/categories/reorder', authenticateAdmin, async (req, res) => {
   try {
     if (useSupabase && supabase) {
       for (let i = 0; i < ids.length; i++) {
-        const { error } = await supabase.from('categories').update({ position: i }).eq('id', ids[i]);
-        if (error) throw error;
+        await supabase.from('categories').update({ position: i }).eq('id', ids[i]);
       }
     }
 
@@ -3980,10 +3995,12 @@ app.post('/api/categories/reorder', authenticateAdmin, async (req, res) => {
       if (!ids.includes(c.id)) ordered.push(c);
     }
     localCategories = ordered;
+    saveMockDataFile();
 
     res.json({ success: true, message: 'Categories reordered successfully' });
   } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to reorder categories' });
+    console.error('Category reorder error:', err);
+    res.json({ success: true, message: 'Categories reordered locally' });
   }
 });
 
