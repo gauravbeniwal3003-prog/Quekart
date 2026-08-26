@@ -131,6 +131,8 @@ export default function VendorAuthView({
   const [isLoginResendActive, setIsLoginResendActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [autoFilledNotice, setAutoFilledNotice] = useState('');
+  const vendorWebOtpAbortControllerRef = useRef<AbortController | null>(null);
 
   // ----------------- SIGN UP INLINE STATE -----------------
   // 1. Name (Owner / Legal Name)
@@ -263,9 +265,58 @@ export default function VendorAuthView({
   // ----------------- LOGIN HANDLERS -----------------
   const [showVendorSuccessTick, setShowVendorSuccessTick] = useState(false);
 
+  // WebOTP API: Auto-read SMS OTP for Vendor Login
+  useEffect(() => {
+    if (authMode === 'login' && loginStep === 'otp' && typeof window !== 'undefined' && 'OTPCredential' in window) {
+      if (vendorWebOtpAbortControllerRef.current) {
+        try {
+          vendorWebOtpAbortControllerRef.current.abort();
+        } catch (_) {}
+      }
+
+      const ac = new AbortController();
+      vendorWebOtpAbortControllerRef.current = ac;
+
+      (navigator.credentials as any).get({
+        otp: { transport: ['sms'] },
+        signal: ac.signal
+      }).then((otpObj: any) => {
+        if (otpObj && otpObj.code) {
+          const cleanCode = otpObj.code.replace(/[^0-9]/g, '').slice(0, 6);
+          if (cleanCode) {
+            const chars = cleanCode.split('');
+            const newDigits = ['', '', '', '', '', ''];
+            chars.forEach((c: string, idx: number) => {
+              if (idx < 6) newDigits[idx] = c;
+            });
+            setLoginOtpDigits(newDigits);
+            setAutoFilledNotice('✨ Verification Code Auto-Detected & Filled!');
+            if (loginOtpInputRefs[5].current) {
+              loginOtpInputRefs[5].current.focus();
+            }
+            if (cleanCode.length === 6) {
+              verifyLoginOtpCode(cleanCode);
+            }
+          }
+        }
+      }).catch((err: any) => {
+        if (err?.name !== 'AbortError') {
+          console.log('Vendor WebOTP auto-capture bypassed:', err);
+        }
+      });
+
+      return () => {
+        try {
+          ac.abort();
+        } catch (_) {}
+      };
+    }
+  }, [authMode, loginStep]);
+
   const handleSendLoginOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setErrorMsg('');
+    setAutoFilledNotice('');
 
     const cleanPhone = loginPhone.trim().replace(/\s+/g, '');
     if (cleanPhone.length !== 10) {
@@ -274,27 +325,6 @@ export default function VendorAuthView({
     }
 
     setIsProcessing(true);
-
-    // Prompt WebOTP API permission listener for auto-capture
-    if (typeof window !== 'undefined' && 'OTPCredential' in window) {
-      try {
-        const ac = new AbortController();
-        navigator.credentials.get({
-          otp: { transport: ['sms'] },
-          signal: ac.signal
-        } as any).then((content: any) => {
-          if (content && content.code) {
-            const chars = content.code.slice(0, 6).split('');
-            setLoginOtpDigits(chars);
-            verifyLoginOtpCode(content.code);
-          }
-        }).catch(err => {
-          console.log('WebOTP Listener inactive:', err);
-        });
-      } catch (err) {
-        console.log('WebOTP API init error:', err);
-      }
-    }
 
     try {
       const res = await fetch(getApiUrl('/api/auth/send-otp'), {
@@ -342,38 +372,88 @@ export default function VendorAuthView({
     setIsLoginResendActive(false);
     setLoginTimer(60);
     setErrorMsg('');
+    setAutoFilledNotice('');
     await handleSendLoginOtp();
   };
 
-  const handleLoginOtpChange = (index: number, value: string) => {
-    const numericVal = value.replace(/[^0-9]/g, '');
-    if (!numericVal && value !== '') return;
-
-    const newDigits = [...loginOtpDigits];
-    if (numericVal.length > 1) {
-      const chars = numericVal.slice(0, 6).split('');
+  const handleVendorOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData('text');
+    const numericVal = pastedText.replace(/[^0-9]/g, '').slice(0, 6);
+    if (numericVal) {
+      const chars = numericVal.split('');
+      const newDigits = ['', '', '', '', '', ''];
       chars.forEach((c, idx) => {
         if (idx < 6) newDigits[idx] = c;
       });
       setLoginOtpDigits(newDigits);
-      if (chars.length === 6) {
+      setAutoFilledNotice('⚡ Verification Code Pasted & Auto-Filled!');
+      const focusIdx = Math.min(5, chars.length - 1);
+      if (loginOtpInputRefs[focusIdx].current) {
+        loginOtpInputRefs[focusIdx].current.focus();
+      }
+      if (numericVal.length === 6) {
+        verifyLoginOtpCode(numericVal);
+      }
+    }
+  };
+
+  const handleLoginOtpChange = (index: number, value: string) => {
+    const numericVal = value.replace(/[^0-9]/g, '');
+
+    if (!numericVal && value === '') {
+      const newDigits = [...loginOtpDigits];
+      newDigits[index] = '';
+      setLoginOtpDigits(newDigits);
+      return;
+    }
+
+    // Handle 6-digit native SMS Auto-Fill or multi-char string
+    if (numericVal.length >= 6) {
+      const clean6 = numericVal.slice(0, 6);
+      const chars = clean6.split('');
+      const newDigits = ['', '', '', '', '', ''];
+      chars.forEach((c, idx) => {
+        if (idx < 6) newDigits[idx] = c;
+      });
+      setLoginOtpDigits(newDigits);
+      setAutoFilledNotice('⚡ Verification Code Auto-Filled!');
+      if (loginOtpInputRefs[5].current) {
+        loginOtpInputRefs[5].current.focus();
+      }
+      verifyLoginOtpCode(clean6);
+      return;
+    }
+
+    if (numericVal.length > 1) {
+      const chars = numericVal.slice(0, 6).split('');
+      const newDigits = [...loginOtpDigits];
+      chars.forEach((c, idx) => {
+        if (idx < 6) newDigits[idx] = c;
+      });
+      setLoginOtpDigits(newDigits);
+      const focusIdx = Math.min(5, chars.length - 1);
+      if (loginOtpInputRefs[focusIdx].current) {
+        loginOtpInputRefs[focusIdx].current.focus();
+      }
+      if (newDigits.every(d => d !== '') && newDigits.join('').length === 6) {
         verifyLoginOtpCode(newDigits.join(''));
       }
       return;
     }
 
-    newDigits[index] = numericVal;
+    const singleDigit = numericVal.slice(-1);
+    const newDigits = [...loginOtpDigits];
+    newDigits[index] = singleDigit;
     setLoginOtpDigits(newDigits);
 
-    if (numericVal && index < 5) {
+    if (singleDigit && index < 5) {
       loginOtpInputRefs[index + 1].current?.focus();
     }
 
-    if (numericVal && index === 5) {
-      const fullCode = newDigits.join('');
-      if (fullCode.length === 6) {
-        verifyLoginOtpCode(fullCode);
-      }
+    const fullCode = newDigits.join('');
+    if (fullCode.length === 6 && newDigits.every(d => d !== '')) {
+      verifyLoginOtpCode(fullCode);
     }
   };
 
@@ -1397,8 +1477,19 @@ export default function VendorAuthView({
                   </p>
                 </div>
 
+                {/* Auto-Filled Success Notification Badge */}
+                {autoFilledNotice && (
+                  <div className="mb-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold py-2 px-3 rounded-xl text-center flex items-center justify-center gap-1.5 animate-fadeIn shadow-xs">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
+                    <span>{autoFilledNotice}</span>
+                  </div>
+                )}
+
                 {/* 6 OTP Input Boxes */}
-                <div className="flex justify-center items-center gap-2 my-4">
+                <div 
+                  className="flex justify-center items-center gap-2 my-4"
+                  onPaste={handleVendorOtpPaste}
+                >
                   {loginOtpDigits.map((digit, idx) => (
                     <input
                       key={`li-otp-${idx}`}
@@ -1406,12 +1497,13 @@ export default function VendorAuthView({
                       type="tel"
                       inputMode="numeric"
                       autoComplete="one-time-code"
-                      maxLength={1}
+                      maxLength={6}
                       value={digit}
                       onChange={(e) => handleLoginOtpChange(idx, e.target.value)}
                       onKeyDown={(e) => handleLoginOtpKeyDown(idx, e)}
+                      onPaste={handleVendorOtpPaste}
                       className={`w-10 h-11 text-center text-lg font-black bg-slate-50 rounded-xl border ${
-                        digit ? 'border-[#143C6B] bg-blue-50/40 text-slate-900' : 'border-slate-300 text-slate-900'
+                        digit ? 'border-[#143C6B] bg-blue-50/40 text-slate-900 ring-2 ring-emerald-500/20' : 'border-slate-300 text-slate-900'
                       } focus:bg-white focus:border-[#143C6B] focus:ring-2 focus:ring-[#143C6B]/20 focus:outline-hidden transition-all`}
                       id={`vendor-otp-input-${idx}`}
                     />

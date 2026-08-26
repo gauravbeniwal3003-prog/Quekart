@@ -160,7 +160,6 @@ export default function Header({
   const suggestionsList = React.useMemo(() => {
     if (!query) return [];
     const matchedCategories = new Set<string>();
-    const matchedSubcategories = new Set<string>();
     const matchedProducts: { text: string; subText?: string }[] = [];
 
     for (let i = 0; i < products.length; i++) {
@@ -168,9 +167,6 @@ export default function Header({
       if (!p) continue;
       if (p.category && p.category.toLowerCase().includes(query)) {
         matchedCategories.add(p.category);
-      }
-      if (p.subCategory && p.subCategory.toLowerCase().includes(query)) {
-        matchedSubcategories.add(p.subCategory);
       }
       if (p.title && p.title.toLowerCase().includes(query)) {
         matchedProducts.push({ text: p.title, subText: p.category });
@@ -180,9 +176,6 @@ export default function Header({
     const list: { text: string; type: 'category' | 'subcategory' | 'product'; subText?: string }[] = [];
     matchedCategories.forEach(cat => {
       list.push({ text: cat, type: 'category' });
-    });
-    matchedSubcategories.forEach(sub => {
-      list.push({ text: sub, type: 'subcategory' });
     });
     matchedProducts.slice(0, 5).forEach(prod => {
       list.push({ text: prod.text, type: 'product', subText: prod.subText });

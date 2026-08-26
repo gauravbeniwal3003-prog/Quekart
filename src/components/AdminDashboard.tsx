@@ -727,16 +727,6 @@ export default function AdminDashboard({
       return;
     }
     
-    // Check if subcategories are named (if any subcategories exist)
-    if (categorySubCats && categorySubCats.length > 0) {
-      for (let s of categorySubCats) {
-        if (!s.name.trim()) {
-          setCategoryError('All added subcategories must have a name (or remove empty subcategory rows)');
-          return;
-        }
-      }
-    }
-
     setIsSavingCategory(true);
     setCategoryError(null);
 
@@ -745,8 +735,7 @@ export default function AdminDashboard({
       id: generatedId,
       name: categoryName.trim(),
       icon: categoryIcon,
-      image: categoryImage || (categorySubCats && categorySubCats[0]?.image) || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300',
-      subCategories: categorySubCats || []
+      image: categoryImage || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300'
     };
 
     try {
@@ -973,8 +962,7 @@ export default function AdminDashboard({
     setEditingCategory(cat);
     setCategoryName(cat.name);
     setCategoryIcon(cat.icon || 'shopping-bag');
-    setCategoryImage(cat.image || (cat.subCategories && cat.subCategories[0]?.image) || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300');
-    setCategorySubCats(cat.subCategories ? [...cat.subCategories] : []);
+    setCategoryImage(cat.image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300');
     setCategoryError(null);
   };
 
@@ -2220,7 +2208,7 @@ export default function AdminDashboard({
             {imageUploadLoading && (
               <div className="flex items-center justify-center gap-2 text-xs font-extrabold text-lucky-magenta bg-lucky-magenta-light/50 border border-lucky-magenta-light p-2.5 rounded-lg">
                 <Loader2 className="w-4 h-4 animate-spin text-lucky-magenta" />
-                <span>Compressing & Hosting to ImgBB Storage Node...</span>
+                <span>Uploading & Processing Image...</span>
               </div>
             )}
           </div>
@@ -4328,9 +4316,11 @@ export default function AdminDashboard({
 
   const handleMenuClick = (id: string) => {
     if (id === 'banners') {
-      setActiveSubPage?.('banners');
+      setActiveTab('main-banners');
+      setActiveSubPage?.('main-banners');
     } else {
       setActiveTab(id);
+      setActiveSubPage?.(id);
     }
     setIsMobileMenuOpen(false);
   };
@@ -4346,7 +4336,8 @@ export default function AdminDashboard({
       { id: 'customers', label: 'Customers', icon: Users, count: uniqueUsers.length, section: 'RELATIONS' },
       { id: 'orders', label: 'Orders', icon: ShoppingBag, count: orders.length, section: 'RELATIONS' },
       { id: 'coupons', label: 'Coupons', icon: Ticket, count: coupons.length, section: 'MARKETING' },
-      { id: 'banners', label: 'Banners', icon: ImageIcon, count: banners.length, section: 'MARKETING' },
+      { id: 'main-banners', label: 'Main Banners', icon: ImageIcon, count: banners.filter(b => b.row === 'main' || b.row === 'upper' || b.id === 'banner-rakhi-1').length, section: 'MARKETING' },
+      { id: 'double-banners', label: 'Double Banners', icon: Layers, count: banners.filter(b => b.row === 'double' || b.row === 'lower' || b.id === 'banner-rakhi-2' || b.id === 'banner-rakhi-3').length, section: 'MARKETING' },
       { id: 'sponsorships', label: 'Sponsorships', icon: Sparkles, count: products.filter(p => p.sponsoredUntil && new Date(p.sponsoredUntil) > new Date()).length, section: 'MARKETING' },
     ];
 
@@ -5402,7 +5393,6 @@ export default function AdminDashboard({
                                   </div>
                                   <span className="text-xs font-bold text-slate-700">{cat.name}</span>
                                 </div>
-                                <span className="text-[9px] text-slate-400 font-bold font-mono">({cat.subCategories?.length || 0} subs)</span>
                               </label>
                             );
                           })}
@@ -5545,19 +5535,6 @@ export default function AdminDashboard({
                               <Trash2 className="w-4 h-4" />
                             </button>
                           )}
-                        </div>
-
-                        {/* Direct Image URL input */}
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase">Or Enter Direct Image CDN URL:</span>
-                          <input
-                            type="text"
-                            value={categoryImage}
-                            onChange={(e) => setCategoryImage(e.target.value)}
-                            placeholder="https://images.unsplash.com/photo-..."
-                            className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-hidden font-semibold text-slate-700"
-                            id="category-image-url-input"
-                          />
                         </div>
 
                         {/* Quick preset selector */}
@@ -5821,7 +5798,7 @@ export default function AdminDashboard({
                       {/* Categories Cards layout Grid */}
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="categories-cards-grid">
                         {categories.map((cat, idx) => {
-                          const displayImg = cat.image || (cat.subCategories && cat.subCategories[0]?.image) || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300';
+                          const displayImg = cat.image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300';
                           
                           return (
                             <div
@@ -5883,29 +5860,7 @@ export default function AdminDashboard({
                                 </div>
                               </div>
 
-                              {/* Subcategory thumbnails & pills */}
-                              <div className="space-y-2">
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Subcategories ({cat.subCategories?.length || 0})</span>
-                                <div className="flex flex-wrap gap-1.5 max-h-[85px] overflow-y-auto scrollbar-thin">
-                                  {cat.subCategories && cat.subCategories.length > 0 ? (
-                                    cat.subCategories.map((sub, sidx) => (
-                                      <span
-                                        key={sidx}
-                                        className="text-[9px] bg-slate-100 hover:bg-slate-200/70 border border-slate-200/50 text-slate-600 font-extrabold px-2 py-0.5 rounded-md transition-colors flex items-center gap-1"
-                                      >
-                                        {sub.image && (
-                                          <img src={sub.image} alt={sub.name} className="w-3.5 h-3.5 rounded-sm aspect-square object-cover" />
-                                        )}
-                                        <span>{sub.name}</span>
-                                      </span>
-                                    ))
-                                  ) : (
-                                    <span className="text-[10px] text-slate-400 font-medium italic">Direct Category (No subcategories)</span>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Quick Stats / Footer info & CRUD Actions */}
+                               {/* Quick Stats / Footer info & CRUD Actions */}
                               <div className="border-t border-slate-100/80 pt-3.5 flex items-center justify-between">
                                 <span className="text-[9px] text-slate-400 font-bold">Icon: <span className="text-slate-600 font-black">{cat.icon || 'shopping-bag'}</span></span>
                                 
@@ -7272,16 +7227,16 @@ export default function AdminDashboard({
           )}
 
         </div>
-      {/* 7. BANNERS TAB */}
-      {activeTab === 'banners' && (
+      {/* 7. MAIN BANNERS TAB & DOUBLE BANNERS TAB */}
+      {(activeTab === 'main-banners' || activeTab === 'banners') && (
         <div className="space-y-6 animate-fadeIn p-4 md:p-6">
           <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-3xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                <ImageIcon className="w-4 h-4 text-lucky-magenta" />
-                <span>Dynamic Layout Banners</span>
+                <ImageIcon className="w-4 h-4 text-[#FF8C00]" />
+                <span>Main Banners (Top Single Banner Area)</span>
               </h3>
-              <p className="text-[11px] text-slate-400 font-medium mt-1">Manage Main Banner (upper single banner area) and Double Banners (below 2 banners in 1 row area) shown on the home page.</p>
+              <p className="text-[11px] text-slate-400 font-medium mt-1">Full-width top poster slider on /shop page (~3.2:1 ratio). Add unlimited banners — if zero exist, shop auto-fills with festive defaults.</p>
             </div>
             <button
               onClick={() => {
@@ -7290,199 +7245,249 @@ export default function AdminDashboard({
                 setBImageUrl('');
                 setBLinkUrl('');
                 setBRow('main');
-                setBOrder(1);
+                setBOrder(banners.filter(b => b.row === 'main' || b.row === 'upper').length + 1);
                 setBTitle('');
                 setBSubtitle('');
                 setBCode('');
                 setBTargetCategory('');
-                setActiveTab('add-banner');
+                setIsBannerModalOpen(true);
+              }}
+              className="bg-[#143C6B] text-white px-5 py-2.5 rounded-lg text-xs font-extrabold hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2 shadow-md cursor-pointer shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add New Main Banner</span>
+            </button>
+          </div>
+
+          {(() => {
+            const mainBanners = [...banners].filter(b => b.row === 'main' || b.row === 'upper' || b.id === 'banner-rakhi-1' || !b.row).sort((a,b) => (a.order || 0) - (b.order || 0));
+
+            return (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <span className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#FF8C00]"></span>
+                    <span>Configured Main Banners</span>
+                    <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                      {mainBanners.length}
+                    </span>
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-bold">Unlimited Limit Supported</span>
+                </div>
+
+                {mainBanners.length === 0 ? (
+                  <div className="bg-white rounded-xl border border-dashed border-slate-200 p-10 text-center shadow-3xs">
+                    <ImageIcon className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                    <h4 className="text-xs font-bold text-slate-800">No Custom Main Banners Added</h4>
+                    <p className="text-[10px] text-slate-400 mt-1">/shop automatically displays default festive hero banners until you add custom ones here.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {mainBanners.map((b) => (
+                      <div key={b.id} className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-xs flex flex-col group relative">
+                        <div className="aspect-[3.2/1] w-full bg-slate-900 relative">
+                          <img src={b.imageUrl || 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&q=80&w=900'} alt={b.title || b.type} className="w-full h-full object-cover" />
+                          <div className="absolute top-2 right-2 bg-lucky-magenta text-white text-[8px] font-black uppercase px-2 py-0.5 rounded shadow-xs">
+                            ORDER: {b.order || 1}
+                          </div>
+                          <div className="absolute top-2 left-2 bg-black/60 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded shadow-xs">
+                            {b.type === 'promotional' ? 'Promo' : 'News'}
+                          </div>
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2.5 text-white pointer-events-none">
+                            {b.code && <p className="text-[7px] text-[#FF8C00] font-black">CODE: {b.code}</p>}
+                            <h5 className="text-[10px] font-extrabold line-clamp-1">{b.title || 'Untitled Main Banner'}</h5>
+                            {b.subtitle && <p className="text-[8px] text-slate-300 font-medium line-clamp-1">{b.subtitle}</p>}
+                          </div>
+                        </div>
+                        <div className="p-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2">
+                          <div className="text-[10px] text-slate-400 font-bold truncate">
+                            {b.targetCategory ? `Category: ${b.targetCategory}` : (b.linkUrl ? `Link: ${b.linkUrl}` : 'No redirect link')}
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              onClick={() => {
+                                setEditingBanner(b);
+                                setBRow('main');
+                                setBannerCropSrc(b.imageUrl);
+                                setIsBannerCropOpen(true);
+                              }}
+                              className="px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded text-[9.5px] font-black hover:bg-amber-100 transition-colors cursor-pointer"
+                              title="Smart Crop Image"
+                            >
+                              Smart Crop
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingBanner(b);
+                                setBType(b.type);
+                                setBImageUrl(b.imageUrl);
+                                setBLinkUrl(b.linkUrl || '');
+                                setBRow('main');
+                                setBOrder(b.order || 1);
+                                setBTitle(b.title || '');
+                                setBSubtitle(b.subtitle || '');
+                                setBCode(b.code || '');
+                                setBTargetCategory(b.targetCategory || '');
+                                setIsBannerModalOpen(true);
+                              }}
+                              className="w-7 h-7 flex items-center justify-center rounded bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition-all cursor-pointer shadow-3xs"
+                              title="Edit Details"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                triggerConfirm(
+                                  'Are you sure you want to delete this Main Banner?',
+                                  () => onDeleteBanner?.(b.id),
+                                  'Delete Main Banner',
+                                  'Delete'
+                                );
+                              }}
+                              className="w-7 h-7 flex items-center justify-center rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors cursor-pointer"
+                              title="Delete Banner"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {activeTab === 'double-banners' && (
+        <div className="space-y-6 animate-fadeIn p-4 md:p-6">
+          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-3xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                <Layers className="w-4 h-4 text-lucky-magenta" />
+                <span>Double Banners (Two Side-by-Side Banners Area)</span>
+              </h3>
+              <p className="text-[11px] text-slate-400 font-medium mt-1">Displayed 2-at-a-time in dynamic pairs below top banner on /shop (~2.2:1 ratio). Add unlimited banners — if zero exist, space auto-fills.</p>
+            </div>
+            <button
+              onClick={() => {
+                setEditingBanner(null);
+                setBType('promotional');
+                setBImageUrl('');
+                setBLinkUrl('');
+                setBRow('double');
+                setBOrder(banners.filter(b => b.row === 'double' || b.row === 'lower').length + 1);
+                setBTitle('');
+                setBSubtitle('');
+                setBCode('');
+                setBTargetCategory('');
+                setIsBannerModalOpen(true);
               }}
               className="bg-slate-900 text-white px-5 py-2.5 rounded-lg text-xs font-extrabold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow-md cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
-              <span>Add New Banner</span>
+              <span>Add New Double Banner</span>
             </button>
           </div>
 
-          {banners.length === 0 ? (
-            <div className="bg-white rounded-xl border border-slate-200/80 p-12 text-center shadow-3xs">
-              <ImageIcon className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-              <h4 className="text-sm font-bold text-slate-800">No Banners Configured</h4>
-              <p className="text-xs text-slate-400 mt-1">Add banners to highlight promotions or news.</p>
-            </div>
-          ) : (() => {
-            const mainBanners = [...banners].filter(b => b.row === 'main' || b.row === 'upper' || !b.row).sort((a,b) => (a.order || 0) - (b.order || 0));
-            const doubleBanners = [...banners].filter(b => b.row === 'double' || b.row === 'lower').sort((a,b) => (a.order || 0) - (b.order || 0));
+          {(() => {
+            const doubleBanners = [...banners].filter(b => b.row === 'double' || b.row === 'lower' || b.id === 'banner-rakhi-2' || b.id === 'banner-rakhi-3').sort((a,b) => (a.order || 0) - (b.order || 0));
 
             return (
-              <div className="space-y-8">
-                {/* Main Banner Section */}
-                <div>
-                  <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
-                    <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#FF8C00]"></span>
-                      <span>Main Banner Area (Single Banner Layout)</span>
-                      <span className="bg-slate-100 text-slate-500 text-[10px] px-2 py-0.5 rounded-full font-bold">
-                        {mainBanners.length}
-                      </span>
-                    </h4>
-                    <p className="text-[10px] text-slate-400 font-semibold">Aspect Ratio: ~3.2:1</p>
-                  </div>
-                  
-                  {mainBanners.length === 0 ? (
-                    <div className="bg-slate-50 rounded-xl border border-dashed border-slate-200/80 p-6 text-center text-xs text-slate-400">
-                      No banners in Main Banner area. Add a banner to this slot.
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {mainBanners.map((b) => (
-                        <div key={b.id} className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-xs flex flex-col group relative">
-                          <div className="aspect-[3/1] w-full bg-slate-900 relative">
-                            <img src={b.imageUrl || 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&q=80&w=900'} alt={b.title || b.type} className="w-full h-full object-cover" />
-                            <div className="absolute top-2 right-2 bg-lucky-magenta text-white text-[8px] font-black uppercase px-2 py-0.5 rounded shadow-xs">
-                              ORDER: {b.order || 1}
-                            </div>
-                            <div className="absolute top-2 left-2 bg-black/60 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded shadow-xs">
-                              {b.type === 'promotional' ? 'Promo' : 'News'}
-                            </div>
-                            {/* Visual Overlay details */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2.5 text-white pointer-events-none">
-                              {b.code && <p className="text-[7px] text-[#FF8C00] font-black">CODE: {b.code}</p>}
-                              <h5 className="text-[10px] font-extrabold line-clamp-1">{b.title || 'Untitled Banner'}</h5>
-                              {b.subtitle && <p className="text-[8px] text-slate-300 font-medium line-clamp-1">{b.subtitle}</p>}
-                            </div>
-                          </div>
-                          <div className="p-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-                            <div className="text-[10px] text-slate-400 font-bold truncate pr-4">
-                              {b.targetCategory ? `Redirects to: ${b.targetCategory}` : (b.linkUrl ? `Link: ${b.linkUrl}` : 'No redirect configured')}
-                            </div>
-                            <div className="flex gap-1.5 shrink-0">
-                              <button
-                                onClick={() => {
-                                  setEditingBanner(b);
-                                  setBType(b.type);
-                                  setBImageUrl(b.imageUrl);
-                                  setBLinkUrl(b.linkUrl || '');
-                                  setBRow(b.row || 'main');
-                                  setBOrder(b.order || 1);
-                                  setBTitle(b.title || '');
-                                  setBSubtitle(b.subtitle || '');
-                                  setBCode(b.code || '');
-                                  setBTargetCategory(b.targetCategory || '');
-                                  setActiveTab('edit-banner/' + b.id);
-                                }}
-                                className="w-7 h-7 flex items-center justify-center rounded bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer shadow-3xs"
-                                title="Edit Banner"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  triggerConfirm(
-                                    'Are you sure you want to delete this banner?',
-                                    () => {
-                                      onDeleteBanner?.(b.id);
-                                    },
-                                    'Delete Banner',
-                                    'Delete'
-                                  );
-                                }}
-                                className="w-7 h-7 flex items-center justify-center rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors shrink-0 cursor-pointer"
-                                title="Delete Banner"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <span className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-lucky-magenta"></span>
+                    <span>Configured Double Banners</span>
+                    <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                      {doubleBanners.length}
+                    </span>
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-bold">Unlimited Limit Supported</span>
                 </div>
 
-                {/* Double Banner Section */}
-                <div>
-                  <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
-                    <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-lucky-magenta"></span>
-                      <span>Double Banner Area (Two Side-by-Side Banners Layout)</span>
-                      <span className="bg-slate-100 text-slate-500 text-[10px] px-2 py-0.5 rounded-full font-bold">
-                        {doubleBanners.length}
-                      </span>
-                    </h4>
-                    <p className="text-[10px] text-slate-400 font-semibold">Aspect Ratio: ~2.2:1</p>
+                {doubleBanners.length === 0 ? (
+                  <div className="bg-white rounded-xl border border-dashed border-slate-200 p-10 text-center shadow-3xs">
+                    <Layers className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                    <h4 className="text-xs font-bold text-slate-800">No Custom Double Banners Added</h4>
+                    <p className="text-[10px] text-slate-400 mt-1">/shop automatically displays default festive side-by-side banners until you add custom ones here.</p>
                   </div>
-
-                  {doubleBanners.length === 0 ? (
-                    <div className="bg-slate-50 rounded-xl border border-dashed border-slate-200/80 p-6 text-center text-xs text-slate-400">
-                      No banners in Double Banner area. Add banners here to display two-at-a-time on /shop.
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {doubleBanners.map((b) => (
-                        <div key={b.id} className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-xs flex flex-col group relative">
-                          <div className="aspect-[2/1] w-full bg-slate-900 relative">
-                            <img src={b.imageUrl || 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&q=80&w=600'} alt={b.title || b.type} className="w-full h-full object-cover" />
-                            <div className="absolute top-2 right-2 bg-lucky-magenta text-white text-[8px] font-black uppercase px-2 py-0.5 rounded shadow-xs">
-                              ORDER: {b.order || 1}
-                            </div>
-                            <div className="absolute top-2 left-2 bg-black/60 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded shadow-xs">
-                              {b.type === 'promotional' ? 'Promo' : 'News'}
-                            </div>
-                            {/* Visual Overlay details */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2.5 text-white pointer-events-none">
-                              {b.code && <p className="text-[7px] text-[#FF8C00] font-black">CODE: {b.code}</p>}
-                              <h5 className="text-[10px] font-extrabold line-clamp-1">{b.title || 'Untitled Banner'}</h5>
-                              {b.subtitle && <p className="text-[8px] text-slate-300 font-medium line-clamp-1">{b.subtitle}</p>}
-                            </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {doubleBanners.map((b) => (
+                      <div key={b.id} className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-xs flex flex-col group relative">
+                        <div className="aspect-[2.2/1] w-full bg-slate-900 relative">
+                          <img src={b.imageUrl || 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&q=80&w=600'} alt={b.title || b.type} className="w-full h-full object-cover" />
+                          <div className="absolute top-2 right-2 bg-lucky-magenta text-white text-[8px] font-black uppercase px-2 py-0.5 rounded shadow-xs">
+                            ORDER: {b.order || 1}
                           </div>
-                          <div className="p-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-                            <div className="text-[10px] text-slate-400 font-bold truncate pr-4">
-                              {b.targetCategory ? `Redirects to: ${b.targetCategory}` : (b.linkUrl ? `Link: ${b.linkUrl}` : 'No redirect configured')}
-                            </div>
-                            <div className="flex gap-1.5 shrink-0">
-                              <button
-                                onClick={() => {
-                                  setEditingBanner(b);
-                                  setBType(b.type);
-                                  setBImageUrl(b.imageUrl);
-                                  setBLinkUrl(b.linkUrl || '');
-                                  setBRow(b.row || 'double');
-                                  setBOrder(b.order || 1);
-                                  setBTitle(b.title || '');
-                                  setBSubtitle(b.subtitle || '');
-                                  setBCode(b.code || '');
-                                  setBTargetCategory(b.targetCategory || '');
-                                  setActiveTab('edit-banner/' + b.id);
-                                }}
-                                className="w-7 h-7 flex items-center justify-center rounded bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer shadow-3xs"
-                                title="Edit Banner"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  triggerConfirm(
-                                    'Are you sure you want to delete this banner?',
-                                    () => {
-                                      onDeleteBanner?.(b.id);
-                                    },
-                                    'Delete Banner',
-                                    'Delete'
-                                  );
-                                }}
-                                className="w-7 h-7 flex items-center justify-center rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors shrink-0 cursor-pointer"
-                                title="Delete Banner"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
+                          <div className="absolute top-2 left-2 bg-black/60 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded shadow-xs">
+                            {b.type === 'promotional' ? 'Promo' : 'News'}
+                          </div>
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2.5 text-white pointer-events-none">
+                            {b.code && <p className="text-[7px] text-[#FF8C00] font-black">CODE: {b.code}</p>}
+                            <h5 className="text-[10px] font-extrabold line-clamp-1">{b.title || 'Untitled Double Banner'}</h5>
+                            {b.subtitle && <p className="text-[8px] text-slate-300 font-medium line-clamp-1">{b.subtitle}</p>}
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                        <div className="p-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2">
+                          <div className="text-[10px] text-slate-400 font-bold truncate">
+                            {b.targetCategory ? `Category: ${b.targetCategory}` : (b.linkUrl ? `Link: ${b.linkUrl}` : 'No redirect link')}
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              onClick={() => {
+                                setEditingBanner(b);
+                                setBRow('double');
+                                setBannerCropSrc(b.imageUrl);
+                                setIsBannerCropOpen(true);
+                              }}
+                              className="px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded text-[9.5px] font-black hover:bg-amber-100 transition-colors cursor-pointer"
+                              title="Smart Crop Image"
+                            >
+                              Smart Crop
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingBanner(b);
+                                setBType(b.type);
+                                setBImageUrl(b.imageUrl);
+                                setBLinkUrl(b.linkUrl || '');
+                                setBRow('double');
+                                setBOrder(b.order || 1);
+                                setBTitle(b.title || '');
+                                setBSubtitle(b.subtitle || '');
+                                setBCode(b.code || '');
+                                setBTargetCategory(b.targetCategory || '');
+                                setIsBannerModalOpen(true);
+                              }}
+                              className="w-7 h-7 flex items-center justify-center rounded bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition-all cursor-pointer shadow-3xs"
+                              title="Edit Details"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                triggerConfirm(
+                                  'Are you sure you want to delete this Double Banner?',
+                                  () => onDeleteBanner?.(b.id),
+                                  'Delete Double Banner',
+                                  'Delete'
+                                );
+                              }}
+                              className="w-7 h-7 flex items-center justify-center rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors cursor-pointer"
+                              title="Delete Banner"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })()}
@@ -7805,7 +7810,7 @@ export default function AdminDashboard({
                   {imageUploadLoading && (
                     <div className="flex items-center justify-center gap-2 text-xs font-extrabold text-lucky-magenta bg-lucky-magenta-light/50 border border-lucky-magenta-light p-2.5 rounded-lg">
                       <Loader2 className="w-4 h-4 animate-spin text-lucky-magenta" />
-                      <span>Compressing & Hosting to ImgBB Storage Node...</span>
+                      <span>Uploading & Processing Image...</span>
                     </div>
                   )}
                 </div>
@@ -7869,44 +7874,136 @@ export default function AdminDashboard({
               </div>
 
               <form onSubmit={handleBannerSubmit} className="p-6 space-y-4">
-                <div>
-                  <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Banner Type *</label>
-                  <select
-                    value={bType}
-                    onChange={(e) => setBType(e.target.value as any)}
-                    className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2.5 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
-                  >
-                    <option value="promotional">Promotional Offer</option>
-                    <option value="news">Latest News / Announcement</option>
-                  </select>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Placement Row *</label>
+                    <select
+                      value={bRow}
+                      onChange={(e) => setBRow(e.target.value as any)}
+                      className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+                    >
+                      <option value="main">Main Banner (Top Slider)</option>
+                      <option value="double">Double Banner (2-in-1 Grid)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Banner Type *</label>
+                    <select
+                      value={bType}
+                      onChange={(e) => setBType(e.target.value as any)}
+                      className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+                    >
+                      <option value="promotional">Promotional Offer</option>
+                      <option value="news">Latest News / Announcement</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Image URL *</label>
-                  <input
-                    type="url"
-                    required
-                    value={bImageUrl}
-                    onChange={(e) => setBImageUrl(e.target.value)}
-                    placeholder="https://example.com/image.jpg"
-                    className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      required
+                      value={bImageUrl}
+                      onChange={(e) => setBImageUrl(e.target.value)}
+                      placeholder="https://images.unsplash.com/photo-..."
+                      className="flex-1 bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+                    />
+                    {bImageUrl?.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBannerCropSrc(bImageUrl);
+                          setIsBannerCropOpen(true);
+                        }}
+                        className="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-black transition-colors cursor-pointer shrink-0"
+                      >
+                        Smart Crop
+                      </button>
+                    )}
+                  </div>
                   {Boolean(bImageUrl?.trim()) && (
-                    <div className="mt-3 aspect-[3/1] bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
+                    <div className="mt-3 aspect-[3/1] bg-slate-900 rounded-lg overflow-hidden border border-slate-200 relative group">
                       <img src={bImageUrl.trim()} alt="Preview" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBannerCropSrc(bImageUrl);
+                            setIsBannerCropOpen(true);
+                          }}
+                          className="px-3 py-1.5 bg-white text-slate-900 rounded-md text-xs font-black shadow-md cursor-pointer"
+                        >
+                          Launch Smart Crop
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
 
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Banner Title</label>
+                    <input
+                      type="text"
+                      value={bTitle}
+                      onChange={(e) => setBTitle(e.target.value)}
+                      placeholder="e.g. Teej Mahotsav Sale"
+                      className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Promo Code</label>
+                    <input
+                      type="text"
+                      value={bCode}
+                      onChange={(e) => setBCode(e.target.value)}
+                      placeholder="e.g. FESTIVE20"
+                      className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Link URL (Optional)</label>
-                  <input
-                    type="url"
-                    value={bLinkUrl}
-                    onChange={(e) => setBLinkUrl(e.target.value)}
-                    placeholder="https://quekart.com/category"
+                  <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Target Category Redirect</label>
+                  <select
+                    value={bTargetCategory}
+                    onChange={(e) => setBTargetCategory(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
-                  />
+                  >
+                    <option value="">-- No Category Redirect --</option>
+                    <option value="Kurtis & Suits">Kurtis & Suits</option>
+                    <option value="Sarees">Sarees</option>
+                    <option value="Lehengas">Lehengas</option>
+                    <option value="Jewellery">Jewellery</option>
+                    <option value="Bedsheets">Bedsheets</option>
+                    <option value="Footwear">Footwear</option>
+                    <option value="Bags & Purses">Bags & Purses</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Subtitle / Tagline</label>
+                    <input
+                      type="text"
+                      value={bSubtitle}
+                      onChange={(e) => setBSubtitle(e.target.value)}
+                      placeholder="e.g. Flat 20% OFF on Jaipur Suits"
+                      className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wide mb-1.5">Display Order</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={bOrder}
+                      onChange={(e) => setBOrder(Number(e.target.value))}
+                      className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
+                    />
+                  </div>
                 </div>
 
                 <div className="pt-4 flex justify-end gap-2 border-t border-slate-100">
@@ -7921,7 +8018,7 @@ export default function AdminDashboard({
                     type="submit"
                     className="bg-slate-900 text-white hover:bg-slate-850 font-extrabold text-xs px-5 py-2.5 rounded-lg cursor-pointer shadow-md"
                   >
-                    Add Banner
+                    {editingBanner ? 'Save Changes' : 'Publish Banner'}
                   </button>
                 </div>
               </form>

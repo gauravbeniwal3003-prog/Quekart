@@ -23,7 +23,6 @@ export function smartSearchFilter(products: Product[], query: string): Product[]
     const title = (p.title || '').toLowerCase();
     const desc = (p.description || '').toLowerCase();
     const cat = (p.category || '').toLowerCase();
-    const subCat = (p.subCategory || '').toLowerCase();
     const tag = (p.tag || '').toLowerCase();
     const soldBy = (p.soldBy || '').toLowerCase();
     const sizes = (p.sizeOptions || []).join(' ').toLowerCase();
@@ -44,7 +43,7 @@ export function smartSearchFilter(products: Product[], query: string): Product[]
       .join(' ')
       .toLowerCase();
 
-    const fullBlob = `${title} ${desc} ${cat} ${subCat} ${tag} ${soldBy} ${sizes} ${variantsText} ${highlightsText} ${detailsText}`;
+    const fullBlob = `${title} ${desc} ${cat} ${tag} ${soldBy} ${sizes} ${variantsText} ${highlightsText} ${detailsText}`;
 
     // 1. Direct exact phrase match anywhere in blob
     if (fullBlob.includes(rawQuery)) {
@@ -57,9 +56,9 @@ export function smartSearchFilter(products: Product[], query: string): Product[]
       return true;
     }
 
-    // 3. Category / Subcategory or Title match with key tokens
+    // 3. Category or Title match with key tokens
     const anyTokenInTitleOrCategory = tokens.some(
-      token => title.includes(token) || cat.includes(token) || subCat.includes(token)
+      token => title.includes(token) || cat.includes(token)
     );
     if (anyTokenInTitleOrCategory) {
       return true;
@@ -83,8 +82,8 @@ export function smartSearchFilter(products: Product[], query: string): Product[]
     if (exactTitleA && !exactTitleB) return -1;
     if (!exactTitleA && exactTitleB) return 1;
 
-    const catA = (a.category || '').toLowerCase().includes(rawQuery) || (a.subCategory || '').toLowerCase().includes(rawQuery);
-    const catB = (b.category || '').toLowerCase().includes(rawQuery) || (b.subCategory || '').toLowerCase().includes(rawQuery);
+    const catA = (a.category || '').toLowerCase().includes(rawQuery);
+    const catB = (b.category || '').toLowerCase().includes(rawQuery);
 
     if (catA && !catB) return -1;
     if (!catA && catB) return 1;

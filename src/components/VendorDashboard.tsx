@@ -292,7 +292,6 @@ export default function VendorDashboard({
   const [pTitle, setPTitle] = useState('');
   const [pDesc, setPDesc] = useState('');
   const [pCategory, setPCategory] = useState('Women Ethnic Wear');
-  const [pSubCategory, setPSubCategory] = useState('Banarasi Sarees');
   const [pPrice, setPPrice] = useState<number>(299);
   const [pOrigPrice, setPOrigPrice] = useState<number>(599);
   const [pSizeOptions, setPSizeOptions] = useState<string[]>(['Free Size']);
@@ -544,11 +543,6 @@ export default function VendorDashboard({
     setTimeout(() => setCopiedRefId(null), 2000);
   };
 
-  // Available subcategories for the selected category
-  const availableSubcategories = useMemo(() => {
-    return getSubcategoriesForCategory(pCategory);
-  }, [pCategory]);
-
   // Fetch registered vendors from database
   const fetchVendors = async () => {
     setIsLoadingVendors(true);
@@ -617,7 +611,6 @@ export default function VendorDashboard({
         setPTitle(target.title);
         setPDesc(target.description);
         setPCategory(target.category);
-        setPSubCategory(target.subCategory || 'General');
         setPPrice(target.price);
         setPOrigPrice(target.originalPrice);
         setPSizeOptions(target.sizeOptions || ['Free Size']);
@@ -641,7 +634,6 @@ export default function VendorDashboard({
       setPTitle('');
       setPDesc('');
       setPCategory('Women Ethnic Wear');
-      setPSubCategory('Banarasi Sarees');
       setPPrice(299);
       setPOrigPrice(599);
       setPSizeOptions(['Free Size']);
@@ -812,7 +804,6 @@ export default function VendorDashboard({
       title: finalTitle,
       description: pDesc.trim(),
       category: pCategory,
-      subCategory: pSubCategory.trim() || 'General',
       price: pPrice,
       originalPrice: pOrigPrice,
       discountPercent: discount,
@@ -1788,85 +1779,23 @@ export default function VendorDashboard({
                       </div>
 
                       {/* COMPREHENSIVE CATEGORIES DATABASE SELECTOR */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                        <div>
-                          <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
-                            Primary Category * ({MASTER_CATEGORIES.length} Master Groups)
-                          </label>
-                          <select
-                            value={pCategory}
-                            onChange={e => {
-                              const newCat = e.target.value;
-                              setPCategory(newCat);
-                              const subList = getSubcategoriesForCategory(newCat);
-                              if (subList.length > 0) {
-                                setPSubCategory(subList[0]);
-                              }
-                            }}
-                            className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 bg-white focus:outline-hidden focus:border-[#143C6B]"
-                            id="vendor-category-select"
-                          >
-                            {MASTER_CATEGORIES.map(cat => (
-                              <option key={cat.id} value={cat.name}>
-                                {cat.name} ({cat.group})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
-                            Subcategory Classification *
-                          </label>
-                          {availableSubcategories.length > 0 ? (
-                            <select
-                              value={pSubCategory}
-                              onChange={e => setPSubCategory(e.target.value)}
-                              className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 bg-white focus:outline-hidden focus:border-[#143C6B]"
-                              id="vendor-subcategory-select"
-                            >
-                              {availableSubcategories.map((sub, sIdx) => (
-                                <option key={sIdx} value={sub}>
-                                  {sub}
-                                </option>
-                              ))}
-                              <option value="Custom / Other">Custom / Other</option>
-                            </select>
-                          ) : (
-                            <input
-                              type="text"
-                              required
-                              placeholder="e.g. Saree, Kurti, Shoes, Watch"
-                              value={pSubCategory}
-                              onChange={e => setPSubCategory(e.target.value)}
-                              className="w-full text-xs font-medium border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
-                            />
-                          )}
-                        </div>
+                      <div>
+                        <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                          Primary Category * ({MASTER_CATEGORIES.length} Master Groups)
+                        </label>
+                        <select
+                          value={pCategory}
+                          onChange={e => setPCategory(e.target.value)}
+                          className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 bg-white focus:outline-hidden focus:border-[#143C6B]"
+                          id="vendor-category-select"
+                        >
+                          {MASTER_CATEGORIES.map(cat => (
+                            <option key={cat.id} value={cat.name}>
+                              {cat.name} ({cat.group})
+                            </option>
+                          ))}
+                        </select>
                       </div>
-
-                      {/* Subcategory Suggestion Chips */}
-                      {availableSubcategories.length > 0 && (
-                        <div className="space-y-1">
-                          <span className="text-[10px] text-slate-400 font-bold uppercase">Quick Suggested Tags:</span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {availableSubcategories.slice(0, 6).map((sub, idx) => (
-                              <button
-                                key={idx}
-                                type="button"
-                                onClick={() => setPSubCategory(sub)}
-                                className={`text-[10.5px] px-2 py-0.5 rounded-md font-bold transition-colors cursor-pointer border ${
-                                  pSubCategory === sub
-                                    ? 'bg-[#143C6B] text-white border-[#143C6B]'
-                                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
-                                }`}
-                              >
-                                {sub}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
 
                     {/* Pricing */}
@@ -2225,29 +2154,16 @@ export default function VendorDashboard({
                     </div>
 
                     {/* Category Details */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
-                          Category
-                        </label>
-                        <input
-                          type="text"
-                          disabled
-                          value={pCategory}
-                          className="w-full text-xs font-bold border border-slate-200 rounded-xl p-2.5 bg-slate-100 text-slate-500 cursor-not-allowed"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
-                          Subcategory
-                        </label>
-                        <input
-                          type="text"
-                          disabled
-                          value={pSubCategory}
-                          className="w-full text-xs font-bold border border-slate-200 rounded-xl p-2.5 bg-slate-100 text-slate-500 cursor-not-allowed"
-                        />
-                      </div>
+                    <div>
+                      <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                        Category
+                      </label>
+                      <input
+                        type="text"
+                        disabled
+                        value={pCategory}
+                        className="w-full text-xs font-bold border border-slate-200 rounded-xl p-2.5 bg-slate-100 text-slate-500 cursor-not-allowed"
+                      />
                     </div>
 
                     {/* Pricing Edit */}

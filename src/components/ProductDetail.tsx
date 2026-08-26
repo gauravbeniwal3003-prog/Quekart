@@ -3,6 +3,8 @@ import { getApiUrl } from '../utils/api';
 import { resetScrollToTop } from '../utils/scroll';
 import { getProductPricing } from '../utils/pricing';
 import Logo, { BrandLogo } from './Logo';
+import { SmartImage } from './common/SmartImage';
+import { InlineButtonSpinner } from './common/Skeletons';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -519,7 +521,7 @@ export default function ProductDetail({
 
     for (let i = 0; i < totalFiles; i++) {
       const file = files[i];
-      setUploadStatusText(`Uploading photo ${i + 1} of ${totalFiles} to ImgBB...`);
+      setUploadStatusText(`Uploading photo ${i + 1} of ${totalFiles}...`);
 
       try {
         // Read as base64
@@ -855,12 +857,13 @@ export default function ProductDetail({
               <div className="relative aspect-square w-full bg-slate-50 flex items-center justify-center overflow-hidden select-none">
                 
                 {/* Main Product Image */}
-                <img
+                <SmartImage
                   src={currentImageSrc}
                   alt={product.title}
-                  className="w-full h-full object-contain object-center transition-all duration-300"
+                  aspectRatioClassName="aspect-square"
+                  containerClassName="w-full h-full"
+                  objectFit="contain"
                   id="product-gallery-main-image"
-                  referrerPolicy="no-referrer"
                 />
 
                 {/* Left & Right Slide Controls on larger screens */}
@@ -1357,10 +1360,6 @@ export default function ProductDetail({
                     <div>
                       <span className="text-slate-400 block text-[10.5px] uppercase font-bold">Category</span>
                       <span className="text-slate-800 font-bold">{product.category}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-[10.5px] uppercase font-bold">Subcategory</span>
-                      <span className="text-slate-800 font-bold">{product.subCategory || 'Premium Collection'}</span>
                     </div>
                     <div>
                       <span className="text-slate-400 block text-[10.5px] uppercase font-bold">Sold By</span>
@@ -2190,7 +2189,7 @@ export default function ProductDetail({
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-bold text-slate-800">
-                    Attach Piece Photos <span className="text-slate-400 font-normal text-[11px]">(via ImgBB API)</span>
+                    Attach Piece Photos
                   </label>
                   <span className="text-[10px] text-slate-500">{reviewPhotos.length}/6 photos</span>
                 </div>

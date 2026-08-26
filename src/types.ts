@@ -51,7 +51,7 @@ export interface Product {
   title: string;
   description: string;
   category: string;
-  subCategory: string;
+  subCategory?: string;
   price: number;
   originalPrice: number;
   discountPercent: number;
@@ -86,6 +86,7 @@ export interface Product {
   createdAt?: string;
   numericId?: number; // Sequential simple unique ID starting from 1
   sponsoredUntil?: string; // Timestamp until which product is sponsored
+  isBestSeller?: boolean;
   analytics?: ProductAnalytics; // Real-time product impression, view, and cart add analytics
 }
 
@@ -261,10 +262,6 @@ export interface Category {
   name: string;
   icon: string; // Lucide icon name or emoji
   image?: string;
-  subCategories: {
-    name: string;
-    image: string;
-  }[];
 }
 
 export interface CategoryFilter {

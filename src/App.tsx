@@ -312,9 +312,11 @@ export default function App() {
 
   // Dynamic persistent banners state
   const [banners, setBanners] = useState<Banner[]>(initialBanners);
+  const [isLoadingShopData, setIsLoadingShopData] = useState<boolean>(false);
 
   // Fetch / Refresh shop data from server-side or Supabase direct
   const refreshShopData = useCallback(async () => {
+    setIsLoadingShopData(true);
     try {
       const [productsData, ordersData, couponsData, categoriesData, categoryFiltersData, bannersData] = await Promise.all([
         fetchProductsUnified(),
@@ -345,6 +347,8 @@ export default function App() {
       }
     } catch (err) {
       console.warn('⚠️ Data loading notice:', err);
+    } finally {
+      setIsLoadingShopData(false);
     }
   }, []);
 
@@ -961,6 +965,7 @@ export default function App() {
                         searchQuery={searchQuery}
                         currentUser={currentUser}
                         onRequireLogin={triggerRequireLogin}
+                        isLoading={isLoadingShopData}
                       />
                     )}
 
@@ -980,6 +985,7 @@ export default function App() {
                           onToggleWishlist={handleToggleWishlist}
                           currentUser={currentUser}
                           onRequireLogin={triggerRequireLogin}
+                          isLoading={isLoadingShopData}
                         />
                       ) : (
                         <CategoriesView
@@ -989,6 +995,7 @@ export default function App() {
                             navigateTo('/shop/categories/' + encodeURIComponent(categoryName));
                           }}
                           onSelectTab={(tab) => navigateTo(tab === 'home' ? '/shop' : '/shop/' + tab)}
+                          isLoading={isLoadingShopData}
                         />
                       )
                     )}
@@ -1000,6 +1007,7 @@ export default function App() {
                         onSelectTab={(tab) => navigateTo(tab === 'home' ? '/shop' : '/shop/' + tab)}
                         currentUser={currentUser}
                         onReturnOrder={handleReturnOrder}
+                        isLoading={isLoadingShopData}
                       />
                     )}
 

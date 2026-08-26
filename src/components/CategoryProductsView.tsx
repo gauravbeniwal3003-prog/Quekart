@@ -8,6 +8,8 @@ import { getProductPricing } from '../utils/pricing';
 import { HighlightedText } from './HighlightedText';
 import { useProductImpressionObserver } from '../hooks/useProductImpressionObserver';
 import { trackProductView } from '../utils/analytics';
+import { SmartImage } from './common/SmartImage';
+import { ProductCardSkeleton, ProductGridSkeleton } from './common/Skeletons';
 
 interface CategoryProductsViewProps {
   filterName: string;
@@ -24,6 +26,7 @@ interface CategoryProductsViewProps {
   currentUser: any;
   onRequireLogin: (title?: string, desc?: string) => void;
   searchQuery?: string;
+  isLoading?: boolean;
 }
 
 export default function CategoryProductsView({
@@ -40,7 +43,8 @@ export default function CategoryProductsView({
   onToggleWishlist,
   currentUser,
   onRequireLogin,
-  searchQuery = ''
+  searchQuery = '',
+  isLoading = false
 }: CategoryProductsViewProps) {
   // Activate automatic product impression tracking (1 count per 3 hours per IP)
   useProductImpressionObserver();
@@ -49,9 +53,8 @@ export default function CategoryProductsView({
     resetScrollToTop();
   }, [filterName]);
 
-  // Local Search & Subcategory Filter States
+  // Local Search State
   const [localSearchQuery, setLocalSearchQuery] = useState('');
-  const [activeSubFilter, setActiveSubFilter] = useState('All');
 
   // Sorting & Filtering States
   const [sortBy, setSortBy] = useState<string>('popular');
@@ -68,36 +71,13 @@ export default function CategoryProductsView({
     }
   }, [searchQuery]);
 
-  // Find parent Category object from the category tree to extract its subcategories
+  // Find parent Category object from the category tree
   const parentCategory = useMemo(() => {
     if (!categories || categories.length === 0) return null;
-    
-    // 1. Try to find parent category whose name matches filterName
-    let found = categories.find(c => c.name.toLowerCase() === filterName.toLowerCase());
-    if (found) return found;
-
-    // 2. Fallback to find a parent category whose subcategories contain the filterName
-    found = categories.find(c =>
-      c.subCategories?.some(sub => sub.name.toLowerCase() === filterName.toLowerCase())
-    );
-    return found;
+    return categories.find(c => c.name.toLowerCase() === filterName.toLowerCase()) || null;
   }, [categories, filterName]);
 
-  // Handle setting active subcategory when page loads or filterName changes
-  useEffect(() => {
-    if (parentCategory && parentCategory.name.toLowerCase() !== filterName.toLowerCase()) {
-      setActiveSubFilter(filterName);
-    } else {
-      setActiveSubFilter('All');
-    }
-  }, [filterName, parentCategory]);
-
-  const subCategoriesList = useMemo(() => {
-    if (!parentCategory) return [];
-    return parentCategory.subCategories || [];
-  }, [parentCategory]);
-
-  // 1. Filter products by Parent Category, Subcategory pill, Attributes (Price/Rating), and local Search
+  // 1. Filter products by Category, Attributes (Price/Rating), and local Search
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       // Basic approval check
@@ -106,21 +86,13 @@ export default function CategoryProductsView({
 
       // Category matching
       if (parentCategory) {
-        // Must match parent category
         const matchesParent = (p.category || '').toLowerCase() === parentCategory.name.toLowerCase();
         if (!matchesParent) return false;
-
-        // Must match subcategory if subcategory filter is set
-        if (activeSubFilter !== 'All') {
-          const matchesSub = (p.subCategory || '').toLowerCase() === activeSubFilter.toLowerCase();
-          if (!matchesSub) return false;
-        }
       } else {
         // Fallback: match by filterName directly
         const cat = (p.category || '').toLowerCase();
-        const sub = (p.subCategory || '').toLowerCase();
         const query = filterName.toLowerCase();
-        const matchesCategory = cat === query || sub === query || cat.includes(query) || sub.includes(query);
+        const matchesCategory = cat === query || cat.includes(query);
         if (!matchesCategory) return false;
       }
 
@@ -139,16 +111,15 @@ export default function CategoryProductsView({
         const sQuery = localSearchQuery.toLowerCase();
         const titleMatch = (p.title || '').toLowerCase().includes(sQuery);
         const descMatch = (p.description || '').toLowerCase().includes(sQuery);
-        const subCatMatch = (p.subCategory || '').toLowerCase().includes(sQuery);
         const brandMatch = (p.soldBy || '').toLowerCase().includes(sQuery);
-        if (!titleMatch && !descMatch && !subCatMatch && !brandMatch) {
+        if (!titleMatch && !descMatch && !brandMatch) {
           return false;
         }
       }
 
       return true;
     });
-  }, [products, parentCategory, activeSubFilter, filterName, maxPrice, minRating, localSearchQuery]);
+  }, [products, parentCategory, filterName, maxPrice, minRating, localSearchQuery]);
 
   // 2. Sort filtered products
   const sortedProducts = useMemo(() => {
@@ -280,43 +251,6 @@ export default function CategoryProductsView({
           </button>
         </div>
       </div>
-
-      {/* 3. Horizontal scrolling subcategories list */}
-      {subCategoriesList.length > 0 && (
-        <div className="bg-white py-3 border-b border-gray-100 flex overflow-x-auto scrollbar-hide px-4" id="category-subcategories-scroller">
-          <div className="max-w-7xl mx-auto w-full flex gap-2 flex-nowrap scrollbar-hide">
-            <button
-              onClick={() => setActiveSubFilter('All')}
-              className={`flex-shrink-0 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeSubFilter === 'All'
-                  ? 'bg-[#143C6B] text-white shadow-xs'
-                  : 'bg-[#F1F5F9] text-gray-600 hover:bg-gray-200/70'
-              }`}
-              style={{ whiteSpace: 'nowrap' }}
-            >
-              All Products
-            </button>
-
-            {subCategoriesList.map((sub, index) => {
-              const isSelected = activeSubFilter.toLowerCase() === sub.name.toLowerCase();
-              return (
-                <button
-                  key={index}
-                  onClick={() => setActiveSubFilter(sub.name)}
-                  className={`flex-shrink-0 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    isSelected
-                      ? 'bg-[#143C6B] text-white shadow-xs'
-                      : 'bg-[#FFE4E6]/40 text-gray-700 hover:bg-[#FFE4E6]/60 border border-[#FFF1F2]'
-                  }`}
-                  style={{ whiteSpace: 'nowrap' }}
-                >
-                  {sub.name}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* 4. Sorting & Filter Controls Row */}
       <div className="bg-white border-b border-slate-100 px-4 py-2 flex items-center justify-between" id="category-quick-filters">
@@ -487,7 +421,9 @@ export default function CategoryProductsView({
 
       {/* 6. Main Listing View Grid */}
       <div className="flex-1 p-3 md:p-4 overflow-y-auto max-w-7xl mx-auto w-full" id="category-products-container">
-        {sortedProducts.length === 0 ? (
+        {isLoading ? (
+          <ProductGridSkeleton count={8} />
+        ) : sortedProducts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center max-w-md mx-auto" id="category-empty-state">
             <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center text-[#143C6B] mb-4 shadow-3xs">
               <ShoppingBag className="w-7 h-7" />
@@ -497,7 +433,7 @@ export default function CategoryProductsView({
               We couldn't find any items matching your active filter criteria inside "{parentCategory ? parentCategory.name : filterName}".
             </p>
             <button
-              onClick={() => { setMaxPrice(null); setMinRating(0); setLocalSearchQuery(''); setActiveSubFilter('All'); }}
+              onClick={() => { setMaxPrice(null); setMinRating(0); setLocalSearchQuery(''); }}
               className="mt-6 px-6 py-2.5 bg-[#143C6B] hover:bg-[#0D2C4E] text-white text-xs font-black rounded-xl transition-all shadow-xs active:scale-95 cursor-pointer uppercase tracking-wider"
               id="category-empty-back-btn"
             >
@@ -528,11 +464,11 @@ export default function CategoryProductsView({
                   >
                     {/* Portrait Image frame aspect-[3/4] strictly like Meesho/Myntra style */}
                     <div className="relative aspect-[3/4] w-full bg-slate-100 overflow-hidden flex-shrink-0">
-                      <img
+                      <SmartImage
                         src={product.images?.[0] || 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=350'}
                         alt={product.title}
-                        className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
-                        referrerPolicy="no-referrer"
+                        aspectRatioClassName="aspect-[3/4]"
+                        containerClassName="w-full h-full"
                       />
 
                       {/* Floating Wishlist Button strictly overlayed on top right */}
@@ -628,9 +564,12 @@ export default function CategoryProductsView({
 
             {/* Fast scroll loader */}
             {isLoadingMore && (
-              <div className="w-full py-8 flex flex-col items-center justify-center gap-2 text-slate-500 animate-fadeIn" id="category-loading-spinner">
-                <Loader2 className="w-6 h-6 text-[#143C6B] animate-spin" />
-                <span className="text-[11px] font-bold text-slate-600">Loading next batch...</span>
+              <div className="py-4" id="category-loading-skeletons">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
+                  {Array.from({ length: 4 }).map((_, idx) => (
+                    <ProductCardSkeleton key={`cat-inf-skel-${idx}`} />
+                  ))}
+                </div>
               </div>
             )}
 

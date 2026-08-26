@@ -10,6 +10,8 @@ import { HighlightedText } from './HighlightedText';
 import { useProductImpressionObserver } from '../hooks/useProductImpressionObserver';
 import { trackProductView } from '../utils/analytics';
 import { getApiUrl } from '../utils/api';
+import { SmartImage } from './common/SmartImage';
+import { ProductCardSkeleton, ProductGridSkeleton, BannerSkeleton, CategoryRowSkeleton } from './common/Skeletons';
 
 interface HomeFeedProps {
   categories?: Category[];
@@ -23,6 +25,7 @@ interface HomeFeedProps {
   searchQuery?: string;
   currentUser?: any;
   onRequireLogin?: (actionTitle?: string, actionDesc?: string) => void;
+  isLoading?: boolean;
 }
 
 export default function HomeFeed({
@@ -36,7 +39,8 @@ export default function HomeFeed({
   onSelectCategory,
   searchQuery = '',
   currentUser,
-  onRequireLogin
+  onRequireLogin,
+  isLoading = false
 }: HomeFeedProps) {
   // Activate automatic product impression tracking (1 count per 3 hours per IP)
   useProductImpressionObserver();
@@ -296,9 +300,15 @@ export default function HomeFeed({
 
     // 1. Category Filter
     if (selectedCategory !== 'All') {
-      list = list.filter(
-        (p) => p && (p.category === selectedCategory || p.subCategory === selectedCategory)
-      );
+      if (selectedCategory === 'Popular') {
+        list = list.filter(
+          (p) => p && (p.category === 'Popular' || p.isBestSeller || (p.rating && p.rating >= 4.0))
+        );
+      } else {
+        list = list.filter(
+          (p) => p && p.category === selectedCategory
+        );
+      }
     }
 
     // 2. Gender Filter
@@ -434,15 +444,22 @@ export default function HomeFeed({
 
   // Dynamic Category bubbles loaded from categories prop
   const dynamicCategories = (categories && categories.length > 0 ? categories : []).filter(Boolean);
+  
+  // Custom 'All Categories' item from DB/state if present
+  const allCatObj = dynamicCategories.find(c => c && (c.id === 'cat-all' || c.name.toLowerCase() === 'all categories'));
+  const allCatImage = allCatObj?.image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150';
+  const allCatLabel = allCatObj?.name || 'All Categories';
+
+  // Exclude 'cat-all' from the dynamic list loop so it doesn't duplicate
+  const userCategories = dynamicCategories.filter(c => c && c.id !== 'cat-all' && c.name.toLowerCase() !== 'all categories');
+
   const categoryBubbles = [
-    { label: 'All Categories', value: 'All', bg: 'bg-blue-100', img: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150' },
-    ...dynamicCategories.map((cat, index) => {
+    { label: allCatLabel, value: 'All', bg: 'bg-blue-100', img: allCatImage },
+    ...userCategories.map((cat, index) => {
       if (!cat) return null;
       const colors = ['bg-pink-50', 'bg-blue-50', 'bg-yellow-50', 'bg-orange-50', 'bg-green-50', 'bg-purple-50', 'bg-teal-50'];
       const bg = colors[index % colors.length];
-      const img = cat.image || (cat.subCategories && cat.subCategories.length > 0 && cat.subCategories[0] && cat.subCategories[0].image
-        ? cat.subCategories[0].image 
-        : 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150');
+      const img = cat.image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150';
       return {
         label: cat.name || 'Category',
         value: cat.name || '',
@@ -454,13 +471,18 @@ export default function HomeFeed({
 
   return (
     <div className="pb-20 max-w-7xl mx-auto w-full px-0 md:px-4" id="home-feed-container">
-      {/* Categories Grid (4 categories + See More initially in a single 5-column row, expanding to all categories + See Less) */}
-      <motion.div
-        layout
-        transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-        className="bg-white py-4 px-3 border-b border-gray-100 grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-y-4 gap-x-2 justify-items-center shadow-3xs overflow-hidden"
-        id="category-bubbles-slider"
-      >
+      {/* Categories Grid (Skeleton when loading) */}
+      {isLoading ? (
+        <div className="bg-white py-3 px-3 border-b border-gray-100 shadow-3xs">
+          <CategoryRowSkeleton count={7} />
+        </div>
+      ) : (
+        <motion.div
+          layout
+          transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+          className="bg-white py-4 px-3 border-b border-gray-100 grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-y-4 gap-x-2 justify-items-center shadow-3xs overflow-hidden"
+          id="category-bubbles-slider"
+        >
         {/* Permanent first 4 categories */}
         {categoryBubbles.slice(0, 4).map((item, index) => {
           const isActive = selectedCategory === item.value;
@@ -590,9 +612,14 @@ export default function HomeFeed({
           ) : null}
         </AnimatePresence>
       </motion.div>
+      )}
 
       {/* Dynamic Banners Poster Section */}
-      {displayBanners && displayBanners.length > 0 && (() => {
+      {isLoading ? (
+        <div className="p-2">
+          <BannerSkeleton type="main" />
+        </div>
+      ) : displayBanners && displayBanners.length > 0 && (() => {
         const row1Slides = [...row1Banners, ...row1Banners, ...row1Banners];
         const row2Slides = [...row2Banners, ...row2Banners, ...row2Banners];
         return (
@@ -1208,7 +1235,11 @@ export default function HomeFeed({
       )}
 
       {/* Grid view of Products */}
-      {filteredProducts.length === 0 ? (
+      {isLoading ? (
+        <div className="p-3 md:p-4">
+          <ProductGridSkeleton count={10} />
+        </div>
+      ) : filteredProducts.length === 0 ? (
         <div className="w-full px-4 py-8 animate-fadeIn" id="empty-feed">
           {smartSearchLoading ? (
             <div className="flex flex-col items-center justify-center py-20 text-center bg-white border border-gray-100 rounded-xl shadow-xs max-w-2xl mx-auto">
@@ -1292,7 +1323,6 @@ export default function HomeFeed({
                       title: item.title,
                       description: item.description,
                       category: item.category,
-                      subCategory: item.subCategory,
                       price: item.price,
                       originalPrice: item.originalPrice,
                       discountPercent: item.discountPercent,
@@ -1356,7 +1386,7 @@ export default function HomeFeed({
                         </div>
                         <div className="p-3 flex flex-col flex-1 min-w-0">
                           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 truncate block">
-                            {item.category} • {item.subCategory}
+                            {item.category}
                           </span>
                           <h4 className="text-xs font-bold text-gray-800 line-clamp-2 leading-snug group-hover:text-lucky-magenta transition-colors break-words">
                             {item.title}
@@ -1442,11 +1472,11 @@ export default function HomeFeed({
 
                   {/* Main Product Image Container */}
                   <div className="relative aspect-square w-full bg-gray-50 flex items-center justify-center overflow-hidden">
-                    <img
+                    <SmartImage
                       src={(product.images && product.images[0]) || 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=300'}
                       alt={product.title}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                      referrerPolicy="no-referrer"
+                      aspectRatioClassName="aspect-square"
+                      containerClassName="w-full h-full"
                     />
 
                     {/* Ad tag indicator */}
@@ -1565,9 +1595,12 @@ export default function HomeFeed({
 
           {/* Loading Animation Row underneath last product row when fast scrolling or loading next batch */}
           {isLoadingMore && (
-            <div className="w-full py-8 flex flex-col items-center justify-center gap-2 text-slate-500 animate-fadeIn" id="feed-loading-spinner">
-              <Loader2 className="w-7 h-7 text-[#143C6B] animate-spin" />
-              <span className="text-xs font-bold text-slate-600">Loading next 50 products...</span>
+            <div className="px-[6px] md:px-4 py-3" id="feed-loading-spinner">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-[6px] md:gap-4">
+                {Array.from({ length: 4 }).map((_, idx) => (
+                  <ProductCardSkeleton key={`inf-skel-${idx}`} />
+                ))}
+              </div>
             </div>
           )}
 

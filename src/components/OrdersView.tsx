@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Search, SlidersHorizontal, ChevronRight, Package, RotateCcw, CheckCircle2, AlertCircle, Clock, ShieldCheck, Wallet, ArrowLeft, X } from 'lucide-react';
 import { Order } from '../types';
 import { resetScrollToTop } from '../utils/scroll';
+import { OrderItemSkeleton } from './common/Skeletons';
 
 interface OrdersViewProps {
   orders: Order[];
@@ -10,6 +11,7 @@ interface OrdersViewProps {
   onSelectTab: (tab: string) => void;
   currentUser?: any;
   onReturnOrder?: (orderId: string, reason?: string) => Promise<{ success: boolean; refundAmount?: number; error?: string }>;
+  isLoading?: boolean;
 }
 
 export default function OrdersView({
@@ -17,7 +19,8 @@ export default function OrdersView({
   onSelectProduct,
   onSelectTab,
   currentUser,
-  onReturnOrder
+  onReturnOrder,
+  isLoading = false
 }: OrdersViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [returnModalOrder, setReturnModalOrder] = useState<Order | null>(null);
@@ -144,7 +147,13 @@ export default function OrdersView({
         )}
 
         {/* Orders List */}
-        {filteredOrders.length > 0 ? (
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5" id="orders-list-skeleton">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <OrderItemSkeleton key={`order-skel-${idx}`} />
+            ))}
+          </div>
+        ) : filteredOrders.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5" id="orders-list">
             {filteredOrders.map((order, idx) => {
               const primaryItem = (order.items && order.items.length > 0) ? order.items[0] : null;

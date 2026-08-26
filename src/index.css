@@ -191,3 +191,56 @@ html, body {
   contain-intrinsic-size: 0 320px;
 }
 
+/* ⚡ Liquid Glass Shimmer Skeleton Animations for ₹8k-₹15k Phones */
+@keyframes liquidShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes spinnerRotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(241, 245, 249, 0.85) 0%,
+    rgba(226, 232, 240, 0.95) 20%,
+    rgba(232, 240, 248, 1) 40%,
+    rgba(226, 232, 240, 0.95) 60%,
+    rgba(241, 245, 249, 0.85) 100%
+  );
+  background-size: 200% 100%;
+  animation: liquidShimmer 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  transform: translateZ(0);
+  will-change: background-position;
+}
+
+.skeleton-glass {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 2px 10px rgba(20, 60, 107, 0.03);
+}
+
+.btn-spinner {
+  animation: spinnerRotate 0.65s linear infinite;
+  transform-origin: center;
+}
+
+/* Smooth Image Loading transition helper */
+.smart-image-fade {
+  transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1), transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity;
+}
+
