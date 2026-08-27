@@ -355,13 +355,9 @@ export default function Header({
         {/* Top Header Row */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1 md:gap-6">
           
-          {/* Logo & Refer row on Mobile, Logo on Left on Desktop - Hardware Accelerated Ultra-Smooth Collapse */}
+          {/* Logo & Refer row on Mobile, Logo on Left on Desktop - Stable 60FPS Layout */}
           <div 
-            className={`md:block flex-shrink-0 w-full md:w-auto overflow-hidden ${
-              isScrolled 
-                ? 'h-0 opacity-0 pointer-events-none md:h-auto md:opacity-100 md:pointer-events-auto' 
-                : 'h-10 opacity-100 pointer-events-auto mb-1 md:mb-0'
-            }`}
+            className="md:block flex-shrink-0 w-full md:w-auto mb-1.5 md:mb-0"
           >
             <div className="min-h-0 flex items-center justify-between md:justify-start gap-3 w-full h-10">
               {/* Left Section (Profile & Refer) - Mobile Only */}
@@ -427,7 +423,7 @@ export default function Header({
                 </div>
                 <input
                   type="text"
-                  placeholder={isScrolled ? "Search products..." : "Search products, categories..."}
+                  placeholder="Search products, categories..."
                   value={searchQuery}
                   onChange={(e) => {
                     onSearch(e.target.value);

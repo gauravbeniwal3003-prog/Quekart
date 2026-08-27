@@ -276,6 +276,7 @@ export default function ProfileView({
   const [avatarSkin, setAvatarSkin] = React.useState("#fbc3a1");
   const [avatarShirt, setAvatarShirt] = React.useState("#3b82f6");
   const [avatarHair, setAvatarHair] = React.useState("#1e1e1e");
+  const [avatarCustomTab, setAvatarCustomTab] = React.useState<'skin' | 'shirt' | 'hair'>('skin');
 
   // 3. Wallet & Refer / Earn states
   const [quekartBalance, setQuekartBalance] = React.useState(250);
@@ -803,40 +804,146 @@ export default function ProfileView({
           </div>
 
           {/* Interactive Avatar Customizer block */}
-          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-3xs mb-5 text-center flex flex-col items-center">
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Live Avatar Preview</span>
-            {renderAvatarSvg("w-24 h-24")}
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-xs mb-5 text-center flex flex-col items-center">
+            <span className="text-xs font-black text-gray-500 uppercase tracking-wider mb-3">Live Avatar Preview</span>
+            <div className="p-2 rounded-full bg-slate-50 border border-slate-100 shadow-inner mb-2">
+              {renderAvatarSvg("w-24 h-24")}
+            </div>
             
-            {/* Controls */}
-            <div className="grid grid-cols-3 gap-2 mt-4 w-full">
-              {/* Skin Selector */}
-              <div className="flex flex-col items-center gap-1 bg-gray-50 p-1.5 rounded-lg border border-gray-100">
-                <span className="text-[9px] font-bold text-gray-500 uppercase">Skin Tone</span>
-                <div className="flex gap-1.5 mt-1">
-                  <button onClick={() => setAvatarSkin("#fbc3a1")} className={`w-4 h-4 rounded-full bg-[#fbc3a1] border ${avatarSkin === "#fbc3a1" ? 'border-lucky-magenta scale-110' : 'border-gray-200'}`} />
-                  <button onClick={() => setAvatarSkin("#fde3cf")} className={`w-4 h-4 rounded-full bg-[#fde3cf] border ${avatarSkin === "#fde3cf" ? 'border-lucky-magenta scale-110' : 'border-gray-200'}`} />
-                  <button onClick={() => setAvatarSkin("#bf8162")} className={`w-4 h-4 rounded-full bg-[#bf8162] border ${avatarSkin === "#bf8162" ? 'border-lucky-magenta scale-110' : 'border-gray-200'}`} />
-                </div>
+            {/* Customizer Tabs & Swatches */}
+            <div className="w-full mt-3">
+              {/* Category Segmented Tabs */}
+              <div className="flex rounded-xl bg-slate-100 p-1 mb-3.5 border border-slate-200/60">
+                <button
+                  type="button"
+                  onClick={() => setAvatarCustomTab('skin')}
+                  className={`flex-1 py-1.5 px-2 text-[11px] font-black rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                    avatarCustomTab === 'skin'
+                      ? 'bg-white text-[#143C6B] shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                  id="avatar-tab-skin"
+                >
+                  Skin Tone
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAvatarCustomTab('shirt')}
+                  className={`flex-1 py-1.5 px-2 text-[11px] font-black rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                    avatarCustomTab === 'shirt'
+                      ? 'bg-white text-[#143C6B] shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                  id="avatar-tab-shirt"
+                >
+                  Shirt Color
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAvatarCustomTab('hair')}
+                  className={`flex-1 py-1.5 px-2 text-[11px] font-black rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                    avatarCustomTab === 'hair'
+                      ? 'bg-white text-[#143C6B] shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                  id="avatar-tab-hair"
+                >
+                  Hair Color
+                </button>
               </div>
 
-              {/* Shirt Selector */}
-              <div className="flex flex-col items-center gap-1 bg-gray-50 p-1.5 rounded-lg border border-gray-100">
-                <span className="text-[9px] font-bold text-gray-500 uppercase">Shirt Color</span>
-                <div className="flex gap-1.5 mt-1">
-                  <button onClick={() => setAvatarShirt("#3b82f6")} className={`w-4 h-4 rounded-md bg-[#3b82f6] ${avatarShirt === "#3b82f6" ? 'ring-2 ring-lucky-magenta' : ''}`} />
-                  <button onClick={() => setAvatarShirt("#17436B")} className={`w-4 h-4 rounded-md bg-[#17436B] ${avatarShirt === "#17436B" ? 'ring-2 ring-lucky-magenta' : ''}`} />
-                  <button onClick={() => setAvatarShirt("#10b981")} className={`w-4 h-4 rounded-md bg-[#10b981] ${avatarShirt === "#10b981" ? 'ring-2 ring-lucky-magenta' : ''}`} />
-                </div>
-              </div>
+              {/* Swatch options */}
+              <div className="flex items-center justify-center gap-3 sm:gap-4 py-1 min-h-[56px]" id="avatar-swatches-container">
+                {avatarCustomTab === 'skin' && (
+                  <div className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap">
+                    {[
+                      { color: '#fbc3a1', label: 'Peach' },
+                      { color: '#fde3cf', label: 'Fair' },
+                      { color: '#bf8162', label: 'Tan' },
+                      { color: '#8d5524', label: 'Deep' },
+                    ].map((item) => (
+                      <button
+                        key={item.color}
+                        type="button"
+                        onClick={() => setAvatarSkin(item.color)}
+                        className={`flex flex-col items-center gap-1 p-1.5 rounded-xl transition-all cursor-pointer ${
+                          avatarSkin === item.color ? 'bg-slate-100 scale-105' : 'hover:bg-slate-50'
+                        }`}
+                      >
+                        <div
+                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 transition-all flex items-center justify-center shadow-xs ${
+                            avatarSkin === item.color ? 'border-[#143C6B] ring-2 ring-[#143C6B]/20 scale-110' : 'border-gray-200'
+                          }`}
+                          style={{ backgroundColor: item.color }}
+                        >
+                          {avatarSkin === item.color && <Check className="w-3.5 h-3.5 text-[#143C6B] stroke-[3]" />}
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-600">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
 
-              {/* Hair Selector */}
-              <div className="flex flex-col items-center gap-1 bg-gray-50 p-1.5 rounded-lg border border-gray-100">
-                <span className="text-[9px] font-bold text-gray-500 uppercase">Hair Type</span>
-                <div className="flex gap-1.5 mt-1">
-                  <button onClick={() => setAvatarHair("#1e1e1e")} className={`w-4 h-4 rounded-full bg-[#1e1e1e] ${avatarHair === "#1e1e1e" ? 'ring-2 ring-lucky-magenta' : ''}`} />
-                  <button onClick={() => setAvatarHair("#8B4513")} className={`w-4 h-4 rounded-full bg-[#8B4513] ${avatarHair === "#8B4513" ? 'ring-2 ring-lucky-magenta' : ''}`} />
-                  <button onClick={() => setAvatarHair("#eab308")} className={`w-4 h-4 rounded-full bg-[#eab308] ${avatarHair === "#eab308" ? 'ring-2 ring-lucky-magenta' : ''}`} />
-                </div>
+                {avatarCustomTab === 'shirt' && (
+                  <div className="flex items-center justify-center gap-2.5 sm:gap-3.5 flex-wrap">
+                    {[
+                      { color: '#3b82f6', label: 'Sky' },
+                      { color: '#17436B', label: 'Navy' },
+                      { color: '#10b981', label: 'Emerald' },
+                      { color: '#e11d48', label: 'Ruby' },
+                      { color: '#eab308', label: 'Gold' },
+                    ].map((item) => (
+                      <button
+                        key={item.color}
+                        type="button"
+                        onClick={() => setAvatarShirt(item.color)}
+                        className={`flex flex-col items-center gap-1 p-1.5 rounded-xl transition-all cursor-pointer ${
+                          avatarShirt === item.color ? 'bg-slate-100 scale-105' : 'hover:bg-slate-50'
+                        }`}
+                      >
+                        <div
+                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg border-2 transition-all flex items-center justify-center shadow-xs ${
+                            avatarShirt === item.color ? 'border-[#143C6B] ring-2 ring-[#143C6B]/20 scale-110' : 'border-gray-200'
+                          }`}
+                          style={{ backgroundColor: item.color }}
+                        >
+                          {avatarShirt === item.color && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-600">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {avatarCustomTab === 'hair' && (
+                  <div className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap">
+                    {[
+                      { color: '#1e1e1e', label: 'Black' },
+                      { color: '#8B4513', label: 'Brown' },
+                      { color: '#eab308', label: 'Blonde' },
+                      { color: '#6b7280', label: 'Silver' },
+                    ].map((item) => (
+                      <button
+                        key={item.color}
+                        type="button"
+                        onClick={() => setAvatarHair(item.color)}
+                        className={`flex flex-col items-center gap-1 p-1.5 rounded-xl transition-all cursor-pointer ${
+                          avatarHair === item.color ? 'bg-slate-100 scale-105' : 'hover:bg-slate-50'
+                        }`}
+                      >
+                        <div
+                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 transition-all flex items-center justify-center shadow-xs ${
+                            avatarHair === item.color ? 'border-[#143C6B] ring-2 ring-[#143C6B]/20 scale-110' : 'border-gray-200'
+                          }`}
+                          style={{ backgroundColor: item.color }}
+                        >
+                          {avatarHair === item.color && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-600">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>

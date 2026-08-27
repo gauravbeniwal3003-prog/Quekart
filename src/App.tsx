@@ -989,7 +989,7 @@ export default function App() {
             ) : (
               <>
                 {/* Render Header on customer storefront tabs */}
-                {activeTab !== 'profile' && activeTab !== 'user' && activeTab !== 'logo' && !(activeTab === 'categories' && activeSubPage) && (
+                {activeTab !== 'profile' && activeTab !== 'user' && activeTab !== 'logo' && activeTab !== 'cart' && activeTab !== 'orders' && !(activeTab === 'categories' && activeSubPage) && (
                   <Header
                     cart={cart}
                     onOpenCart={() => navigateTo('/shop/cart')}
@@ -1075,23 +1075,6 @@ export default function App() {
 
                     {activeTab === 'wishlist' && (
                       <div className="bg-gray-50 min-h-[calc(100vh-130px)] pb-16 w-full" id="wishlist-page">
-                        {currentUser && (
-                          <div className="sticky top-[52px] md:top-[64px] z-40 bg-gray-50 px-4 pt-3 pb-3 border-b border-gray-200/80 shadow-xs">
-                            {/* Local Search for Wishlist */}
-                            <div className="max-w-7xl mx-auto relative flex-1 w-full">
-                              <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                              <input
-                                type="text"
-                                placeholder="Search wishlist..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-white border border-gray-200 rounded-lg py-2 pl-9 pr-4 text-xs font-medium focus:outline-hidden focus:border-lucky-magenta"
-                                id="wishlist-search-input"
-                              />
-                            </div>
-                          </div>
-                        )}
-
                         <div className="max-w-7xl mx-auto px-4 mt-4" id="wishlist-list-content">
                         {!currentUser ? (
                           <div className="max-w-md mx-auto py-16 flex flex-col items-center text-center" id="guest-wishlist-view">

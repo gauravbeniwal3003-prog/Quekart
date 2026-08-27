@@ -410,7 +410,7 @@ export default function CartDrawer({
       <div className="relative w-full max-w-md md:max-w-4xl lg:max-w-5xl bg-white h-full min-h-screen sm:min-h-0 sm:rounded-2xl sm:border border-gray-200/80 flex flex-col shadow-sm z-10 overflow-hidden" id="cart-view-panel">
         
         {/* Header */}
-        <div className="sticky top-[52px] md:top-[64px] z-40 bg-white px-4 sm:px-6 py-3.5 border-b border-gray-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs" id="cart-sticky-header">
+        <div className="sticky top-[52px] md:top-[64px] z-40 bg-white px-4 sm:px-6 py-3.5 border-b border-gray-200/80 flex items-center justify-between shadow-xs" id="cart-sticky-header">
           <div className="flex items-center gap-2.5">
             <button 
               onClick={() => {
@@ -420,7 +420,7 @@ export default function CartDrawer({
                   onClose();
                 }
               }} 
-              className="p-1 hover:bg-slate-100 rounded-full cursor-pointer text-slate-700 transition-colors"
+              className="p-1.5 hover:bg-slate-100 rounded-full cursor-pointer text-slate-700 transition-colors"
               title="Back to Shopping"
             >
               <ArrowLeft className="w-5 h-5 text-slate-700" />
@@ -435,21 +435,6 @@ export default function CartDrawer({
               </h2>
             </div>
           </div>
-          
-          {/* Local Search inside Cart View */}
-          {cart.length > 0 && (
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search items..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg py-1.5 pl-8 pr-3 text-xs font-medium focus:outline-hidden focus:border-lucky-magenta"
-                id="cart-search-input"
-              />
-            </div>
-          )}
         </div>
 
         {/* Empty State */}
