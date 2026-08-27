@@ -679,7 +679,7 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo, isSig
   const isPhoneValid = phone.trim().length === 10;
 
   return (
-    <div className="h-[100dvh] w-full bg-white flex flex-col justify-between overflow-hidden relative select-none" id="customer-login-view">
+    <div className="min-h-[100svh] w-full bg-white flex flex-col justify-between overflow-y-auto relative select-none" id="customer-login-view">
       
       {/* Injecting marquee animation keyframes and classes */}
       <style>{`
@@ -709,10 +709,10 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo, isSig
 
       {/* ----------------- STEP 1: PHONE NUMBER INPUT ----------------- */}
       {step === 'phone' && (
-        <div className="relative w-full h-[100dvh] overflow-hidden flex flex-col justify-between max-w-md mx-auto bg-white">
+        <div className="relative w-full min-h-[100svh] overflow-y-auto flex flex-col justify-between max-w-md mx-auto bg-white" id="customer-phone-view-container">
           
-          {/* TOP 60% SCREEN: ANIMATED PRODUCTS SHOWCASE */}
-          <div className="absolute top-0 inset-x-0 h-[60vh] overflow-hidden z-0 select-none bg-slate-50/50">
+          {/* TOP 45% SCREEN: ANIMATED PRODUCTS SHOWCASE */}
+          <div className="relative h-[45vh] min-h-[220px] max-h-[380px] overflow-hidden z-0 select-none bg-slate-50/50 w-full flex-shrink-0">
             
             {/* Top Right Floating Skip Login Button */}
             <div className="absolute top-3 right-3 z-50">
@@ -739,10 +739,10 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo, isSig
             <div className="absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-slate-50 to-transparent z-20 pointer-events-none" />
             <div className="absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-slate-50 to-transparent z-20 pointer-events-none" />
 
-            {/* Translucent overlay gradient at 50%-60% screen height zone behind logo */}
+            {/* Translucent overlay gradient behind logo transition */}
             <div className="absolute bottom-0 inset-x-0 h-[30%] bg-gradient-to-b from-transparent via-white/70 to-white z-20 pointer-events-none backdrop-blur-[2px]" />
 
-            {/* 5-ROW PRODUCT ANIMATION MARQUEE FILLING 60% SCREEN */}
+            {/* 5-ROW PRODUCT ANIMATION MARQUEE FILLING SCREEN */}
             <div className="space-y-2 py-3 h-full flex flex-col justify-around overflow-hidden">
               
               {/* Row 1: Moving Left */}
@@ -801,7 +801,7 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo, isSig
                 </div>
               </div>
 
-              {/* Row 5: Moving Left (Translucent row passing behind 50% logo mark) */}
+              {/* Row 5: Moving Left */}
               <div className="overflow-hidden w-full flex items-center opacity-80">
                 <div className="animate-marquee-l flex gap-2.5 px-2">
                   {[...FASHION_ROW_5, ...FASHION_ROW_5, ...FASHION_ROW_5].map((item, idx) => (
@@ -818,14 +818,14 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo, isSig
             </div>
           </div>
 
-          {/* BOTTOM 50% SCREEN: LOGIN CARD STARTING AT 50% HEIGHT */}
-          <div className="absolute top-[50vh] bottom-0 inset-x-0 z-30 bg-white rounded-t-3xl border-t border-slate-100 shadow-2xl flex flex-col justify-between px-6 pt-2.5 pb-5 overflow-hidden">
+          {/* BOTTOM RESPONSIVE LOGIN CARD: FLOATING SHEET OVERLAY */}
+          <div className="flex-1 bg-white rounded-t-3xl border-t border-slate-100 shadow-2xl flex flex-col justify-between px-6 pt-6 pb-6 z-30 -mt-6 min-h-[300px]">
             
-            {/* QueKart Logo starting at 50% height */}
-            <div className="flex flex-col items-center text-center space-y-1.5">
+            {/* QueKart Logo */}
+            <div className="flex flex-col items-center text-center space-y-2 mb-4">
               <BrandLogo size="md" animated={true} />
 
-              <div className="space-y-0.5">
+              <div className="space-y-1">
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-display">
                   {isSignup ? "Create your account" : "India's smartest fashion app"}
                 </h1>
@@ -837,13 +837,13 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo, isSig
 
             {/* Error banner if any */}
             {errorMsg && (
-              <div className="w-full bg-red-50 border border-red-200 text-red-600 text-xs font-bold py-1.5 px-3 rounded-xl text-center animate-fadeIn">
+              <div className="w-full bg-red-50 border border-red-200 text-red-600 text-xs font-bold py-2 px-3 rounded-xl text-center animate-fadeIn mb-3">
                 {errorMsg}
               </div>
             )}
 
             {/* Mobile Number Input Form */}
-            <form onSubmit={handleSendOtp} className="w-full space-y-3">
+            <form onSubmit={handleSendOtp} className="w-full space-y-4">
               <div className="flex items-center gap-2.5 w-full">
                 
                 {/* Indian Flag Badge */}
@@ -891,7 +891,7 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo, isSig
             </form>
 
             {/* Terms of Service Footer - Pinned nicely at bottom edge */}
-            <p className="text-[11px] text-slate-400 font-medium text-center leading-normal">
+            <p className="text-[11px] text-slate-400 font-medium text-center leading-normal mt-6">
               By continuing, you agree to our{' '}
               <span 
                 onClick={() => navigateTo ? navigateTo('/terms') : (window.history.pushState(null, '', '/terms'), window.dispatchEvent(new PopStateEvent('popstate')))}

@@ -55,8 +55,7 @@ export default function Header({
       const viewport = document.getElementById('applet-content-viewport');
       const scrollTop = viewport ? viewport.scrollTop : (window.scrollY || document.documentElement.scrollTop || 0);
       
-      // Hysteresis threshold: 55px to collapse into single row, 15px to expand back to dual row
-      const shouldBeScrolled = isScrolledRef.current ? scrollTop > 15 : scrollTop > 55;
+      const shouldBeScrolled = scrollTop > 15;
       
       if (shouldBeScrolled !== isScrolledRef.current) {
         isScrolledRef.current = shouldBeScrolled;
@@ -346,7 +345,7 @@ export default function Header({
 
   return (
     <header 
-      className={`sticky top-0 z-50 bg-white transition-shadow duration-150 py-2 md:py-3 px-3 md:px-8 border-b ${
+      className={`sticky top-0 z-50 bg-white py-2 md:py-3 px-3 md:px-8 border-b ${
         isScrolled ? 'shadow-xs border-gray-200' : 'border-gray-100'
       }`} 
       id="lucky-header"
@@ -358,7 +357,7 @@ export default function Header({
           
           {/* Logo & Refer row on Mobile, Logo on Left on Desktop - Hardware Accelerated Ultra-Smooth Collapse */}
           <div 
-            className={`md:block flex-shrink-0 w-full md:w-auto transition-[height,opacity] duration-150 ease-out overflow-hidden ${
+            className={`md:block flex-shrink-0 w-full md:w-auto overflow-hidden ${
               isScrolled 
                 ? 'h-0 opacity-0 pointer-events-none md:h-auto md:opacity-100 md:pointer-events-auto' 
                 : 'h-10 opacity-100 pointer-events-auto mb-1 md:mb-0'

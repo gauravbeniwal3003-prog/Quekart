@@ -273,9 +273,9 @@ export default function App() {
       const sessionVal = safeGetSessionStorage('quekart_browsing_guest');
       const localVal = safeGetLocalStorage('quekart_browsing_guest');
       if (sessionVal === 'true' || localVal === 'true') return true;
-      return true; // Default guest browsing to enabled so storefront & bottom nav render instantly
+      return false; // Default guest browsing to false for new users
     } catch (_) {
-      return true;
+      return false;
     }
   });
 
@@ -290,6 +290,14 @@ export default function App() {
     setCurrentUser(null);
     safeRemoveLocalStorage('quekart_current_user');
     safeRemoveLocalStorage('quekart_user_token');
+    safeRemoveLocalStorage('quekart_browsing_guest');
+    safeRemoveLocalStorage('quekart_user_session');
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        sessionStorage.removeItem('quekart_browsing_guest');
+      }
+    } catch (_) {}
+    setIsBrowsingGuest(false);
     navigateTo('/shop'); // Redirects to mobile number OTP verification
   };
 
@@ -471,6 +479,17 @@ export default function App() {
   useEffect(() => {
     resetScrollToTop();
   }, [currentPath, activePortal, activeTab, activeSubPage, selectedProduct]);
+
+  // Guest and Auth routing check: redirect new users to /shop/login
+  useEffect(() => {
+    const { portal, tab, subPage } = parseCurrentPath();
+    if (portal === 'shop') {
+      const isAuthPage = tab === 'user' && (subPage === 'login' || subPage === 'signup');
+      if (!currentUser && !isBrowsingGuest && !isAuthPage) {
+        navigateTo('/shop/login');
+      }
+    }
+  }, [currentPath, currentUser, isBrowsingGuest]);
 
   // Auth Prompt Modal State (for gating restricted guest actions)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -905,17 +924,17 @@ export default function App() {
       ) : (
         /* 4. CUSTOMER SHOPPING STOREFRONT (/shop) */
         <div 
-          className="w-full h-[100dvh] max-h-[100dvh] bg-white flex flex-col relative overflow-hidden" 
+          className="w-full h-[100svh] max-h-[100svh] bg-white flex flex-col relative overflow-hidden" 
           id="customer-shop-container"
         >
           {/* Dynamic content rendering body */}
           <div 
             className={`flex-1 flex flex-col min-h-0 ${
               (!currentUser && activeTab === 'user' && (activeSubPage === 'login' || activeSubPage === 'signup'))
-                ? 'overflow-hidden h-[100dvh] max-h-[100dvh] pb-0 bg-white'
+                ? 'overflow-y-auto h-[100svh] max-h-[100svh] pb-0 bg-white'
                 : (activeTab === 'categories' && !activeSubPage) 
-                ? 'overflow-hidden pb-20 md:pb-14 bg-gray-50' 
-                : 'overflow-y-auto pb-28 md:pb-16 bg-gray-50'
+                ? 'overflow-hidden pb-2 bg-gray-50' 
+                : 'overflow-y-auto pb-6 bg-gray-50'
             }`} 
             id="applet-content-viewport"
           >
@@ -1209,6 +1228,8 @@ export default function App() {
                       onLoginSuccess={handleLoginUserSuccess}
                       onSkip={() => {
                         safeSetSessionStorage('quekart_browsing_guest', 'true');
+                        safeSetLocalStorage('quekart_browsing_guest', 'true');
+                        setIsBrowsingGuest(true);
                         navigateTo('/shop');
                       }}
                       navigateTo={navigateTo}
@@ -1235,7 +1256,7 @@ export default function App() {
           </div>
           
           {/* Global Bottom Navigation shown across customer storefront (hidden on dedicated login/signup pages) */}
-          {activePortal === 'customer' && !(activeTab === 'user' && (activeSubPage === 'login' || activeSubPage === 'signup')) && (
+          {activePortal === 'shop' && !(activeTab === 'user' && (activeSubPage === 'login' || activeSubPage === 'signup')) && (
             <BottomNav
               activeTab={activeTab}
               cartCount={cart.reduce((acc, item) => acc + item.quantity, 0)}

@@ -3,6 +3,18 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowUpDown, ChevronDown, ChevronUp, SlidersHorizontal, Heart, Sparkles, CheckCircle2, Loader2, Search, ShoppingBag, Tag, X, Star, Check, RotateCcw, Zap } from 'lucide-react';
 import { Product, Banner, Category } from '../types';
 import { initialBanners } from '../data';
+
+// Preload all default promotional banner images to browser cache immediately when file is parsed
+if (typeof window !== 'undefined') {
+  try {
+    initialBanners.forEach(banner => {
+      if (banner && banner.imageUrl) {
+        const img = new Image();
+        img.src = banner.imageUrl;
+      }
+    });
+  } catch (_) {}
+}
 import { useInfiniteProductPagination } from '../hooks/useInfiniteProductPagination';
 import { sortHomeFeedByPerformance } from '../utils/productSorting';
 import { getProductPricing } from '../utils/pricing';
@@ -639,11 +651,7 @@ export default function HomeFeed({
       )}
 
       {/* Dynamic Banners Poster Section */}
-      {isLoading ? (
-        <div className="p-2">
-          <BannerSkeleton type="main" />
-        </div>
-      ) : displayBanners && displayBanners.length > 0 && (() => {
+      {displayBanners && displayBanners.length > 0 && (() => {
         const row1Slides = [...row1Banners, ...row1Banners, ...row1Banners];
         const row2Slides = [...row2Banners, ...row2Banners, ...row2Banners];
         return (
@@ -678,6 +686,8 @@ export default function HomeFeed({
                             alt={banner.title || banner.type} 
                             className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
                             referrerPolicy="no-referrer"
+                            loading="eager"
+                            fetchPriority="high"
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=1200';
                             }}
@@ -747,6 +757,8 @@ export default function HomeFeed({
                             alt={banner.title || banner.type} 
                             className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
                             referrerPolicy="no-referrer"
+                            loading="eager"
+                            fetchPriority="high"
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=1200';
                             }}
