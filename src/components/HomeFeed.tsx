@@ -680,7 +680,7 @@ export default function HomeFeed({
                         onClick={() => banner.targetCategory && onSelectCategory(banner.targetCategory)}
                         className="w-full shrink-0 rounded-2xl overflow-hidden shadow-md border border-gray-200/80 group cursor-pointer bg-slate-900"
                       >
-                        <div className="aspect-[21/10] sm:aspect-[5/2] md:aspect-[16/5] w-full relative">
+                        <div className="aspect-[16/5] w-full relative">
                           <img 
                             src={banner.imageUrl} 
                             alt={banner.title || banner.type} 
@@ -751,7 +751,7 @@ export default function HomeFeed({
                         onClick={() => banner.targetCategory && onSelectCategory(banner.targetCategory)}
                         className="w-[calc(50%-2px)] shrink-0 relative rounded-xl overflow-hidden shadow-sm border border-gray-200/80 group cursor-pointer bg-slate-900"
                       >
-                        <div className="aspect-[3/2] sm:aspect-[9/5] md:aspect-[11/5] w-full relative">
+                        <div className="aspect-[11/5] w-full relative">
                           <img 
                             src={banner.imageUrl} 
                             alt={banner.title || banner.type} 

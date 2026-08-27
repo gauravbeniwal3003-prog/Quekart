@@ -62,7 +62,7 @@ export const mockCategories: Category[] = [
 export const initialBanners: Banner[] = [
   {
     id: 'banner-rakhi-1',
-    imageUrl: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=1200',
+    imageUrl: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&crop=entropy&w=1280&h=400&q=80',
     type: 'promotional',
     title: 'RAKSHA BANDHAN MAHOTSAV',
     subtitle: 'Up to 80% OFF on Designer Sarees, Kurtis & Festive Gift Sets',
@@ -73,7 +73,7 @@ export const initialBanners: Banner[] = [
   },
   {
     id: 'banner-rakhi-2',
-    imageUrl: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&q=80&w=1200',
+    imageUrl: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&crop=entropy&w=880&h=400&q=80',
     type: 'promotional',
     title: 'BHAI-BEHEN SPECIAL GIFT HAMPER',
     subtitle: 'Flat ₹100 Instant Discount on Royal Kundan & Gold Jewellery',
@@ -84,7 +84,7 @@ export const initialBanners: Banner[] = [
   },
   {
     id: 'banner-rakhi-3',
-    imageUrl: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=1200',
+    imageUrl: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&crop=entropy&w=880&h=400&q=80',
     type: 'promotional',
     title: 'ROYAL ETHNIC RAKHI COLLECTION',
     subtitle: 'Buy 2 Get 1 FREE on All Festive Apparel & Sherwanis',
