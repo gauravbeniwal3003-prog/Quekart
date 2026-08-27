@@ -193,22 +193,59 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
       {/* Main Container */}
       <div className="relative z-10 min-h-screen flex flex-col justify-between">
         
-        {/* 1. Header pinned always on top - Horizontally Centered QueKart Logo & Name */}
+        {/* 1. Header pinned always on top - Responsive Header on PC & Mobile */}
         <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50 px-4 sm:px-8 py-3 sm:py-3.5 shadow-xs">
-          <div className="max-w-6xl mx-auto flex items-center justify-center text-center">
-            <BrandLogo 
-              size="lg" 
-              animated={true} 
-              onClick={() => onNavigate('/')} 
-              id="landing-logo-brand" 
-              className="justify-center mx-auto"
-            />
+          <div className="max-w-6xl lg:max-w-7xl mx-auto flex items-center justify-between">
+            {/* Logo */}
+            <div className="flex-1 sm:flex-none flex items-center justify-center sm:justify-start">
+              <BrandLogo 
+                size="lg" 
+                animated={true} 
+                onClick={() => onNavigate('/')} 
+                id="landing-logo-brand" 
+                className="cursor-pointer"
+              />
+            </div>
+
+            {/* Desktop Navigation Links */}
+            <div className="hidden md:flex items-center gap-5 lg:gap-7">
+              <button
+                onClick={() => onNavigate('/shop')}
+                className="text-xs lg:text-sm font-bold text-[#0B1E36] hover:text-[#143C6B] transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <ShoppingBag className="w-4 h-4 text-[#143C6B]" />
+                <span>Shop Online</span>
+              </button>
+
+              <button
+                onClick={() => onNavigate('/vendor')}
+                className="text-xs lg:text-sm font-bold text-[#0B1E36] hover:text-[#143C6B] transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <Store className="w-4 h-4 text-[#E5A812]" />
+                <span>Seller Registration</span>
+              </button>
+
+              <button
+                onClick={() => onNavigate('/contact')}
+                className="text-xs lg:text-sm font-bold text-[#556987] hover:text-[#0B1E36] transition-colors cursor-pointer"
+              >
+                24/7 Helpline
+              </button>
+
+              <button
+                onClick={() => onNavigate('/shop')}
+                className="bg-[#143C6B] hover:bg-[#0C2340] text-white text-xs font-black px-4 py-2 rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
+              >
+                <span>Enter Store</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </header>
 
         {/* 2. Branded Headline Banner matching reference design */}
-        <div className="pt-2.5 sm:pt-5 pb-2 max-w-[620px] mx-auto px-3 sm:px-5 w-full" id="landing-hero-banner-container">
-          <div className="relative group overflow-hidden rounded-2xl sm:rounded-[26px] bg-[#07182E] px-3.5 py-2.5 sm:px-5 sm:py-3.5 border-[2px] border-[#D4AF37] shadow-[0_6px_25px_rgba(7,24,46,0.5),0_0_15px_rgba(212,175,55,0.25)] flex items-center gap-3 sm:gap-4.5">
+        <div className="pt-3 sm:pt-6 pb-2 max-w-[620px] md:max-w-2xl lg:max-w-3xl mx-auto px-3 sm:px-5 w-full" id="landing-hero-banner-container">
+          <div className="relative group overflow-hidden rounded-2xl sm:rounded-[26px] bg-[#07182E] px-3.5 py-2.5 sm:px-6 sm:py-4 border-[2px] border-[#D4AF37] shadow-[0_6px_25px_rgba(7,24,46,0.5),0_0_15px_rgba(212,175,55,0.25)] flex items-center gap-3 sm:gap-5">
             
             {/* Top and bottom subtle golden ambient glow flares */}
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-3/4 h-6 bg-gradient-to-r from-transparent via-[#FBBF24]/30 to-transparent blur-md pointer-events-none" />
@@ -453,30 +490,30 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
 
               {/* FLOATING ACTION BUTTONS OVERLAY ON TRANSLUCENT LINES */}
               <div className="absolute inset-0 z-30 flex items-center justify-center px-4 bg-gradient-to-t from-slate-50 via-slate-50/70 to-transparent">
-                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 w-full max-w-xl mx-auto backdrop-blur-xs p-4 rounded-3xl bg-white/40 border border-white/60 shadow-lg">
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 w-full max-w-xl md:max-w-2xl lg:max-w-3xl mx-auto backdrop-blur-md p-4 sm:p-6 rounded-3xl bg-white/70 border border-white/80 shadow-xl">
                   
                   {/* Button 1: Start Shopping */}
                   <button
                     type="button"
                     onClick={() => onNavigate('/shop')}
-                    className="w-full sm:w-1/2 text-white font-black text-sm py-3.5 sm:py-4 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 shadow-md cursor-pointer bg-navy hover:brightness-110 hover:shadow-xl active:scale-98 group whitespace-nowrap"
+                    className="w-full sm:w-1/2 text-white font-black text-sm md:text-base py-3.5 sm:py-4 md:py-4.5 px-6 rounded-2xl flex items-center justify-center gap-2.5 transition-all duration-300 shadow-md cursor-pointer bg-navy hover:brightness-110 hover:shadow-xl active:scale-98 group whitespace-nowrap"
                     id="btn-start-shopping"
                   >
-                    <ShoppingBag className="w-4.5 h-4.5 stroke-[2.5] flex-shrink-0" />
+                    <ShoppingBag className="w-5 h-5 stroke-[2.5] flex-shrink-0" />
                     <span className="whitespace-nowrap">Start Shopping</span>
-                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1 flex-shrink-0" />
+                    <ArrowRight className="w-4.5 h-4.5 transition-transform group-hover:translate-x-1.5 flex-shrink-0" />
                   </button>
 
                   {/* Button 2: Register as Vendor */}
                   <button
                     type="button"
                     onClick={() => onNavigate('/vendor')}
-                    className="w-full sm:w-1/2 text-white font-black text-sm py-3.5 sm:py-4 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 shadow-md cursor-pointer bg-brand-gold hover:brightness-110 hover:shadow-xl active:scale-98 group whitespace-nowrap"
+                    className="w-full sm:w-1/2 text-white font-black text-sm md:text-base py-3.5 sm:py-4 md:py-4.5 px-6 rounded-2xl flex items-center justify-center gap-2.5 transition-all duration-300 shadow-md cursor-pointer bg-brand-gold hover:brightness-110 hover:shadow-xl active:scale-98 group whitespace-nowrap"
                     id="btn-register-vendor"
                   >
-                    <Store className="w-4.5 h-4.5 stroke-[2.5] flex-shrink-0" />
+                    <Store className="w-5 h-5 stroke-[2.5] flex-shrink-0" />
                     <span className="whitespace-nowrap">Register as Vendor</span>
-                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1 flex-shrink-0" />
+                    <ArrowRight className="w-4.5 h-4.5 transition-transform group-hover:translate-x-1.5 flex-shrink-0" />
                   </button>
 
                 </div>
@@ -487,34 +524,34 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
           </div>
         </div>
 
-        {/* 4. WHY CHOOSE QUEKART? - EXACT PIXEL-PERFECT MATCH TO SCREENSHOT */}
-        <section className="max-w-xl mx-auto w-full px-4 sm:px-6 py-12 sm:py-16" id="why-choose-quekart-section">
+        {/* 4. WHY CHOOSE QUEKART? - OPTIMIZED FOR PC & MOBILE */}
+        <section className="max-w-6xl lg:max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20" id="why-choose-quekart-section">
           {/* Header */}
-          <div className="text-center mb-8 sm:mb-9">
-            <h2 className="text-3xl sm:text-4xl md:text-[40px] font-bold tracking-tight font-sans">
+          <div className="text-center mb-8 sm:mb-12 md:mb-14">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight font-sans">
               <span className="text-[#0B1E36]">Why Choose Que</span><span className="text-[#E5A812]">Kart</span><span className="text-[#0B1E36]">?</span>
             </h2>
 
             {/* Decorative Divider: Gold bar + Center Navy Dot + Navy bar */}
-            <div className="flex items-center justify-center gap-1.5 my-3">
-              <div className="w-12 h-[2px] bg-[#E5A812] rounded-full" />
-              <div className="w-1.5 h-1.5 bg-[#0B1E36] rounded-full" />
-              <div className="w-12 h-[2px] bg-[#0B1E36] rounded-full" />
+            <div className="flex items-center justify-center gap-1.5 my-3.5 sm:my-4">
+              <div className="w-12 sm:w-16 h-[2.5px] bg-[#E5A812] rounded-full" />
+              <div className="w-2 h-2 bg-[#0B1E36] rounded-full" />
+              <div className="w-12 sm:w-16 h-[2.5px] bg-[#0B1E36] rounded-full" />
             </div>
 
-            <p className="text-[12px] min-[360px]:text-[13.5px] sm:text-base text-[#556987] font-medium tracking-normal mt-2 whitespace-nowrap">
+            <p className="text-[13px] sm:text-base md:text-lg text-[#556987] font-medium tracking-normal mt-2">
               Direct, Transparent &amp; Fast E-Commerce Experience
             </p>
           </div>
 
-          {/* Vertical Stacked Cards */}
-          <div className="flex flex-col gap-3.5 sm:gap-5">
+          {/* Cards Grid - 1 Col on Mobile, 3 Columns on PC / Desktop */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             
             {/* Card 1: 0% Platform Commission */}
-            <div className="bg-white rounded-[20px] p-4 sm:p-6 md:p-7 border border-[#E2EAF2] shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_6px_20px_rgba(20,60,107,0.06)] transition-all duration-200 flex flex-row items-center gap-3.5 sm:gap-6 text-left">
+            <div className="bg-white rounded-[20px] md:rounded-3xl p-5 sm:p-6 md:p-7 lg:p-8 border border-[#E2EAF2] shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_10px_25px_rgba(20,60,107,0.08)] hover:border-[#BED4EB] hover:-translate-y-1 transition-all duration-300 flex flex-row md:flex-col items-center md:items-start gap-4 sm:gap-6 text-left">
               {/* Circular Icon Badge: Ice Blue with Storefront Icon */}
-              <div className="w-14 h-14 min-[375px]:w-16 min-[375px]:h-16 sm:w-20 sm:h-20 rounded-full bg-[#EAF3FA] border border-[#D8E6F3] flex items-center justify-center flex-shrink-0">
-                <svg className="w-7 h-7 min-[375px]:w-8 min-[375px]:h-8 sm:w-10 sm:h-10" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <div className="w-14 h-14 min-[375px]:w-16 min-[375px]:h-16 sm:w-18 sm:h-18 md:w-20 md:h-20 rounded-2xl md:rounded-3xl bg-[#EAF3FA] border border-[#D8E6F3] flex items-center justify-center flex-shrink-0 text-[#143C6B]">
+                <svg className="w-7 h-7 min-[375px]:w-8 min-[375px]:h-8 sm:w-9 sm:h-9 md:w-10 md:h-10" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                   {/* Scalloped Awning */}
                   <path d="M9 19C9 15 11 13.5 15 13.5H33C37 13.5 39 15 39 19C39 21.8 36.8 23.5 34 23.5C31.2 23.5 29.5 21.8 28 20C26.5 21.8 24.8 23.5 22 23.5C19.2 23.5 17.5 21.8 16 20C14.5 21.8 12.8 23.5 10 23.5C9.2 23.5 9 21 9 19Z" stroke="#143C6B" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/>
                   {/* Shop Walls */}
@@ -526,22 +563,22 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
 
               {/* Content */}
               <div className="flex-1 min-w-0">
-                <h3 className="text-[14px] min-[360px]:text-[16px] min-[400px]:text-[18px] sm:text-[21px] font-bold text-[#0B1E36] tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
+                <h3 className="text-[16px] sm:text-[18px] md:text-xl font-bold text-[#0B1E36] tracking-tight">
                   0% Platform Commission
                 </h3>
                 {/* Accent Underline Bar */}
-                <div className="w-12 h-[2.5px] bg-[#143C6B] rounded-full mt-1.5 sm:mt-2 mb-2 sm:mb-2.5" />
-                <p className="text-xs sm:text-[13.5px] text-[#556987] font-normal leading-relaxed text-pretty">
+                <div className="w-12 h-[2.5px] bg-[#143C6B] rounded-full mt-1.5 sm:mt-2 mb-2 sm:mb-3" />
+                <p className="text-xs sm:text-sm text-[#556987] font-normal leading-relaxed">
                   Direct factory pricing with zero hidden fees and maximum discounts.
                 </p>
               </div>
             </div>
 
             {/* Card 2: 10-Second Instant Checkout */}
-            <div className="bg-white rounded-[20px] p-4 sm:p-6 md:p-7 border border-[#E2EAF2] shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_6px_20px_rgba(229,168,18,0.06)] transition-all duration-200 flex flex-row items-center gap-3.5 sm:gap-6 text-left">
+            <div className="bg-white rounded-[20px] md:rounded-3xl p-5 sm:p-6 md:p-7 lg:p-8 border border-[#E2EAF2] shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_10px_25px_rgba(229,168,18,0.08)] hover:border-[#F6DC9F] hover:-translate-y-1 transition-all duration-300 flex flex-row md:flex-col items-center md:items-start gap-4 sm:gap-6 text-left">
               {/* Circular Icon Badge: Warm Cream with Smartphone Icon */}
-              <div className="w-14 h-14 min-[375px]:w-16 min-[375px]:h-16 sm:w-20 sm:h-20 rounded-full bg-[#FEF8EC] border border-[#FDEECC] flex items-center justify-center flex-shrink-0">
-                <svg className="w-7 h-7 min-[375px]:w-8 min-[375px]:h-8 sm:w-10 sm:h-10" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <div className="w-14 h-14 min-[375px]:w-16 min-[375px]:h-16 sm:w-18 sm:h-18 md:w-20 md:h-20 rounded-2xl md:rounded-3xl bg-[#FEF8EC] border border-[#FDEECC] flex items-center justify-center flex-shrink-0 text-[#E5A812]">
+                <svg className="w-7 h-7 min-[375px]:w-8 min-[375px]:h-8 sm:w-9 sm:h-9 md:w-10 md:h-10" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                   {/* Smartphone Body */}
                   <rect x="15" y="9" width="18" height="30" rx="4" stroke="#E5A812" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/>
                   {/* Home Dot */}
@@ -551,22 +588,22 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
 
               {/* Content */}
               <div className="flex-1 min-w-0">
-                <h3 className="text-[14px] min-[360px]:text-[16px] min-[400px]:text-[18px] sm:text-[21px] font-bold text-[#0B1E36] tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
+                <h3 className="text-[16px] sm:text-[18px] md:text-xl font-bold text-[#0B1E36] tracking-tight">
                   10-Second Instant Checkout
                 </h3>
                 {/* Accent Underline Bar */}
-                <div className="w-12 h-[2.5px] bg-[#E5A812] rounded-full mt-1.5 sm:mt-2 mb-2 sm:mb-2.5" />
-                <p className="text-xs sm:text-[13.5px] text-[#556987] font-normal leading-relaxed text-pretty">
+                <div className="w-12 h-[2.5px] bg-[#E5A812] rounded-full mt-1.5 sm:mt-2 mb-2 sm:mb-3" />
+                <p className="text-xs sm:text-sm text-[#556987] font-normal leading-relaxed">
                   No password required. Instant login with fast mobile OTP authentication.
                 </p>
               </div>
             </div>
 
             {/* Card 3: 100% GST Verified & COD */}
-            <div className="bg-white rounded-[20px] p-4 sm:p-6 md:p-7 border border-[#E2EAF2] shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_6px_20px_rgba(5,150,105,0.06)] transition-all duration-200 flex flex-row items-center gap-3.5 sm:gap-6 text-left">
+            <div className="bg-white rounded-[20px] md:rounded-3xl p-5 sm:p-6 md:p-7 lg:p-8 border border-[#E2EAF2] shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_10px_25px_rgba(5,150,105,0.08)] hover:border-[#A7E5C6] hover:-translate-y-1 transition-all duration-300 flex flex-row md:flex-col items-center md:items-start gap-4 sm:gap-6 text-left">
               {/* Circular Icon Badge: Light Mint with Shield-Checkmark Icon */}
-              <div className="w-14 h-14 min-[375px]:w-16 min-[375px]:h-16 sm:w-20 sm:h-20 rounded-full bg-[#E8F7EE] border border-[#D2EFE0] flex items-center justify-center flex-shrink-0">
-                <svg className="w-7 h-7 min-[375px]:w-8 min-[375px]:h-8 sm:w-10 sm:h-10" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <div className="w-14 h-14 min-[375px]:w-16 min-[375px]:h-16 sm:w-18 sm:h-18 md:w-20 md:h-20 rounded-2xl md:rounded-3xl bg-[#E8F7EE] border border-[#D2EFE0] flex items-center justify-center flex-shrink-0 text-[#059669]">
+                <svg className="w-7 h-7 min-[375px]:w-8 min-[375px]:h-8 sm:w-9 sm:h-9 md:w-10 md:h-10" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                   {/* Shield outline */}
                   <path d="M24 9.5L13 14.5V23C13 29.8 17.7 36 24 37.5C30.3 36 35 29.8 35 23V14.5L24 9.5Z" stroke="#059669" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/>
                   {/* Checkmark inside */}
@@ -576,12 +613,12 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
 
               {/* Content */}
               <div className="flex-1 min-w-0">
-                <h3 className="text-[14px] min-[360px]:text-[16px] min-[400px]:text-[18px] sm:text-[21px] font-bold text-[#0B1E36] tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
+                <h3 className="text-[16px] sm:text-[18px] md:text-xl font-bold text-[#0B1E36] tracking-tight">
                   100% GST Verified &amp; COD
                 </h3>
                 {/* Accent Underline Bar */}
-                <div className="w-12 h-[2.5px] bg-[#059669] rounded-full mt-1.5 sm:mt-2 mb-2 sm:mb-2.5" />
-                <p className="text-xs sm:text-[13.5px] text-[#556987] font-normal leading-relaxed text-pretty">
+                <div className="w-12 h-[2.5px] bg-[#059669] rounded-full mt-1.5 sm:mt-2 mb-2 sm:mb-3" />
+                <p className="text-xs sm:text-sm text-[#556987] font-normal leading-relaxed">
                   Verified Surat &amp; Jaipur wholesale sellers with guaranteed quality and Cash on Delivery.
                 </p>
               </div>
@@ -590,169 +627,192 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
           </div>
         </section>
 
-        {/* 5. PROFESSIONAL FOOTER - EXACT SCREENSHOT LAYOUT MATCH */}
-        <footer className="bg-white border-t border-[#E8EEF5] pt-10 sm:pt-14 pb-12 px-4 sm:px-6 mt-12" id="landing-footer-section">
-          <div className="max-w-xl mx-auto w-full">
+        {/* 5. PROFESSIONAL FOOTER - ENTERPRISE MULTI-COLUMN ON PC, CLEAN STACK ON MOBILE */}
+        <footer className="bg-white border-t border-[#E8EEF5] pt-12 sm:pt-16 pb-12 px-4 sm:px-6 lg:px-8 mt-12" id="landing-footer-section">
+          <div className="max-w-6xl lg:max-w-7xl mx-auto w-full">
             
-            {/* Logo & Headline */}
-            <div className="mb-6">
-              <div className="flex items-center gap-2 mb-3">
-                <BrandLogo size="md" animated={false} layout="row" className="justify-start" />
-              </div>
-              <p className="text-sm sm:text-[14.5px] text-[#556987] font-normal leading-relaxed">
-                India's trusted digital marketplace connecting verified sellers and happy shoppers with quality products, transparent pricing and reliable delivery.
-              </p>
-            </div>
-
-            {/* Enterprise Information List (3 Items with circular icons) */}
-            <div className="flex flex-col gap-4 sm:gap-5 mb-8">
+            {/* Desktop 3-Column Layout / Mobile Stack */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-10 lg:gap-12 pb-10">
               
-              {/* Item 1: Registered Firm */}
-              <div className="flex items-start gap-4">
-                <div className="w-11 h-11 rounded-full bg-[#EAF3FA] border border-[#D8E6F3] flex items-center justify-center flex-shrink-0 text-[#143C6B]">
-                  <Building2 className="w-5 h-5 stroke-[2.2]" />
+              {/* Column 1: Brand Logo & Mission Statement (5 cols on Desktop) */}
+              <div className="md:col-span-5 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-3.5">
+                    <BrandLogo size="md" animated={false} layout="row" className="justify-start" />
+                  </div>
+                  <p className="text-sm text-[#556987] font-normal leading-relaxed max-w-md">
+                    India's trusted digital marketplace connecting verified sellers and happy shoppers with quality products, transparent pricing and reliable delivery.
+                  </p>
                 </div>
-                <div className="flex flex-col justify-center">
-                  <span className="text-[11px] font-bold text-[#8B9EB2] tracking-wider uppercase">
-                    REGISTERED FIRM
-                  </span>
-                  <span className="text-[15px] font-bold text-[#0B1E36] leading-snug">
-                    PASI E-COMMERCE SERVICES
-                  </span>
-                  <span className="text-xs text-[#6B7F96] mt-0.5">
-                    Proprietorship Firm
-                  </span>
+
+                {/* Direct Contact Pills on Desktop */}
+                <div className="mt-6 flex flex-wrap gap-2.5">
+                  <a 
+                    href="mailto:support@quekart.com" 
+                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#F0F5FA] hover:bg-[#E2EAF2] text-[#143C6B] text-xs font-bold transition-colors border border-[#D8E6F3]"
+                  >
+                    <Mail className="w-4 h-4 text-[#143C6B]" />
+                    <span>support@quekart.com</span>
+                  </a>
+                  <a 
+                    href="tel:+911412891000" 
+                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#F0F5FA] hover:bg-[#E2EAF2] text-[#143C6B] text-xs font-bold transition-colors border border-[#D8E6F3]"
+                  >
+                    <Phone className="w-4 h-4 text-[#143C6B]" />
+                    <span>+91 141-289-1000</span>
+                  </a>
                 </div>
               </div>
 
-              {/* Item 2: GST Registration Number */}
-              <div className="flex items-start gap-4">
-                <div className="w-11 h-11 rounded-full bg-[#EAF3FA] border border-[#D8E6F3] flex items-center justify-center flex-shrink-0 text-[#143C6B]">
-                  <FileText className="w-5 h-5 stroke-[2.2]" />
-                </div>
-                <div className="flex flex-col justify-center">
-                  <span className="text-[11px] font-bold text-[#8B9EB2] tracking-wider uppercase">
-                    GST REGISTRATION NUMBER
-                  </span>
-                  <span className="text-[15px] font-bold text-[#0B1E36] leading-snug">
-                    06KLFPS7562K2Z8
-                  </span>
-                  <div className="flex items-center gap-1 text-xs text-[#6B7F96] mt-0.5 font-medium">
-                    <span>GSTIN Verified</span>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 fill-emerald-100" />
+              {/* Column 2: Enterprise & Corporate Information (4 cols on Desktop) */}
+              <div className="md:col-span-4 flex flex-col gap-4">
+                <h4 className="text-xs font-bold text-[#0B1E36] uppercase tracking-wider mb-1">
+                  CORPORATE &amp; LEGAL ENTITY
+                </h4>
+
+                <div className="flex flex-col gap-3.5">
+                  {/* Item 1: Registered Firm */}
+                  <div className="flex items-start gap-3.5 bg-slate-50/70 p-3 rounded-2xl border border-slate-100">
+                    <div className="w-10 h-10 rounded-full bg-[#EAF3FA] border border-[#D8E6F3] flex items-center justify-center flex-shrink-0 text-[#143C6B]">
+                      <Building2 className="w-4.5 h-4.5 stroke-[2.2]" />
+                    </div>
+                    <div className="flex flex-col justify-center">
+                      <span className="text-[10.5px] font-bold text-[#8B9EB2] tracking-wider uppercase">
+                        REGISTERED FIRM
+                      </span>
+                      <span className="text-[14px] font-bold text-[#0B1E36] leading-snug">
+                        PASI E-COMMERCE SERVICES
+                      </span>
+                      <span className="text-xs text-[#6B7F96]">
+                        Proprietorship Firm
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Item 2: GST Registration Number */}
+                  <div className="flex items-start gap-3.5 bg-slate-50/70 p-3 rounded-2xl border border-slate-100">
+                    <div className="w-10 h-10 rounded-full bg-[#EAF3FA] border border-[#D8E6F3] flex items-center justify-center flex-shrink-0 text-[#143C6B]">
+                      <FileText className="w-4.5 h-4.5 stroke-[2.2]" />
+                    </div>
+                    <div className="flex flex-col justify-center">
+                      <span className="text-[10.5px] font-bold text-[#8B9EB2] tracking-wider uppercase">
+                        GST REGISTRATION NUMBER
+                      </span>
+                      <span className="text-[14px] font-bold text-[#0B1E36] leading-snug font-mono">
+                        06KLFPS7562K2Z8
+                      </span>
+                      <div className="flex items-center gap-1 text-xs text-emerald-700 font-semibold mt-0.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 fill-emerald-100" />
+                        <span>GSTIN Verified &amp; Active</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Item 3: Registered Address */}
+                  <div className="flex items-start gap-3.5 bg-slate-50/70 p-3 rounded-2xl border border-slate-100">
+                    <div className="w-10 h-10 rounded-full bg-[#EAF3FA] border border-[#D8E6F3] flex items-center justify-center flex-shrink-0 text-[#143C6B]">
+                      <MapPin className="w-4.5 h-4.5 stroke-[2.2]" />
+                    </div>
+                    <div className="flex flex-col justify-center">
+                      <span className="text-[10.5px] font-bold text-[#8B9EB2] tracking-wider uppercase">
+                        REGISTERED ADDRESS
+                      </span>
+                      <span className="text-[14px] font-bold text-[#0B1E36] leading-snug">
+                        PASI E-COMMERCE SERVICES
+                      </span>
+                      <span className="text-xs text-[#6B7F96]">
+                        Panchkula, Haryana – 134118, India
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Item 3: Registered Address */}
-              <div className="flex items-start gap-4">
-                <div className="w-11 h-11 rounded-full bg-[#EAF3FA] border border-[#D8E6F3] flex items-center justify-center flex-shrink-0 text-[#143C6B]">
-                  <MapPin className="w-5 h-5 stroke-[2.2]" />
-                </div>
-                <div className="flex flex-col justify-center">
-                  <span className="text-[11px] font-bold text-[#8B9EB2] tracking-wider uppercase whitespace-nowrap">
-                    REGISTERED ADDRESS
-                  </span>
-                  <span className="text-[15px] font-bold text-[#0B1E36] leading-snug whitespace-nowrap">
-                    PASI E-COMMERCE SERVICES
-                  </span>
-                  <span className="text-xs text-[#6B7F96] mt-0.5 whitespace-nowrap">
-                    Panchkula, Haryana – 134118, India
-                  </span>
+              {/* Column 3: Compliance & Policies (3 cols on Desktop) */}
+              <div className="md:col-span-3 flex flex-col">
+                <h4 className="text-xs font-bold text-[#0B1E36] uppercase tracking-wider mb-3">
+                  COMPLIANCE &amp; POLICIES
+                </h4>
+                <div className="flex flex-col divide-y divide-slate-100/90 border border-slate-100 rounded-2xl p-2 bg-slate-50/50">
+                  {/* Contact Us */}
+                  <button 
+                    onClick={() => onNavigate('/contact')} 
+                    className="w-full flex items-center justify-between py-2.5 px-2 hover:bg-white rounded-xl hover:text-[#143C6B] transition-all text-left group cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Mail className="w-4 h-4 text-[#0B1E36] stroke-[2.2] flex-shrink-0" />
+                      <span className="text-xs font-bold text-[#0B1E36] group-hover:text-[#143C6B] transition-colors whitespace-nowrap">
+                        Contact Us
+                      </span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors flex-shrink-0" />
+                  </button>
+
+                  {/* Refund & Cancellations */}
+                  <button 
+                    onClick={() => onNavigate('/refund')} 
+                    className="w-full flex items-center justify-between py-2.5 px-2 hover:bg-white rounded-xl hover:text-[#143C6B] transition-all text-left group cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <RotateCcw className="w-4 h-4 text-[#0B1E36] stroke-[2.2] flex-shrink-0" />
+                      <span className="text-xs font-bold text-[#0B1E36] group-hover:text-[#143C6B] transition-colors whitespace-nowrap">
+                        Refund &amp; Cancellations
+                      </span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors flex-shrink-0" />
+                  </button>
+
+                  {/* Terms & Conditions */}
+                  <button 
+                    onClick={() => onNavigate('/terms')} 
+                    className="w-full flex items-center justify-between py-2.5 px-2 hover:bg-white rounded-xl hover:text-[#143C6B] transition-all text-left group cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <FileText className="w-4 h-4 text-[#0B1E36] stroke-[2.2] flex-shrink-0" />
+                      <span className="text-xs font-bold text-[#0B1E36] group-hover:text-[#143C6B] transition-colors whitespace-nowrap">
+                        Terms &amp; Conditions
+                      </span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors flex-shrink-0" />
+                  </button>
+
+                  {/* Privacy Policy */}
+                  <button 
+                    onClick={() => onNavigate('/privacy')} 
+                    className="w-full flex items-center justify-between py-2.5 px-2 hover:bg-white rounded-xl hover:text-[#143C6B] transition-all text-left group cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <ShieldCheck className="w-4 h-4 text-[#0B1E36] stroke-[2.2] flex-shrink-0" />
+                      <span className="text-xs font-bold text-[#0B1E36] group-hover:text-[#143C6B] transition-colors whitespace-nowrap">
+                        Privacy Policy
+                      </span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors flex-shrink-0" />
+                  </button>
                 </div>
               </div>
 
-            </div>
-
-            {/* COMPLIANCE & POLICIES SECTION */}
-            <div className="mb-8">
-              <h4 className="text-xs font-bold text-[#0B1E36] uppercase tracking-wider mb-3 whitespace-nowrap">
-                COMPLIANCE &amp; POLICIES
-              </h4>
-              <div className="flex flex-col divide-y divide-slate-100/80">
-                {/* Contact Us */}
-                <button 
-                  onClick={() => onNavigate('/contact')} 
-                  className="w-full flex items-center justify-between py-3.5 hover:text-[#143C6B] transition-colors text-left group cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <Mail className="w-4.5 h-4.5 text-[#0B1E36] stroke-[2.2] flex-shrink-0" />
-                    <span className="text-sm font-bold text-[#0B1E36] group-hover:text-[#143C6B] transition-colors whitespace-nowrap">
-                      Contact Us
-                    </span>
-                  </div>
-                  <ChevronRight className="w-4.5 h-4.5 text-slate-400 group-hover:text-slate-600 transition-colors flex-shrink-0" />
-                </button>
-
-                {/* Refund & Cancellations */}
-                <button 
-                  onClick={() => onNavigate('/refund')} 
-                  className="w-full flex items-center justify-between py-3.5 hover:text-[#143C6B] transition-colors text-left group cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <RotateCcw className="w-4.5 h-4.5 text-[#0B1E36] stroke-[2.2] flex-shrink-0" />
-                    <span className="text-sm font-bold text-[#0B1E36] group-hover:text-[#143C6B] transition-colors whitespace-nowrap">
-                      Refund &amp; Cancellations
-                    </span>
-                  </div>
-                  <ChevronRight className="w-4.5 h-4.5 text-slate-400 group-hover:text-slate-600 transition-colors flex-shrink-0" />
-                </button>
-
-                {/* Terms & Conditions */}
-                <button 
-                  onClick={() => onNavigate('/terms')} 
-                  className="w-full flex items-center justify-between py-3.5 hover:text-[#143C6B] transition-colors text-left group cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-4.5 h-4.5 text-[#0B1E36] stroke-[2.2] flex-shrink-0" />
-                    <span className="text-sm font-bold text-[#0B1E36] group-hover:text-[#143C6B] transition-colors whitespace-nowrap">
-                      Terms &amp; Conditions
-                    </span>
-                  </div>
-                  <ChevronRight className="w-4.5 h-4.5 text-slate-400 group-hover:text-slate-600 transition-colors flex-shrink-0" />
-                </button>
-
-                {/* Privacy Policy */}
-                <button 
-                  onClick={() => onNavigate('/privacy')} 
-                  className="w-full flex items-center justify-between py-3.5 hover:text-[#143C6B] transition-colors text-left group cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <ShieldCheck className="w-4.5 h-4.5 text-[#0B1E36] stroke-[2.2] flex-shrink-0" />
-                    <span className="text-sm font-bold text-[#0B1E36] group-hover:text-[#143C6B] transition-colors whitespace-nowrap">
-                      Privacy Policy
-                    </span>
-                  </div>
-                  <ChevronRight className="w-4.5 h-4.5 text-slate-400 group-hover:text-slate-600 transition-colors flex-shrink-0" />
-                </button>
-              </div>
             </div>
 
             {/* Bottom Copyright, Address & Certifications */}
-            <div className="pt-6 border-t border-[#E8EEF5]">
-              <div className="flex items-start gap-3 mb-4">
+            <div className="pt-6 border-t border-[#E8EEF5] flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
                 {/* Hexagonal / Shield Copyright Emblem */}
-                <div className="w-7 h-7 rounded-lg border-2 border-[#143C6B] flex items-center justify-center flex-shrink-0 text-[#143C6B] font-bold text-xs mt-0.5">
+                <div className="w-7 h-7 rounded-lg border-2 border-[#143C6B] flex items-center justify-center flex-shrink-0 text-[#143C6B] font-bold text-xs">
                   ©
                 </div>
                 <div className="text-xs text-[#4A5D73] font-medium leading-relaxed">
-                  <div className="font-semibold text-[#0B1E36]">© 2026 PASI E-COMMERCE SERVICES.</div>
-                  <div className="text-[#4A5D73]">All rights reserved.</div>
-                  <div className="text-slate-500">Operating the brand "Quekart".</div>
-                  <div className="flex items-center gap-1.5 text-slate-500 mt-1">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                    <span>Panchkula, Haryana – 134118, India</span>
-                  </div>
+                  <span className="font-semibold text-[#0B1E36]">© 2026 PASI E-COMMERCE SERVICES.</span> All rights reserved. Operating the brand "Quekart".
                 </div>
               </div>
 
-              {/* Certification Chips - Guaranteed 1 single line side by side */}
-              <div className="flex items-center justify-between sm:justify-start gap-1 min-[360px]:gap-1.5 sm:gap-2.5 text-[9.5px] min-[360px]:text-[10.5px] min-[400px]:text-[11.5px] sm:text-xs text-[#6B7F96] font-medium pt-2 whitespace-nowrap overflow-hidden">
-                <span className="whitespace-nowrap">ISO 9001:2015 Certified</span>
-                <span className="text-slate-300 font-light px-0.5">|</span>
-                <span className="whitespace-nowrap">GST Compliant</span>
-                <span className="text-slate-300 font-light px-0.5">|</span>
-                <span className="whitespace-nowrap">Secure &amp; Trusted</span>
+              {/* Certification Chips */}
+              <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-[#6B7F96] font-medium whitespace-nowrap">
+                <span>ISO 9001:2015 Certified</span>
+                <span className="text-slate-300">|</span>
+                <span>GST Compliant</span>
+                <span className="text-slate-300">|</span>
+                <span>100% Secure &amp; Trusted</span>
               </div>
             </div>
 
