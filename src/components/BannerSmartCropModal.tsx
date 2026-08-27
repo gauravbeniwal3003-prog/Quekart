@@ -40,7 +40,7 @@ export default function BannerSmartCropModal({
   const isMain = bannerRow === 'main' || bannerRow === 'upper';
   const targetWidth = isMain ? 900 : 600;
   const targetHeight = 300;
-  const aspectRatioClass = isMain ? 'aspect-[16/5]' : 'aspect-[11/5]';
+  const aspectRatioClass = isMain ? 'aspect-banner-main' : 'aspect-banner-double';
 
   useEffect(() => {
     if (isOpen) {

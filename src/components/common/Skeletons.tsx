@@ -51,14 +51,14 @@ export const BannerSkeleton: React.FC<{ type?: 'main' | 'double' }> = ({ type = 
   if (type === 'double') {
     return (
       <div className="grid grid-cols-2 gap-2 w-full my-2">
-        <div className="aspect-[11/5] w-full rounded-2xl skeleton-shimmer shadow-xs border border-slate-200/60" />
-        <div className="aspect-[11/5] w-full rounded-2xl skeleton-shimmer shadow-xs border border-slate-200/60" />
+        <div className="aspect-banner-double w-full rounded-2xl skeleton-shimmer shadow-xs border border-slate-200/60" />
+        <div className="aspect-banner-double w-full rounded-2xl skeleton-shimmer shadow-xs border border-slate-200/60" />
       </div>
     );
   }
 
   return (
-    <div className="w-full aspect-[16/5] rounded-2xl skeleton-shimmer shadow-sm border border-slate-200/80 my-1 relative overflow-hidden">
+    <div className="w-full aspect-banner-main rounded-2xl skeleton-shimmer shadow-sm border border-slate-200/80 my-1 relative overflow-hidden">
       <div className="absolute inset-0 p-4 flex flex-col justify-between">
         <div className="w-24 h-5 skeleton-shimmer rounded-full bg-slate-300/80" />
         <div className="space-y-2 max-w-[60%]">

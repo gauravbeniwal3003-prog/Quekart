@@ -2763,7 +2763,7 @@ export default function AdminDashboard({
                 <p className="text-[9px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Live Poster Rendering (as seen in /shop):</p>
                 
                 <div className={`bg-slate-100 rounded-xl overflow-hidden border border-slate-200/80 relative shadow-md group ${
-                  (bRow === 'main' || bRow === 'upper') ? 'aspect-[16/5]' : 'aspect-[11/5]'
+                  (bRow === 'main' || bRow === 'upper') ? 'aspect-banner-main' : 'aspect-banner-double'
                 }`}>
                   <img src={bImageUrl.trim()} alt="Preview" className="w-full h-full object-cover object-center animate-fadeIn" />
                   <div className="absolute inset-0 bg-gradient-to-r from-[#143C6B]/90 via-[#143C6B]/60 to-transparent flex flex-col justify-between p-3 sm:p-4 text-white pointer-events-none select-none">
@@ -7285,7 +7285,7 @@ export default function AdminDashboard({
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {mainBanners.map((b) => (
                       <div key={b.id} className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-xs flex flex-col group relative">
-                        <div className="aspect-[16/5] w-full bg-slate-900 relative">
+                        <div className="aspect-banner-main w-full bg-slate-900 relative">
                           <img src={b.imageUrl || 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&q=80&w=900'} alt={b.title || b.type} className="w-full h-full object-cover" />
                           <div className="absolute top-2 right-2 bg-lucky-magenta text-white text-[8px] font-black uppercase px-2 py-0.5 rounded shadow-xs">
                             ORDER: {b.order || 1}
@@ -7418,7 +7418,7 @@ export default function AdminDashboard({
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {doubleBanners.map((b) => (
                       <div key={b.id} className="bg-white rounded-xl border border-slate-200/80 overflow-hidden shadow-xs flex flex-col group relative">
-                        <div className="aspect-[11/5] w-full bg-slate-900 relative">
+                        <div className="aspect-banner-double w-full bg-slate-900 relative">
                           <img src={b.imageUrl || 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&q=80&w=600'} alt={b.title || b.type} className="w-full h-full object-cover" />
                           <div className="absolute top-2 right-2 bg-lucky-magenta text-white text-[8px] font-black uppercase px-2 py-0.5 rounded shadow-xs">
                             ORDER: {b.order || 1}
