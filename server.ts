@@ -749,34 +749,19 @@ function persistOtpsToFile() {
   }
 }
 
-// Save OTP record to memory, disk persistence, and Supabase (if available)
-async function saveOtpRecord(fullMobile: string, tenDigitPhone: string, rawPhone: string, record: OtpRecord) {
+// Save OTP record to backend memory and disk persistence
+function saveOtpRecord(fullMobile: string, tenDigitPhone: string, rawPhone: string, record: OtpRecord) {
   pendingOtps.set(fullMobile, record);
   pendingOtps.set(tenDigitPhone, record);
   pendingOtps.set(rawPhone, record);
   pendingOtps.set(`+${fullMobile}`, record);
+  pendingOtps.set(`91${tenDigitPhone}`, record);
   persistOtpsToFile();
-
-  if (useSupabase && supabase) {
-    try {
-      await supabase.from('otp_verifications').upsert({
-        id: `otp_${tenDigitPhone}`,
-        phone: fullMobile,
-        ten_digit: tenDigitPhone,
-        otp: record.otp,
-        alt_otps: record.altOtps || [],
-        role: record.role,
-        is_signup: record.isSignUp,
-        expires_at: new Date(record.expires).toISOString(),
-        created_at: new Date().toISOString()
-      }, { onConflict: 'id' }).catch(() => null);
-    } catch (_) {}
-  }
 }
 
-// Retrieve OTP record across memory, file persistence, and Supabase
-async function getOtpRecord(fullMobile: string, tenDigitPhone: string, rawPhone: string): Promise<OtpRecord | null> {
-  // 1. Check in-memory
+// Retrieve OTP record across backend memory and disk persistence
+function getOtpRecord(fullMobile: string, tenDigitPhone: string, rawPhone: string): OtpRecord | null {
+  // 1. Check in-memory Map
   let record = pendingOtps.get(fullMobile) ||
                pendingOtps.get(tenDigitPhone) ||
                pendingOtps.get(rawPhone) ||
@@ -787,7 +772,7 @@ async function getOtpRecord(fullMobile: string, tenDigitPhone: string, rawPhone:
     return record;
   }
 
-  // 2. Check disk persistence
+  // 2. Check disk persistence file
   const diskOtps = loadPersistedOtps();
   record = diskOtps.get(fullMobile) ||
            diskOtps.get(tenDigitPhone) ||
@@ -802,49 +787,17 @@ async function getOtpRecord(fullMobile: string, tenDigitPhone: string, rawPhone:
     return record;
   }
 
-  // 3. Check Supabase (for multi-container Cloud Run & custom domain QueKart.in deployments)
-  if (useSupabase && supabase) {
-    try {
-      const { data } = await supabase
-        .from('otp_verifications')
-        .select('*')
-        .or(`id.eq.otp_${tenDigitPhone},phone.eq.${fullMobile},ten_digit.eq.${tenDigitPhone}`)
-        .single();
-      if (data) {
-        const expTime = new Date(data.expires_at || 0).getTime();
-        if (expTime > Date.now()) {
-          const rec: OtpRecord = {
-            otp: String(data.otp),
-            expires: expTime,
-            isSignUp: !!data.is_signup,
-            role: data.role || 'user',
-            lastSent: Date.now() - 30000,
-            altOtps: Array.isArray(data.alt_otps) ? data.alt_otps : []
-          };
-          pendingOtps.set(fullMobile, rec);
-          pendingOtps.set(tenDigitPhone, rec);
-          return rec;
-        }
-      }
-    } catch (_) {}
-  }
-
   return null;
 }
 
-// Clear verified OTP record
-async function removeOtpRecord(fullMobile: string, tenDigitPhone: string, rawPhone: string) {
+// Clear verified OTP record from memory and disk
+function removeOtpRecord(fullMobile: string, tenDigitPhone: string, rawPhone: string) {
   pendingOtps.delete(fullMobile);
   pendingOtps.delete(tenDigitPhone);
   pendingOtps.delete(rawPhone);
   pendingOtps.delete(`+${fullMobile}`);
+  pendingOtps.delete(`91${tenDigitPhone}`);
   persistOtpsToFile();
-
-  if (useSupabase && supabase) {
-    try {
-      await supabase.from('otp_verifications').delete().or(`id.eq.otp_${tenDigitPhone},ten_digit.eq.${tenDigitPhone}`).catch(() => null);
-    } catch (_) {}
-  }
 }
 
 // Helper to format Indian mobile number with 91 prefix
@@ -873,10 +826,13 @@ async function checkPhoneRole(phone: string, expectedRole: 'user' | 'vendor' | '
 }
 
 // 1. Send OTP Route (Real SMS API dispatch + 60s Rate Limiting per mobile + Multi-tier Persistence)
-app.post('/api/auth/send-otp', async (req, res) => {
-  const { phone, role, isSignUp } = req.body;
+app.all('/api/auth/send-otp', async (req, res) => {
+  const phone = req.body?.phone || req.query?.phone;
+  const role = req.body?.role || req.query?.role || 'user';
+  const isSignUp = req.body?.isSignUp ?? req.query?.isSignUp;
+
   if (!phone || !role) {
-    return res.status(400).json({ error: 'Mobile phone number and expected role are required.' });
+    return res.status(400).json({ success: false, error: 'Mobile phone number and expected role are required.' });
   }
 
   const rawPhone = String(phone).trim();
@@ -1013,10 +969,24 @@ app.post('/api/auth/send-otp', async (req, res) => {
 });
 
 // 2. Verify OTP Route (Checks 6-digit OTP, Auto-registers if user is new, issues JWT)
-app.post('/api/auth/verify-otp', async (req, res) => {
-  const { phone, otp, role, name, email, address, businessCategory, city, state, gstin, description, storeName, verifyOnly, pincode } = req.body;
+app.all('/api/auth/verify-otp', async (req, res) => {
+  const phone = req.body?.phone || req.query?.phone;
+  const otp = req.body?.otp || req.query?.otp;
+  const role = req.body?.role || req.query?.role || 'user';
+  const name = req.body?.name || req.query?.name;
+  const email = req.body?.email || req.query?.email;
+  const address = req.body?.address || req.query?.address;
+  const businessCategory = req.body?.businessCategory || req.query?.businessCategory;
+  const city = req.body?.city || req.query?.city;
+  const state = req.body?.state || req.query?.state;
+  const gstin = req.body?.gstin || req.query?.gstin;
+  const description = req.body?.description || req.query?.description;
+  const storeName = req.body?.storeName || req.query?.storeName;
+  const verifyOnly = req.body?.verifyOnly ?? req.query?.verifyOnly;
+  const pincode = req.body?.pincode || req.query?.pincode;
+
   if (!phone || !otp || !role) {
-    return res.status(400).json({ error: 'Phone number, OTP code, and expected role are required.' });
+    return res.status(400).json({ success: false, error: 'Phone number, OTP code, and expected role are required.' });
   }
 
   const rawPhone = String(phone).trim();
@@ -1024,8 +994,8 @@ app.post('/api/auth/verify-otp', async (req, res) => {
   const tenDigitPhone = fullMobile.slice(-10);
   const submittedOtp = String(otp).trim();
 
-  // Retrieve OTP record across in-memory cache, disk storage, and Supabase
-  const record = await getOtpRecord(fullMobile, tenDigitPhone, rawPhone);
+  // Retrieve OTP record across backend memory and disk persistence
+  const record = getOtpRecord(fullMobile, tenDigitPhone, rawPhone);
 
   let isVerified = false;
 
@@ -1035,31 +1005,31 @@ app.post('/api/auth/verify-otp', async (req, res) => {
       isVerified = true;
     } else {
       console.warn(`[OTP Verify] No active record found for phone: ${fullMobile} / ${tenDigitPhone}. Code submitted: ${submittedOtp}`);
-      return res.status(400).json({ error: 'No active OTP verification request found for this phone. Please request a new code.' });
+      return res.status(400).json({ success: false, error: 'No active OTP verification request found for this phone. Please request a new code.' });
     }
   } else {
     if (Date.now() > record.expires) {
-      await removeOtpRecord(fullMobile, tenDigitPhone, rawPhone);
+      removeOtpRecord(fullMobile, tenDigitPhone, rawPhone);
       if (submittedOtp === '123456' || submittedOtp === '999999') {
         isVerified = true;
       } else {
-        return res.status(400).json({ error: 'OTP code has expired. Please request a new code.' });
+        return res.status(400).json({ success: false, error: 'OTP code has expired. Please request a new code.' });
       }
     } else {
       const allowedCodes = [record.otp, ...(record.altOtps || []), '123456', '999999'];
       if (allowedCodes.includes(submittedOtp)) {
         isVerified = true;
         // Clear validated OTP record
-        await removeOtpRecord(fullMobile, tenDigitPhone, rawPhone);
+        removeOtpRecord(fullMobile, tenDigitPhone, rawPhone);
       } else {
         console.warn(`[OTP Verify Mismatch] Submitted: ${submittedOtp}, Expected: ${record.otp}, Alt: ${JSON.stringify(record.altOtps)}`);
-        return res.status(400).json({ error: 'Invalid 6-digit verification code. Please check and try again.' });
+        return res.status(400).json({ success: false, error: 'Wrong OTP. Invalid 6-digit verification code. Please check and try again.' });
       }
     }
   }
 
   if (!isVerified) {
-    return res.status(400).json({ error: 'Invalid verification code.' });
+    return res.status(400).json({ success: false, error: 'Wrong OTP. Invalid verification code.' });
   }
 
   if (verifyOnly) {
@@ -1073,13 +1043,15 @@ app.post('/api/auth/verify-otp', async (req, res) => {
       
       // Look up existing customer in DB
       if (useSupabase && supabase) {
-        const { data } = await supabase.from('users').select('*');
-        if (data) {
-          user = data.map((row: any) => row.data || row).find((u: any) => {
-            const cleanedDb = (u.phone || '').replace(/[^0-9]/g, '');
-            return cleanedDb.endsWith(tenDigitPhone);
-          });
-        }
+        try {
+          const { data } = await supabase.from('users').select('*');
+          if (data) {
+            user = data.map((row: any) => row.data || row).find((u: any) => {
+              const cleanedDb = (u.phone || '').replace(/[^0-9]/g, '');
+              return cleanedDb.endsWith(tenDigitPhone);
+            });
+          }
+        } catch (_) {}
       }
       if (!user) {
         user = localUsers.find(u => {
@@ -1109,7 +1081,9 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 
         localUsers.push(newUser);
         if (useSupabase && supabase) {
-          await supabase.from('users').insert({ id: newUser.id, data: newUser }).catch(() => null);
+          try {
+            await supabase.from('users').insert({ id: newUser.id, data: newUser });
+          } catch (_) {}
         }
         user = newUser;
         console.log(`[AUTO-REGISTER CUSTOMER] Registered new customer shell (+${newUser.phone})`);
@@ -1126,13 +1100,15 @@ app.post('/api/auth/verify-otp', async (req, res) => {
       let vendor: Vendor | undefined;
 
       if (useSupabase && supabase) {
-        const { data } = await supabase.from('vendors').select('*');
-        if (data) {
-          vendor = data.map((row: any) => row.data || row).find((v: any) => {
-            const cleanedDb = (v.phone || '').replace(/[^0-9]/g, '');
-            return cleanedDb.endsWith(tenDigitPhone);
-          });
-        }
+        try {
+          const { data } = await supabase.from('vendors').select('*');
+          if (data) {
+            vendor = data.map((row: any) => row.data || row).find((v: any) => {
+              const cleanedDb = (v.phone || '').replace(/[^0-9]/g, '');
+              return cleanedDb.endsWith(tenDigitPhone);
+            });
+          }
+        } catch (_) {}
       }
       if (!vendor) {
         vendor = localVendors.find(v => {
@@ -1150,10 +1126,12 @@ app.post('/api/auth/verify-otp', async (req, res) => {
         const cleanGstin = gstin.trim().toUpperCase();
         let existingVendorByGst: Vendor | undefined;
         if (useSupabase && supabase) {
-          const { data } = await supabase.from('vendors').select('*');
-          if (data) {
-            existingVendorByGst = data.map((row: any) => row.data || row).find((v: any) => v.gstin && v.gstin.trim().toUpperCase() === cleanGstin && v.status !== 'suspended');
-          }
+          try {
+            const { data } = await supabase.from('vendors').select('*');
+            if (data) {
+              existingVendorByGst = data.map((row: any) => row.data || row).find((v: any) => v.gstin && v.gstin.trim().toUpperCase() === cleanGstin && v.status !== 'suspended');
+            }
+          } catch (_) {}
         }
         if (!existingVendorByGst) {
           existingVendorByGst = localVendors.find(v => v.gstin && v.gstin.trim().toUpperCase() === cleanGstin && v.status !== 'suspended');
@@ -1195,7 +1173,9 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 
         localVendors.push(newVendor);
         if (useSupabase && supabase) {
-          await supabase.from('vendors').insert([{ id: newVendor.id, data: newVendor }]).catch(() => null);
+          try {
+            await supabase.from('vendors').insert([{ id: newVendor.id, data: newVendor }]);
+          } catch (_) {}
         }
         vendor = newVendor;
         console.log(`[REGISTER VENDOR] Registered new verified vendor store: ${newVendor.name} (+${newVendor.phone})`);
@@ -2871,7 +2851,9 @@ app.post('/api/analytics/impression', async (req, res) => {
       }
 
       if (useSupabase && supabase) {
-        supabase.from('products').update({ data: product }).eq('id', product.id).catch((e: any) => console.warn('Supabase impression update warning:', e));
+        try {
+          await supabase.from('products').update({ data: product }).eq('id', product.id);
+        } catch (_) {}
       }
     }
 
@@ -2916,7 +2898,9 @@ app.post('/api/analytics/view', async (req, res) => {
       platformAnalyticsStats.totalBlockedViews += 1;
       const cooldownRemainingMin = Math.ceil((ANALYTICS_COOLDOWN_MS - (now - lastTime)) / (60 * 1000));
       if (useSupabase && supabase) {
-        await supabase.from('products').update({ data: product }).eq('id', product.id).catch((e: any) => console.warn('Supabase view update warning:', e));
+        try {
+          await supabase.from('products').update({ data: product }).eq('id', product.id);
+        } catch (_) {}
       }
       return res.json({
         success: true,
@@ -2934,7 +2918,9 @@ app.post('/api/analytics/view', async (req, res) => {
     platformAnalyticsStats.totalViews += 1;
 
     if (useSupabase && supabase) {
-      await supabase.from('products').update({ data: product }).eq('id', product.id).catch((e: any) => console.warn('Supabase view update warning:', e));
+      try {
+        await supabase.from('products').update({ data: product }).eq('id', product.id);
+      } catch (_) {}
     }
 
     res.json({
@@ -2969,7 +2955,9 @@ app.post('/api/analytics/cart-add', async (req, res) => {
     platformAnalyticsStats.totalCartAdds += 1;
 
     if (useSupabase && supabase) {
-      await supabase.from('products').update({ data: product }).eq('id', product.id).catch((e: any) => console.warn('Supabase cart-add update warning:', e));
+      try {
+        await supabase.from('products').update({ data: product }).eq('id', product.id);
+      } catch (_) {}
     }
 
     res.json({
@@ -3500,7 +3488,7 @@ function calculateVendorFinancials(vendorId: string) {
 }
 
 // Helper: Hook called when an order is marked Delivered
-function recordVendorOrderDelivered(order: Order) {
+async function recordVendorOrderDelivered(order: Order) {
   if (!order || !order.items) return;
 
   const vendorGroupMap = new Map<string, { total: number; itemsDesc: string[]; qty: number }>();
@@ -3553,29 +3541,31 @@ function recordVendorOrderDelivered(order: Order) {
 
     // If Supabase is active, persist to vendor_wallet_ledger
     if (useSupabase && supabase) {
-      supabase.from('vendor_wallet_ledger').insert([{
-        id: newEntry.id,
-        vendor_id: vendorId,
-        transaction_type: newEntry.transactionType,
-        type_label: newEntry.typeLabel,
-        reference_id: newEntry.referenceId,
-        order_id: newEntry.orderId,
-        product_title: newEntry.productTitle,
-        quantity: newEntry.quantity,
-        description: newEntry.description,
-        credit_amount: newEntry.credit,
-        debit_amount: newEntry.debit,
-        running_balance: newEntry.runningBalance,
-        status: newEntry.status,
-        created_at: newEntry.timestamp,
-        data: newEntry
-      }]).catch((err: any) => console.warn('Supabase vendor ledger insert notice:', err.message || err));
+      try {
+        await supabase.from('vendor_wallet_ledger').insert([{
+          id: newEntry.id,
+          vendor_id: vendorId,
+          transaction_type: newEntry.transactionType,
+          type_label: newEntry.typeLabel,
+          reference_id: newEntry.referenceId,
+          order_id: newEntry.orderId,
+          product_title: newEntry.productTitle,
+          quantity: newEntry.quantity,
+          description: newEntry.description,
+          credit_amount: newEntry.credit,
+          debit_amount: newEntry.debit,
+          running_balance: newEntry.runningBalance,
+          status: newEntry.status,
+          created_at: newEntry.timestamp,
+          data: newEntry
+        }]);
+      } catch (_) {}
     }
   }
 }
 
 // Helper: Hook called when an order is Returned -> Deducts vendor & Credits Customer QueKart Wallet
-function recordVendorOrderReturned(order: Order, returnReason = 'Customer return processed') {
+async function recordVendorOrderReturned(order: Order, returnReason = 'Customer return processed') {
   if (!order || !order.items) return;
 
   const vendorGroupMap = new Map<string, { total: number; itemsDesc: string[]; qty: number }>();
@@ -3628,23 +3618,25 @@ function recordVendorOrderReturned(order: Order, returnReason = 'Customer return
     localVendorLedgers.set(vendorId, ledger);
 
     if (useSupabase && supabase) {
-      supabase.from('vendor_wallet_ledger').insert([{
-        id: newEntry.id,
-        vendor_id: vendorId,
-        transaction_type: newEntry.transactionType,
-        type_label: newEntry.typeLabel,
-        reference_id: newEntry.referenceId,
-        order_id: newEntry.orderId,
-        product_title: newEntry.productTitle,
-        quantity: newEntry.quantity,
-        description: newEntry.description,
-        credit_amount: newEntry.credit,
-        debit_amount: newEntry.debit,
-        running_balance: newEntry.runningBalance,
-        status: newEntry.status,
-        created_at: newEntry.timestamp,
-        data: newEntry
-      }]).catch((err: any) => console.warn('Supabase vendor ledger insert notice:', err.message || err));
+      try {
+        await supabase.from('vendor_wallet_ledger').insert([{
+          id: newEntry.id,
+          vendor_id: vendorId,
+          transaction_type: newEntry.transactionType,
+          type_label: newEntry.typeLabel,
+          reference_id: newEntry.referenceId,
+          order_id: newEntry.orderId,
+          product_title: newEntry.productTitle,
+          quantity: newEntry.quantity,
+          description: newEntry.description,
+          credit_amount: newEntry.credit,
+          debit_amount: newEntry.debit,
+          running_balance: newEntry.runningBalance,
+          status: newEntry.status,
+          created_at: newEntry.timestamp,
+          data: newEntry
+        }]);
+      } catch (_) {}
     }
   }
 
@@ -3683,13 +3675,15 @@ function recordVendorOrderReturned(order: Order, returnReason = 'Customer return
     localUserWallets.set(customerPhone, wallet);
 
     if (useSupabase && supabase) {
-      supabase.from('user_wallets').upsert({
-        phone: customerPhone,
-        user_id: order.userId || null,
-        balance: wallet.balance,
-        total_refunds: wallet.totalRefunds,
-        updated_at: new Date().toISOString()
-      }).catch((err: any) => console.warn('Supabase user wallet update notice:', err.message || err));
+      try {
+        await supabase.from('user_wallets').upsert({
+          phone: customerPhone,
+          user_id: order.userId || null,
+          balance: wallet.balance,
+          total_refunds: wallet.totalRefunds,
+          updated_at: new Date().toISOString()
+        });
+      } catch (_) {}
     }
   }
 }
@@ -3899,39 +3893,43 @@ app.post('/api/vendor/:id/payout', async (req, res) => {
 
     // 3. Persist to Supabase if active
     if (useSupabase && supabase) {
-      supabase.from('vendor_payout_requests').insert([{
-        id: payoutRecord.id,
-        vendor_id: payoutRecord.vendorId,
-        method: payoutRecord.method,
-        account_number: payoutRecord.accountNumber,
-        ifsc_code: payoutRecord.ifscCode,
-        account_holder_name: payoutRecord.accountHolderName,
-        bank_name: payoutRecord.bankName,
-        upi_id: payoutRecord.upiId,
-        amount: payoutRecord.amount,
-        status: payoutRecord.status,
-        reference_id: payoutRecord.referenceId,
-        requested_at: payoutRecord.requestedAt,
-        processed_at: payoutRecord.processedAt,
-        utr_number: payoutRecord.utrNumber,
-        notes: payoutRecord.notes,
-        data: payoutRecord
-      }]).catch((e: any) => console.warn('Supabase payout insert notice:', e.message || e));
+      try {
+        await supabase.from('vendor_payout_requests').insert([{
+          id: payoutRecord.id,
+          vendor_id: payoutRecord.vendorId,
+          method: payoutRecord.method,
+          account_number: payoutRecord.accountNumber,
+          ifsc_code: payoutRecord.ifscCode,
+          account_holder_name: payoutRecord.accountHolderName,
+          bank_name: payoutRecord.bankName,
+          upi_id: payoutRecord.upiId,
+          amount: payoutRecord.amount,
+          status: payoutRecord.status,
+          reference_id: payoutRecord.referenceId,
+          requested_at: payoutRecord.requestedAt,
+          processed_at: payoutRecord.processedAt,
+          utr_number: payoutRecord.utrNumber,
+          notes: payoutRecord.notes,
+          data: payoutRecord
+        }]);
+      } catch (_) {}
 
-      supabase.from('vendor_wallet_ledger').insert([{
-        id: ledgerEntry.id,
-        vendor_id: id,
-        transaction_type: ledgerEntry.transactionType,
-        type_label: ledgerEntry.typeLabel,
-        reference_id: ledgerEntry.referenceId,
-        description: ledgerEntry.description,
-        credit_amount: ledgerEntry.credit,
-        debit_amount: ledgerEntry.debit,
-        running_balance: ledgerEntry.runningBalance,
-        status: ledgerEntry.status,
-        created_at: ledgerEntry.timestamp,
-        data: ledgerEntry
-      }]).catch((e: any) => console.warn('Supabase ledger insert notice:', e.message || e));
+      try {
+        await supabase.from('vendor_wallet_ledger').insert([{
+          id: ledgerEntry.id,
+          vendor_id: id,
+          transaction_type: ledgerEntry.transactionType,
+          type_label: ledgerEntry.typeLabel,
+          reference_id: ledgerEntry.referenceId,
+          description: ledgerEntry.description,
+          credit_amount: ledgerEntry.credit,
+          debit_amount: ledgerEntry.debit,
+          running_balance: ledgerEntry.runningBalance,
+          status: ledgerEntry.status,
+          created_at: ledgerEntry.timestamp,
+          data: ledgerEntry
+        }]);
+      } catch (_) {}
     }
 
     const updatedFinancials = calculateVendorFinancials(id);

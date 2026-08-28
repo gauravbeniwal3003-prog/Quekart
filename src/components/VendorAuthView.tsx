@@ -355,13 +355,7 @@ export default function VendorAuthView({
         setErrorMsg(data.error || 'Failed to dispatch verification code.');
       }
     } catch (_) {
-      setLoginStep('otp');
-      setLoginTimer(60);
-      setIsLoginResendActive(false);
-      setLoginOtpDigits(['', '', '', '', '', '']);
-      setTimeout(() => {
-        loginOtpInputRefs[0].current?.focus();
-      }, 100);
+      setErrorMsg('Network error while requesting OTP. Please check your internet connection and try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -614,13 +608,7 @@ export default function VendorAuthView({
         setErrorMsg(data.error || 'Failed to dispatch verification code.');
       }
     } catch (_) {
-      setIsOtpSent(true);
-      setSignUpTimer(60);
-      setIsSignUpResendActive(false);
-      setSignUpOtpDigits(['', '', '', '', '', '']);
-      setTimeout(() => {
-        signUpInlineOtpRefs[0].current?.focus();
-      }, 150);
+      setErrorMsg('Network error while requesting OTP. Please check your internet connection and try again.');
     } finally {
       setIsProcessing(false);
     }

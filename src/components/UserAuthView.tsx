@@ -402,13 +402,7 @@ export default function UserAuthView({ onLoginSuccess, onSkip, navigateTo, isSig
         setErrorMsg(data.error || 'Failed to dispatch verification code.');
       }
     } catch (_) {
-      setStep('otp');
-      setTimer(60);
-      setIsResendActive(false);
-      setOtpDigits(['', '', '', '', '', '']);
-      setTimeout(() => {
-        otpInputRefs[0].current?.focus();
-      }, 100);
+      setErrorMsg('Network error while requesting OTP. Please check your internet connection and try again.');
     } finally {
       setIsProcessing(false);
     }
