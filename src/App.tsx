@@ -360,53 +360,70 @@ export default function App() {
   });
   const [isLoadingShopData, setIsLoadingShopData] = useState<boolean>(false);
 
-  // Fetch / Refresh shop data from server-side or Supabase direct
+  // Fetch / Refresh shop data with Prioritized Critical-First Streaming (Banners & Products first)
   const refreshShopData = useCallback(async () => {
-    setIsLoadingShopData(true);
-    try {
-      const [productsData, ordersData, couponsData, categoriesData, categoryFiltersData, bannersData] = await Promise.all([
-        fetchProductsUnified(),
-        fetchOrdersUnified(),
-        fetchCouponsUnified(),
-        fetchCategoriesUnified(),
-        fetchCategoryFiltersUnified(),
-        fetchBannersUnified()
-      ]);
-      
-      if (productsData && Array.isArray(productsData)) {
-        setProducts(productsData);
-      }
-      if (ordersData && Array.isArray(ordersData)) {
-        setOrders(ordersData);
-      }
-      if (couponsData && Array.isArray(couponsData)) {
-        setCoupons(couponsData);
-      }
-      if (categoriesData && Array.isArray(categoriesData)) {
-        const hasAllCat = categoriesData.some(c => c && (c.id === 'cat-all' || c.name.toLowerCase() === 'all categories'));
-        if (!hasAllCat) {
-          const allCat: Category = {
-            id: 'cat-all',
-            name: 'All Categories',
-            icon: 'shopping-bag',
-            image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300'
-          };
-          setCategories([allCat, ...categoriesData]);
-        } else {
-          setCategories(categoriesData);
+    // 1. Critical visual pipeline (Banners, Categories, Products) - render immediately without waiting for background data
+    const loadCriticalVisualData = async () => {
+      try {
+        const [bannersData, categoriesData, productsData] = await Promise.all([
+          fetchBannersUnified(),
+          fetchCategoriesUnified(),
+          fetchProductsUnified()
+        ]);
+
+        if (bannersData && Array.isArray(bannersData) && bannersData.length > 0) {
+          setBanners(bannersData);
         }
+
+        if (categoriesData && Array.isArray(categoriesData)) {
+          const hasAllCat = categoriesData.some(c => c && (c.id === 'cat-all' || c.name.toLowerCase() === 'all categories'));
+          if (!hasAllCat) {
+            const allCat: Category = {
+              id: 'cat-all',
+              name: 'All Categories',
+              icon: 'shopping-bag',
+              image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=75&w=300'
+            };
+            setCategories([allCat, ...categoriesData]);
+          } else {
+            setCategories(categoriesData);
+          }
+        }
+
+        if (productsData && Array.isArray(productsData)) {
+          setProducts(productsData);
+        }
+      } catch (err) {
+        console.warn('⚠️ Critical visual loading notice:', err);
       }
-      if (categoryFiltersData && Array.isArray(categoryFiltersData)) {
-        setCategoryFilters(categoryFiltersData);
+    };
+
+    // 2. Background data pipeline (Orders, Coupons, Category Filters) - non-blocking
+    const loadSecondaryData = async () => {
+      try {
+        const [ordersData, couponsData, categoryFiltersData] = await Promise.all([
+          fetchOrdersUnified(),
+          fetchCouponsUnified(),
+          fetchCategoryFiltersUnified()
+        ]);
+
+        if (ordersData && Array.isArray(ordersData)) {
+          setOrders(ordersData);
+        }
+        if (couponsData && Array.isArray(couponsData)) {
+          setCoupons(couponsData);
+        }
+        if (categoryFiltersData && Array.isArray(categoryFiltersData)) {
+          setCategoryFilters(categoryFiltersData);
+        }
+      } catch (err) {
+        console.warn('⚠️ Secondary data loading notice:', err);
       }
-      if (bannersData && Array.isArray(bannersData) && bannersData.length > 0) {
-        setBanners(bannersData);
-      }
-    } catch (err) {
-      console.warn('⚠️ Data loading notice:', err);
-    } finally {
-      setIsLoadingShopData(false);
-    }
+    };
+
+    // Execute in parallel with priority to critical visuals
+    loadCriticalVisualData();
+    loadSecondaryData();
   }, []);
 
   useEffect(() => {

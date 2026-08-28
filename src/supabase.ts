@@ -106,6 +106,60 @@ async function fetchSafeJson(url: string, options?: RequestInit): Promise<any | 
   }
 }
 
+// -------------------------------------------------------------
+// HIGH-SPEED IN-MEMORY CACHE
+// -------------------------------------------------------------
+let memoryProductsCache: Product[] | null = null;
+let memoryBannersCache: Banner[] | null = null;
+let memoryCategoriesCache: Category[] | null = null;
+
+// Synchronously initialize memory cache from localStorage if present
+try {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    const rawProd = localStorage.getItem('quekart_cached_products');
+    if (rawProd) memoryProductsCache = JSON.parse(rawProd);
+    const rawBan = localStorage.getItem('quekart_cached_banners');
+    if (rawBan) memoryBannersCache = JSON.parse(rawBan);
+    const rawCat = localStorage.getItem('quekart_cached_categories');
+    if (rawCat) memoryCategoriesCache = JSON.parse(rawCat);
+  }
+} catch (_) {}
+
+/**
+ * Preload high-priority banner and top product image assets into browser cache
+ */
+export function warmupCriticalShopImages(products?: Product[], banners?: Banner[]): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    // 1. Warm up Banners (Top Priority)
+    const bannerList = (banners && banners.length > 0) ? banners : (memoryBannersCache || initialBanners);
+    bannerList.slice(0, 6).forEach((b) => {
+      if (b && b.imageUrl) {
+        const img = new Image();
+        img.referrerPolicy = 'no-referrer';
+        img.decoding = 'async';
+        img.src = b.imageUrl;
+      }
+    });
+
+    // 2. Warm up Top Product Cards (First 12 items)
+    const productList = (products && products.length > 0) ? products : (memoryProductsCache || mockProducts);
+    productList.slice(0, 12).forEach((p) => {
+      const firstImg = p.images && p.images[0];
+      if (firstImg) {
+        const img = new Image();
+        img.referrerPolicy = 'no-referrer';
+        img.decoding = 'async';
+        img.src = firstImg;
+      }
+    });
+  } catch (_) {}
+}
+
+// Initial image asset warmup on file import
+warmupCriticalShopImages();
+
 function getAdminSecret(providedSecret?: string): string {
   if (providedSecret) return providedSecret;
   try {
@@ -123,23 +177,31 @@ export async function fetchProductsUnified(): Promise<Product[]> {
   // 1. Try Backend API
   const apiProducts = await fetchSafeJson(getApiUrl('/api/products?all=true'));
   if (apiProducts && Array.isArray(apiProducts) && apiProducts.length > 0) {
+    memoryProductsCache = apiProducts;
     try {
       localStorage.setItem('quekart_cached_products', JSON.stringify(apiProducts));
     } catch (_) {}
+    warmupCriticalShopImages(apiProducts);
     return apiProducts;
   }
 
-  // 2. Try Direct Supabase Connection
+  // 2. Return memory cache if available
+  if (memoryProductsCache && memoryProductsCache.length > 0) {
+    return memoryProductsCache;
+  }
+
+  // 3. Try Direct Supabase Connection
   const sb = getSupabase();
   if (sb) {
     try {
       const { data, error } = await sb.from('products').select('*');
       if (!error && data && data.length > 0) {
         const mappedProducts: Product[] = data.map((row: any) => row.data || row);
-        console.log(`📦 Loaded ${mappedProducts.length} products directly from Supabase.`);
+        memoryProductsCache = mappedProducts;
         try {
           localStorage.setItem('quekart_cached_products', JSON.stringify(mappedProducts));
         } catch (_) {}
+        warmupCriticalShopImages(mappedProducts);
         return mappedProducts;
       }
     } catch (sbErr) {
@@ -147,18 +209,19 @@ export async function fetchProductsUnified(): Promise<Product[]> {
     }
   }
 
-  // 3. Try LocalStorage Cache
+  // 4. Try LocalStorage Cache
   try {
     const cached = localStorage.getItem('quekart_cached_products');
     if (cached) {
       const parsed = JSON.parse(cached);
       if (Array.isArray(parsed) && parsed.length > 0) {
+        memoryProductsCache = parsed;
         return parsed;
       }
     }
   } catch (_) {}
 
-  // 4. Return default mock products
+  // 5. Return default mock products
   return mockProducts;
 }
 
@@ -168,8 +231,13 @@ export async function fetchProductsUnified(): Promise<Product[]> {
 export async function fetchCategoriesUnified(): Promise<Category[]> {
   const apiCats = await fetchSafeJson(getApiUrl('/api/categories'));
   if (apiCats && Array.isArray(apiCats) && apiCats.length > 0) {
+    memoryCategoriesCache = apiCats;
     try { localStorage.setItem('quekart_cached_categories', JSON.stringify(apiCats)); } catch (_) {}
     return apiCats;
+  }
+
+  if (memoryCategoriesCache && memoryCategoriesCache.length > 0) {
+    return memoryCategoriesCache;
   }
 
   const sb = getSupabase();
@@ -178,6 +246,7 @@ export async function fetchCategoriesUnified(): Promise<Category[]> {
       const { data, error } = await sb.from('categories').select('*').order('position', { ascending: true });
       if (!error && data && data.length > 0) {
         const mapped = data.map((r: any) => r.data || r);
+        memoryCategoriesCache = mapped;
         try { localStorage.setItem('quekart_cached_categories', JSON.stringify(mapped)); } catch (_) {}
         return mapped;
       }
@@ -186,7 +255,13 @@ export async function fetchCategoriesUnified(): Promise<Category[]> {
 
   try {
     const cached = localStorage.getItem('quekart_cached_categories');
-    if (cached) return JSON.parse(cached);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        memoryCategoriesCache = parsed;
+        return parsed;
+      }
+    }
   } catch (_) {}
 
   return [];
@@ -220,8 +295,14 @@ export async function fetchCategoryFiltersUnified(): Promise<CategoryFilter[]> {
 export async function fetchBannersUnified(): Promise<Banner[]> {
   const apiBanners = await fetchSafeJson(getApiUrl('/api/banners'));
   if (apiBanners && Array.isArray(apiBanners) && apiBanners.length > 0) {
+    memoryBannersCache = apiBanners;
     try { localStorage.setItem('quekart_cached_banners', JSON.stringify(apiBanners)); } catch (_) {}
+    warmupCriticalShopImages(undefined, apiBanners);
     return apiBanners;
+  }
+
+  if (memoryBannersCache && memoryBannersCache.length > 0) {
+    return memoryBannersCache;
   }
 
   const sb = getSupabase();
@@ -230,7 +311,9 @@ export async function fetchBannersUnified(): Promise<Banner[]> {
       const { data, error } = await sb.from('banners').select('*');
       if (!error && data && data.length > 0) {
         const mapped = data.map((r: any) => r.data || r);
+        memoryBannersCache = mapped;
         try { localStorage.setItem('quekart_cached_banners', JSON.stringify(mapped)); } catch (_) {}
+        warmupCriticalShopImages(undefined, mapped);
         return mapped;
       }
     } catch (_) {}
@@ -238,7 +321,13 @@ export async function fetchBannersUnified(): Promise<Banner[]> {
 
   try {
     const cached = localStorage.getItem('quekart_cached_banners');
-    if (cached) return JSON.parse(cached);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        memoryBannersCache = parsed;
+        return parsed;
+      }
+    }
   } catch (_) {}
 
   return [];

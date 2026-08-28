@@ -469,6 +469,9 @@ export default function CategoryProductsView({
                         alt={product.title}
                         aspectRatioClassName="aspect-[3/4]"
                         containerClassName="w-full h-full"
+                        targetWidth={400}
+                        loading={idx < 6 ? 'eager' : 'lazy'}
+                        fetchPriority={idx < 4 ? 'high' : 'auto'}
                       />
 
                       {/* Floating Wishlist Button strictly overlayed on top right */}

@@ -863,6 +863,9 @@ export default function ProductDetail({
                   aspectRatioClassName="aspect-square"
                   containerClassName="w-full h-full"
                   objectFit="contain"
+                  targetWidth={800}
+                  loading="eager"
+                  fetchPriority="high"
                   id="product-gallery-main-image"
                 />
 

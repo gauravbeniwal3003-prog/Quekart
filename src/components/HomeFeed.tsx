@@ -22,7 +22,7 @@ import { HighlightedText } from './HighlightedText';
 import { useProductImpressionObserver } from '../hooks/useProductImpressionObserver';
 import { trackProductView } from '../utils/analytics';
 import { getApiUrl } from '../utils/api';
-import { SmartImage } from './common/SmartImage';
+import { SmartImage, preloadImagesBatch, optimizeImageUrl } from './common/SmartImage';
 import { CategoryIcon } from './common/CategoryIcon';
 import { ProductCardSkeleton, ProductGridSkeleton, BannerSkeleton, CategoryRowSkeleton } from './common/Skeletons';
 
@@ -91,6 +91,18 @@ export default function HomeFeed({
   const displayBanners = useMemo(() => {
     return (banners && banners.length > 0) ? banners : initialBanners;
   }, [banners]);
+
+  // High-Speed Asset Preloader for Banners & Top Product Cards
+  useEffect(() => {
+    if (displayBanners && displayBanners.length > 0) {
+      const bannerUrls = displayBanners.map(b => b.imageUrl).filter(Boolean);
+      preloadImagesBatch(bannerUrls, 1000);
+    }
+    if (products && products.length > 0) {
+      const topProdUrls = products.slice(0, 16).map(p => p.images?.[0]).filter(Boolean) as string[];
+      preloadImagesBatch(topProdUrls, 450);
+    }
+  }, [displayBanners, products]);
 
   // Separate banners by placement (Main Banner vs Double Banners) with robust fallbacks
   const row1Banners = useMemo(() => {
@@ -682,14 +694,15 @@ export default function HomeFeed({
                       >
                         <div className="aspect-banner-main w-full relative">
                           <img 
-                            src={banner.imageUrl} 
+                            src={optimizeImageUrl(banner.imageUrl, 1000, 75)} 
                             alt={banner.title || banner.type} 
                             className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
                             referrerPolicy="no-referrer"
                             loading="eager"
                             fetchPriority="high"
+                            decoding="async"
                             onError={(e) => {
-                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=1200';
+                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=75&w=1000';
                             }}
                             draggable="false"
                           />
@@ -753,14 +766,15 @@ export default function HomeFeed({
                       >
                         <div className="aspect-banner-double w-full relative">
                           <img 
-                            src={banner.imageUrl} 
+                            src={optimizeImageUrl(banner.imageUrl, 800, 75)} 
                             alt={banner.title || banner.type} 
                             className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
                             referrerPolicy="no-referrer"
                             loading="eager"
                             fetchPriority="high"
+                            decoding="async"
                             onError={(e) => {
-                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=1200';
+                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=75&w=800';
                             }}
                             draggable="false"
                           />
@@ -1513,6 +1527,9 @@ export default function HomeFeed({
                       alt={product.title}
                       aspectRatioClassName="aspect-square"
                       containerClassName="w-full h-full"
+                      targetWidth={450}
+                      loading={idx < 8 ? 'eager' : 'lazy'}
+                      fetchPriority={idx < 4 ? 'high' : 'auto'}
                     />
 
                     {/* Ad tag indicator */}

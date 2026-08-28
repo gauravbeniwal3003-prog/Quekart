@@ -2041,38 +2041,20 @@ app.get('/api/products', async (req, res) => {
   const vendorIdParam = req.query.vendorId as string;
 
   try {
-    let productsList: Product[] = [];
-    if (useSupabase && supabase) {
-      const { data, error } = await supabase.from('products').select('*');
-      if (!error && data) {
-        productsList = data.map((row: any) => row.data || row);
-      } else {
-        console.warn('Supabase product query empty or failed:', error);
-        productsList = [];
-      }
-    } else {
-      productsList = localProducts;
-    }
+    // Set high-performance browser & CDN caching headers
+    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=120');
+    res.setHeader('Vary', 'Accept-Encoding');
 
-    // Fetch active vendors and users to apply smart deletion/ban rules
-    let currentVendors: Vendor[] = [];
-    let currentUsers: AppUser[] = [];
-    if (useSupabase && supabase) {
-      const { data: vData } = await supabase.from('vendors').select('*');
-      if (vData) currentVendors = vData.map((r: any) => r.data || r);
-      const { data: uData } = await supabase.from('users').select('*');
-      if (uData) currentUsers = uData.map((r: any) => r.data || r);
-    } else {
-      currentVendors = localVendors;
-      currentUsers = localUsers;
-    }
+    // Instant zero-latency serving from in-memory synchronized store
+    let productsList: Product[] = [...localProducts];
 
+    // Build fast lookup maps from in-memory vendor & user lists
     const vendorMap = new Map<string, Vendor>();
-    currentVendors.forEach(v => vendorMap.set(v.id, v));
+    localVendors.forEach(v => vendorMap.set(v.id, v));
 
     const bannedUserIds = new Set<string>();
     const bannedUserPhones = new Set<string>();
-    currentUsers.forEach(u => {
+    localUsers.forEach(u => {
       if ((u as any).status === 'banned' || (u as any).isBanned) {
         if (u.id) bannedUserIds.add(u.id);
         if (u.phone) bannedUserPhones.add(u.phone);
@@ -4007,12 +3989,8 @@ app.post('/api/user/wallet/pay', async (req, res) => {
 // --- COUPONS ---
 app.get('/api/coupons', async (req, res) => {
   try {
-    if (useSupabase && supabase) {
-      const { data, error } = await supabase.from('coupons').select('*');
-      if (!error && data && data.length > 0) {
-        return res.json(data.map((row: any) => row.data));
-      }
-    }
+    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=120');
+    res.setHeader('Vary', 'Accept-Encoding');
     res.json(localCoupons);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch coupons' });
@@ -4074,14 +4052,8 @@ app.delete('/api/coupons/:code', authenticateAdmin, async (req, res) => {
 // --- CATEGORIES ---
 app.get('/api/categories', async (req, res) => {
   try {
-    if (useSupabase && supabase) {
-      const { data, error } = await supabase.from('categories').select('*').order('position', { ascending: true });
-      if (!error && data) {
-        localCategories = data.map((row: any) => row.data);
-        saveMockDataFile();
-        return res.json(localCategories);
-      }
-    }
+    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=120');
+    res.setHeader('Vary', 'Accept-Encoding');
     res.json(localCategories);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch categories' });
@@ -4206,14 +4178,8 @@ app.post('/api/categories/reorder', authenticateAdmin, async (req, res) => {
 // --- CATEGORY FILTERS ---
 app.get('/api/category-filters', async (req, res) => {
   try {
-    if (useSupabase && supabase) {
-      const { data, error } = await supabase.from('category_filters').select('*').order('position', { ascending: true });
-      if (!error && data) {
-        localCategoryFilters = data.map((row: any) => row.data);
-        saveMockDataFile();
-        return res.json(localCategoryFilters);
-      }
-    }
+    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=120');
+    res.setHeader('Vary', 'Accept-Encoding');
     res.json(localCategoryFilters);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch category filters' });
@@ -4333,12 +4299,8 @@ app.post('/api/category-filters/reorder', authenticateAdmin, async (req, res) =>
 // --- BANNERS ---
 app.get('/api/banners', async (req, res) => {
   try {
-    if (useSupabase && supabase) {
-      const { data, error } = await supabase.from('banners').select('*');
-      if (!error && data && data.length > 0) {
-        return res.json(data.map((row: any) => row.data));
-      }
-    }
+    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=120');
+    res.setHeader('Vary', 'Accept-Encoding');
     res.json(localBanners);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch banners' });
