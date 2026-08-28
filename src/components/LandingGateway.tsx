@@ -794,6 +794,85 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
 
             </div>
 
+            {/* SEO Directory & Comparison Links for Maximum Google Indexation */}
+            <div className="py-6 border-t border-[#E8EEF5]">
+              <h4 className="text-xs font-black text-[#0B1E36] uppercase tracking-wider mb-3">
+                POPULAR WHOLESALE SEARCHES &amp; MARKETPLACE COMPARISONS
+              </h4>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 text-[11px] font-semibold text-[#556987]">
+                <button
+                  type="button"
+                  onClick={() => onNavigate('/compare/quekart-vs-meesho')}
+                  className="text-left hover:text-[#143C6B] hover:underline cursor-pointer truncate"
+                >
+                  • QueKart vs Meesho Comparison
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('/compare/quekart-vs-flipkart')}
+                  className="text-left hover:text-[#143C6B] hover:underline cursor-pointer truncate"
+                >
+                  • QueKart vs Flipkart Direct
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('/compare/quekart-vs-amazon')}
+                  className="text-left hover:text-[#143C6B] hover:underline cursor-pointer truncate"
+                >
+                  • QueKart vs Amazon Value
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('/collections/wholesale-sarees-kurtis')}
+                  className="text-left hover:text-[#143C6B] hover:underline cursor-pointer truncate"
+                >
+                  • Wholesale Sarees &amp; Kurtis
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('/collections/electronics-accessories')}
+                  className="text-left hover:text-[#143C6B] hover:underline cursor-pointer truncate"
+                >
+                  • Wholesale Gadgets &amp; Earbuds
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('/collections/kitchen-home-appliances')}
+                  className="text-left hover:text-[#143C6B] hover:underline cursor-pointer truncate"
+                >
+                  • Non-Stick Cookware Wholesale
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('/explore/wholesale-market-surat')}
+                  className="text-left hover:text-[#143C6B] hover:underline cursor-pointer truncate"
+                >
+                  • Surat Wholesale Textile Hub
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('/explore/wholesale-market-jaipur')}
+                  className="text-left hover:text-[#143C6B] hover:underline cursor-pointer truncate"
+                >
+                  • Jaipur Kurti Wholesale Market
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('/explore/wholesale-market-panipat')}
+                  className="text-left hover:text-[#143C6B] hover:underline cursor-pointer truncate"
+                >
+                  • Panipat Handloom Bedsheets
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('/sell-online/zero-commission-marketplace')}
+                  className="text-left text-[#E57E00] font-bold hover:underline cursor-pointer truncate"
+                >
+                  • Sell Online with 0% Commission
+                </button>
+              </div>
+            </div>
+
             {/* Bottom Copyright, Address & Certifications */}
             <div className="pt-6 border-t border-[#E8EEF5] flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3">

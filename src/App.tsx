@@ -34,7 +34,9 @@ import CategoryProductsView from './components/CategoryProductsView';
 import VendorStoreView from './components/VendorStoreView';
 import LandingGateway from './components/LandingGateway';
 import ComplianceView from './components/ComplianceView';
+import SeoHubView from './components/SeoHubView';
 import { smartSearchFilter } from './utils/search';
+import { updatePageSEO } from './utils/seo';
 
 const initialCoupons: Coupon[] = [
   {
@@ -145,13 +147,19 @@ export default function App() {
     const secondPart = (parts[1] || '').toLowerCase();
     const thirdPart = parts[2] || null;
 
-    let portal: 'landing' | 'shop' | 'vendor' | 'admin' = 'landing';
+    let portal: 'landing' | 'shop' | 'vendor' | 'admin' | 'seo' = 'landing';
     let tab = 'home';
     let productId: string | null = null;
     let subPage: string | null = null;
 
+    // 0. Dedicated SEO Comparison & Category Hub Pages
+    if (['compare', 'collections', 'explore', 'sell-online', 'seo', 'directory'].includes(firstPart)) {
+      portal = 'seo';
+      tab = firstPart;
+      subPage = secondPart ? `${firstPart}/${secondPart}` : (firstPart === 'compare' ? 'compare/quekart-vs-meesho' : firstPart);
+    }
     // 1. Direct Compliance & Policies
-    if (['terms', 'privacy', 'refund', 'contact'].includes(firstPart)) {
+    else if (['terms', 'privacy', 'refund', 'contact'].includes(firstPart)) {
       portal = 'landing';
       tab = firstPart;
     }
@@ -478,6 +486,60 @@ export default function App() {
   // Sync scroll behavior on route/product/subpage changes across all portals & views
   useEffect(() => {
     resetScrollToTop();
+  }, [currentPath, activePortal, activeTab, activeSubPage, selectedProduct]);
+
+  // Dynamic Full-Site SEO & JSON-LD Synchronization for All Routes
+  useEffect(() => {
+    if (activePortal === 'seo') {
+      // SeoHubView handles its own metadata dynamically based on the slug
+      return;
+    }
+    if (selectedProduct) {
+      updatePageSEO({
+        title: `Buy ${selectedProduct.title} Online at Direct Factory Wholesale Price ₹${selectedProduct.price} | QueKart`,
+        description: `Get ${selectedProduct.title} for just ₹${selectedProduct.price} (MRP ₹${selectedProduct.originalPrice}) on QueKart. Free Delivery, 100% Cash on Delivery & 7-Day Easy Returns.`,
+        canonicalUrl: `https://quekart.in/shop/product/${selectedProduct.id}`,
+        ogImage: selectedProduct.images?.[0] || 'https://img.icons8.com/color/512/shopping-bag--v1.png',
+        structuredData: {
+          "@context": "https://schema.org",
+          "@type": "Product",
+          "name": selectedProduct.title,
+          "image": selectedProduct.images || [],
+          "description": selectedProduct.description,
+          "sku": selectedProduct.id,
+          "offers": {
+            "@type": "Offer",
+            "url": `https://quekart.in/shop/product/${selectedProduct.id}`,
+            "priceCurrency": "INR",
+            "price": selectedProduct.price,
+            "availability": "https://schema.org/InStock",
+            "seller": {
+              "@type": "Organization",
+              "name": selectedProduct.soldBy || "QueKart Direct Wholesale"
+            }
+          }
+        }
+      });
+    } else if (activePortal === 'shop' && activeTab === 'categories' && activeSubPage) {
+      const decodedCat = decodeURIComponent(activeSubPage);
+      updatePageSEO({
+        title: `Wholesale ${decodedCat} Online - Direct Factory Rates & Free Delivery | QueKart`,
+        description: `Shop wholesale ${decodedCat} direct from manufacturers at lowest prices in India. Cash on Delivery (COD) and 7-day returns available.`,
+        canonicalUrl: `https://quekart.in/shop/categories/${encodeURIComponent(decodedCat)}`
+      });
+    } else if (activePortal === 'shop') {
+      updatePageSEO({
+        title: "QueKart Store - Direct Factory Wholesale Shopping Online in India",
+        description: "Explore thousands of verified wholesale products directly from manufacturers across India at lowest prices. Free Delivery & COD available.",
+        canonicalUrl: "https://quekart.in/shop"
+      });
+    } else if (activePortal === 'landing') {
+      updatePageSEO({
+        title: "QueKart™ - India's #1 Direct Factory Wholesale Online Shopping App | Alternative to Meesho, Flipkart & Amazon",
+        description: "QueKart is India's leading wholesale e-commerce platform connecting buyers and suppliers directly at genuine factory rates. 0% seller commission, Free Delivery & COD.",
+        canonicalUrl: "https://quekart.in/"
+      });
+    }
   }, [currentPath, activePortal, activeTab, activeSubPage, selectedProduct]);
 
   // Guest and Auth routing check: redirect new users to /shop/login
@@ -921,8 +983,16 @@ export default function App() {
           navigateTo={navigateTo}
           currentPath={currentPath}
         />
+      ) : activePortal === 'seo' ? (
+        /* 4. DEDICATED SEO COMPARISON & DISCOVERY HUB */
+        <SeoHubView
+          slug={activeSubPage || 'compare/quekart-vs-meesho'}
+          products={approvedProducts}
+          onNavigate={navigateTo}
+          onSelectProduct={(p) => navigateTo('/shop/product/' + p.id)}
+        />
       ) : (
-        /* 4. CUSTOMER SHOPPING STOREFRONT (/shop) */
+        /* 5. CUSTOMER SHOPPING STOREFRONT (/shop) */
         <div 
           className="w-full h-[100svh] max-h-[100svh] bg-white flex flex-col relative overflow-hidden" 
           id="customer-shop-container"

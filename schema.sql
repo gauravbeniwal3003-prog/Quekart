@@ -299,8 +299,22 @@ ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, position = EXCLUDED.positio
 
 
 -- ----------------------------------------------------------------------
--- 9. SEED THEME-ALIGNED RAKSHA BANDHAN BANNERS (Navy Blue & Saffron Gold)
+-- 10. OTP VERIFICATIONS TABLE (For persistent auth & multi-instance cross-domain sync)
 -- ----------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS otp_verifications (
+    id TEXT PRIMARY KEY,
+    phone TEXT NOT NULL,
+    ten_digit TEXT NOT NULL,
+    otp TEXT NOT NULL,
+    alt_otps JSONB DEFAULT '[]'::jsonb,
+    role TEXT DEFAULT 'user',
+    is_signup BOOLEAN DEFAULT false,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+ALTER TABLE otp_verifications DISABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow full access on otp_verifications to all" ON otp_verifications FOR ALL TO public USING (true) WITH CHECK (true);
+
 INSERT INTO banners (id, data) VALUES
 ('banner-rakhi-1', '{
   "id": "banner-rakhi-1",

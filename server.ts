@@ -689,8 +689,163 @@ app.get(['/api/health', '/health', '/api/ping', '/ping'], (_req, res) => {
   });
 });
 
-// Secure cache for pending OTPs (Phone -> { otp, expires, isSignUp, role, lastSent })
-const pendingOtps = new Map<string, { otp: string; expires: number; isSignUp: boolean; role: string; lastSent: number }>();
+// Secure multi-tier cache for pending OTPs (Phone -> { otp, expires, isSignUp, role, lastSent, altOtps })
+interface OtpRecord {
+  otp: string;
+  expires: number;
+  isSignUp: boolean;
+  role: string;
+  lastSent: number;
+  altOtps?: string[];
+}
+
+const pendingOtps = new Map<string, OtpRecord>();
+
+// File persistence paths for cross-instance / multi-domain / container reload reliability
+const OTP_FILE_PATHS = ['./data/pending_otps.json', '/tmp/quekart_pending_otps.json'];
+
+function ensureOtpDir() {
+  try {
+    if (!fs.existsSync('./data')) {
+      fs.mkdirSync('./data', { recursive: true });
+    }
+  } catch (_) {}
+}
+
+function loadPersistedOtps(): Map<string, OtpRecord> {
+  const map = new Map<string, OtpRecord>();
+  for (const filePath of OTP_FILE_PATHS) {
+    try {
+      if (fs.existsSync(filePath)) {
+        const raw = fs.readFileSync(filePath, 'utf8');
+        const obj = JSON.parse(raw);
+        const now = Date.now();
+        for (const [key, val] of Object.entries(obj)) {
+          const rec = val as OtpRecord;
+          if (rec && rec.expires > now) {
+            map.set(key, rec);
+          }
+        }
+      }
+    } catch (_) {}
+  }
+  return map;
+}
+
+function persistOtpsToFile() {
+  ensureOtpDir();
+  const now = Date.now();
+  const obj: Record<string, OtpRecord> = {};
+  for (const [k, v] of pendingOtps.entries()) {
+    if (v.expires > now) {
+      obj[k] = v;
+    }
+  }
+  const serialized = JSON.stringify(obj, null, 2);
+  for (const filePath of OTP_FILE_PATHS) {
+    try {
+      fs.writeFileSync(filePath, serialized, 'utf8');
+    } catch (_) {}
+  }
+}
+
+// Save OTP record to memory, disk persistence, and Supabase (if available)
+async function saveOtpRecord(fullMobile: string, tenDigitPhone: string, rawPhone: string, record: OtpRecord) {
+  pendingOtps.set(fullMobile, record);
+  pendingOtps.set(tenDigitPhone, record);
+  pendingOtps.set(rawPhone, record);
+  pendingOtps.set(`+${fullMobile}`, record);
+  persistOtpsToFile();
+
+  if (useSupabase && supabase) {
+    try {
+      await supabase.from('otp_verifications').upsert({
+        id: `otp_${tenDigitPhone}`,
+        phone: fullMobile,
+        ten_digit: tenDigitPhone,
+        otp: record.otp,
+        alt_otps: record.altOtps || [],
+        role: record.role,
+        is_signup: record.isSignUp,
+        expires_at: new Date(record.expires).toISOString(),
+        created_at: new Date().toISOString()
+      }, { onConflict: 'id' }).catch(() => null);
+    } catch (_) {}
+  }
+}
+
+// Retrieve OTP record across memory, file persistence, and Supabase
+async function getOtpRecord(fullMobile: string, tenDigitPhone: string, rawPhone: string): Promise<OtpRecord | null> {
+  // 1. Check in-memory
+  let record = pendingOtps.get(fullMobile) ||
+               pendingOtps.get(tenDigitPhone) ||
+               pendingOtps.get(rawPhone) ||
+               pendingOtps.get(`+${fullMobile}`) ||
+               pendingOtps.get(`91${tenDigitPhone}`);
+  
+  if (record && Date.now() <= record.expires) {
+    return record;
+  }
+
+  // 2. Check disk persistence
+  const diskOtps = loadPersistedOtps();
+  record = diskOtps.get(fullMobile) ||
+           diskOtps.get(tenDigitPhone) ||
+           diskOtps.get(rawPhone) ||
+           diskOtps.get(`+${fullMobile}`) ||
+           diskOtps.get(`91${tenDigitPhone}`);
+  
+  if (record && Date.now() <= record.expires) {
+    // Populate back into memory
+    pendingOtps.set(fullMobile, record);
+    pendingOtps.set(tenDigitPhone, record);
+    return record;
+  }
+
+  // 3. Check Supabase (for multi-container Cloud Run & custom domain QueKart.in deployments)
+  if (useSupabase && supabase) {
+    try {
+      const { data } = await supabase
+        .from('otp_verifications')
+        .select('*')
+        .or(`id.eq.otp_${tenDigitPhone},phone.eq.${fullMobile},ten_digit.eq.${tenDigitPhone}`)
+        .single();
+      if (data) {
+        const expTime = new Date(data.expires_at || 0).getTime();
+        if (expTime > Date.now()) {
+          const rec: OtpRecord = {
+            otp: String(data.otp),
+            expires: expTime,
+            isSignUp: !!data.is_signup,
+            role: data.role || 'user',
+            lastSent: Date.now() - 30000,
+            altOtps: Array.isArray(data.alt_otps) ? data.alt_otps : []
+          };
+          pendingOtps.set(fullMobile, rec);
+          pendingOtps.set(tenDigitPhone, rec);
+          return rec;
+        }
+      }
+    } catch (_) {}
+  }
+
+  return null;
+}
+
+// Clear verified OTP record
+async function removeOtpRecord(fullMobile: string, tenDigitPhone: string, rawPhone: string) {
+  pendingOtps.delete(fullMobile);
+  pendingOtps.delete(tenDigitPhone);
+  pendingOtps.delete(rawPhone);
+  pendingOtps.delete(`+${fullMobile}`);
+  persistOtpsToFile();
+
+  if (useSupabase && supabase) {
+    try {
+      await supabase.from('otp_verifications').delete().or(`id.eq.otp_${tenDigitPhone},ten_digit.eq.${tenDigitPhone}`).catch(() => null);
+    } catch (_) {}
+  }
+}
 
 // Helper to format Indian mobile number with 91 prefix
 function formatIndianMobile(rawPhone: string): string {
@@ -717,7 +872,7 @@ async function checkPhoneRole(phone: string, expectedRole: 'user' | 'vendor' | '
   return { role: expectedRole };
 }
 
-// 1. Send OTP Route (Real SMS API dispatch + 60s Rate Limiting per mobile)
+// 1. Send OTP Route (Real SMS API dispatch + 60s Rate Limiting per mobile + Multi-tier Persistence)
 app.post('/api/auth/send-otp', async (req, res) => {
   const { phone, role, isSignUp } = req.body;
   if (!phone || !role) {
@@ -766,23 +921,23 @@ app.post('/api/auth/send-otp', async (req, res) => {
       return res.status(400).json({ error: roleCheck.message });
     }
 
-    // 1. IP Rate Limiting Enforcement: Maximum 15 OTPs per hour per IP address
+    // 1. IP Rate Limiting Enforcement: Maximum 30 OTPs per hour per IP address
     const clientIp = (req.headers['x-forwarded-for'] ? String(req.headers['x-forwarded-for']).split(',')[0].trim() : req.socket?.remoteAddress) || 'unknown';
     const now = Date.now();
     const cutoff1h = now - (3600 * 1000); // 1 hour window
 
     let ipHistory = (otpIpHistoryMap.get(clientIp) || []).filter(t => t > cutoff1h);
     otpIpHistoryMap.set(clientIp, ipHistory);
-    if (ipHistory.length >= 15) {
+    if (ipHistory.length >= 30) {
       return res.status(429).json({
         error: 'Please try again after an hour'
       });
     }
 
-    // 2. Phone Number Rate Limiting Enforcement: Maximum 15 OTPs per hour per number (regardless of IP)
+    // 2. Phone Number Rate Limiting Enforcement: Maximum 30 OTPs per hour per number (regardless of IP)
     let phoneHistory = (otpPhoneHistoryMap.get(tenDigitPhone) || []).filter(t => t > cutoff1h);
     otpPhoneHistoryMap.set(tenDigitPhone, phoneHistory);
-    if (phoneHistory.length >= 15) {
+    if (phoneHistory.length >= 30) {
       return res.status(429).json({
         error: 'Please try again after an hour'
       });
@@ -804,13 +959,9 @@ app.post('/api/auth/send-otp', async (req, res) => {
 
     // Generate secure 6-digit random OTP
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = now + 5 * 60 * 1000; // valid for 5 mins
+    const expires = now + 10 * 60 * 1000; // valid for 10 mins (extended for cross-network reliability)
 
-    // Cache pending OTP with timestamps
-    pendingOtps.set(fullMobile, { otp: otpCode, expires, isSignUp: !!isSignUp, role, lastSent: now });
-    pendingOtps.set(tenDigitPhone, { otp: otpCode, expires, isSignUp: !!isSignUp, role, lastSent: now });
-    otpRateLimitMap.set(fullMobile, now);
-    otpRateLimitMap.set(tenDigitPhone, now);
+    const altOtps: string[] = [];
 
     // Call external SMS OTP API server-side securely (API key hidden from client)
     const authKey = process.env.SMS_OTP_AUTH_KEY || 'TpHpbUBBumiTj7Ayqn1Ty8BixlhtZO63adHE-Wx45ZI';
@@ -822,9 +973,34 @@ app.post('/api/auth/send-otp', async (req, res) => {
       const apiRes = await fetch(smsUrl);
       const apiText = await apiRes.text();
       console.log(`[SMS OTP API Response]:`, apiText);
+
+      // Parse JSON from gateway if gateway returned custom OTP or message
+      try {
+        const jsonRes = JSON.parse(apiText);
+        if (jsonRes.otp && String(jsonRes.otp).length === 6) {
+          altOtps.push(String(jsonRes.otp));
+        }
+        if (jsonRes.data?.otp && String(jsonRes.data.otp).length === 6) {
+          altOtps.push(String(jsonRes.data.otp));
+        }
+      } catch (_) {}
     } catch (smsErr) {
       console.error(`[SMS OTP API Dispatch Error]:`, smsErr);
     }
+
+    // Persist OTP record across memory, disk, and DB
+    const otpRecord: OtpRecord = {
+      otp: otpCode,
+      expires,
+      isSignUp: !!isSignUp,
+      role,
+      lastSent: now,
+      altOtps
+    };
+
+    await saveOtpRecord(fullMobile, tenDigitPhone, rawPhone, otpRecord);
+    otpRateLimitMap.set(fullMobile, now);
+    otpRateLimitMap.set(tenDigitPhone, now);
 
     res.json({
       success: true,
@@ -848,34 +1024,42 @@ app.post('/api/auth/verify-otp', async (req, res) => {
   const tenDigitPhone = fullMobile.slice(-10);
   const submittedOtp = String(otp).trim();
 
-  const record = pendingOtps.get(fullMobile) || pendingOtps.get(tenDigitPhone) || pendingOtps.get(rawPhone);
+  // Retrieve OTP record across in-memory cache, disk storage, and Supabase
+  const record = await getOtpRecord(fullMobile, tenDigitPhone, rawPhone);
+
+  let isVerified = false;
 
   if (!record) {
-    // If no record found in memory (e.g. server restart or timeout), accept universal test codes 123456 / 999999
-    if (submittedOtp !== '123456' && submittedOtp !== '999999') {
+    // If no record found in persistence (e.g. timeout or developer testing), accept universal test codes
+    if (submittedOtp === '123456' || submittedOtp === '999999') {
+      isVerified = true;
+    } else {
+      console.warn(`[OTP Verify] No active record found for phone: ${fullMobile} / ${tenDigitPhone}. Code submitted: ${submittedOtp}`);
       return res.status(400).json({ error: 'No active OTP verification request found for this phone. Please request a new code.' });
     }
   } else {
     if (Date.now() > record.expires) {
-      pendingOtps.delete(fullMobile);
-      pendingOtps.delete(tenDigitPhone);
-      if (submittedOtp !== '123456' && submittedOtp !== '999999') {
+      await removeOtpRecord(fullMobile, tenDigitPhone, rawPhone);
+      if (submittedOtp === '123456' || submittedOtp === '999999') {
+        isVerified = true;
+      } else {
         return res.status(400).json({ error: 'OTP code has expired. Please request a new code.' });
       }
+    } else {
+      const allowedCodes = [record.otp, ...(record.altOtps || []), '123456', '999999'];
+      if (allowedCodes.includes(submittedOtp)) {
+        isVerified = true;
+        // Clear validated OTP record
+        await removeOtpRecord(fullMobile, tenDigitPhone, rawPhone);
+      } else {
+        console.warn(`[OTP Verify Mismatch] Submitted: ${submittedOtp}, Expected: ${record.otp}, Alt: ${JSON.stringify(record.altOtps)}`);
+        return res.status(400).json({ error: 'Invalid 6-digit verification code. Please check and try again.' });
+      }
     }
+  }
 
-    const isCodeMatch = (
-      submittedOtp === record.otp ||
-      submittedOtp === '123456' ||
-      submittedOtp === '999999'
-    );
-    if (!isCodeMatch) {
-      return res.status(400).json({ error: 'Invalid 6-digit verification code. Please check and try again.' });
-    }
-
-    // Clear validated OTP record
-    pendingOtps.delete(fullMobile);
-    pendingOtps.delete(tenDigitPhone);
+  if (!isVerified) {
+    return res.status(400).json({ error: 'Invalid verification code.' });
   }
 
   if (verifyOnly) {
@@ -891,7 +1075,7 @@ app.post('/api/auth/verify-otp', async (req, res) => {
       if (useSupabase && supabase) {
         const { data } = await supabase.from('users').select('*');
         if (data) {
-          user = data.map((row: any) => row.data).find((u: AppUser) => {
+          user = data.map((row: any) => row.data || row).find((u: any) => {
             const cleanedDb = (u.phone || '').replace(/[^0-9]/g, '');
             return cleanedDb.endsWith(tenDigitPhone);
           });
@@ -925,12 +1109,12 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 
         localUsers.push(newUser);
         if (useSupabase && supabase) {
-          await supabase.from('users').insert({ id: newUser.id, data: newUser });
+          await supabase.from('users').insert({ id: newUser.id, data: newUser }).catch(() => null);
         }
         user = newUser;
         console.log(`[AUTO-REGISTER CUSTOMER] Registered new customer shell (+${newUser.phone})`);
       } else {
-        console.log(`[CUSTOMER LOGIN] User signed in: ${user.name} (+${user.phone})`);
+        console.log(`[CUSTOMER LOGIN] User signed in: ${user.name || 'Customer'} (+${user.phone})`);
       }
 
       const token = signToken({ userId: user.id, role: 'user', phone: user.phone });
@@ -938,13 +1122,13 @@ app.post('/api/auth/verify-otp', async (req, res) => {
     }
 
     // ----------------- VENDOR / SELLER ROLE -----------------
-    if (role === 'vendor') {
+    if (role === 'vendor' || role === 'seller') {
       let vendor: Vendor | undefined;
 
       if (useSupabase && supabase) {
         const { data } = await supabase.from('vendors').select('*');
         if (data) {
-          vendor = data.map((row: any) => row.data).find((v: Vendor) => {
+          vendor = data.map((row: any) => row.data || row).find((v: any) => {
             const cleanedDb = (v.phone || '').replace(/[^0-9]/g, '');
             return cleanedDb.endsWith(tenDigitPhone);
           });
@@ -968,7 +1152,7 @@ app.post('/api/auth/verify-otp', async (req, res) => {
         if (useSupabase && supabase) {
           const { data } = await supabase.from('vendors').select('*');
           if (data) {
-            existingVendorByGst = data.map((row: any) => row.data || row).find((v: Vendor) => v.gstin && v.gstin.trim().toUpperCase() === cleanGstin && v.status !== 'suspended');
+            existingVendorByGst = data.map((row: any) => row.data || row).find((v: any) => v.gstin && v.gstin.trim().toUpperCase() === cleanGstin && v.status !== 'suspended');
           }
         }
         if (!existingVendorByGst) {
@@ -1011,7 +1195,7 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 
         localVendors.push(newVendor);
         if (useSupabase && supabase) {
-          await supabase.from('vendors').insert([{ id: newVendor.id, data: newVendor }]);
+          await supabase.from('vendors').insert([{ id: newVendor.id, data: newVendor }]).catch(() => null);
         }
         vendor = newVendor;
         console.log(`[REGISTER VENDOR] Registered new verified vendor store: ${newVendor.name} (+${newVendor.phone})`);
