@@ -1037,20 +1037,29 @@ export default function ProductDetail({
                 </button>
               </div>
 
-              {/* Centered Pagination Dots (Screenshot 1 Format) */}
+              {/* Image Thumbnails below main image */}
               {allImages.length > 1 && (
-                <div className="py-3 flex items-center justify-center gap-1.5" id="gallery-dots-indicator">
-                  {allImages.map((_, idx) => (
+                <div className="p-3 bg-white flex items-center gap-3 overflow-x-auto scrollbar-hide" id="gallery-thumbnails">
+                  {allImages.map((imgUrl, idx) => (
                     <button
                       key={idx}
                       onClick={() => handleSelectImageIndex(idx)}
-                      className={`transition-all rounded-full cursor-pointer ${
+                      className={`relative shrink-0 w-[72px] h-[72px] rounded-lg overflow-hidden cursor-pointer transition-all border-2 ${
                         activeImageIndex === idx
-                          ? 'w-4 h-1.5 bg-[#143C6B]'
-                          : 'w-1.5 h-1.5 bg-slate-300 hover:bg-slate-400'
+                          ? 'border-[#143C6B] shadow-sm'
+                          : 'border-slate-200 hover:border-slate-300 opacity-80 hover:opacity-100'
                       }`}
                       aria-label={`View image ${idx + 1}`}
-                    />
+                    >
+                      <SmartImage
+                        src={imgUrl}
+                        alt={`${product.title} - view ${idx + 1}`}
+                        containerClassName="w-full h-full bg-slate-50"
+                        objectFit="cover"
+                        targetWidth={100}
+                        loading="lazy"
+                      />
+                    </button>
                   ))}
                 </div>
               )}
