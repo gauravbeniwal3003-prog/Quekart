@@ -279,12 +279,17 @@ export default function AdminDashboard({
   const handleApproveProduct = async (productId: string) => {
     try {
       const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
-      const res = await fetch(`/api/products/${productId}/approve`, {
+      let userToken = '';
+      try { userToken = localStorage.getItem('quekart_token') || ''; } catch (_) {}
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Admin-Secret': adminSecret
+      };
+      if (userToken) headers['Authorization'] = `Bearer ${userToken}`;
+
+      const res = await fetch(getApiUrl(`/api/products/${productId}/approve`), {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Secret': adminSecret
-        },
+        headers,
         body: JSON.stringify({ status: 'approved' })
       });
 
@@ -297,8 +302,8 @@ export default function AdminDashboard({
         }
         setTimeout(loadAdminData, 500);
       } else {
-        const err = await res.json();
-        alert(`Approval failed: ${err.error}`);
+        const err = await res.json().catch(() => ({}));
+        alert(`Approval failed: ${err.error || 'Server error'}`);
       }
     } catch (err) {
       // Offline local emulation
@@ -314,12 +319,17 @@ export default function AdminDashboard({
     const reason = rejectionReasonInput[productId]?.trim() || 'Product listing contains low-resolution images or invalid descriptions.';
     try {
       const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
-      const res = await fetch(`/api/products/${productId}/approve`, {
+      let userToken = '';
+      try { userToken = localStorage.getItem('quekart_token') || ''; } catch (_) {}
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Admin-Secret': adminSecret
+      };
+      if (userToken) headers['Authorization'] = `Bearer ${userToken}`;
+
+      const res = await fetch(getApiUrl(`/api/products/${productId}/approve`), {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Secret': adminSecret
-        },
+        headers,
         body: JSON.stringify({ status: 'rejected', rejectionReason: reason })
       });
 
@@ -333,8 +343,8 @@ export default function AdminDashboard({
         setShowRejectionForm(null);
         setTimeout(loadAdminData, 500);
       } else {
-        const err = await res.json();
-        alert(`Rejection failed: ${err.error}`);
+        const err = await res.json().catch(() => ({}));
+        alert(`Rejection failed: ${err.error || 'Server error'}`);
       }
     } catch (err) {
       const targetProduct = products.find(p => p.id === productId);
@@ -350,19 +360,26 @@ export default function AdminDashboard({
   const handleToggleVendorStatus = async (vendor: Vendor) => {
     const nextStatus = vendor.status === 'active' ? 'suspended' : 'active';
     const updatedVendor: Vendor = { ...vendor, status: nextStatus };
+    const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
+    let userToken = '';
+    try { userToken = localStorage.getItem('quekart_token') || ''; } catch (_) {}
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Admin-Secret': adminSecret
+    };
+    if (userToken) headers['Authorization'] = `Bearer ${userToken}`;
+
     try {
-      const res = await fetch(`/api/vendors/${vendor.id}`, {
+      const res = await fetch(getApiUrl(`/api/vendors/${vendor.id}`), {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify(updatedVendor)
       });
       if (res.ok) {
         setVendors(prev => prev.map(v => v.id === vendor.id ? updatedVendor : v));
       } else {
-        const err = await res.json();
-        alert(`Failed to update seller status: ${err.error}`);
+        const err = await res.json().catch(() => ({}));
+        alert(`Failed to update seller status: ${err.error || 'Server error'}`);
       }
     } catch (err) {
       setVendors(prev => prev.map(v => v.id === vendor.id ? updatedVendor : v));
@@ -373,19 +390,26 @@ export default function AdminDashboard({
     const isNowVerified = !(vendor.isVerified ?? (vendor.vendorType === 'big'));
     const nextType = isNowVerified ? 'big' : 'small';
     const updatedVendor: Vendor = { ...vendor, vendorType: nextType, isVerified: isNowVerified };
+    const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
+    let userToken = '';
+    try { userToken = localStorage.getItem('quekart_token') || ''; } catch (_) {}
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Admin-Secret': adminSecret
+    };
+    if (userToken) headers['Authorization'] = `Bearer ${userToken}`;
+
     try {
-      const res = await fetch(`/api/vendors/${vendor.id}`, {
+      const res = await fetch(getApiUrl(`/api/vendors/${vendor.id}`), {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify(updatedVendor)
       });
       if (res.ok) {
         setVendors(prev => prev.map(v => v.id === vendor.id ? updatedVendor : v));
       } else {
-        const err = await res.json();
-        alert(`Failed to update seller classification: ${err.error}`);
+        const err = await res.json().catch(() => ({}));
+        alert(`Failed to update seller classification: ${err.error || 'Server error'}`);
       }
     } catch (err) {
       setVendors(prev => prev.map(v => v.id === vendor.id ? updatedVendor : v));
@@ -396,22 +420,31 @@ export default function AdminDashboard({
     const isCurrentlyBanned = vendor.status === 'banned';
     const nextStatus = isCurrentlyBanned ? 'active' : 'banned';
     const updatedVendor: Vendor = { ...vendor, status: nextStatus };
+    const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
+    let userToken = '';
+    try { userToken = localStorage.getItem('quekart_token') || ''; } catch (_) {}
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Admin-Secret': adminSecret
+    };
+    if (userToken) headers['Authorization'] = `Bearer ${userToken}`;
+
     try {
-      const res = await fetch(`/api/vendors/${vendor.id}`, {
+      const res = await fetch(getApiUrl(`/api/vendors/${vendor.id}`), {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(updatedVendor)
       });
       if (res.ok) {
         setVendors(prev => prev.map(v => v.id === vendor.id ? updatedVendor : v));
-        fetch('/api/products?all=true').then(r => r.json()).then(data => {
+        fetch(getApiUrl('/api/products?all=true')).then(r => r.json()).then(data => {
           if (Array.isArray(data)) setLiveProducts(data);
         }).catch(() => {});
         onRefreshShopData();
         alert(`Seller "${vendor.name}" is now ${nextStatus === 'banned' ? 'BANNED. Products are now private.' : 'ACTIVATED.'}`);
       } else {
-        const err = await res.json();
-        alert(`Failed to update seller status: ${err.error}`);
+        const err = await res.json().catch(() => ({}));
+        alert(`Failed to update seller status: ${err.error || 'Server error'}`);
       }
     } catch (err) {
       setVendors(prev => prev.map(v => v.id === vendor.id ? updatedVendor : v));
@@ -422,16 +455,24 @@ export default function AdminDashboard({
     if (!confirm(`Are you sure you want to permanently delete seller "${vendor.name}"?\n\nSMART LOGIC: All products listed under this seller will also be deleted automatically!`)) {
       return;
     }
+    const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
+    let userToken = '';
+    try { userToken = localStorage.getItem('quekart_token') || ''; } catch (_) {}
+    const headers: Record<string, string> = {
+      'X-Admin-Secret': adminSecret
+    };
+    if (userToken) headers['Authorization'] = `Bearer ${userToken}`;
+
     try {
-      const res = await fetch(`/api/vendors/${vendor.id}`, { method: 'DELETE' });
+      const res = await fetch(getApiUrl(`/api/vendors/${vendor.id}`), { method: 'DELETE', headers });
       if (res.ok) {
         setVendors(prev => prev.filter(v => v.id !== vendor.id));
         setLiveProducts(prev => prev.filter(p => p.vendorId !== vendor.id));
         onRefreshShopData();
         alert(`Seller "${vendor.name}" and all associated products have been deleted.`);
       } else {
-        const err = await res.json();
-        alert(`Failed to delete seller: ${err.error}`);
+        const err = await res.json().catch(() => ({}));
+        alert(`Failed to delete seller: ${err.error || 'Server error'}`);
       }
     } catch (err: any) {
       alert(`Error deleting seller: ${err.message}`);
@@ -441,7 +482,7 @@ export default function AdminDashboard({
   const [dbUsers, setDbUsers] = useState<AppUser[]>([]);
 
   React.useEffect(() => {
-    fetch('/api/users')
+    fetch(getApiUrl('/api/users'))
       .then(r => r.json())
       .then(data => { if (Array.isArray(data)) setDbUsers(data); })
       .catch(() => {});
@@ -452,15 +493,24 @@ export default function AdminDashboard({
     const newStatus = isCurrentlyBanned ? 'active' : 'banned';
     const updatedCustomer = { ...customer, status: newStatus, isBanned: !isCurrentlyBanned };
     const idOrPhone = customer.id || customer.phone;
+    const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
+    let userToken = '';
+    try { userToken = localStorage.getItem('quekart_token') || ''; } catch (_) {}
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Admin-Secret': adminSecret
+    };
+    if (userToken) headers['Authorization'] = `Bearer ${userToken}`;
+
     try {
-      const res = await fetch(`/api/users/${idOrPhone}`, {
+      const res = await fetch(getApiUrl(`/api/users/${idOrPhone}`), {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(updatedCustomer)
       });
       if (res.ok) {
         setDbUsers(prev => prev.map(u => (u.id === customer.id || u.phone === customer.phone) ? { ...u, status: newStatus } : u));
-        fetch('/api/products?all=true').then(r => r.json()).then(data => {
+        fetch(getApiUrl('/api/products?all=true')).then(r => r.json()).then(data => {
           if (Array.isArray(data)) setLiveProducts(data);
         }).catch(() => {});
         alert(`Customer "${customer.name}" is now ${newStatus === 'banned' ? 'BANNED. Account login and reviews are hidden.' : 'ACTIVATED.'}`);
@@ -477,8 +527,16 @@ export default function AdminDashboard({
       return;
     }
     const idOrPhone = customer.id || customer.phone;
+    const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
+    let userToken = '';
+    try { userToken = localStorage.getItem('quekart_token') || ''; } catch (_) {}
+    const headers: Record<string, string> = {
+      'X-Admin-Secret': adminSecret
+    };
+    if (userToken) headers['Authorization'] = `Bearer ${userToken}`;
+
     try {
-      const res = await fetch(`/api/users/${idOrPhone}`, { method: 'DELETE' });
+      const res = await fetch(getApiUrl(`/api/users/${idOrPhone}`), { method: 'DELETE', headers });
       if (res.ok) {
         setDbUsers(prev => prev.filter(u => u.id !== customer.id && u.phone !== customer.phone));
         alert(`Customer "${customer.name}" deleted successfully.`);

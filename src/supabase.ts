@@ -404,21 +404,31 @@ export async function fetchVendorsUnified(): Promise<Vendor[]> {
  */
 export async function saveProductUnified(product: Product, adminSecret?: string, vendorId?: string): Promise<Product> {
   const secret = getAdminSecret(adminSecret);
+  let userToken = '';
+  try {
+    userToken = localStorage.getItem('quekart_token') || '';
+  } catch (_) {}
   
+  let savedProduct: Product = product;
+
   // 1. Try API
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Admin-Secret': secret,
+      ...(vendorId ? { 'X-Vendor-Id': vendorId } : {})
+    };
+    if (userToken) {
+      headers['Authorization'] = `Bearer ${userToken}`;
+    }
     const res = await fetch(getApiUrl('/api/products'), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Admin-Secret': secret,
-        ...(vendorId ? { 'X-Vendor-Id': vendorId } : {})
-      },
+      headers,
       body: JSON.stringify(product)
     });
     const json = await res.json().catch(() => null);
     if (res.ok && json) {
-      return json;
+      savedProduct = json;
     }
   } catch (_) {}
 
@@ -426,34 +436,82 @@ export async function saveProductUnified(product: Product, adminSecret?: string,
   const sb = getSupabase();
   if (sb) {
     try {
-      await sb.from('products').upsert({ id: product.id, data: product });
-      console.log('✅ Product saved directly to Supabase:', product.id);
+      await sb.from('products').upsert({ id: savedProduct.id, data: savedProduct });
+      console.log('✅ Product saved directly to Supabase:', savedProduct.id);
     } catch (err) {
       console.error('❌ Supabase direct product save error:', err);
     }
   }
 
-  return product;
+  // 3. Update memory and localStorage cache
+  if (memoryProductsCache) {
+    const idx = memoryProductsCache.findIndex(p => p.id === savedProduct.id);
+    if (idx >= 0) {
+      memoryProductsCache[idx] = savedProduct;
+    } else {
+      memoryProductsCache.unshift(savedProduct);
+    }
+  }
+  try {
+    const cached = localStorage.getItem('quekart_cached_products');
+    if (cached) {
+      const list = JSON.parse(cached);
+      if (Array.isArray(list)) {
+        const idx = list.findIndex((p: any) => p.id === savedProduct.id);
+        if (idx >= 0) {
+          list[idx] = savedProduct;
+        } else {
+          list.unshift(savedProduct);
+        }
+        localStorage.setItem('quekart_cached_products', JSON.stringify(list));
+      }
+    }
+  } catch (_) {}
+
+  return savedProduct;
 }
 
 /**
  * Delete Product from Database
  */
-export async function deleteProductUnified(productId: string, adminSecret?: string): Promise<boolean> {
+export async function deleteProductUnified(productId: string, adminSecret?: string, vendorId?: string): Promise<boolean> {
   const secret = getAdminSecret(adminSecret);
-  
-  // 1. Try API
+  let userToken = '';
   try {
+    userToken = localStorage.getItem('quekart_token') || '';
+  } catch (_) {}
+
+  // 1. Immediately invalidate local memory and storage caches
+  if (memoryProductsCache) {
+    memoryProductsCache = memoryProductsCache.filter(p => p.id !== productId);
+  }
+  try {
+    const cached = localStorage.getItem('quekart_cached_products');
+    if (cached) {
+      const list = JSON.parse(cached);
+      if (Array.isArray(list)) {
+        localStorage.setItem('quekart_cached_products', JSON.stringify(list.filter((p: any) => p.id !== productId)));
+      }
+    }
+  } catch (_) {}
+  
+  // 2. Try API with full auth headers
+  try {
+    const headers: Record<string, string> = {
+      'X-Admin-Secret': secret,
+      ...(vendorId ? { 'X-Vendor-Id': vendorId } : {})
+    };
+    if (userToken) {
+      headers['Authorization'] = `Bearer ${userToken}`;
+    }
     const res = await fetch(getApiUrl(`/api/products/${productId}`), {
       method: 'DELETE',
-      headers: {
-        'X-Admin-Secret': secret
-      }
+      headers
     });
     if (res.ok) return true;
   } catch (_) {}
 
-  // 2. Direct Supabase Delete
+  // 3. Direct Supabase Delete
   const sb = getSupabase();
   if (sb) {
     try {
@@ -515,27 +573,59 @@ export async function saveOrderUnified(orderData: any): Promise<Order | null> {
  */
 export async function saveBannerUnified(banner: Banner, adminSecret?: string): Promise<Banner> {
   const secret = getAdminSecret(adminSecret);
+  let userToken = '';
   try {
+    userToken = localStorage.getItem('quekart_token') || '';
+  } catch (_) {}
+
+  let savedBanner = banner;
+
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Admin-Secret': secret
+    };
+    if (userToken) {
+      headers['Authorization'] = `Bearer ${userToken}`;
+    }
     const res = await fetch(getApiUrl('/api/banners'), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Admin-Secret': secret
-      },
+      headers,
       body: JSON.stringify(banner)
     });
     const json = await res.json().catch(() => null);
-    if (res.ok && json) return json;
+    if (res.ok && json) savedBanner = json;
   } catch (_) {}
 
   const sb = getSupabase();
   if (sb) {
     try {
-      await sb.from('banners').upsert({ id: banner.id, data: banner });
+      await sb.from('banners').upsert({ id: savedBanner.id, data: savedBanner });
     } catch (_) {}
   }
 
-  return banner;
+  if (memoryBannersCache) {
+    const idx = memoryBannersCache.findIndex(b => b.id === savedBanner.id);
+    if (idx >= 0) {
+      memoryBannersCache[idx] = savedBanner;
+    } else {
+      memoryBannersCache.push(savedBanner);
+    }
+  }
+  try {
+    const cached = localStorage.getItem('quekart_cached_banners');
+    if (cached) {
+      const list = JSON.parse(cached);
+      if (Array.isArray(list)) {
+        const idx = list.findIndex((b: any) => b.id === savedBanner.id);
+        if (idx >= 0) list[idx] = savedBanner;
+        else list.push(savedBanner);
+        localStorage.setItem('quekart_cached_banners', JSON.stringify(list));
+      }
+    }
+  } catch (_) {}
+
+  return savedBanner;
 }
 
 /**
@@ -543,12 +633,34 @@ export async function saveBannerUnified(banner: Banner, adminSecret?: string): P
  */
 export async function deleteBannerUnified(bannerId: string, adminSecret?: string): Promise<boolean> {
   const secret = getAdminSecret(adminSecret);
+  let userToken = '';
   try {
+    userToken = localStorage.getItem('quekart_token') || '';
+  } catch (_) {}
+
+  if (memoryBannersCache) {
+    memoryBannersCache = memoryBannersCache.filter(b => b.id !== bannerId);
+  }
+  try {
+    const cached = localStorage.getItem('quekart_cached_banners');
+    if (cached) {
+      const list = JSON.parse(cached);
+      if (Array.isArray(list)) {
+        localStorage.setItem('quekart_cached_banners', JSON.stringify(list.filter((b: any) => b.id !== bannerId)));
+      }
+    }
+  } catch (_) {}
+
+  try {
+    const headers: Record<string, string> = {
+      'X-Admin-Secret': secret
+    };
+    if (userToken) {
+      headers['Authorization'] = `Bearer ${userToken}`;
+    }
     const res = await fetch(getApiUrl(`/api/banners/${bannerId}`), {
       method: 'DELETE',
-      headers: {
-        'X-Admin-Secret': secret
-      }
+      headers
     });
     if (res.ok) return true;
   } catch (_) {}
@@ -564,31 +676,39 @@ export async function deleteBannerUnified(bannerId: string, adminSecret?: string
   return true;
 }
 
-
-
 /**
  * Save / Upsert Category to Database (Admin only)
  */
 export async function saveCategoryUnified(category: Category, isEdit: boolean = false, adminSecret?: string): Promise<Category> {
   const secret = getAdminSecret(adminSecret);
+  let userToken = '';
+  try {
+    userToken = localStorage.getItem('quekart_token') || '';
+  } catch (_) {}
+
   const endpoint = isEdit ? `/api/categories/${category.id}` : "/api/categories";
   const method = isEdit ? "PUT" : "POST";
+  let savedCategory = category;
 
   // 1. Try Backend API
   try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "X-Admin-Secret": secret
+    };
+    if (userToken) {
+      headers["Authorization"] = `Bearer ${userToken}`;
+    }
     const res = await fetch(getApiUrl(endpoint), {
       method,
-      headers: {
-        "Content-Type": "application/json",
-        "X-Admin-Secret": secret
-      },
+      headers,
       body: JSON.stringify(category)
     });
     const contentType = res.headers.get("content-type") || "";
     if (res.ok && contentType.includes("application/json")) {
       const json = await res.json().catch(() => null);
       if (json) {
-        return json;
+        savedCategory = json;
       }
     }
   } catch (apiErr) {
@@ -602,13 +722,12 @@ export async function saveCategoryUnified(category: Category, isEdit: boolean = 
       const { data: countData } = await sb.from("categories").select("id");
       const position = countData ? countData.length : 0;
       const { error } = await sb.from("categories").upsert({
-        id: category.id,
-        data: category,
+        id: savedCategory.id,
+        data: savedCategory,
         ...(isEdit ? {} : { position })
       });
       if (!error) {
-        console.log("✅ Category saved directly to Supabase:", category.id);
-        return category;
+        console.log("✅ Category saved directly to Supabase:", savedCategory.id);
       } else {
         console.warn("⚠️ Supabase category save error:", error);
       }
@@ -617,8 +736,29 @@ export async function saveCategoryUnified(category: Category, isEdit: boolean = 
     }
   }
 
-  // 3. Fallback return category for optimistic UI and local persistence
-  return category;
+  // 3. Update memory and storage caches
+  if (memoryCategoriesCache) {
+    const idx = memoryCategoriesCache.findIndex(c => c.id === savedCategory.id);
+    if (idx >= 0) {
+      memoryCategoriesCache[idx] = savedCategory;
+    } else {
+      memoryCategoriesCache.push(savedCategory);
+    }
+  }
+  try {
+    const cached = localStorage.getItem('quekart_cached_categories');
+    if (cached) {
+      const list = JSON.parse(cached);
+      if (Array.isArray(list)) {
+        const idx = list.findIndex((c: any) => c.id === savedCategory.id);
+        if (idx >= 0) list[idx] = savedCategory;
+        else list.push(savedCategory);
+        localStorage.setItem('quekart_cached_categories', JSON.stringify(list));
+      }
+    }
+  } catch (_) {}
+
+  return savedCategory;
 }
 
 /**
@@ -626,21 +766,43 @@ export async function saveCategoryUnified(category: Category, isEdit: boolean = 
  */
 export async function deleteCategoryUnified(categoryId: string, adminSecret?: string): Promise<boolean> {
   const secret = getAdminSecret(adminSecret);
-
-  // 1. Try Backend API
+  let userToken = '';
   try {
+    userToken = localStorage.getItem('quekart_token') || '';
+  } catch (_) {}
+
+  // 1. Invalidate caches
+  if (memoryCategoriesCache) {
+    memoryCategoriesCache = memoryCategoriesCache.filter(c => c.id !== categoryId);
+  }
+  try {
+    const cached = localStorage.getItem('quekart_cached_categories');
+    if (cached) {
+      const list = JSON.parse(cached);
+      if (Array.isArray(list)) {
+        localStorage.setItem('quekart_cached_categories', JSON.stringify(list.filter((c: any) => c.id !== categoryId)));
+      }
+    }
+  } catch (_) {}
+
+  // 2. Try Backend API
+  try {
+    const headers: Record<string, string> = {
+      "X-Admin-Secret": secret
+    };
+    if (userToken) {
+      headers["Authorization"] = `Bearer ${userToken}`;
+    }
     const res = await fetch(getApiUrl(`/api/categories/${categoryId}`), {
       method: "DELETE",
-      headers: {
-        "X-Admin-Secret": secret
-      }
+      headers
     });
     if (res.ok) return true;
   } catch (apiErr) {
     console.warn("⚠️ API category delete fallback to Supabase:", apiErr);
   }
 
-  // 2. Direct Supabase Delete
+  // 3. Direct Supabase Delete
   const sb = getSupabase();
   if (sb) {
     try {
@@ -659,15 +821,23 @@ export async function deleteCategoryUnified(categoryId: string, adminSecret?: st
  */
 export async function reorderCategoriesUnified(ids: string[], adminSecret?: string): Promise<boolean> {
   const secret = getAdminSecret(adminSecret);
+  let userToken = '';
+  try {
+    userToken = localStorage.getItem('quekart_token') || '';
+  } catch (_) {}
 
   // 1. Try Backend API
   try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "X-Admin-Secret": secret
+    };
+    if (userToken) {
+      headers["Authorization"] = `Bearer ${userToken}`;
+    }
     const res = await fetch(getApiUrl("/api/categories/reorder"), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Admin-Secret": secret
-      },
+      headers,
       body: JSON.stringify({ ids })
     });
     if (res.ok) return true;
@@ -696,24 +866,34 @@ export async function reorderCategoriesUnified(ids: string[], adminSecret?: stri
  */
 export async function saveCategoryFilterUnified(filter: CategoryFilter, isEdit: boolean = false, adminSecret?: string): Promise<CategoryFilter> {
   const secret = getAdminSecret(adminSecret);
+  let userToken = '';
+  try {
+    userToken = localStorage.getItem('quekart_token') || '';
+  } catch (_) {}
+
   const endpoint = isEdit ? `/api/category-filters/${filter.id}` : "/api/category-filters";
   const method = isEdit ? "PUT" : "POST";
+  let savedFilter = filter;
 
   // 1. Try Backend API
   try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "X-Admin-Secret": secret
+    };
+    if (userToken) {
+      headers["Authorization"] = `Bearer ${userToken}`;
+    }
     const res = await fetch(getApiUrl(endpoint), {
       method,
-      headers: {
-        "Content-Type": "application/json",
-        "X-Admin-Secret": secret
-      },
+      headers,
       body: JSON.stringify(filter)
     });
     const contentType = res.headers.get("content-type") || "";
     if (res.ok && contentType.includes("application/json")) {
       const json = await res.json().catch(() => null);
       if (json) {
-        return json;
+        savedFilter = json;
       }
     }
   } catch (apiErr) {
@@ -727,13 +907,12 @@ export async function saveCategoryFilterUnified(filter: CategoryFilter, isEdit: 
       const { data: countData } = await sb.from("category_filters").select("id");
       const position = countData ? countData.length : 0;
       const { error } = await sb.from("category_filters").upsert({
-        id: filter.id,
-        data: filter,
+        id: savedFilter.id,
+        data: savedFilter,
         ...(isEdit ? {} : { position })
       });
       if (!error) {
-        console.log("✅ Category Filter saved directly to Supabase:", filter.id);
-        return filter;
+        console.log("✅ Category Filter saved directly to Supabase:", savedFilter.id);
       } else {
         console.warn("⚠️ Supabase category filter save error:", error);
       }
@@ -742,7 +921,7 @@ export async function saveCategoryFilterUnified(filter: CategoryFilter, isEdit: 
     }
   }
 
-  return filter;
+  return savedFilter;
 }
 
 /**
@@ -750,14 +929,22 @@ export async function saveCategoryFilterUnified(filter: CategoryFilter, isEdit: 
  */
 export async function deleteCategoryFilterUnified(filterId: string, adminSecret?: string): Promise<boolean> {
   const secret = getAdminSecret(adminSecret);
+  let userToken = '';
+  try {
+    userToken = localStorage.getItem('quekart_token') || '';
+  } catch (_) {}
 
   // 1. Try Backend API
   try {
+    const headers: Record<string, string> = {
+      "X-Admin-Secret": secret
+    };
+    if (userToken) {
+      headers["Authorization"] = `Bearer ${userToken}`;
+    }
     const res = await fetch(getApiUrl(`/api/category-filters/${filterId}`), {
       method: "DELETE",
-      headers: {
-        "X-Admin-Secret": secret
-      }
+      headers
     });
     if (res.ok) return true;
   } catch (apiErr) {
@@ -783,15 +970,23 @@ export async function deleteCategoryFilterUnified(filterId: string, adminSecret?
  */
 export async function reorderCategoryFiltersUnified(ids: string[], adminSecret?: string): Promise<boolean> {
   const secret = getAdminSecret(adminSecret);
+  let userToken = '';
+  try {
+    userToken = localStorage.getItem('quekart_token') || '';
+  } catch (_) {}
 
   // 1. Try Backend API
   try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "X-Admin-Secret": secret
+    };
+    if (userToken) {
+      headers["Authorization"] = `Bearer ${userToken}`;
+    }
     const res = await fetch(getApiUrl("/api/category-filters/reorder"), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Admin-Secret": secret
-      },
+      headers,
       body: JSON.stringify({ ids })
     });
     if (res.ok) return true;

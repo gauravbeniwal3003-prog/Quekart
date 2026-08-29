@@ -770,7 +770,7 @@ export default function App() {
 
     setProducts((prev) => prev.filter((p) => p.id !== productId));
     try {
-      await deleteProductUnified(productId);
+      await deleteProductUnified(productId, undefined, vendorId);
     } catch (e) {
       console.warn('Vendor delete product notice:', e);
     }
@@ -780,13 +780,17 @@ export default function App() {
     // Optimistically update local state first
     setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)));
     const adminSecret = safeGetLocalStorage('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+    const userToken = safeGetLocalStorage('quekart_token') || '';
     try {
-      const res = await fetch(`/api/orders/${orderId}`, {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Admin-Secret': adminSecret
+      };
+      if (userToken) headers['Authorization'] = `Bearer ${userToken}`;
+
+      const res = await fetch(getApiUrl(`/api/orders/${orderId}`), {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Secret': adminSecret
-        },
+        headers,
         body: JSON.stringify({ status })
       });
       if (res.ok) {
@@ -803,9 +807,13 @@ export default function App() {
 
   const handleReturnOrder = async (orderId: string, reason?: string) => {
     try {
-      const res = await fetch(`/api/orders/${orderId}/return`, {
+      const userToken = safeGetLocalStorage('quekart_token') || '';
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (userToken) headers['Authorization'] = `Bearer ${userToken}`;
+
+      const res = await fetch(getApiUrl(`/api/orders/${orderId}/return`), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ reason: reason || 'Customer requested return' })
       });
       if (res.ok) {
@@ -832,12 +840,16 @@ export default function App() {
     // Optimistically update local state first
     setOrders((prev) => prev.filter((o) => o.id !== orderId));
     const adminSecret = safeGetLocalStorage('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+    const userToken = safeGetLocalStorage('quekart_token') || '';
     try {
-      const res = await fetch(`/api/orders/${orderId}`, {
+      const headers: Record<string, string> = {
+        'X-Admin-Secret': adminSecret
+      };
+      if (userToken) headers['Authorization'] = `Bearer ${userToken}`;
+
+      const res = await fetch(getApiUrl(`/api/orders/${orderId}`), {
         method: 'DELETE',
-        headers: {
-          'X-Admin-Secret': adminSecret
-        }
+        headers
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));

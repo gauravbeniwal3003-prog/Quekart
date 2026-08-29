@@ -61,10 +61,11 @@ import {
   Wallet,
   Share2,
   Store,
-  MessageCircle
+  MessageCircle,
+  Sliders
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Product, Order, Vendor, Category } from '../types';
+import { Product, Order, Vendor, Category, VariantSwatch } from '../types';
 import Logo, { BrandLogo, QueKartLogoText } from './Logo';
 import VendorAuthView from './VendorAuthView';
 import VendorExportReports from './VendorExportReports';
@@ -347,6 +348,7 @@ export default function VendorDashboard({
   const [pCategory, setPCategory] = useState('Women Ethnic Wear');
   const [pPrice, setPPrice] = useState<number>(299);
   const [pOrigPrice, setPOrigPrice] = useState<number>(599);
+  const [pStock, setPStock] = useState<number>(100);
   const [pSizeOptions, setPSizeOptions] = useState<string[]>(['Free Size']);
   
   // Product Photos state: NO auto-selected images on new listing!
@@ -380,6 +382,7 @@ export default function VendorDashboard({
   const [quickStockProduct, setQuickStockProduct] = useState<Product | null>(null);
   const [quickStockQty, setQuickStockQty] = useState<number>(100);
   const [quickStockPrice, setQuickStockPrice] = useState<number>(299);
+  const [quickStockVariants, setQuickStockVariants] = useState<VariantSwatch[]>([]);
   const [isUpdatingQuickStock, setIsUpdatingQuickStock] = useState<boolean>(false);
 
   // Dispatch & AWB Generator Modal State
@@ -666,6 +669,7 @@ export default function VendorDashboard({
         setPCategory(target.category);
         setPPrice(target.price);
         setPOrigPrice(target.originalPrice);
+        setPStock(target.variants?.[0]?.stock ?? 100);
         setPSizeOptions(target.sizeOptions || ['Free Size']);
         setUploadedImages(target.images || []);
         setCustomImageUrl('');
@@ -689,6 +693,7 @@ export default function VendorDashboard({
       setPCategory('Women Ethnic Wear');
       setPPrice(299);
       setPOrigPrice(599);
+      setPStock(100);
       setPSizeOptions(['Free Size']);
       setUploadedImages([]); // Empty images array
       setCustomImageUrl('');
@@ -852,6 +857,32 @@ export default function VendorDashboard({
       ? (pUpiOfferText.trim() || (pUpiDiscountType === 'percentage' ? `Extra ${pUpiDiscountValue}% OFF on UPI Payment` : `Instant ₹${pUpiDiscountValue} OFF on UPI Payment`))
       : '';
 
+    let finalVariants: VariantSwatch[] = [];
+    if (isEditMode && existingProduct && existingProduct.variants && existingProduct.variants.length > 0) {
+      finalVariants = existingProduct.variants.map((v, i) => {
+        if (i === 0) {
+          return {
+            ...v,
+            price: pPrice,
+            originalPrice: pOrigPrice,
+            stock: pStock
+          };
+        }
+        return v;
+      });
+    } else {
+      finalVariants = [
+        {
+          colorName: 'Default',
+          colorHex: '#143C6B',
+          imageUrl: finalImages[0] || '',
+          price: pPrice,
+          originalPrice: pOrigPrice,
+          stock: pStock
+        }
+      ];
+    }
+
     const productPayload: Product = {
       id: existingProduct ? existingProduct.id : 'prod-' + Math.random().toString(36).substring(2, 9),
       title: finalTitle,
@@ -875,7 +906,7 @@ export default function VendorDashboard({
       ratingCount: existingProduct ? existingProduct.ratingCount : 0,
       reviewCount: existingProduct ? existingProduct.reviewCount : 0,
       images: finalImages,
-      variants: [],
+      variants: finalVariants,
       soldBy: currentVendor?.name || 'QueKart Verified Store',
       soldByRating: currentVendor?.rating || 4.8,
       productHighlights: [
@@ -924,18 +955,38 @@ export default function VendorDashboard({
   const handleOpenQuickStock = (prod: Product) => {
     setQuickStockProduct(prod);
     setQuickStockPrice(prod.price);
-    setQuickStockQty(100);
+    const variantsCopy = prod.variants ? JSON.parse(JSON.stringify(prod.variants)) : [];
+    if (variantsCopy.length === 0) {
+      variantsCopy.push({
+        colorName: 'Default',
+        colorHex: '#143C6B',
+        imageUrl: prod.images?.[0] || '',
+        price: prod.price,
+        originalPrice: prod.originalPrice,
+        stock: 100
+      });
+    }
+    setQuickStockVariants(variantsCopy);
   };
 
   const handleSaveQuickStock = async () => {
     if (!quickStockProduct) return;
     setIsUpdatingQuickStock(true);
     try {
+      const minPrice = quickStockVariants.length > 0
+        ? Math.min(...quickStockVariants.map(v => v.price))
+        : quickStockPrice;
+      
+      const maxOriginalPrice = quickStockVariants.length > 0
+        ? Math.max(...quickStockVariants.map(v => v.originalPrice))
+        : Math.max(quickStockProduct.originalPrice, quickStockPrice + 100);
+
       const updatedProd: Product = {
         ...quickStockProduct,
-        price: quickStockPrice,
-        originalPrice: Math.max(quickStockProduct.originalPrice, quickStockPrice + 100),
-        discountPercent: Math.round(((Math.max(quickStockProduct.originalPrice, quickStockPrice + 100) - quickStockPrice) / Math.max(quickStockProduct.originalPrice, quickStockPrice + 100)) * 100)
+        price: minPrice,
+        originalPrice: maxOriginalPrice,
+        variants: quickStockVariants,
+        discountPercent: Math.round(((maxOriginalPrice - minPrice) / maxOriginalPrice) * 100)
       };
       await onEditProduct(updatedProd);
       setQuickStockProduct(null);
@@ -1795,11 +1846,29 @@ export default function VendorDashboard({
                               </div>
 
                               <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-xs">
-                                <span className="text-[10px] text-slate-400 font-medium">
-                                  Sizes: {product.sizeOptions?.join(', ') || 'Free Size'}
-                                </span>
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="text-[10px] text-slate-400 font-medium">
+                                    Sizes: {product.sizeOptions?.join(', ') || 'Free Size'}
+                                  </span>
+                                  <span className={`text-[10.5px] font-extrabold ${
+                                    (product.variants?.[0]?.stock ?? 100) === 0 
+                                      ? 'text-red-600' 
+                                      : (product.variants?.[0]?.stock ?? 100) < 10 
+                                      ? 'text-amber-600' 
+                                      : 'text-emerald-700'
+                                  }`}>
+                                    Stock: {product.variants?.[0]?.stock ?? 100} Pcs {(product.variants?.[0]?.stock ?? 100) === 0 ? '(Out of Stock)' : ''}
+                                  </span>
+                                </div>
 
                                 <div className="flex items-center gap-1.5">
+                                  <button
+                                    onClick={() => handleOpenQuickStock(product)}
+                                    className="p-1.5 bg-blue-50 hover:bg-blue-100 text-[#143C6B] rounded-lg border border-blue-200 cursor-pointer transition-colors"
+                                    title="Quick Edit Stock & Price"
+                                  >
+                                    <Sliders className="w-3.5 h-3.5" />
+                                  </button>
                                   <button
                                     onClick={() => goToVendorRoute('products/edit', `id=${product.id}`)}
                                     className="p-1.5 bg-white hover:bg-blue-50 text-slate-700 hover:text-[#143C6B] rounded-lg border border-slate-200 cursor-pointer transition-colors"
@@ -2067,6 +2136,28 @@ export default function VendorDashboard({
                         <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-center text-xs font-black text-emerald-700">
                           {pOrigPrice > pPrice ? `${Math.round(((pOrigPrice - pPrice) / pOrigPrice) * 100)}% Margin OFF` : 'Standard Rate'}
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Stock Management */}
+                    <div className="pt-2">
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                        <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                          Available Stock (Quantity in Pieces) *
+                        </label>
+                        <input
+                          type="number"
+                          required
+                          min={0}
+                          placeholder="100"
+                          value={pStock}
+                          onChange={e => setPStock(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                          className="w-full text-xs font-bold border border-slate-300 bg-white rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                          id="vendor-stock-input"
+                        />
+                        <span className="text-[10px] text-slate-400 font-medium block mt-1">
+                          Specify the number of pieces currently available. Stock decrements by 1 upon purchase, and increments by 1 if returned.
+                        </span>
                       </div>
                     </div>
 
@@ -2427,6 +2518,28 @@ export default function VendorDashboard({
                         <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-center text-xs font-black text-emerald-700">
                           {pOrigPrice > pPrice ? `${Math.round(((pOrigPrice - pPrice) / pOrigPrice) * 100)}% Margin OFF` : 'Standard'}
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Stock Management */}
+                    <div className="pt-2">
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                        <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                          Available Stock (Quantity in Pieces) *
+                        </label>
+                        <input
+                          type="number"
+                          required
+                          min={0}
+                          placeholder="100"
+                          value={pStock}
+                          onChange={e => setPStock(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                          className="w-full text-xs font-bold border border-slate-300 bg-white rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
+                          id="vendor-edit-stock-input"
+                        />
+                        <span className="text-[10px] text-slate-400 font-medium block mt-1">
+                          Specify the number of pieces currently available. Stock decrements by 1 upon purchase, and increments by 1 if returned.
+                        </span>
                       </div>
                     </div>
 
@@ -3900,32 +4013,65 @@ export default function VendorDashboard({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
-                    Wholesale Price (₹) *
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={quickStockPrice}
-                    onChange={e => setQuickStockPrice(Number(e.target.value))}
-                    className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
-                  />
-                </div>
+              <div className="space-y-3 max-h-[280px] overflow-y-auto pr-1">
+                <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                  Manage Variants Price & Stock *
+                </label>
+                {quickStockVariants.map((v, idx) => (
+                  <div key={idx} className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span 
+                        className="w-4 h-4 rounded-full border border-slate-300 block shadow-xs" 
+                        style={{ backgroundColor: v.colorHex || '#143C6B' }}
+                      />
+                      <span className="text-[11.5px] font-black text-slate-800">
+                        {v.colorName || `Variant ${idx + 1}`}
+                      </span>
+                    </div>
 
-                <div>
-                  <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
-                    In-Stock Quantity *
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={quickStockQty}
-                    onChange={e => setQuickStockQty(Number(e.target.value))}
-                    className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:outline-hidden focus:border-[#143C6B]"
-                  />
-                </div>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="text-[9.5px] text-slate-500 font-extrabold uppercase tracking-wider block mb-0.5">
+                          Wholesale Price (₹)
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={v.price}
+                          onChange={e => {
+                            const newPrice = Math.max(1, parseInt(e.target.value, 10) || 0);
+                            const updated = [...quickStockVariants];
+                            updated[idx] = { 
+                              ...v, 
+                              price: newPrice,
+                              originalPrice: Math.max(v.originalPrice || (newPrice + 100), newPrice + 100)
+                            };
+                            setQuickStockVariants(updated);
+                          }}
+                          className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2 bg-white focus:outline-hidden focus:border-[#143C6B]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[9.5px] text-slate-500 font-extrabold uppercase tracking-wider block mb-0.5">
+                          Stock (Pieces)
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={typeof v.stock === 'number' ? v.stock : 100}
+                          onChange={e => {
+                            const newStock = Math.max(0, parseInt(e.target.value, 10) || 0);
+                            const updated = [...quickStockVariants];
+                            updated[idx] = { ...v, stock: newStock };
+                            setQuickStockVariants(updated);
+                          }}
+                          className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2 bg-white focus:outline-hidden focus:border-[#143C6B]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">

@@ -217,6 +217,94 @@ export default function ProductDetail({
     }
   };
 
+  // Touch & Mouse swipe support for images
+  const swipeStartX = useRef<number | null>(null);
+  const swipeStartY = useRef<number | null>(null);
+  const isSwipeDragging = useRef<boolean>(false);
+
+  const handleSwipeStart = (clientX: number, clientY: number) => {
+    if (allImages.length <= 1) return;
+    swipeStartX.current = clientX;
+    swipeStartY.current = clientY;
+    isSwipeDragging.current = true;
+  };
+
+  const handleSwipeMove = (clientX: number, clientY: number) => {
+    if (!isSwipeDragging.current || swipeStartX.current === null) return;
+  };
+
+  const handleSwipeEnd = (clientX: number, clientY: number) => {
+    if (!isSwipeDragging.current || swipeStartX.current === null || swipeStartY.current === null) return;
+
+    const diffX = swipeStartX.current - clientX;
+    const diffY = swipeStartY.current - clientY;
+
+    // Threshold of 40px for swipe gesture
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+      if (diffX > 0) {
+        if (activeImageIndex < allImages.length - 1) {
+          handleNextImage();
+        }
+      } else {
+        if (activeImageIndex > 0) {
+          handlePrevImage();
+        }
+      }
+    }
+
+    // Reset
+    isSwipeDragging.current = false;
+    swipeStartX.current = null;
+    swipeStartY.current = null;
+  };
+
+  // Touch event adapters
+  const onTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    handleSwipeStart(touch.clientX, touch.clientY);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!isSwipeDragging.current) return;
+    const touch = e.touches[0];
+    handleSwipeMove(touch.clientX, touch.clientY);
+  };
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (e.changedTouches && e.changedTouches[0]) {
+      const touch = e.changedTouches[0];
+      handleSwipeEnd(touch.clientX, touch.clientY);
+    } else {
+      isSwipeDragging.current = false;
+      swipeStartX.current = null;
+      swipeStartY.current = null;
+    }
+  };
+
+  // Mouse event adapters (supports clicking & dragging on desktop)
+  const onMouseDown = (e: React.MouseEvent) => {
+    if (allImages.length <= 1) return;
+    // Avoid interfering with buttons
+    if ((e.target as HTMLElement).closest('button')) return;
+    handleSwipeStart(e.clientX, e.clientY);
+  };
+
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!isSwipeDragging.current) return;
+    e.preventDefault(); // Prevents image ghosting/drag selection behavior
+    handleSwipeMove(e.clientX, e.clientY);
+  };
+
+  const onMouseUp = (e: React.MouseEvent) => {
+    handleSwipeEnd(e.clientX, e.clientY);
+  };
+
+  const onMouseLeave = () => {
+    isSwipeDragging.current = false;
+    swipeStartX.current = null;
+    swipeStartY.current = null;
+  };
+
   // Handle color swatch click -> Select variant and auto-swipe to linked image
   const handleSelectColorVariant = (idx: number) => {
     setSelectedVariantIndex(idx);
@@ -854,20 +942,59 @@ export default function ProductDetail({
             
             {/* PRODUCT GALLERY VIEWPORT */}
             <section className="bg-white border-b sm:border border-slate-100 sm:rounded-2xl overflow-hidden shadow-3xs" id="product-gallery-section">
-              <div className="relative aspect-square w-full bg-slate-50 flex items-center justify-center overflow-hidden select-none">
+              <div 
+                className="relative aspect-square w-full bg-slate-50 flex items-center justify-center overflow-hidden select-none touch-pan-y"
+                id="product-gallery-viewport"
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+                onMouseDown={onMouseDown}
+                onMouseMove={onMouseMove}
+                onMouseUp={onMouseUp}
+                onMouseLeave={onMouseLeave}
+              >
                 
-                {/* Main Product Image */}
-                <SmartImage
-                  src={currentImageSrc}
-                  alt={product.title}
-                  aspectRatioClassName="aspect-square"
-                  containerClassName="w-full h-full"
-                  objectFit="contain"
-                  targetWidth={800}
-                  loading="eager"
-                  fetchPriority="high"
-                  id="product-gallery-main-image"
-                />
+                {/* Main Product Image Carousel with Motion */}
+                <AnimatePresence initial={false} custom={slideDirection}>
+                  <motion.div
+                    key={activeImageIndex}
+                    custom={slideDirection}
+                    variants={{
+                      enter: (direction: number) => ({
+                        x: direction > 0 ? '100%' : direction < 0 ? '-100%' : 0,
+                        opacity: 0,
+                      }),
+                      center: {
+                        x: 0,
+                        opacity: 1,
+                      },
+                      exit: (direction: number) => ({
+                        x: direction < 0 ? '100%' : direction > 0 ? '-100%' : 0,
+                        opacity: 0,
+                      }),
+                    }}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{
+                      x: { type: 'spring', stiffness: 300, damping: 30 },
+                      opacity: { duration: 0.15 },
+                    }}
+                    className="absolute inset-0 w-full h-full flex items-center justify-center"
+                  >
+                    <SmartImage
+                      src={currentImageSrc}
+                      alt={product.title}
+                      aspectRatioClassName="aspect-square"
+                      containerClassName="w-full h-full"
+                      objectFit="contain"
+                      targetWidth={800}
+                      loading="eager"
+                      fetchPriority="high"
+                      id="product-gallery-main-image"
+                    />
+                  </motion.div>
+                </AnimatePresence>
 
                 {/* Left & Right Slide Controls on larger screens */}
                 {allImages.length > 1 && (
