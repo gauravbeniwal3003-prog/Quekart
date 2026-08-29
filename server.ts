@@ -4664,13 +4664,30 @@ app.post('/api/orders', async (req, res) => {
 
     // 2.5 Atomically decrement stock levels in memory and database
     for (const clientItem of items) {
-      const verifiedProduct = currentCatalog.find(p => p.id === clientItem.product.id)!;
-      const variantIndex = clientItem.selectedVariantIndex;
-      const dbVariant = verifiedProduct.variants[variantIndex] || verifiedProduct.variants[0];
+      const verifiedProduct = currentCatalog.find(p => p.id === clientItem.product.id);
+      if (!verifiedProduct) continue;
+      const variantIndex = clientItem.selectedVariantIndex ?? 0;
+      const dbVariant = (verifiedProduct.variants && verifiedProduct.variants[variantIndex]) || verifiedProduct.variants?.[0];
       const quantity = Math.max(1, Math.floor(Number(clientItem.quantity || 1)));
 
-      const currentStock = typeof dbVariant.stock === 'number' ? dbVariant.stock : 100;
-      dbVariant.stock = currentStock - quantity;
+      if (dbVariant) {
+        const currentStock = typeof dbVariant.stock === 'number' ? dbVariant.stock : 100;
+        dbVariant.stock = Math.max(0, currentStock - quantity);
+
+        // Size-wise stock decrement on variant if present
+        if (clientItem.selectedSize && dbVariant.sizeStock && typeof dbVariant.sizeStock[clientItem.selectedSize] === 'number') {
+          dbVariant.sizeStock[clientItem.selectedSize] = Math.max(0, dbVariant.sizeStock[clientItem.selectedSize] - quantity);
+        }
+      }
+
+      // Size-wise stock decrement on product
+      if (clientItem.selectedSize && verifiedProduct.sizeStock && typeof verifiedProduct.sizeStock[clientItem.selectedSize] === 'number') {
+        verifiedProduct.sizeStock[clientItem.selectedSize] = Math.max(0, verifiedProduct.sizeStock[clientItem.selectedSize] - quantity);
+      }
+
+      if (typeof verifiedProduct.stock === 'number') {
+        verifiedProduct.stock = Math.max(0, verifiedProduct.stock - quantity);
+      }
 
       // Update in memory array
       const localProductIdx = localProducts.findIndex(lp => lp.id === verifiedProduct.id);
@@ -4848,6 +4865,44 @@ app.post('/api/orders/:id/return', async (req, res) => {
     }
 
     targetOrder.status = 'Returned';
+
+    // Restore stock pieces back to catalog upon customer return
+    if (targetOrder.items && Array.isArray(targetOrder.items)) {
+      for (const item of targetOrder.items) {
+        const prodId = item.product?.id;
+        const variantIndex = item.selectedVariantIndex ?? 0;
+        const quantity = Math.max(1, Math.floor(Number(item.quantity || 1)));
+        const selectedSize = item.selectedSize;
+
+        let catalogProd = localProducts.find(p => p.id === prodId);
+        if (useSupabase && supabase && prodId) {
+          const { data } = await supabase.from('products').select('*').eq('id', prodId).single();
+          if (data) catalogProd = data.data;
+        }
+
+        if (catalogProd) {
+          if (catalogProd.variants && catalogProd.variants[variantIndex]) {
+            const currentStock = typeof catalogProd.variants[variantIndex].stock === 'number' ? catalogProd.variants[variantIndex].stock : 100;
+            catalogProd.variants[variantIndex].stock = currentStock + quantity;
+            if (selectedSize && catalogProd.variants[variantIndex].sizeStock && typeof catalogProd.variants[variantIndex].sizeStock[selectedSize] === 'number') {
+              catalogProd.variants[variantIndex].sizeStock[selectedSize] += quantity;
+            }
+          }
+          if (selectedSize && catalogProd.sizeStock && typeof catalogProd.sizeStock[selectedSize] === 'number') {
+            catalogProd.sizeStock[selectedSize] += quantity;
+          }
+          if (typeof catalogProd.stock === 'number') {
+            catalogProd.stock += quantity;
+          }
+
+          const lIdx = localProducts.findIndex(p => p.id === catalogProd.id);
+          if (lIdx !== -1) localProducts[lIdx] = { ...catalogProd };
+          if (useSupabase && supabase) {
+            await supabase.from('products').update({ data: catalogProd }).eq('id', catalogProd.id);
+          }
+        }
+      }
+    }
 
     if (useSupabase && supabase) {
       await supabase.from('orders').update({ data: targetOrder }).eq('id', id);

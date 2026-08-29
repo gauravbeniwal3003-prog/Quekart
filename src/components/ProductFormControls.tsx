@@ -5,15 +5,21 @@ import {
   ChevronUp, 
   Check, 
   Plus, 
+  Minus,
   X, 
   Ban, 
   Ruler, 
   Sparkles, 
   Sliders, 
   Package, 
+  Boxes,
+  Layers,
   Tag, 
   Info,
-  CheckCircle2
+  CheckCircle2,
+  AlertCircle,
+  TrendingUp,
+  Hash
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -566,6 +572,309 @@ export const SizeAndParametersManager: React.FC<SizeAndParametersManagerProps> =
           </div>
         </div>
       </div>
+
+    </div>
+  );
+};
+
+export interface StockInventoryManagerProps {
+  sizeOptions: string[];
+  sizeStock: Record<string, number>;
+  setSizeStock: React.Dispatch<React.SetStateAction<Record<string, number>>> | ((updater: ((prev: Record<string, number>) => Record<string, number>) | Record<string, number>) => void);
+  totalStock: number;
+  setTotalStock: (val: number) => void;
+  idPrefix?: string;
+}
+
+export const StockInventoryManager: React.FC<StockInventoryManagerProps> = ({
+  sizeOptions,
+  sizeStock,
+  setSizeStock,
+  totalStock,
+  setTotalStock,
+  idPrefix = 'vendor'
+}) => {
+  const hasMultipleSizes = sizeOptions && sizeOptions.length > 0 && !(sizeOptions.length === 1 && sizeOptions[0] === 'Free Size');
+
+  // Handle setting quantity for a specific size
+  const handleSizeQuantityChange = (sizeKey: string, newQty: number) => {
+    const validQty = Math.max(0, Math.floor(Number(newQty) || 0));
+    const nextSizeStock = {
+      ...sizeStock,
+      [sizeKey]: validQty
+    };
+    setSizeStock(nextSizeStock);
+
+    // Recompute total stock
+    const sum = Object.values(nextSizeStock).reduce((acc, curr) => acc + (Number(curr) || 0), 0);
+    setTotalStock(sum);
+  };
+
+  // Quick increment/decrement for a specific size
+  const handleAdjustSizeStock = (sizeKey: string, delta: number) => {
+    const current = Number(sizeStock[sizeKey] ?? 50);
+    const next = Math.max(0, current + delta);
+    handleSizeQuantityChange(sizeKey, next);
+  };
+
+  // Bulk set all sizes to a fixed quantity
+  const handleBulkSetAll = (qty: number) => {
+    const next: Record<string, number> = {};
+    (sizeOptions.length ? sizeOptions : ['Free Size']).forEach(sz => {
+      next[sz] = qty;
+    });
+    setSizeStock(next);
+    setTotalStock(qty * (sizeOptions.length || 1));
+  };
+
+  // Quick presets for single item stock
+  const handleSingleStockPreset = (qty: number) => {
+    setTotalStock(qty);
+    setSizeStock({ 'Free Size': qty });
+  };
+
+  // Get total calculated pieces
+  const calculatedTotal = hasMultipleSizes 
+    ? sizeOptions.reduce((acc, sz) => acc + (Number(sizeStock[sz] ?? 50)), 0)
+    : totalStock;
+
+  return (
+    <div className="bg-slate-50/80 rounded-2xl border border-slate-200/90 p-4 space-y-3.5 shadow-2xs" id={`${idPrefix}-stock-inventory-manager`}>
+      
+      {/* Header with Live Total Quantity Badge */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-200/80">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black shrink-0 shadow-2xs">
+            <Boxes className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                Stock & Quantity Inventory (Kis Cheej Ki Kitni Quantity)
+              </h4>
+              <span className="bg-emerald-50 text-emerald-800 text-[10.5px] font-black px-2.5 py-0.5 rounded-full border border-emerald-200">
+                Total: {calculatedTotal} Pcs
+              </span>
+            </div>
+            <p className="text-[10.5px] text-slate-500 font-medium mt-0.5">
+              {hasMultipleSizes 
+                ? 'Specify exact inventory for each size & parameter. Deducts on order & restores on return.' 
+                : 'Enter the total available pieces you have in stock.'}
+            </p>
+          </div>
+        </div>
+
+        {/* Quick Bulk Preset Actions (If multi-sizes exist) */}
+        {hasMultipleSizes && (
+          <div className="flex items-center gap-1.5 flex-wrap self-start sm:self-auto">
+            <span className="text-[10px] font-bold text-slate-400">Bulk Apply:</span>
+            <button
+              type="button"
+              onClick={() => handleBulkSetAll(20)}
+              className="text-[10.5px] font-bold bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 px-2 py-1 rounded-lg cursor-pointer transition-all shadow-3xs"
+            >
+              All 20
+            </button>
+            <button
+              type="button"
+              onClick={() => handleBulkSetAll(50)}
+              className="text-[10.5px] font-bold bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 px-2 py-1 rounded-lg cursor-pointer transition-all shadow-3xs"
+            >
+              All 50
+            </button>
+            <button
+              type="button"
+              onClick={() => handleBulkSetAll(100)}
+              className="text-[10.5px] font-bold bg-[#143C6B] text-white hover:bg-[#0D2C4E] px-2.5 py-1 rounded-lg cursor-pointer transition-all shadow-3xs"
+            >
+              All 100
+            </button>
+            <button
+              type="button"
+              onClick={() => handleBulkSetAll(0)}
+              className="text-[10.5px] font-bold text-red-600 hover:bg-red-50 border border-red-200 px-2 py-1 rounded-lg cursor-pointer transition-all"
+              title="Mark all sizes as Out of Stock"
+            >
+              All 0 (Out)
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* RENDER MODE A: MULTI-SIZE / PARAMETER STOCK LIST TABLE */}
+      {hasMultipleSizes ? (
+        <div className="space-y-2.5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            {sizeOptions.map((sizeKey) => {
+              const currentQty = sizeStock[sizeKey] !== undefined ? Number(sizeStock[sizeKey]) : 50;
+              const isOutOfStock = currentQty === 0;
+              const isLowStock = currentQty > 0 && currentQty < 10;
+
+              return (
+                <div
+                  key={sizeKey}
+                  className={`p-3 rounded-xl border transition-all flex items-center justify-between gap-3 ${
+                    isOutOfStock
+                      ? 'bg-red-50/50 border-red-200'
+                      : isLowStock
+                      ? 'bg-amber-50/40 border-amber-200'
+                      : 'bg-white border-slate-200/90 shadow-3xs'
+                  }`}
+                >
+                  {/* Left: Size Name & Status */}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-black text-slate-900 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md tracking-wide">
+                        {sizeKey}
+                      </span>
+                      {isOutOfStock ? (
+                        <span className="text-[10px] font-extrabold text-red-600 bg-red-100/80 px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <AlertCircle className="w-2.5 h-2.5" /> Out of Stock
+                        </span>
+                      ) : isLowStock ? (
+                        <span className="text-[10px] font-extrabold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-md">
+                          Low: {currentQty} Left
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-md">
+                          In Stock ({currentQty})
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-medium block mt-0.5">
+                      Available pieces for {sizeKey}
+                    </span>
+                  </div>
+
+                  {/* Right: Stepper & Quick Add */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {/* Decrement Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleAdjustSizeStock(sizeKey, -1)}
+                      disabled={currentQty <= 0}
+                      className="w-7 h-7 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      title="Decrease by 1"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* Quantity Number Input */}
+                    <input
+                      type="number"
+                      min={0}
+                      value={currentQty}
+                      onChange={(e) => handleSizeQuantityChange(sizeKey, Number(e.target.value))}
+                      className={`w-14 text-center text-xs font-black border rounded-lg py-1.5 px-1 bg-white focus:outline-hidden focus:border-[#143C6B] ${
+                        isOutOfStock ? 'border-red-300 text-red-700' : 'border-slate-300 text-slate-900'
+                      }`}
+                      id={`${idPrefix}-size-stock-${sizeKey}`}
+                    />
+
+                    {/* Increment Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleAdjustSizeStock(sizeKey, 1)}
+                      className="w-7 h-7 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs cursor-pointer transition-all"
+                      title="Increase by 1"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* Quick +10 Booster */}
+                    <button
+                      type="button"
+                      onClick={() => handleAdjustSizeStock(sizeKey, 10)}
+                      className="text-[10px] font-black px-1.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 cursor-pointer"
+                      title="Add 10 pieces"
+                    >
+                      +10
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="bg-blue-50/70 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between text-xs text-blue-900">
+            <span className="text-[11px] font-medium flex items-center gap-1.5">
+              <Info className="w-3.5 h-3.5 text-[#143C6B] shrink-0" />
+              Buyers will see real-time availability for each selected size.
+            </span>
+            <span className="text-[11px] font-bold text-[#143C6B]">
+              Total: {calculatedTotal} Pcs
+            </span>
+          </div>
+        </div>
+      ) : (
+        /* RENDER MODE B: SINGLE ITEM / FREE SIZE STOCK */
+        <div className="space-y-3">
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-3xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <label className="text-xs font-black text-slate-900 block">
+                Available Quantity (Pieces in Warehouse/Shop) *
+              </label>
+              <span className="text-[10.5px] text-slate-500 font-medium">
+                Decrements automatically when buyers place orders.
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleSingleStockPreset(Math.max(0, totalStock - 1))}
+                disabled={totalStock <= 0}
+                className="w-8 h-8 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-sm cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <Minus className="w-4 h-4" />
+              </button>
+
+              <input
+                type="number"
+                min={0}
+                value={totalStock}
+                onChange={(e) => handleSingleStockPreset(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                className="w-24 text-center text-sm font-black border border-slate-300 rounded-xl py-2 px-2 bg-white focus:outline-hidden focus:border-[#143C6B]"
+                id={`${idPrefix}-stock-input`}
+              />
+
+              <button
+                type="button"
+                onClick={() => handleSingleStockPreset(totalStock + 1)}
+                className="w-8 h-8 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-sm cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Preset Buttons */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[10.5px] font-bold text-slate-400">Quick Set:</span>
+            {[20, 50, 100, 250, 500].map(qty => (
+              <button
+                key={qty}
+                type="button"
+                onClick={() => handleSingleStockPreset(qty)}
+                className={`text-xs px-3 py-1 rounded-xl font-bold border transition-all cursor-pointer ${
+                  totalStock === qty
+                    ? 'bg-[#143C6B] text-white border-[#143C6B] shadow-2xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                {qty} Pcs
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => handleSingleStockPreset(0)}
+              className="text-xs px-3 py-1 rounded-xl font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 cursor-pointer"
+            >
+              0 (Out of Stock)
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );

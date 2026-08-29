@@ -35,6 +35,7 @@ export interface VariantSwatch {
   price: number;
   originalPrice: number;
   stock?: number;
+  sizeStock?: Record<string, number>;
 }
 
 export interface ProductAnalytics {
@@ -77,6 +78,8 @@ export interface Product {
   productHighlights: ProductHighlight[];
   additionalDetails: AdditionalDetail[];
   sizeOptions: string[];
+  stock?: number; // Total available stock pieces
+  sizeStock?: Record<string, number>; // Size/parameter-wise stock breakdown e.g. { 'S': 25, 'M': 50, 'L': 30 }
   tag?: string; // e.g. "Top Rated", "Lowest Price"
   timeLeftText?: string; // "01h : 25m : 26s" for flash offers
   reviews: Review[];

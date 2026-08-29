@@ -172,8 +172,22 @@ export default function ProductDetail({
     imageUrl: (product.images && product.images[0]) || '',
     price: product.price,
     originalPrice: product.originalPrice,
-    colorName: 'Default'
+    colorName: 'Default',
+    stock: product.stock ?? 100,
+    sizeStock: product.sizeStock
   };
+
+  const selectedSizeStock = useMemo(() => {
+    if (currentVariant.sizeStock && typeof currentVariant.sizeStock[selectedSize] === 'number') {
+      return currentVariant.sizeStock[selectedSize];
+    }
+    if (product.sizeStock && typeof product.sizeStock[selectedSize] === 'number') {
+      return product.sizeStock[selectedSize];
+    }
+    return typeof currentVariant.stock === 'number' ? currentVariant.stock : (typeof product.stock === 'number' ? product.stock : 100);
+  }, [product.sizeStock, product.stock, currentVariant, selectedSize]);
+
+  const isSelectedSizeOutOfStock = selectedSizeStock === 0;
 
   // Compile full list of distinct valid product images
   const allImages = useMemo(() => {
@@ -333,6 +347,10 @@ export default function ProductDetail({
   }, [product?.id]);
 
   const handleAddToCartClick = () => {
+    if (isSelectedSizeOutOfStock) {
+      triggerToast(`Sorry! Size "${selectedSize}" is currently out of stock.`);
+      return;
+    }
     if (!currentUser && onRequireLogin) {
       onRequireLogin('Add to Cart', 'Sign in to add items to your shopping cart and enjoy member discounts.');
       return;
@@ -343,6 +361,10 @@ export default function ProductDetail({
   };
 
   const handleBuyNowClick = () => {
+    if (isSelectedSizeOutOfStock) {
+      triggerToast(`Sorry! Size "${selectedSize}" is currently out of stock.`);
+      return;
+    }
     if (!currentUser && onRequireLogin) {
       onRequireLogin('Buy Now', 'Sign in with your mobile number to complete your checkout.');
       return;
@@ -1398,28 +1420,75 @@ export default function ProductDetail({
 
         {/* SELECT SIZE SECTION (Screenshot 2 Format) */}
         <section className="bg-white p-4 border-y sm:border border-slate-100 sm:rounded-2xl shadow-3xs" id="select-size-section">
-          <h3 className="text-sm font-bold text-slate-900 tracking-tight mb-3">
-            Select Size
-          </h3>
-          <div className="flex items-center gap-2.5 flex-wrap" id="size-chips-list">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+              Select Size
+            </h3>
+            {selectedSizeStock > 0 && selectedSizeStock <= 5 ? (
+              <span className="text-[11px] font-black text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <Zap className="w-3 h-3 text-amber-600 fill-amber-500" />
+                Only {selectedSizeStock} Left!
+              </span>
+            ) : isSelectedSizeOutOfStock ? (
+              <span className="text-[11px] font-black text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <AlertCircle className="w-3 h-3 text-red-500" />
+                Out of Stock
+              </span>
+            ) : (
+              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                In Stock ({selectedSizeStock})
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap" id="size-chips-list">
             {(product.sizeOptions && product.sizeOptions.length > 0 ? product.sizeOptions : ['Free Size']).map((size) => {
               const isSelected = selectedSize === size;
+              const sizeQty = (currentVariant.sizeStock && typeof currentVariant.sizeStock[size] === 'number')
+                ? currentVariant.sizeStock[size]
+                : (product.sizeStock && typeof product.sizeStock[size] === 'number')
+                ? product.sizeStock[size]
+                : (typeof currentVariant.stock === 'number' ? currentVariant.stock : (typeof product.stock === 'number' ? product.stock : 100));
+              const isSizeOos = sizeQty === 0;
+
               return (
                 <button
                   key={size}
                   onClick={() => setSelectedSize(size)}
-                  className={`px-5 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                  className={`px-4 py-2 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
                     isSelected
-                      ? 'border-2 border-[#143C6B] text-[#143C6B] bg-[#E8EEF5] shadow-2xs font-bold'
-                      : 'border border-slate-300 text-slate-700 bg-white hover:bg-slate-50'
+                      ? isSizeOos 
+                        ? 'border-2 border-red-400 text-red-700 bg-red-50 font-bold shadow-2xs' 
+                        : 'border-2 border-[#143C6B] text-[#143C6B] bg-[#E8EEF5] shadow-2xs font-bold'
+                      : isSizeOos
+                      ? 'border border-dashed border-red-200 text-slate-400 bg-red-50/30 line-through'
+                      : 'border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 font-semibold'
                   }`}
                   id={`size-chip-${size}`}
                 >
-                  {size}
+                  <span>{size}</span>
+                  {isSizeOos ? (
+                    <span className="text-[9px] font-black text-red-600 bg-red-100 px-1 py-0.2 rounded no-underline tracking-tighter">
+                      OUT
+                    </span>
+                  ) : sizeQty <= 5 && sizeQty > 0 ? (
+                    <span className="text-[9px] font-black text-amber-700 bg-amber-100 px-1 py-0.2 rounded">
+                      {sizeQty} left
+                    </span>
+                  ) : null}
                 </button>
               );
             })}
           </div>
+
+          {/* Real-time Size Stock Status Notice */}
+          {isSelectedSizeOutOfStock && (
+            <div className="mt-3 p-2.5 rounded-xl bg-red-50 border border-red-200/90 text-xs text-red-700 font-bold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+              <span>Selected size ({selectedSize}) is currently out of stock. Please choose another available size.</span>
+            </div>
+          )}
         </section>
 
 
