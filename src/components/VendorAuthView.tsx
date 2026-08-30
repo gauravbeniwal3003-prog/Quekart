@@ -111,7 +111,7 @@ export default function VendorAuthView({
   onLoginSuccess, 
   systemVendors = [],
   navigateTo,
-  initialAuthMode = 'login'
+  initialAuthMode = 'signup'
 }: VendorAuthViewProps) {
   // Top Level Mode: 'login' | 'signup'
   const [authMode, setAuthMode] = useState<'login' | 'signup'>(initialAuthMode);

@@ -218,7 +218,7 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
               </button>
 
               <button
-                onClick={() => onNavigate('/vendor')}
+                onClick={() => onNavigate('/vendor/signup')}
                 className="text-xs lg:text-sm font-bold text-[#0B1E36] hover:text-[#143C6B] transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <Store className="w-4 h-4 text-[#E5A812]" />
@@ -507,7 +507,7 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
                   {/* Button 2: Register as Vendor */}
                   <button
                     type="button"
-                    onClick={() => onNavigate('/vendor')}
+                    onClick={() => onNavigate('/vendor/signup')}
                     className="w-full sm:w-1/2 text-white font-black text-sm md:text-base py-3.5 sm:py-4 md:py-4.5 px-6 rounded-2xl flex items-center justify-center gap-2.5 transition-all duration-300 shadow-md cursor-pointer bg-brand-gold hover:brightness-110 hover:shadow-xl active:scale-98 group whitespace-nowrap"
                     id="btn-register-vendor"
                   >

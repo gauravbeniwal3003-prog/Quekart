@@ -123,6 +123,16 @@ export default function VendorDashboard({
     }
   });
 
+  // If vendor is already logged in and navigates to signup or login route, auto-redirect to dashboard
+  useEffect(() => {
+    if (currentVendor && (activeSubPage === 'signup' || activeSubPage === 'login')) {
+      if (setActiveSubPage) {
+        setActiveSubPage('');
+      }
+      navigateTo('/vendor');
+    }
+  }, [currentVendor, activeSubPage]);
+
   // Left sidebar drawer navigation state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -154,7 +164,7 @@ export default function VendorDashboard({
 
   // Determine current vendor active tab/task
   let activeTabKey = 'dashboard';
-  if (activeSubPage) {
+  if (activeSubPage && activeSubPage !== 'signup' && activeSubPage !== 'login') {
     if (activeSubPage.startsWith('products/add') || activeSubPage === 'add-product') {
       activeTabKey = 'add-product';
     } else if (activeSubPage.startsWith('products/edit') || activeSubPage === 'edit-product') {
@@ -1123,7 +1133,7 @@ export default function VendorDashboard({
         onLoginSuccess={handleSelectVendor} 
         systemVendors={systemVendors}
         navigateTo={navigateTo}
-        initialAuthMode={activeSubPage === 'signup' || activeSubPage === 'register' ? 'signup' : 'login'}
+        initialAuthMode={activeSubPage === 'login' ? 'login' : 'signup'}
       />
     );
   }

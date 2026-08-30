@@ -162,7 +162,7 @@ export default function SeoHubView({
             </button>
 
             <button
-              onClick={() => onNavigate('/vendor')}
+              onClick={() => onNavigate('/vendor/signup')}
               className="hidden sm:flex bg-[#FF8C00] hover:bg-[#E57E00] text-white text-xs sm:text-sm font-bold px-4 py-2 rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer items-center gap-1.5"
             >
               <Store className="w-4 h-4" />
@@ -212,7 +212,7 @@ export default function SeoHubView({
               </button>
 
               <button
-                onClick={() => onNavigate('/vendor')}
+                onClick={() => onNavigate('/vendor/signup')}
                 className="bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm px-5 py-3.5 rounded-xl backdrop-blur-xs border border-white/20 transition-all cursor-pointer flex items-center gap-2"
               >
                 <Store className="w-4 h-4 text-[#FDE047]" />
@@ -473,7 +473,7 @@ export default function SeoHubView({
             </button>
 
             <button
-              onClick={() => onNavigate('/vendor')}
+              onClick={() => onNavigate('/vendor/signup')}
               className="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white font-bold text-sm px-6 py-3.5 rounded-xl backdrop-blur-xs border border-white/20 transition-all cursor-pointer flex items-center justify-center gap-2"
             >
               <Store className="w-4 h-4 text-[#FDE047]" />
