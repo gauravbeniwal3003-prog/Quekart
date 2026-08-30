@@ -41,7 +41,8 @@ import {
   FileText,
   CheckCircle2,
   SlidersHorizontal,
-  ArrowUpDown
+  ArrowUpDown,
+  AlertCircle
 } from 'lucide-react';
 import { Product, Review, Order, CartItem } from '../types';
 import { motion, AnimatePresence } from 'motion/react';

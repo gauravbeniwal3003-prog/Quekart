@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Product, Order, Coupon, Banner, Category, Vendor, CategoryFilter } from './types';
-import { mockProducts, initialBanners } from './data';
+import { initialBanners } from './data';
 
 // -------------------------------------------------------------
 // SECURE HYBRID CONFIGURATION
@@ -144,7 +144,7 @@ export function warmupCriticalShopImages(products?: Product[], banners?: Banner[
     });
 
     // 2. Warm up Top Product Cards (First 12 items)
-    const productList = (products && products.length > 0) ? products : (memoryProductsCache || mockProducts);
+    const productList = (products && products.length > 0) ? products : (memoryProductsCache || []);
     productList.slice(0, 12).forEach((p) => {
       const firstImg = p.images && p.images[0];
       if (firstImg) {
@@ -174,9 +174,9 @@ function getAdminSecret(providedSecret?: string): string {
  * Fetch all products with 3-tier fallback (Backend API -> Supabase -> Cache/Default)
  */
 export async function fetchProductsUnified(): Promise<Product[]> {
-  // 1. Try Backend API
+  // 1. Try Backend API (Authoritative Server Database)
   const apiProducts = await fetchSafeJson(getApiUrl('/api/products?all=true'));
-  if (apiProducts && Array.isArray(apiProducts) && apiProducts.length > 0) {
+  if (apiProducts && Array.isArray(apiProducts)) {
     memoryProductsCache = apiProducts;
     try {
       localStorage.setItem('quekart_cached_products', JSON.stringify(apiProducts));
@@ -195,7 +195,7 @@ export async function fetchProductsUnified(): Promise<Product[]> {
   if (sb) {
     try {
       const { data, error } = await sb.from('products').select('*');
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         const mappedProducts: Product[] = data.map((row: any) => row.data || row);
         memoryProductsCache = mappedProducts;
         try {
@@ -221,8 +221,8 @@ export async function fetchProductsUnified(): Promise<Product[]> {
     }
   } catch (_) {}
 
-  // 5. Return default mock products
-  return mockProducts;
+  // 5. Return empty array if all database/cache sources fail
+  return [];
 }
 
 /**

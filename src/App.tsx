@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Heart, HelpCircle, ArrowLeft, Smile, Search, LogOut, CheckCircle2, User as UserIcon, ShoppingBag, ShieldAlert } from 'lucide-react';
-import { mockProducts, initialOrders, initialBanners } from './data';
+import { initialOrders, initialBanners } from './data';
 import { 
   fetchProductsUnified, 
   fetchCategoriesUnified, 
@@ -323,7 +323,7 @@ export default function App() {
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (_) {}
-    return mockProducts;
+    return [];
   });
 
   // Database-driven orders state

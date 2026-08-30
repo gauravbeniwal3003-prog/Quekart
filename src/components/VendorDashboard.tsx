@@ -379,7 +379,7 @@ export default function VendorDashboard({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending' | 'rejected'>('all');
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('all');
-  const [inventoryFilter, setInventoryFilter] = useState<'all' | 'instock' | 'lowstock' | 'outofstock'>('all');
+  const [inventoryFilter, setInventoryFilter] = useState<'all' | 'instock' | 'lowstock' | 'outofstock' | 'low' | 'oos' | 'in_stock'>('all');
 
   // Interactive Quick Stock & Price Updater State
   const [quickStockProduct, setQuickStockProduct] = useState<Product | null>(null);
