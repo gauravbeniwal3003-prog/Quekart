@@ -4,7 +4,7 @@ import { createServer as createViteServer } from 'vite';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from '@google/genai';
-import { mockProducts, initialOrders, mockCategories, initialBanners, mockCategoryFilters } from './src/data.js';
+import { mockProducts, initialOrders, mockCategories, initialBanners, mockCategoryFilters, mockSubCategories } from './src/data.js';
 import { Product, Order, Coupon, CartItem, Vendor, Category, Banner, CategoryFilter, SubCategory } from './src/types.js';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -215,6 +215,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // -------------------------------------------------------------
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'lucky-secret-admin-pass-123';
 const JWT_SECRET = process.env.JWT_SECRET || 'quekart-secure-jwt-secret-987654321';
 
@@ -292,9 +293,10 @@ const orderMutex = new SimpleMutex();
 let supabase: any = null;
 let useSupabase = false;
 
-if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+if (SUPABASE_URL && (SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY)) {
   try {
-    supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    const keyToUse = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+    supabase = createClient(SUPABASE_URL, keyToUse, {
       auth: { persistSession: false }
     });
     console.log('✅ Supabase client initialized. Testing connection...');
@@ -322,6 +324,7 @@ let localOrders: Order[] = [...initialOrders];
 let localCoupons: Coupon[] = [...initialCouponsList];
 let localVendors: Vendor[] = [...initialVendors];
 let localCategories: Category[] = [...mockCategories];
+let localSubCategories: SubCategory[] = [...mockSubCategories];
 let localCategoryFilters: CategoryFilter[] = [...mockCategoryFilters];
 let localBanners: Banner[] = [...initialBanners];
 let localGstResults: Array<{
@@ -373,6 +376,7 @@ if (fs.existsSync('./mock_data.json')) {
     const raw = fs.readFileSync('./mock_data.json', 'utf8');
     const parsed = JSON.parse(raw);
     if (parsed.categories && parsed.categories.length > 0) localCategories = parsed.categories;
+    if (parsed.subCategories && parsed.subCategories.length > 0) localSubCategories = parsed.subCategories;
     if (parsed.categoryFilters && parsed.categoryFilters.length > 0) localCategoryFilters = parsed.categoryFilters;
     if (parsed.banners && parsed.banners.length > 0) localBanners = parsed.banners;
     if (parsed.products && parsed.products.length > 0) localProducts = parsed.products;
@@ -387,6 +391,7 @@ if (fs.existsSync('./mock_data.json')) {
 }
 
 if (localCategories.length === 0) localCategories = [...mockCategories];
+if (localSubCategories.length === 0) localSubCategories = [...mockSubCategories];
 if (localCategoryFilters.length === 0) localCategoryFilters = [...mockCategoryFilters];
 if (localBanners.length === 0) localBanners = [...initialBanners];
 
@@ -396,6 +401,7 @@ try {
     products: localProducts,
     orders: localOrders,
     categories: localCategories,
+    subCategories: localSubCategories,
     categoryFilters: localCategoryFilters,
     coupons: localCoupons,
     vendors: localVendors,
@@ -414,6 +420,7 @@ function saveMockDataFile() {
       products: localProducts,
       orders: localOrders,
       categories: localCategories,
+      subCategories: localSubCategories,
       categoryFilters: localCategoryFilters,
       coupons: localCoupons,
       vendors: localVendors,
@@ -452,7 +459,12 @@ async function testAndSeedSupabase() {
         }
       }
     } else {
-      console.log(`📊 Products in Supabase: ${existingProductIds.size}. Skipping seeding to preserve live data.`);
+      console.log(`📊 Products in Supabase: ${existingProductIds.size}. Syncing live database products...`);
+      const { data: dbProdRows } = await supabase.from('products').select('*');
+      if (dbProdRows && dbProdRows.length > 0) {
+        localProducts = dbProdRows.map((r: any) => r.data || r);
+        saveMockDataFile();
+      }
     }
 
     // 2. Verify and seed coupons table
@@ -468,35 +480,49 @@ async function testAndSeedSupabase() {
           }
         }
       } else {
-        console.log(`📊 Coupons in Supabase: ${existingCouponCodes.size}.`);
+        console.log(`📊 Coupons in Supabase: ${existingCouponCodes.size}. Syncing live database coupons...`);
+        const { data: dbCouponRows } = await supabase.from('coupons').select('*');
+        if (dbCouponRows && dbCouponRows.length > 0) {
+          localCoupons = dbCouponRows.map((r: any) => r.data || r);
+          saveMockDataFile();
+        }
       }
     } else {
       console.log('ℹ️ Coupons table in Supabase using local cache fallback.');
     }
 
     // 3. Verify and seed orders table
-    const { data: oCountData, error: oError } = await supabase.from('orders').select('id');
-    if (!oError) {
-      const existingOrderIds = new Set((oCountData || []).map((row: any) => row.id));
-      console.log(`📊 Orders in Supabase: ${existingOrderIds.size}.`);
+    const { data: oCountData, error: oError } = await supabase.from('orders').select('*');
+    if (!oError && oCountData) {
+      console.log(`📊 Orders in Supabase: ${oCountData.length}. Syncing live database orders...`);
+      if (oCountData.length > 0) {
+        localOrders = oCountData.map((r: any) => r.data || r);
+        saveMockDataFile();
+      }
     } else {
       console.log('ℹ️ Orders table in Supabase using local cache fallback.');
     }
 
     // 4. Verify and seed vendors table
-    const { data: vCountData, error: vError } = await supabase.from('vendors').select('id');
-    if (!vError) {
-      const existingVendorIds = new Set((vCountData || []).map((row: any) => row.id));
-      console.log(`📊 Vendors in Supabase: ${existingVendorIds.size}.`);
+    const { data: vCountData, error: vError } = await supabase.from('vendors').select('*');
+    if (!vError && vCountData) {
+      console.log(`📊 Vendors in Supabase: ${vCountData.length}. Syncing live database vendors...`);
+      if (vCountData.length > 0) {
+        localVendors = vCountData.map((r: any) => r.data || r);
+        saveMockDataFile();
+      }
     } else {
       console.log('ℹ️ Vendors table in Supabase using local cache fallback.');
     }
 
-    // 4.6. Verify users table (Real users only - no demo seeds)
-    const { data: uCountData, error: uError } = await supabase.from('users').select('id');
-    if (!uError) {
-      const existingUserIds = new Set((uCountData || []).map((row: any) => row.id));
-      console.log(`📊 Users in Supabase: ${existingUserIds.size}.`);
+    // 4.6. Verify users table
+    const { data: uCountData, error: uError } = await supabase.from('users').select('*');
+    if (!uError && uCountData) {
+      console.log(`📊 Users in Supabase: ${uCountData.length}. Syncing live database users...`);
+      if (uCountData.length > 0) {
+        localUsers = uCountData.map((r: any) => r.data || r);
+        saveMockDataFile();
+      }
     } else {
       console.log('ℹ️ Users table in Supabase using local cache fallback.');
     }
@@ -524,6 +550,30 @@ async function testAndSeedSupabase() {
       }
     } else {
       console.log('ℹ️ Categories table in Supabase using local cache fallback.');
+    }
+
+    // 5.2. Verify sub_categories table
+    const { data: subCountData, error: subError } = await supabase.from('sub_categories').select('id');
+    if (!subError) {
+      const existingSubIds = new Set((subCountData || []).map((row: any) => row.id));
+      if (existingSubIds.size === 0 && localSubCategories.length > 0) {
+        console.log('🌱 sub_categories table is empty. Seeding default sub-categories...');
+        for (const s of localSubCategories) {
+          const { error: insertErr } = await supabase.from('sub_categories').insert({ id: s.id, data: s });
+          if (insertErr) {
+            console.warn(`⚠️ Note seeding sub-category ${s.id}:`, insertErr.message || insertErr);
+          }
+        }
+      } else {
+        console.log(`📊 Sub-Categories in Supabase: ${existingSubIds.size}. Syncing live database sub-categories...`);
+        const { data: dbSubRows } = await supabase.from('sub_categories').select('*');
+        if (dbSubRows && dbSubRows.length > 0) {
+          localSubCategories = dbSubRows.map((r: any) => r.data || r);
+          saveMockDataFile();
+        }
+      }
+    } else {
+      console.log('ℹ️ sub_categories table in Supabase using local cache fallback.');
     }
 
     // 5.5. Verify category_filters table
@@ -4257,7 +4307,6 @@ app.post('/api/categories/reorder', authenticateAdmin, async (req, res) => {
 });
 
 // --- SUB-CATEGORIES ---
-let localSubCategories: SubCategory[] = [];
 
 app.get('/api/sub-categories', async (req, res) => {
   try {

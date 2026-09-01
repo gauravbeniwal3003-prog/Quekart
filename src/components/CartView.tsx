@@ -410,7 +410,7 @@ export default function CartDrawer({
       <div className="relative w-full max-w-md md:max-w-4xl lg:max-w-5xl bg-white h-full min-h-screen sm:min-h-0 sm:rounded-2xl sm:border border-gray-200/80 flex flex-col shadow-sm z-10 overflow-hidden" id="cart-view-panel">
         
         {/* Header */}
-        <div className="sticky top-[52px] md:top-[64px] z-40 bg-white px-4 sm:px-6 py-3.5 border-b border-gray-200/80 flex items-center justify-between shadow-xs" id="cart-sticky-header">
+        <div className="sticky top-0 z-40 bg-white px-4 sm:px-6 py-3.5 border-b border-gray-200/80 flex items-center justify-between shadow-xs" id="cart-sticky-header">
           <div className="flex items-center gap-2.5">
             <button 
               onClick={() => {
@@ -982,7 +982,7 @@ export default function CartDrawer({
             </div>
 
             {/* Mobile Bottom Fixed Buy Now Bar */}
-            <div className="md:hidden p-3 border-t border-slate-200/80 bg-white/95 backdrop-blur-md sticky bottom-0 z-40 flex items-center justify-between gap-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]" id="cart-drawer-footer">
+            <div className="md:hidden p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] border-t border-slate-200/80 bg-white/95 backdrop-blur-md sticky bottom-0 z-40 flex items-center justify-between gap-3 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]" id="cart-drawer-footer">
               <div>
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">Final Total</span>
                 <span className="text-base font-black text-slate-950 premium-rupee">₹{finalPrice}</span>

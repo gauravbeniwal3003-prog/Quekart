@@ -118,8 +118,57 @@ export const mockCategories: Category[] = [
   }
 ];
 
-// Sub-categories hierarchy definitions (Initially empty, controlled and created by admin)
-export const mockSubCategories: SubCategory[] = [];
+// Sub-categories hierarchy definitions
+export const mockSubCategories: SubCategory[] = [
+  // Popular
+  { id: 'sub-pop-1', name: 'Top Brands', categoryId: 'cat-popular', categoryName: 'Popular', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=300' },
+  { id: 'sub-pop-2', name: 'Festive Specials', categoryId: 'cat-popular', categoryName: 'Popular', image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300' },
+  { id: 'sub-pop-3', name: 'Rakhi Collections', categoryId: 'cat-popular', categoryName: 'Popular', image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=300' },
+  { id: 'sub-pop-4', name: 'Premium Collection', categoryId: 'cat-popular', categoryName: 'Popular', image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&q=80&w=300' },
+
+  // Women Ethnic Wear
+  { id: 'sub-we-1', name: 'Designer Kurtis', categoryId: 'cat-ethnic-wear', categoryName: 'Women Ethnic Wear', image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=300' },
+  { id: 'sub-we-2', name: 'Silk & Banarasi Sarees', categoryId: 'cat-ethnic-wear', categoryName: 'Women Ethnic Wear', image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300' },
+  { id: 'sub-we-3', name: 'Lehengas & Anarkalis', categoryId: 'cat-ethnic-wear', categoryName: 'Women Ethnic Wear', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=300' },
+  { id: 'sub-we-4', name: 'Suits & Dress Material', categoryId: 'cat-ethnic-wear', categoryName: 'Women Ethnic Wear', image: 'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=300' },
+  { id: 'sub-we-5', name: 'Dupattas & Shawls', categoryId: 'cat-ethnic-wear', categoryName: 'Women Ethnic Wear', image: 'https://images.unsplash.com/photo-1609357605129-26f69add5d6e?auto=format&fit=crop&q=80&w=300' },
+
+  // Women Western Wear
+  { id: 'sub-ww-1', name: 'Western Dresses', categoryId: 'cat-women-western', categoryName: 'Women Western Wear', image: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=300' },
+  { id: 'sub-ww-2', name: 'Tops & Tunics', categoryId: 'cat-women-western', categoryName: 'Women Western Wear', image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=300' },
+  { id: 'sub-ww-3', name: 'Jeans & Jeggings', categoryId: 'cat-women-western', categoryName: 'Women Western Wear', image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&q=80&w=300' },
+  { id: 'sub-ww-4', name: 'Party Wear', categoryId: 'cat-women-western', categoryName: 'Women Western Wear', image: 'https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&q=80&w=300' },
+
+  // Men Ethnic Wear
+  { id: 'sub-me-1', name: 'Royal Kurta Sets', categoryId: 'cat-men-ethnic', categoryName: 'Men Ethnic Wear', image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&q=80&w=300' },
+  { id: 'sub-me-2', name: 'Festive Sherwanis', categoryId: 'cat-men-ethnic', categoryName: 'Men Ethnic Wear', image: 'https://images.unsplash.com/photo-1617127365659-c47fa864d8bc?auto=format&fit=crop&q=80&w=300' },
+  { id: 'sub-me-3', name: 'Nehru Jackets', categoryId: 'cat-men-ethnic', categoryName: 'Men Ethnic Wear', image: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=300' },
+
+  // Men Western & Casuals
+  { id: 'sub-mw-1', name: 'Casual Shirts', categoryId: 'cat-men-western', categoryName: 'Men Western & Casuals', image: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=300' },
+  { id: 'sub-mw-2', name: 'Formal Trousers', categoryId: 'cat-men-western', categoryName: 'Men Western & Casuals', image: 'https://images.unsplash.com/photo-1479064555552-3ef4979f8908?auto=format&fit=crop&q=80&w=300' },
+  { id: 'sub-mw-3', name: 'Jeans & Denim', categoryId: 'cat-men-western', categoryName: 'Men Western & Casuals', image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&q=80&w=300' },
+
+  // Kids & Baby Wear
+  { id: 'sub-kids-1', name: 'Boys Festive Wear', categoryId: 'cat-kids', categoryName: 'Kids & Baby Wear', image: 'https://images.unsplash.com/photo-1514090458221-65bb69cf63e6?auto=format&fit=crop&q=80&w=300' },
+  { id: 'sub-kids-2', name: 'Girls Lehengas', categoryId: 'cat-kids', categoryName: 'Kids & Baby Wear', image: 'https://images.unsplash.com/photo-1621452773781-0f992fd1f5cb?auto=format&fit=crop&q=80&w=300' },
+  { id: 'sub-kids-3', name: 'Toys & Games', categoryId: 'cat-kids', categoryName: 'Kids & Baby Wear', image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?auto=format&fit=crop&q=80&w=300' },
+
+  // Footwear & Shoes
+  { id: 'sub-foot-1', name: 'Mojaris & Ethnic Juttis', categoryId: 'cat-footwear', categoryName: 'Footwear & Shoes', image: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&q=80&w=300' },
+  { id: 'sub-foot-2', name: 'Ethnic Heels & Wedges', categoryId: 'cat-footwear', categoryName: 'Footwear & Shoes', image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=300' },
+  { id: 'sub-foot-3', name: 'Casual Sneakers', categoryId: 'cat-footwear', categoryName: 'Footwear & Shoes', image: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&q=80&w=300' },
+
+  // Jewellery & Ornaments
+  { id: 'sub-jewel-1', name: 'Kundan & Gold Necklaces', categoryId: 'cat-jewellery', categoryName: 'Jewellery & Ornaments', image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&q=80&w=300' },
+  { id: 'sub-jewel-2', name: 'Royal Bangles & Kadas', categoryId: 'cat-jewellery', categoryName: 'Jewellery & Ornaments', image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&q=80&w=300' },
+  { id: 'sub-jewel-3', name: 'Earrings & Jhumkas', categoryId: 'cat-jewellery', categoryName: 'Jewellery & Ornaments', image: 'https://images.unsplash.com/photo-1630019852942-f89202989a59?auto=format&fit=crop&q=80&w=300' },
+
+  // Home & Kitchen Decor
+  { id: 'sub-home-1', name: 'Royal Bedding & Cushions', categoryId: 'cat-home', categoryName: 'Home & Kitchen Decor', image: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=300' },
+  { id: 'sub-home-2', name: 'Festive Home Decors', categoryId: 'cat-home', categoryName: 'Home & Kitchen Decor', image: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&q=80&w=300' },
+  { id: 'sub-home-3', name: 'Kitchenware & Dining', categoryId: 'cat-home', categoryName: 'Home & Kitchen Decor', image: 'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&q=80&w=300' }
+];
 
 // 3 Promotional Banners
 export const initialBanners: Banner[] = [

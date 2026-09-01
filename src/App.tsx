@@ -1362,8 +1362,8 @@ export default function App() {
             )}
           </div>
           
-          {/* Global Bottom Navigation shown across customer storefront (hidden on dedicated login/signup pages) */}
-          {activePortal === 'shop' && !(activeTab === 'user' && (activeSubPage === 'login' || activeSubPage === 'signup')) && (
+          {/* Global Bottom Navigation shown across customer storefront (hidden on dedicated login/signup pages & cart/billing checkout page) */}
+          {activePortal === 'shop' && activeTab !== 'cart' && !(activeTab === 'user' && (activeSubPage === 'login' || activeSubPage === 'signup')) && (
             <BottomNav
               activeTab={activeTab}
               cartCount={cart.reduce((acc, item) => acc + item.quantity, 0)}

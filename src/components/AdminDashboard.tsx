@@ -4562,7 +4562,7 @@ export default function AdminDashboard({
                       )}
                       {showCount && !isCollapsed && (
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
-                          item.highlight && item.count && item.count > 0
+                          ('highlight' in item && item.highlight) && item.count && item.count > 0
                             ? 'bg-red-100 text-red-600 animate-pulse'
                             : 'bg-slate-100 text-slate-500'
                         }`}>
@@ -4590,11 +4590,11 @@ export default function AdminDashboard({
               <div className="flex items-center gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                 <img 
                   src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=120&auto=format&fit=crop" 
-                  alt="Musharof" 
+                  alt="Lucky" 
                   className="w-9 h-9 rounded-full object-cover border border-slate-200"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-black text-slate-800 truncate">Musharof</p>
+                  <p className="text-xs font-black text-slate-800 truncate">Lucky</p>
                   <p className="text-[10px] text-slate-400 font-bold truncate">Master Admin</p>
                 </div>
               </div>
@@ -4610,9 +4610,9 @@ export default function AdminDashboard({
             <div className="flex flex-col items-center gap-4">
               <img 
                 src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=120&auto=format&fit=crop" 
-                alt="Musharof" 
+                alt="Lucky" 
                 className="w-8 h-8 rounded-full object-cover border border-slate-200 cursor-pointer"
-                title="Musharof - Master Admin"
+                title="Lucky - Master Admin"
               />
               <button
                 onClick={() => handleMenuClick('overview')}
@@ -4769,9 +4769,9 @@ export default function AdminDashboard({
             <div className="flex items-center gap-2 pl-1 border-l border-slate-200">
               <img 
                 src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=120&auto=format&fit=crop" 
-                alt="Musharof" 
+                alt="Lucky" 
                 className="w-8 h-8 rounded-full object-cover border border-slate-200"
-                title="Master Admin"
+                title="Master Admin (Lucky)"
               />
             </div>
           </div>

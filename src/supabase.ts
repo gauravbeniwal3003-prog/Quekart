@@ -315,6 +315,27 @@ export async function fetchSubCategoriesUnified(): Promise<SubCategory[]> {
  * Save Sub-Category
  */
 export async function saveSubCategoryUnified(subCat: SubCategory): Promise<SubCategory> {
+  try {
+    const adminSecret = getAdminSecret();
+    await fetch(getApiUrl('/api/sub-categories'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Secret': adminSecret
+      },
+      body: JSON.stringify(subCat)
+    });
+  } catch (e) {
+    console.warn('⚠️ API save sub-category failed:', e);
+  }
+
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      await sb.from('sub_categories').upsert({ id: subCat.id, data: subCat });
+    } catch (_) {}
+  }
+
   const current = await fetchSubCategoriesUnified();
   const existingIdx = current.findIndex(s => s.id === subCat.id);
   let updated: SubCategory[];
@@ -335,6 +356,25 @@ export async function saveSubCategoryUnified(subCat: SubCategory): Promise<SubCa
  * Delete Sub-Category
  */
 export async function deleteSubCategoryUnified(subCatId: string): Promise<boolean> {
+  try {
+    const adminSecret = getAdminSecret();
+    await fetch(getApiUrl(`/api/sub-categories/${subCatId}`), {
+      method: 'DELETE',
+      headers: {
+        'X-Admin-Secret': adminSecret
+      }
+    });
+  } catch (e) {
+    console.warn('⚠️ API delete sub-category failed:', e);
+  }
+
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      await sb.from('sub_categories').delete().eq('id', subCatId);
+    } catch (_) {}
+  }
+
   const current = await fetchSubCategoriesUnified();
   const updated = current.filter(s => s.id !== subCatId);
   memorySubCategoriesCache = updated;
