@@ -62,7 +62,7 @@ import {
   Hash
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Product, Order, Coupon, CartItem, Vendor, Banner, Category, AppUser, CategoryFilter } from '../types';
+import { Product, Order, Coupon, CartItem, Vendor, Banner, Category, AppUser, CategoryFilter, SubCategory } from '../types';
 import Logo, { BrandLogo, QueKartLogoText } from './Logo';
 import { fetchAdminAnalytics } from '../utils/analytics';
 import { ReturnPolicyAccordion, SizeAndParametersManager } from './ProductFormControls';
@@ -74,7 +74,10 @@ import {
   reorderCategoriesUnified,
   saveCategoryFilterUnified,
   deleteCategoryFilterUnified,
-  reorderCategoryFiltersUnified
+  reorderCategoryFiltersUnified,
+  fetchSubCategoriesUnified,
+  saveSubCategoryUnified,
+  deleteSubCategoryUnified
 } from '../supabase';
 
 interface AdminDashboardProps {
@@ -637,7 +640,7 @@ export default function AdminDashboard({
   }, [activeSubPage, products, vendors, orders]);
 
   // Categories management states
-  const [categorySubTab, setCategorySubTab] = useState<'categories' | 'filters'>('categories');
+  const [categorySubTab, setCategorySubTab] = useState<'categories' | 'subcategories'>('categories');
   const [categoryFormMode, setCategoryFormMode] = useState<'add' | 'edit' | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [categoryName, setCategoryName] = useState('');
@@ -646,6 +649,101 @@ export default function AdminDashboard({
   const [categorySubCats, setCategorySubCats] = useState<Array<{ name: string; image: string }>>([]);
   const [isSavingCategory, setIsSavingCategory] = useState(false);
   const [categoryError, setCategoryError] = useState<string | null>(null);
+
+  // Sub-Categories management states
+  const [subCategoriesList, setSubCategoriesList] = useState<SubCategory[]>([]);
+  const [subCatFilterCategory, setSubCatFilterCategory] = useState<string>('All');
+  const [subCatFormMode, setSubCatFormMode] = useState<'add' | 'edit' | null>(null);
+  const [editingSubCat, setEditingSubCat] = useState<SubCategory | null>(null);
+  const [subCatName, setSubCatName] = useState('');
+  const [subCatParentId, setSubCatParentId] = useState('');
+  const [subCatGroup, setSubCatGroup] = useState('');
+  const [subCatImage, setSubCatImage] = useState('');
+  const [subCatReturnMode, setSubCatReturnMode] = useState<'compulsory' | 'optional' | 'disabled'>('optional');
+  const [subCatReturnDays, setSubCatReturnDays] = useState<number>(7);
+  const [subCatReplacementMode, setSubCatReplacementMode] = useState<'compulsory' | 'optional' | 'disabled'>('optional');
+  const [subCatReplacementDays, setSubCatReplacementDays] = useState<number>(7);
+  const [isSavingSubCat, setIsSavingSubCat] = useState(false);
+  const [subCatError, setSubCatError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchSubCategoriesUnified().then(data => {
+      setSubCategoriesList(data);
+    });
+  }, []);
+
+  const triggerAddSubCat = () => {
+    setEditingSubCat(null);
+    setSubCatName('');
+    const defaultParent = categories.length > 0 ? categories[0].id : 'cat-ethnic-wear';
+    setSubCatParentId(defaultParent);
+    setSubCatGroup('');
+    setSubCatImage('https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=200');
+    setSubCatReturnMode('optional');
+    setSubCatReturnDays(7);
+    setSubCatReplacementMode('optional');
+    setSubCatReplacementDays(7);
+    setSubCatError(null);
+    setSubCatFormMode('add');
+  };
+
+  const triggerEditSubCat = (sub: SubCategory) => {
+    setEditingSubCat(sub);
+    setSubCatName(sub.name);
+    setSubCatParentId(sub.categoryId);
+    setSubCatGroup(sub.group || '');
+    setSubCatImage(sub.image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=200');
+    setSubCatReturnMode(sub.returnPolicyMode || 'optional');
+    setSubCatReturnDays(sub.returnDays || 7);
+    setSubCatReplacementMode(sub.replacementPolicyMode || 'optional');
+    setSubCatReplacementDays(sub.replacementDays || 7);
+    setSubCatError(null);
+    setSubCatFormMode('edit');
+  };
+
+  const handleSaveSubCat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!subCatName.trim()) {
+      setSubCatError('Sub-Category name is required');
+      return;
+    }
+    setIsSavingSubCat(true);
+    try {
+      const parentObj = categories.find(c => c.id === subCatParentId) || categories[0];
+      const payload: SubCategory = {
+        id: editingSubCat ? editingSubCat.id : 'sub-' + Math.random().toString(36).substring(2, 9),
+        name: subCatName.trim(),
+        categoryId: parentObj ? parentObj.id : subCatParentId,
+        categoryName: parentObj ? parentObj.name : '',
+        group: subCatGroup.trim() || 'General',
+        image: subCatImage.trim() || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=200',
+        returnPolicyMode: subCatReturnMode,
+        returnDays: Math.max(7, Number(subCatReturnDays) || 7),
+        replacementPolicyMode: subCatReplacementMode,
+        replacementDays: Math.max(7, Number(subCatReplacementDays) || 7)
+      };
+      await saveSubCategoryUnified(payload);
+      const updated = await fetchSubCategoriesUnified();
+      setSubCategoriesList(updated);
+      setSubCatFormMode(null);
+      alert(`Sub-Category "${payload.name}" saved successfully with policy rules!`);
+    } catch (err: any) {
+      setSubCatError(err.message || 'Failed to save sub-category');
+    } finally {
+      setIsSavingSubCat(false);
+    }
+  };
+
+  const handleDeleteSubCat = async (id: string, name: string) => {
+    try {
+      await deleteSubCategoryUnified(id);
+      const updated = await fetchSubCategoriesUnified();
+      setSubCategoriesList(updated);
+      alert(`Sub-Category "${name}" deleted successfully`);
+    } catch (_) {
+      alert(`Unable to delete sub-category`);
+    }
+  };
 
   // Category Filters management states
   const [filterFormMode, setFilterFormMode] = useState<'add' | 'edit' | null>(null);
@@ -660,7 +758,7 @@ export default function AdminDashboard({
   // Category Smart Crop Modal states
   const [isCategoryCropperOpen, setIsCategoryCropperOpen] = useState(false);
   const [categoryCropperSrc, setCategoryCropperSrc] = useState('');
-  const [categoryCropTarget, setCategoryCropTarget] = useState<{ type: 'main' } | { type: 'sub'; index: number } | { type: 'filter' }>({ type: 'main' });
+  const [categoryCropTarget, setCategoryCropTarget] = useState<{ type: 'main' } | { type: 'sub'; index: number } | { type: 'filter' } | { type: 'subCat' }>({ type: 'main' });
   const [isUploadingCategoryImage, setIsUploadingCategoryImage] = useState(false);
   const categoryFileInputRef = React.useRef<HTMLInputElement | null>(null);
   const subCategoryFileInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -821,13 +919,13 @@ export default function AdminDashboard({
     }
   };
 
-  const handleOpenCategoryCropper = (imageSrc: string, target: { type: 'main' } | { type: 'sub'; index: number } | { type: 'filter' }) => {
+  const handleOpenCategoryCropper = (imageSrc: string, target: { type: 'main' } | { type: 'sub'; index: number } | { type: 'filter' } | { type: 'subCat' }) => {
     setCategoryCropperSrc(imageSrc || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=600');
     setCategoryCropTarget(target);
     setIsCategoryCropperOpen(true);
   };
 
-  const handleCategoryFileInputChange = (e: React.ChangeEvent<HTMLInputElement>, target: { type: 'main' } | { type: 'sub'; index: number }) => {
+  const handleCategoryFileInputChange = (e: React.ChangeEvent<HTMLInputElement>, target: { type: 'main' } | { type: 'sub'; index: number } | { type: 'filter' } | { type: 'subCat' }) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -870,9 +968,11 @@ export default function AdminDashboard({
         setCategoryImage(finalImageUrl);
       } else if (categoryCropTarget.type === 'filter') {
         setFilterImage(finalImageUrl);
+      } else if (categoryCropTarget.type === 'subCat') {
+        setSubCatImage(finalImageUrl);
       } else {
         const updated = [...categorySubCats];
-        if (updated[categoryCropTarget.index]) {
+        if (categoryCropTarget && 'index' in categoryCropTarget && updated[categoryCropTarget.index]) {
           updated[categoryCropTarget.index].image = finalImageUrl;
           setCategorySubCats(updated);
         }
@@ -4388,8 +4488,8 @@ export default function AdminDashboard({
       { id: 'overview', label: 'Dashboard', icon: LayoutDashboard, section: 'MAIN' },
       { id: 'analytics', label: 'Analytics & Anti-Spam', icon: Eye, section: 'MAIN' },
       { id: 'products', label: 'Products', icon: Package, count: products.length, section: 'INVENTORY' },
-      { id: 'categories', label: 'Category Filters', icon: Layers, count: categories.length, section: 'INVENTORY' },
-      { id: 'approvals', label: 'Approvals', icon: Clock, count: liveProducts.filter(p => p.approvalStatus === 'pending').length, section: 'INVENTORY', highlight: true },
+      { id: 'categories', label: 'Categories', icon: Layers, count: categories.length, section: 'INVENTORY' },
+      { id: 'subcategories', label: 'Sub-Categories', icon: Layers, count: subCategoriesList.length, section: 'INVENTORY' },
       { id: 'vendors', label: 'Sellers', icon: Users, count: vendors.length, section: 'RELATIONS' },
       { id: 'customers', label: 'Customers', icon: Users, count: uniqueUsers.length, section: 'RELATIONS' },
       { id: 'orders', label: 'Orders', icon: ShoppingBag, count: orders.length, section: 'RELATIONS' },
@@ -4528,6 +4628,32 @@ export default function AdminDashboard({
     );
   };
 
+  if (adminSubView !== 'list') {
+    return (
+      <div className="min-h-screen bg-gray-50 text-slate-800 font-sans flex flex-col">
+        <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+          <button
+            onClick={() => setAdminSubView('list')}
+            className="text-xs font-black text-slate-600 hover:text-slate-900 bg-slate-100 px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer"
+          >
+            ← Back to Admin Dashboard
+          </button>
+          <span className="text-xs font-black text-[#143C6B] uppercase tracking-wider">Admin Action Mode: {adminSubView}</span>
+        </div>
+        <div className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6 overflow-y-auto">
+          {adminSubView === 'add-product' && renderFullPageProductForm(false)}
+          {adminSubView === 'edit-product' && renderFullPageProductForm(true)}
+          {adminSubView === 'inspect-product' && renderFullPageProductInspection()}
+          {adminSubView === 'add-coupon' && renderFullPageCouponForm()}
+          {adminSubView === 'add-banner' && renderFullPageBannerForm()}
+          {adminSubView === 'inspect-vendor' && renderFullPageVendorInspection()}
+          {adminSubView === 'inspect-order' && renderFullPageOrderInspection()}
+          {adminSubView === 'inspect-customer' && renderFullPageCustomerInspection()}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 text-slate-800 font-sans flex" id="admin-dashboard-container">
       
@@ -4609,10 +4735,10 @@ export default function AdminDashboard({
                 {activeTab === 'analytics' && 'Analytics'}
                 {activeTab === 'products' && 'Products'}
                 {activeTab === 'categories' && 'Categories'}
+                {activeTab === 'subcategories' && 'Sub-Categories'}
                 {activeTab === 'orders' && 'Orders'}
                 {activeTab === 'coupons' && 'Coupons'}
                 {activeTab === 'banners' && 'Banners'}
-                {activeTab === 'approvals' && 'Approvals'}
                 {activeTab === 'vendors' && 'Vendors'}
                 {activeTab === 'customers' && 'Customers'}
                 {activeTab === 'sponsorships' && 'Sponsorships'}
@@ -4653,18 +4779,6 @@ export default function AdminDashboard({
 
         {/* Scrollable Work Area */}
         <div className="flex-1 overflow-y-auto bg-gray-50 flex flex-col">
-          {adminSubView !== 'list' ? (
-          <div className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto space-y-6">
-            {adminSubView === 'add-product' && renderFullPageProductForm(false)}
-            {adminSubView === 'edit-product' && renderFullPageProductForm(true)}
-            {adminSubView === 'inspect-product' && renderFullPageProductInspection()}
-            {adminSubView === 'add-coupon' && renderFullPageCouponForm()}
-            {adminSubView === 'add-banner' && renderFullPageBannerForm()}
-            {adminSubView === 'inspect-vendor' && renderFullPageVendorInspection()}
-            {adminSubView === 'inspect-order' && renderFullPageOrderInspection()}
-            {adminSubView === 'inspect-customer' && renderFullPageCustomerInspection()}
-          </div>
-        ) : (
           <div className="flex-1 flex flex-col">
 
         {/* Combined Main & Admin View Content container */}
@@ -4677,11 +4791,11 @@ export default function AdminDashboard({
                 {activeTab === 'overview' && 'eCommerce Dashboard'}
                 {activeTab === 'analytics' && 'Platform Analytics & Anti-Spam Control'}
                 {activeTab === 'products' && 'Products Catalog'}
-                {activeTab === 'categories' && 'Category Filters Management'}
+                {activeTab === 'categories' && 'Categories Management'}
+                {activeTab === 'subcategories' && 'Sub-Categories Management'}
                 {activeTab === 'orders' && 'Orders Invoices'}
                 {activeTab === 'coupons' && 'Promo Coupons'}
                 {activeTab === 'banners' && 'Marketing Banners'}
-                {activeTab === 'approvals' && 'Vendor Approvals'}
                 {activeTab === 'vendors' && 'Sellers Roster'}
                 {activeTab === 'sponsorships' && 'Product Sponsorships'}
               </h2>
@@ -4689,11 +4803,11 @@ export default function AdminDashboard({
                 {activeTab === 'overview' && 'Real-time performance indicators and business diagnostic values'}
                 {activeTab === 'analytics' && 'Global impression tracking, detail views, cart conversion funnels, and 3-hour IP anti-spam logs'}
                 {activeTab === 'products' && 'Manage listing specs, image uploads, category targets'}
-                {activeTab === 'categories' && 'View, add, edit, delete, and reorder storefront category filters and subcategories'}
+                {activeTab === 'categories' && 'View, add, edit, delete, and reorder storefront main categories'}
+                {activeTab === 'subcategories' && 'View, add, edit, delete, and configure subcategories, smart crop icons, and return/replacement policy rules'}
                 {activeTab === 'orders' && 'Review order payment dispatches, custom delivery logistics'}
                 {activeTab === 'coupons' && 'Configure dynamic discounts, promo vouchers, cart validation specs'}
                 {activeTab === 'banners' && 'Optimize visual banners and advertising placements'}
-                {activeTab === 'approvals' && 'Approve or reject vendor listings from regional tailors'}
                 {activeTab === 'vendors' && 'Audit active vendors, track sales, suspend or activate partners'}
                 {activeTab === 'sponsorships' && 'Boost and rank products to the top of category searches and listings'}
               </p>
@@ -5657,117 +5771,6 @@ export default function AdminDashboard({
                     </div>
                   </div>
 
-                  {/* Subcategories Subsection */}
-                  <div className="space-y-4 border-t border-slate-100 pt-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider">Subcategories List ({categorySubCats.length}) <span className="text-[10px] text-slate-400 font-normal lowercase">(optional)</span></h4>
-                        <p className="text-[10px] text-slate-400 mt-0.5">Subcategories are optional. You can add leaf subcategories with 1:1 square photos if desired.</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setCategorySubCats([...categorySubCats, { name: '', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=200&h=200&fit=crop' }])}
-                        className="flex items-center gap-1.5 text-[10px] font-black text-[#143C6B] bg-[#143C6B]/5 hover:bg-[#143C6B]/10 px-3 py-1.5 rounded-lg cursor-pointer transition-colors"
-                        id="add-subcategory-btn"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        Add Subcategory
-                      </button>
-                    </div>
-
-                    {categorySubCats.length === 0 ? (
-                      <div className="p-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 text-center" id="empty-subcategories-prompt">
-                        <p className="text-xs font-semibold text-slate-500">No subcategories added</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">This category will operate as a standalone direct category. Click "Add Subcategory" if you wish to define sub-level categories.</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1" id="subcategories-form-list">
-                        {categorySubCats.map((sub, idx) => (
-                          <div key={idx} className="flex gap-3 items-start bg-slate-50/70 border border-slate-200 p-3 rounded-xl relative group/sub" id={`subcategory-row-${idx}`}>
-                            
-                            {/* 1:1 Square Preview & Quick Crop Trigger */}
-                            <div
-                              onClick={() => {
-                                setActiveSubCropIndex(idx);
-                                subCategoryFileInputRef.current?.click();
-                              }}
-                              className="relative group cursor-pointer w-12 h-12 rounded-xl overflow-hidden aspect-square flex-shrink-0 border-2 border-slate-200 bg-white shadow-2xs"
-                              title="Click to Upload & Smart Crop subcategory photo"
-                            >
-                              <img
-                                src={sub.image || 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=200&h=200&fit=crop'}
-                                alt="Sub preview"
-                                className="w-full h-full object-cover"
-                                referrerPolicy="no-referrer"
-                              />
-                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[8px] font-bold">
-                                Crop
-                              </div>
-                            </div>
-
-                            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              <div className="space-y-1">
-                                <span className="text-[10px] font-bold text-slate-500 uppercase">Subcategory Title</span>
-                                <input
-                                  type="text"
-                                  value={sub.name}
-                                  onChange={(e) => {
-                                    const updated = [...categorySubCats];
-                                    updated[idx].name = e.target.value;
-                                    setCategorySubCats(updated);
-                                  }}
-                                  placeholder="e.g. Designer Kurtis"
-                                  className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-hidden font-semibold"
-                                  id={`subcategory-name-input-${idx}`}
-                                />
-                              </div>
-
-                              <div className="space-y-1">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-[10px] font-bold text-slate-500 uppercase">Image URL</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenCategoryCropper(sub.image, { type: 'sub', index: idx })}
-                                    className="text-[9px] font-bold text-[#143C6B] hover:underline cursor-pointer flex items-center gap-0.5"
-                                  >
-                                    <Sparkles className="w-2.5 h-2.5" />
-                                    Smart Crop
-                                  </button>
-                                </div>
-                                <input
-                                  type="text"
-                                  value={sub.image}
-                                  onChange={(e) => {
-                                    const updated = [...categorySubCats];
-                                    updated[idx].image = e.target.value;
-                                    setCategorySubCats(updated);
-                                  }}
-                                  placeholder="https://unsplash..."
-                                  className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-hidden font-semibold"
-                                  id={`subcategory-image-input-${idx}`}
-                                />
-                              </div>
-                            </div>
-
-                            {/* Delete inline subcategory button */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const updated = categorySubCats.filter((_, i) => i !== idx);
-                                setCategorySubCats(updated);
-                              }}
-                              className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 cursor-pointer self-center transition-colors"
-                              title="Remove subcategory"
-                              id={`remove-subcategory-btn-${idx}`}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
                   {/* Form Submission Actions */}
                   <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
                     <button
@@ -5796,41 +5799,8 @@ export default function AdminDashboard({
                   </div>
                 </form>
               ) : (
-                /* --- LISTS & SUB-TABS SELECTOR MODE --- */
-                <div className="space-y-6">
-                  {/* Modern visual sub-tab pill switcher */}
-                  <div className="flex items-center gap-2 p-1 bg-slate-100 border border-slate-200 rounded-2xl max-w-2xl" id="category-subtabs-pillbox">
-                    <button
-                      type="button"
-                      onClick={() => setCategorySubTab('categories')}
-                      className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-xs font-black uppercase tracking-wider rounded-xl cursor-pointer transition-all ${
-                        categorySubTab === 'categories'
-                          ? 'bg-white text-lucky-magenta shadow-sm'
-                          : 'text-slate-500 hover:text-slate-700'
-                      }`}
-                      id="subtab-categories-trigger"
-                    >
-                      <Layers className="w-4 h-4" />
-                      <span>First Categories (Top Row)</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCategorySubTab('filters')}
-                      className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-xs font-black uppercase tracking-wider rounded-xl cursor-pointer transition-all ${
-                        categorySubTab === 'filters'
-                          ? 'bg-white text-lucky-magenta shadow-sm'
-                          : 'text-slate-500 hover:text-slate-700'
-                      }`}
-                      id="subtab-filters-trigger"
-                    >
-                      <Filter className="w-4 h-4" />
-                      <span>Second Category Filters (Left Sidebar)</span>
-                    </button>
-                  </div>
-
-                  {categorySubTab === 'categories' ? (
-                    /* --- 1. FIRST LEVEL CATEGORIES TAB --- */
-                    <div className="space-y-4 animate-fadeIn" id="categories-tab-content">
+                /* --- 1. FIRST LEVEL CATEGORIES TAB --- */
+                <div className="space-y-4 animate-fadeIn" id="categories-tab-content">
                       {/* Category Creator Actions bar */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs" id="category-actions-bar">
                         <div className="flex items-center gap-2.5">
@@ -5965,162 +5935,312 @@ export default function AdminDashboard({
                         </div>
                       )}
                     </div>
-                  ) : (
-                    /* --- 2. SECOND LEVEL CATEGORY FILTERS TAB --- */
-                    <div className="space-y-4 animate-fadeIn" id="filters-tab-content">
-                      {/* Filter Actions bar */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs" id="filter-actions-bar">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#143C6B] shadow-2xs">
-                            <Filter className="w-5 h-5 text-[#143C6B]" />
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-black text-[#143C6B] uppercase tracking-wider block">Second Category Filters</span>
-                            <h3 className="text-xs font-extrabold text-slate-800">Sidebar Filtering Groups & Custom Image Banner</h3>
-                          </div>
-                        </div>
-                        
-                        <button
-                          type="button"
-                          onClick={triggerAddFilter}
-                          className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs bg-[#143C6B] hover:bg-[#143C6B]/90 text-white font-bold rounded-xl shadow-xs cursor-pointer transition-colors"
-                          id="create-filter-btn"
-                        >
-                          <Plus className="w-4 h-4" />
-                          <span>Create New Category Filter</span>
-                        </button>
-                      </div>
-
-                      {/* Filters grid list */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="filters-cards-grid">
-                        {categoryFilters.map((filt, idx) => {
-                          const displayImg = filt.image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=150';
-                          return (
-                            <div
-                              key={filt.id}
-                              className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between space-y-4 relative group"
-                              id={`filter-card-${filt.id}`}
-                            >
-                              <div className="flex items-start justify-between">
-                                <div className="flex items-center gap-3">
-                                  <div
-                                    onClick={() => triggerEditFilter(filt)}
-                                    className="w-13 h-13 rounded-xl overflow-hidden border border-slate-250 bg-slate-50 flex-shrink-0 shadow-xs cursor-pointer hover:scale-105 transition-transform"
-                                    title="Click to edit filter specifications"
-                                  >
-                                    <img
-                                      src={displayImg}
-                                      alt={filt.name}
-                                      className="w-full h-full object-cover"
-                                      referrerPolicy="no-referrer"
-                                    />
-                                  </div>
-                                  <div>
-                                    <h4 className="text-xs font-black text-slate-800 tracking-tight leading-snug">{filt.name}</h4>
-                                    <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-widest">{filt.id}</span>
-                                  </div>
-                                </div>
-
-                                {/* Filter position ranking adjusters */}
-                                <div className="flex items-center gap-1 bg-slate-50 border border-slate-200/80 rounded-lg p-0.5" id={`filter-position-adjusters-${filt.id}`}>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleFilterMoveUp(idx)}
-                                    disabled={idx === 0}
-                                    className={`p-1 rounded-sm text-xs cursor-pointer transition-colors ${
-                                      idx === 0 ? 'text-slate-300' : 'text-slate-600 hover:bg-white hover:text-slate-900 shadow-2xs'
-                                    }`}
-                                    title="Move Up Display Rank"
-                                  >
-                                    ▲
-                                  </button>
-                                  <span className="text-[9px] font-black px-1 text-slate-400 select-none">
-                                    {idx + 1}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleFilterMoveDown(idx)}
-                                    disabled={idx === categoryFilters.length - 1}
-                                    className={`p-1 rounded-sm text-xs cursor-pointer transition-colors ${
-                                      idx === categoryFilters.length - 1 ? 'text-slate-300' : 'text-slate-600 hover:bg-white hover:text-slate-900 shadow-2xs'
-                                    }`}
-                                    title="Move Down Display Rank"
-                                  >
-                                    ▼
-                                  </button>
-                                </div>
-                              </div>
-
-                              {/* Associated categories mapped */}
-                              <div className="space-y-2">
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Mapped Shop Categories ({filt.categoryIds?.length || 0})</span>
-                                <div className="flex flex-wrap gap-1.5 max-h-[85px] overflow-y-auto scrollbar-thin">
-                                  {filt.categoryIds?.map((catId) => {
-                                    const matchingCat = categories.find(c => c.id === catId);
-                                    if (!matchingCat) return null;
-                                    return (
-                                      <span
-                                        key={catId}
-                                        className="text-[9px] bg-slate-50 border border-slate-200/50 text-slate-600 font-extrabold px-2 py-0.5 rounded-md flex items-center gap-1"
-                                      >
-                                        {matchingCat.image && (
-                                          <img src={matchingCat.image} alt="" className="w-3 h-3 rounded-full object-cover" />
-                                        )}
-                                        <span>{matchingCat.name}</span>
-                                      </span>
-                                    );
-                                  })}
-                                  {(!filt.categoryIds || filt.categoryIds.length === 0) && (
-                                    <span className="text-[10px] text-amber-600 font-bold">No Categories Mapped (Filter is Empty)</span>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Actions */}
-                              <div className="border-t border-slate-100/80 pt-3.5 flex items-center justify-end gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => triggerEditFilter(filt)}
-                                  className="flex items-center gap-1 text-[10px] font-black text-[#143C6B] bg-[#143C6B]/5 hover:bg-[#143C6B]/10 px-2.5 py-1 rounded-md cursor-pointer transition-all"
-                                  id={`edit-filter-btn-${filt.id}`}
-                                >
-                                  <Edit2 className="w-3 h-3" />
-                                  Edit & Map
-                                </button>
-                                
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    triggerConfirm(
-                                      `Are you sure you want to permanently delete the category filter "${filt.name}"? This will remove the sidebar section, but won't delete the categories within it.`,
-                                      () => handleFilterDelete(filt.id),
-                                      "Confirm Filter Deletion"
-                                    );
-                                  }}
-                                  className="flex items-center gap-1 text-[10px] font-black text-red-600 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-md cursor-pointer transition-all"
-                                  id={`delete-filter-btn-${filt.id}`}
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {categoryFilters.length === 0 && (
-                        <div className="py-16 text-center bg-white border border-slate-200 rounded-2xl" id="empty-filters-state">
-                          <Filter className="w-12 h-12 text-slate-300 mx-auto mb-2 animate-pulse" />
-                          <h4 className="text-sm font-extrabold text-slate-700">No Category Filters Defined</h4>
-                          <p className="text-xs text-slate-400 mt-1 max-w-[280px] mx-auto">Left sidebar category mapping rules are currently empty. Press "Create New Category Filter" above.</p>
-                        </div>
-                      )}
-                    </div>
                   )}
                 </div>
               )}
 
+          {/* 2.2. SUB-CATEGORIES MANAGER TAB */}
+          {activeTab === 'subcategories' && (
+            <div className="space-y-6 animate-fadeIn" id="subcategories-manager-container">
+              <input
+                type="file"
+                ref={subCategoryFileInputRef}
+                onChange={(e) => handleCategoryFileInputChange(e, { type: 'subCat' })}
+                accept="image/*"
+                className="hidden"
+                id="subcat-file-input"
+              />
+
+              {subCatFormMode ? (
+                /* Sub-Category Form (Create / Edit) */
+                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6 max-w-3xl mx-auto" id="subcategory-form-panel">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                    <h3 className="text-base font-extrabold text-slate-800">
+                      {subCatFormMode === 'add' ? 'Create New Sub-Category' : `Edit Sub-Category: ${editingSubCat?.name}`}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setSubCatFormMode(null)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 cursor-pointer"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {subCatError && (
+                    <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs font-bold flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>{subCatError}</span>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSaveSubCat} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[11px] font-black uppercase text-slate-700 block mb-1">
+                          Parent Main Category *
+                        </label>
+                        <select
+                          value={subCatParentId}
+                          onChange={e => setSubCatParentId(e.target.value)}
+                          className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 bg-white focus:outline-none focus:border-[#143C6B]"
+                          id="subcategory-parent-select"
+                        >
+                          {categories.map(c => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-black uppercase text-slate-700 block mb-1">
+                          Sub-Category Name *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Georgette Sarees, Kurtis, Anarkali"
+                          value={subCatName}
+                          onChange={e => setSubCatName(e.target.value)}
+                          className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:outline-none focus:border-[#143C6B]"
+                          id="subcategory-name-input"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[11px] font-black uppercase text-slate-700 block mb-1">
+                          Group Header / Section Tag (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Sarees, Kurtis, Topwear, Bottomwear"
+                          value={subCatGroup}
+                          onChange={e => setSubCatGroup(e.target.value)}
+                          className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:outline-none focus:border-[#143C6B]"
+                          id="subcategory-group-input"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-black uppercase text-slate-700 block mb-1">
+                          Sub-Category Icon & Smart Crop
+                        </label>
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#143C6B] bg-white flex-shrink-0 relative group cursor-pointer shadow-2xs" onClick={() => subCategoryFileInputRef.current?.click()} title="Click to upload & smart crop icon">
+                            <img src={subCatImage || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=200'} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[9px] font-bold">Crop</div>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => subCategoryFileInputRef.current?.click()}
+                              className="px-3 py-1.5 bg-[#143C6B]/10 hover:bg-[#143C6B]/20 text-[#143C6B] font-bold text-xs rounded-lg cursor-pointer"
+                            >
+                              Upload Icon
+                            </button>
+                            {subCatImage && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenCategoryCropper(subCatImage, { type: 'subCat' })}
+                                className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold text-xs rounded-lg cursor-pointer flex items-center gap-1"
+                              >
+                                <Sparkles className="w-3 h-3" />
+                                Smart Crop
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Admin Policy Controls */}
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                      <h4 className="text-xs font-black text-slate-800 uppercase tracking-wide">Admin Return & Replacement Policy Rules</h4>
+                      <p className="text-[11px] text-slate-500">Define whether return and replacement are compulsory, optional, or disabled for vendors listing under this sub-category, along with minimum days (Min 7 days).</p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                        {/* Return Policy */}
+                        <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-2">
+                          <label className="text-[11px] font-bold text-slate-700 block">Return Policy Mode</label>
+                          <select
+                            value={subCatReturnMode}
+                            onChange={e => setSubCatReturnMode(e.target.value as any)}
+                            className="w-full text-xs font-bold border border-slate-300 rounded-lg p-2 bg-white"
+                          >
+                            <option value="compulsory">Compulsory Return (Vendor must provide)</option>
+                            <option value="optional">Optional (Vendor can choose)</option>
+                            <option value="disabled">Disabled (No Return Allowed)</option>
+                          </select>
+                          {subCatReturnMode !== 'disabled' && (
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-600 block mt-1">Minimum Return Days (Min 7)</label>
+                              <input
+                                type="number"
+                                min={7}
+                                value={subCatReturnDays}
+                                onChange={e => setSubCatReturnDays(Number(e.target.value))}
+                                className="w-full text-xs font-bold border border-slate-300 rounded-lg p-2"
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Replacement Policy */}
+                        <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-2">
+                          <label className="text-[11px] font-bold text-slate-700 block">Replacement Policy Mode</label>
+                          <select
+                            value={subCatReplacementMode}
+                            onChange={e => setSubCatReplacementMode(e.target.value as any)}
+                            className="w-full text-xs font-bold border border-slate-300 rounded-lg p-2 bg-white"
+                          >
+                            <option value="compulsory">Compulsory Replacement (Vendor must provide)</option>
+                            <option value="optional">Optional (Vendor can choose)</option>
+                            <option value="disabled">Disabled (No Replacement Allowed)</option>
+                          </select>
+                          {subCatReplacementMode !== 'disabled' && (
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-600 block mt-1">Minimum Replacement Days (Min 7)</label>
+                              <input
+                                type="number"
+                                min={7}
+                                value={subCatReplacementDays}
+                                onChange={e => setSubCatReplacementDays(Number(e.target.value))}
+                                className="w-full text-xs font-bold border border-slate-300 rounded-lg p-2"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setSubCatFormMode(null)}
+                        className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSavingSubCat}
+                        className="px-5 py-2 text-xs font-bold text-white bg-[#143C6B] hover:bg-[#143C6B]/90 rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer"
+                      >
+                        {isSavingSubCat && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                        <span>Save Sub-Category</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              ) : (
+                <>
+                  {/* Sub-Category Actions bar */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs" id="subcategory-actions-bar">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#143C6B] shadow-2xs">
+                        <Layers className="w-5 h-5 text-[#143C6B]" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black text-[#143C6B] uppercase tracking-wider block">Hierarchical Sub-Category System</span>
+                        <h3 className="text-xs font-extrabold text-slate-800">Assign Sub-Categories under Main Categories</h3>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={subCatFilterCategory}
+                        onChange={e => setSubCatFilterCategory(e.target.value)}
+                        className="text-xs font-bold border border-slate-300 rounded-xl px-3 py-2 bg-slate-50 focus:outline-none cursor-pointer"
+                        id="subcategory-filter-dropdown"
+                      >
+                        <option value="All">All Main Categories ({subCategoriesList.length})</option>
+                        {categories.map(c => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+
+                      <button
+                        type="button"
+                        onClick={triggerAddSubCat}
+                        className="flex items-center justify-center gap-1.5 px-4 py-2 text-xs bg-[#143C6B] hover:bg-[#143C6B]/90 text-white font-bold rounded-xl shadow-xs cursor-pointer transition-colors flex-shrink-0"
+                        id="create-subcategory-btn"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Add Sub-Category</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Sub-Categories Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" id="subcategories-cards-grid">
+                    {subCategoriesList
+                      .filter(sc => {
+                        if (subCatFilterCategory === 'All') return true;
+                        return sc.categoryId === subCatFilterCategory;
+                      })
+                      .map(sc => {
+                        const parentName = sc.categoryName || categories.find(c => c.id === sc.categoryId)?.name || 'Main Category';
+                        return (
+                          <div
+                            key={sc.id}
+                            className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs hover:shadow-xs transition-all flex items-center justify-between gap-3"
+                            id={`subcategory-card-${sc.id}`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-slate-200 flex-shrink-0 bg-slate-50">
+                                <img src={sc.image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=200'} alt={sc.name} className="w-full h-full object-cover" />
+                              </div>
+                              <div>
+                                <h4 className="text-xs font-black text-slate-800">{sc.name}</h4>
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  <span className="text-[9.5px] bg-blue-50 text-[#143C6B] font-extrabold px-2 py-0.5 rounded-md border border-blue-100">
+                                    {parentName}
+                                  </span>
+                                  {sc.group && (
+                                    <span className="text-[9.5px] bg-amber-50 text-amber-700 font-extrabold px-2 py-0.5 rounded-md border border-amber-100">
+                                      {sc.group}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => triggerEditSubCat(sc)}
+                                className="p-1.5 text-slate-500 hover:text-[#143C6B] hover:bg-slate-100 rounded-lg cursor-pointer"
+                                title="Edit Sub-Category"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  triggerConfirm(
+                                    `Delete sub-category "${sc.name}"?`,
+                                    () => handleDeleteSubCat(sc.id, sc.name),
+                                    "Confirm Deletion"
+                                  );
+                                }}
+                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
+                                title="Delete Sub-Category"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -8663,113 +8783,66 @@ export default function AdminDashboard({
         )}
       </AnimatePresence>
 
-      {/* Custom Confirmation Dialog */}
-      <AnimatePresence>
-        {confirmDialog && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100"
-            >
-              <h3 className="text-sm font-extrabold text-slate-900 mb-2">{confirmDialog.title || 'Confirm Action'}</h3>
-              <p className="text-xs text-slate-600 font-medium leading-relaxed mb-6">{confirmDialog.message}</p>
-              <div className="flex justify-end gap-2.5">
-                <button
-                  onClick={() => setConfirmDialog(null)}
-                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    confirmDialog.onConfirm();
-                    setConfirmDialog(null);
-                  }}
-                  className="px-4 py-2 text-xs font-black text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-xs cursor-pointer"
-                >
-                  {confirmDialog.confirmText || 'Confirm'}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-          </div>
-        )}
+      </div>
+      </div>
       </div>
 
-      {/* Custom Confirmation Dialog */}
-      <AnimatePresence>
-        {confirmDialog && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100"
-            >
-              <h3 className="text-sm font-extrabold text-slate-900 mb-2">{confirmDialog.title || 'Confirm Action'}</h3>
-              <p className="text-xs text-slate-600 font-medium leading-relaxed mb-6">{confirmDialog.message}</p>
-              <div className="flex justify-end gap-2.5">
-                <button
-                  onClick={() => setConfirmDialog(null)}
-                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    confirmDialog.onConfirm();
-                    setConfirmDialog(null);
-                  }}
-                  className="px-4 py-2 text-xs font-black text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-xs cursor-pointer"
-                >
-                  {confirmDialog.confirmText || 'Confirm'}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <React.Fragment>
+        <AnimatePresence>
+          {confirmDialog && (
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100"
+              >
+                <h3 className="text-sm font-extrabold text-slate-900 mb-2">{confirmDialog.title || 'Confirm Action'}</h3>
+                <p className="text-xs text-slate-600 font-medium leading-relaxed mb-6">{confirmDialog.message}</p>
+                <div className="flex justify-end gap-2.5">
+                  <button
+                    onClick={() => setConfirmDialog(null)}
+                    className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      confirmDialog.onConfirm();
+                      setConfirmDialog(null);
+                    }}
+                    className="px-4 py-2 text-xs font-black text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-xs cursor-pointer"
+                  >
+                    {confirmDialog.confirmText || 'Confirm'}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
-      {/* Category Smart Crop & Live Publishing Simulator Modal */}
-      <CategorySmartCropModal
-        isOpen={isCategoryCropperOpen}
-        initialImage={categoryCropperSrc}
-        categoryTitle={
-          categoryCropTarget.type === 'main'
-            ? (categoryName || 'Category Name')
-            : categoryCropTarget.type === 'filter'
-            ? (filterName || 'Category Filter')
-            : (categorySubCats[categoryCropTarget.index]?.name || 'Subcategory')
-        }
-        targetLabel={
-          categoryCropTarget.type === 'main'
-            ? 'Main Storefront Category Bubble'
-            : categoryCropTarget.type === 'filter'
-            ? 'Sidebar Category Filter Image'
-            : `Subcategory: ${categorySubCats[categoryCropTarget.index]?.name || 'Item'}`
-        }
-        onConfirm={handleCategoryCropConfirm}
-        onClose={() => setIsCategoryCropperOpen(false)}
-        isLoading={isUploadingCategoryImage}
-      />
+        <CategorySmartCropModal
+          isOpen={isCategoryCropperOpen}
+          initialImage={categoryCropperSrc}
+          categoryTitle="Category Title"
+          targetLabel="Target Label"
+          onConfirm={handleCategoryCropConfirm}
+          onClose={() => setIsCategoryCropperOpen(false)}
+          isLoading={isUploadingCategoryImage}
+        />
 
-      <BannerSmartCropModal
-        isOpen={isBannerCropOpen}
-        initialImage={bannerCropSrc}
-        bannerRow={bRow}
-        onConfirm={(croppedUrl) => {
-          setBImageUrl(croppedUrl);
-          setIsBannerCropOpen(false);
-        }}
-        onClose={() => setIsBannerCropOpen(false)}
-      />
+        <BannerSmartCropModal
+          isOpen={isBannerCropOpen}
+          initialImage={bannerCropSrc}
+          bannerRow={bRow}
+          onConfirm={(croppedUrl) => {
+            setBImageUrl(croppedUrl);
+            setIsBannerCropOpen(false);
+          }}
+          onClose={() => setIsBannerCropOpen(false)}
+        />
+      </React.Fragment>
 
     </div>
-  </div>
   );
 }

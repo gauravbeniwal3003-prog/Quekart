@@ -13,6 +13,7 @@ import { ProductCardSkeleton, ProductGridSkeleton } from './common/Skeletons';
 
 interface CategoryProductsViewProps {
   filterName: string;
+  subCategoryFilter?: string;
   products: Product[];
   categories?: Category[];
   cartCount?: number;
@@ -31,6 +32,7 @@ interface CategoryProductsViewProps {
 
 export default function CategoryProductsView({
   filterName,
+  subCategoryFilter,
   products,
   categories = [],
   cartCount = 0,
@@ -77,15 +79,20 @@ export default function CategoryProductsView({
     return categories.find(c => c.name.toLowerCase() === filterName.toLowerCase()) || null;
   }, [categories, filterName]);
 
-  // 1. Filter products by Category, Attributes (Price/Rating), and local Search
+  // 1. Filter products by Category, SubCategory, Attributes (Price/Rating), and local Search
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       // Basic approval check
       const isApproved = p.approvalStatus === 'approved' || !p.approvalStatus;
       if (!isApproved) return false;
 
-      // Category matching
-      if (parentCategory) {
+      // Sub-category matching if subCategoryFilter is present
+      if (subCategoryFilter) {
+        const matchesSub = (p.subCategory || '').toLowerCase() === subCategoryFilter.toLowerCase() ||
+                           (p.subCategory || '').toLowerCase().includes(subCategoryFilter.toLowerCase()) ||
+                           (p.title || '').toLowerCase().includes(subCategoryFilter.toLowerCase());
+        if (!matchesSub) return false;
+      } else if (parentCategory) {
         const matchesParent = (p.category || '').toLowerCase() === parentCategory.name.toLowerCase();
         if (!matchesParent) return false;
       } else {
@@ -181,10 +188,16 @@ export default function CategoryProductsView({
             </button>
             <div>
               <h1 className="text-base font-black text-slate-800 tracking-tight font-display capitalize" id="category-page-title">
-                {parentCategory ? parentCategory.name : filterName}
+                {subCategoryFilter || (parentCategory ? parentCategory.name : filterName)}
               </h1>
-              <p className="text-[10px] text-gray-400 font-bold" id="category-product-count">
-                {filteredProducts.length} {filteredProducts.length === 1 ? 'item' : 'items'} found
+              <p className="text-[10px] text-gray-400 font-bold flex items-center gap-1" id="category-product-count">
+                {subCategoryFilter && (
+                  <>
+                    <span className="text-[#143C6B] font-extrabold">{parentCategory ? parentCategory.name : filterName}</span>
+                    <span>•</span>
+                  </>
+                )}
+                <span>{filteredProducts.length} {filteredProducts.length === 1 ? 'item' : 'items'} found</span>
               </p>
             </div>
           </div>

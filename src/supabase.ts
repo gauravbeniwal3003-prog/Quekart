@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { Product, Order, Coupon, Banner, Category, Vendor, CategoryFilter } from './types';
-import { initialBanners } from './data';
+import { Product, Order, Coupon, Banner, Category, Vendor, CategoryFilter, SubCategory } from './types';
+import { initialBanners, mockSubCategories } from './data';
 
 // -------------------------------------------------------------
 // SECURE HYBRID CONFIGURATION
@@ -265,6 +265,83 @@ export async function fetchCategoriesUnified(): Promise<Category[]> {
   } catch (_) {}
 
   return [];
+}
+
+let memorySubCategoriesCache: SubCategory[] | null = null;
+
+/**
+ * Fetch Sub-Categories
+ */
+export async function fetchSubCategoriesUnified(): Promise<SubCategory[]> {
+  const apiSubs = await fetchSafeJson(getApiUrl('/api/sub-categories'));
+  if (apiSubs && Array.isArray(apiSubs) && apiSubs.length > 0) {
+    memorySubCategoriesCache = apiSubs;
+    try { localStorage.setItem('quekart_cached_subcategories', JSON.stringify(apiSubs)); } catch (_) {}
+    return apiSubs;
+  }
+
+  if (memorySubCategoriesCache) {
+    return memorySubCategoriesCache;
+  }
+
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { data, error } = await sb.from('sub_categories').select('*');
+      if (!error && data && data.length > 0) {
+        const mapped = data.map((r: any) => r.data || r);
+        memorySubCategoriesCache = mapped;
+        try { localStorage.setItem('quekart_cached_subcategories', JSON.stringify(mapped)); } catch (_) {}
+        return mapped;
+      }
+    } catch (_) {}
+  }
+
+  try {
+    const cached = localStorage.getItem('quekart_cached_subcategories');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed)) {
+        memorySubCategoriesCache = parsed;
+        return parsed;
+      }
+    }
+  } catch (_) {}
+  memorySubCategoriesCache = mockSubCategories;
+  return mockSubCategories;
+}
+
+/**
+ * Save Sub-Category
+ */
+export async function saveSubCategoryUnified(subCat: SubCategory): Promise<SubCategory> {
+  const current = await fetchSubCategoriesUnified();
+  const existingIdx = current.findIndex(s => s.id === subCat.id);
+  let updated: SubCategory[];
+  if (existingIdx >= 0) {
+    updated = [...current];
+    updated[existingIdx] = subCat;
+  } else {
+    updated = [...current, subCat];
+  }
+  memorySubCategoriesCache = updated;
+  try {
+    localStorage.setItem('quekart_cached_subcategories', JSON.stringify(updated));
+  } catch (_) {}
+  return subCat;
+}
+
+/**
+ * Delete Sub-Category
+ */
+export async function deleteSubCategoryUnified(subCatId: string): Promise<boolean> {
+  const current = await fetchSubCategoriesUnified();
+  const updated = current.filter(s => s.id !== subCatId);
+  memorySubCategoriesCache = updated;
+  try {
+    localStorage.setItem('quekart_cached_subcategories', JSON.stringify(updated));
+  } catch (_) {}
+  return true;
 }
 
 /**

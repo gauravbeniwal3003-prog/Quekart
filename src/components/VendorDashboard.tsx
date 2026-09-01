@@ -66,7 +66,8 @@ import {
   Boxes
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Product, Order, Vendor, Category, VariantSwatch } from '../types';
+import { Product, Order, Vendor, Category, VariantSwatch, SubCategory } from '../types';
+import { fetchSubCategoriesUnified } from '../supabase';
 import Logo, { BrandLogo, QueKartLogoText } from './Logo';
 import VendorAuthView from './VendorAuthView';
 import VendorExportReports from './VendorExportReports';
@@ -357,6 +358,32 @@ export default function VendorDashboard({
   const [pTitle, setPTitle] = useState('');
   const [pDesc, setPDesc] = useState('');
   const [pCategory, setPCategory] = useState('Women Ethnic Wear');
+  const [allSubCategories, setAllSubCategories] = useState<SubCategory[]>([]);
+  const [pSubCategory, setPSubCategory] = useState<string>('General');
+
+  useEffect(() => {
+    fetchSubCategoriesUnified().then(data => {
+      setAllSubCategories(data);
+      if (data.length > 0 && !pSubCategory) {
+        setPSubCategory(data[0].name);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (pSubCategory) {
+      const foundSub = allSubCategories.find(s => s.name === pSubCategory || s.id === pSubCategory);
+      if (foundSub) {
+        if (foundSub.returnPolicyMode === 'compulsory') {
+          setPReturnPolicyType('return');
+          setPReturnDays(Math.max(7, foundSub.returnDays || 7));
+        } else if (foundSub.returnPolicyMode === 'disabled') {
+          setPReturnPolicyType('no_return');
+          setPReturnDays(0);
+        }
+      }
+    }
+  }, [pSubCategory, allSubCategories]);
   const [pPrice, setPPrice] = useState<number>(299);
   const [pOrigPrice, setPOrigPrice] = useState<number>(599);
   const [pStock, setPStock] = useState<number>(100);
@@ -384,6 +411,17 @@ export default function VendorDashboard({
   const [pUpiDiscountType, setPUpiDiscountType] = useState<'percentage' | 'flat'>('percentage');
   const [pUpiDiscountValue, setPUpiDiscountValue] = useState<number>(5);
   const [pUpiOfferText, setPUpiOfferText] = useState<string>('Extra 5% Instant Discount on UPI Payment');
+
+  // Product Highlights & Additional Details (Specifications) separate from description
+  const [pHighlights, setPHighlights] = useState<Array<{ label: string; value: string }>>([
+    { label: 'Net Quantity (N)', value: 'Pack of 1' },
+    { label: 'Colour', value: 'Multicolor' },
+    { label: 'Material', value: 'Premium Grade' }
+  ]);
+  const [pAdditionalDetails, setPAdditionalDetails] = useState<Array<{ label: string; value: string }>>([
+    { label: 'Generic Name', value: 'Apparel / Item' },
+    { label: 'Country of Origin', value: 'India' }
+  ]);
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
@@ -681,6 +719,7 @@ export default function VendorDashboard({
         setPTitle(target.title);
         setPDesc(target.description);
         setPCategory(target.category);
+        setPSubCategory(target.subCategory || 'General');
         setPPrice(target.price);
         setPOrigPrice(target.originalPrice);
         const totalStockValue = target.stock ?? target.variants?.[0]?.stock ?? 100;
@@ -714,6 +753,15 @@ export default function VendorDashboard({
         setPUpiDiscountType(target.upiDiscountType || 'percentage');
         setPUpiDiscountValue(target.upiDiscountValue ?? 5);
         setPUpiOfferText(target.upiOfferText || 'Extra 5% Instant Discount on UPI Payment');
+        setPHighlights(target.productHighlights && target.productHighlights.length > 0 ? target.productHighlights : [
+          { label: 'Net Quantity (N)', value: 'Pack of 1' },
+          { label: 'Colour', value: 'Multicolor' },
+          { label: 'Material', value: 'Premium Grade' }
+        ]);
+        setPAdditionalDetails(target.additionalDetails && target.additionalDetails.length > 0 ? target.additionalDetails : [
+          { label: 'Generic Name', value: target.title || 'Apparel / Item' },
+          { label: 'Country of Origin', value: 'India' }
+        ]);
       }
     } else if (activeTabKey === 'add-product') {
       // CLEAR ALL FIELDS COMPLETELY - NO AUTO SELECTED PHOTOS!
@@ -721,6 +769,7 @@ export default function VendorDashboard({
       setPTitle('');
       setPDesc('');
       setPCategory('Women Ethnic Wear');
+      setPSubCategory('General');
       setPPrice(299);
       setPOrigPrice(599);
       setPStock(100);
@@ -739,6 +788,15 @@ export default function VendorDashboard({
       setPUpiDiscountType('percentage');
       setPUpiDiscountValue(5);
       setPUpiOfferText('Extra 5% Instant Discount on UPI Payment');
+      setPHighlights([
+        { label: 'Net Quantity (N)', value: 'Pack of 1' },
+        { label: 'Colour', value: 'Multicolor' },
+        { label: 'Material', value: 'Premium Grade' }
+      ]);
+      setPAdditionalDetails([
+        { label: 'Generic Name', value: 'Apparel / Item' },
+        { label: 'Country of Origin', value: 'India' }
+      ]);
     }
   }, [activeTabKey, queryId, products]);
 
@@ -921,6 +979,7 @@ export default function VendorDashboard({
       title: finalTitle,
       description: pDesc.trim(),
       category: pCategory,
+      subCategory: pSubCategory || 'General',
       price: pPrice,
       originalPrice: pOrigPrice,
       discountPercent: discount,
@@ -944,19 +1003,8 @@ export default function VendorDashboard({
       sizeStock: pSizeStock,
       soldBy: currentVendor?.name || 'QueKart Verified Store',
       soldByRating: currentVendor?.rating || 4.8,
-      productHighlights: [
-        { label: 'Fabric / Material', value: '100% Premium Grade' },
-        { label: 'Direct Manufacturer', value: currentVendor?.name || 'QueKart Partner' },
-        { label: 'GST Invoice', value: currentVendor?.gstin ? 'Available' : 'Standard Bill' },
-        { label: 'Return Policy', value: finalReturnPolicyText },
-        { label: 'Payment Terms', value: pCodAvailable ? `COD Available (₹${finalCodPrice}) & Online UPI` : 'Prepaid Online Only' }
-      ],
-      additionalDetails: [
-        { label: 'Country of Origin', value: 'India' },
-        { label: 'Dispatch Location', value: `${currentVendor?.city || 'Surat'}, ${currentVendor?.state || 'Gujarat'}` },
-        { label: 'Return Window', value: pReturnPolicyType === 'no_return' ? 'Non-Returnable' : `${pReturnDays || 7} Calendar Days` },
-        { label: 'Cash on Delivery', value: pCodAvailable ? `Supported (₹${pCodSurcharge} handling)` : 'Not Available (Online Only)' }
-      ],
+      productHighlights: pHighlights.filter(h => h.label.trim() && h.value.trim()),
+      additionalDetails: pAdditionalDetails.filter(d => d.label.trim() && d.value.trim()),
       sizeOptions: pSizeOptions.length ? pSizeOptions : ['Free Size'],
       reviews: existingProduct ? existingProduct.reviews : [],
       vendorId: currentVendor?.id,
@@ -2414,30 +2462,76 @@ export default function VendorDashboard({
                       </div>
 
                       {/* COMPREHENSIVE CATEGORIES DATABASE SELECTOR */}
-                      <div>
-                        <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
-                          Primary Category * ({categories.length > 0 ? categories.length : MASTER_CATEGORIES.length} Live Categories)
-                        </label>
-                        <select
-                          value={pCategory}
-                          onChange={e => setPCategory(e.target.value)}
-                          className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 bg-white focus:outline-hidden focus:border-[#143C6B]"
-                          id="vendor-category-select"
-                        >
-                          {categories.length > 0 ? (
-                            categories.map(cat => (
-                              <option key={cat.id} value={cat.name}>
-                                {cat.name}
-                              </option>
-                            ))
-                          ) : (
-                            MASTER_CATEGORIES.map(cat => (
-                              <option key={cat.id} value={cat.name}>
-                                {cat.name} ({cat.group})
-                              </option>
-                            ))
-                          )}
-                        </select>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                            Primary Category * ({categories.length > 0 ? categories.length : MASTER_CATEGORIES.length} Live Categories)
+                          </label>
+                          <select
+                            value={pCategory}
+                            onChange={e => setPCategory(e.target.value)}
+                            className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 bg-white focus:outline-hidden focus:border-[#143C6B]"
+                            id="vendor-category-select"
+                          >
+                            {categories.length > 0 ? (
+                              categories.map(cat => (
+                                <option key={cat.id} value={cat.name}>
+                                  {cat.name}
+                                </option>
+                              ))
+                            ) : (
+                              MASTER_CATEGORIES.map(cat => (
+                                <option key={cat.id} value={cat.name}>
+                                  {cat.name} ({cat.group})
+                                </option>
+                              ))
+                            )}
+                          </select>
+                        </div>
+
+                        {/* SUB-CATEGORY DATABASE SELECTOR WITH ADMIN POLICY ENFORCEMENT */}
+                        <div>
+                          <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
+                            Sub-Category * (Admin Governed)
+                          </label>
+                          <select
+                            value={pSubCategory}
+                            onChange={e => setPSubCategory(e.target.value)}
+                            className="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 bg-white focus:outline-hidden focus:border-[#143C6B]"
+                            id="vendor-subcategory-select"
+                          >
+                            {allSubCategories.filter(sc => {
+                              const currentCatObj = categories.find(c => c.name === pCategory);
+                              if (currentCatObj && sc.categoryId === currentCatObj.id) return true;
+                              if (sc.categoryName === pCategory) return true;
+                              return allSubCategories.length === 0;
+                            }).length > 0 ? (
+                              allSubCategories
+                                .filter(sc => {
+                                  const currentCatObj = categories.find(c => c.name === pCategory);
+                                  if (currentCatObj && sc.categoryId === currentCatObj.id) return true;
+                                  if (sc.categoryName === pCategory) return true;
+                                  return false;
+                                })
+                                .map(sc => (
+                                  <option key={sc.id} value={sc.name}>
+                                    {sc.name} {sc.returnPolicyMode === 'compulsory' ? '(Return Compulsory)' : ''}
+                                  </option>
+                                ))
+                            ) : (
+                              <option value={pSubCategory || 'General'}>{pSubCategory || 'General Sub-Category'}</option>
+                            )}
+                          </select>
+                          {(() => {
+                            const matchedSub = allSubCategories.find(s => s.name === pSubCategory);
+                            if (!matchedSub) return null;
+                            return (
+                              <div className="mt-1.5 p-2 bg-blue-50 border border-blue-100 rounded-lg text-[10.5px] text-[#143C6B] font-bold flex items-center gap-1.5">
+                                <span>Admin Policy: Return {matchedSub.returnPolicyMode || 'optional'} ({matchedSub.returnDays || 7} Days min), Replacement {matchedSub.replacementPolicyMode || 'optional'} ({matchedSub.replacementDays || 7} Days min). Enforced automatically.</span>
+                              </div>
+                            );
+                          })()}
+                        </div>
                       </div>
                     </div>
 
@@ -2508,20 +2602,134 @@ export default function VendorDashboard({
                       />
                     </div>
 
-                    {/* Description */}
+                    {/* Product Description */}
                     <div className="pt-2">
                       <label className="text-[11px] text-slate-700 font-extrabold uppercase tracking-wider block mb-1">
-                        Product Description & Specifications *
+                        Product Description *
                       </label>
                       <textarea
                         required
                         rows={3}
-                        placeholder="Detail fabric material, weave, wash care instructions, pack contents, weight, and dimensions..."
+                        placeholder="Detail fabric material, weave, craftsmanship, and usage overview..."
                         value={pDesc}
                         onChange={e => setPDesc(e.target.value)}
                         className="w-full text-xs font-medium border border-slate-300 rounded-xl p-3 focus:outline-hidden focus:border-[#143C6B]"
                         id="vendor-product-desc-input"
                       />
+                    </div>
+
+                    {/* Product Highlights / Key Features */}
+                    <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Product Highlights (Key Features)</h4>
+                          <p className="text-[10.5px] text-slate-500 font-medium">Add key specs like Net Quantity, Colour, Material, etc.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setPHighlights([...pHighlights, { label: '', value: '' }])}
+                          className="text-xs font-black text-[#143C6B] bg-white border border-slate-300 px-3 py-1.5 rounded-xl hover:bg-slate-100 flex items-center gap-1 cursor-pointer shadow-2xs"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Add Highlight
+                        </button>
+                      </div>
+
+                      <div className="space-y-2">
+                        {pHighlights.map((high, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={high.label}
+                              onChange={(e) => {
+                                const updated = [...pHighlights];
+                                updated[idx].label = e.target.value;
+                                setPHighlights(updated);
+                              }}
+                              placeholder="e.g. Net Quantity"
+                              className="w-1/3 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-hidden focus:border-[#143C6B]"
+                            />
+                            <input
+                              type="text"
+                              value={high.value}
+                              onChange={(e) => {
+                                const updated = [...pHighlights];
+                                updated[idx].value = e.target.value;
+                                setPHighlights(updated);
+                              }}
+                              placeholder="e.g. Pack of 2"
+                              className="flex-1 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-hidden focus:border-[#143C6B]"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setPHighlights(pHighlights.filter((_, i) => i !== idx))}
+                              className="p-2 text-red-500 hover:bg-red-50 rounded-xl border border-slate-200 bg-white cursor-pointer"
+                              title="Remove highlight"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                        {pHighlights.length === 0 && (
+                          <p className="text-[10.5px] text-slate-400 font-semibold italic">No product highlights specified.</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Additional Details & Specifications */}
+                    <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Additional Details & Specifications</h4>
+                          <p className="text-[10.5px] text-slate-500 font-medium">Add dimensions, weight, units, generic name, country of origin, etc.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setPAdditionalDetails([...pAdditionalDetails, { label: '', value: '' }])}
+                          className="text-xs font-black text-[#143C6B] bg-white border border-slate-300 px-3 py-1.5 rounded-xl hover:bg-slate-100 flex items-center gap-1 cursor-pointer shadow-2xs"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Add Detail Row
+                        </button>
+                      </div>
+
+                      <div className="space-y-2">
+                        {pAdditionalDetails.map((detail, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={detail.label}
+                              onChange={(e) => {
+                                const updated = [...pAdditionalDetails];
+                                updated[idx].label = e.target.value;
+                                setPAdditionalDetails(updated);
+                              }}
+                              placeholder="e.g. Product Weight"
+                              className="w-1/3 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-hidden focus:border-[#143C6B]"
+                            />
+                            <input
+                              type="text"
+                              value={detail.value}
+                              onChange={(e) => {
+                                const updated = [...pAdditionalDetails];
+                                updated[idx].value = e.target.value;
+                                setPAdditionalDetails(updated);
+                              }}
+                              placeholder="e.g. 1.5 kg"
+                              className="flex-1 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-hidden focus:border-[#143C6B]"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setPAdditionalDetails(pAdditionalDetails.filter((_, i) => i !== idx))}
+                              className="p-2 text-red-500 hover:bg-red-50 rounded-xl border border-slate-200 bg-white cursor-pointer"
+                              title="Remove detail"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                        {pAdditionalDetails.length === 0 && (
+                          <p className="text-[10.5px] text-slate-400 font-semibold italic">No additional details specified.</p>
+                        )}
+                      </div>
                     </div>
 
                     {/* 1. CASH ON DELIVERY (COD) SETTINGS */}

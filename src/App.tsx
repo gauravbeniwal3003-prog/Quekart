@@ -6,6 +6,7 @@ import {
   fetchProductsUnified, 
   fetchCategoriesUnified, 
   fetchCategoryFiltersUnified,
+  fetchSubCategoriesUnified,
   fetchBannersUnified, 
   fetchCouponsUnified, 
   fetchOrdersUnified, 
@@ -14,7 +15,7 @@ import {
   saveOrderUnified,
   isSupabaseConfigured 
 } from './supabase';
-import { Product, CartItem, Order, Coupon, Banner, Category, CategoryFilter } from './types';
+import { Product, CartItem, Order, Coupon, Banner, Category, CategoryFilter, SubCategory } from './types';
 import { getApiUrl } from './utils/api';
 import { resetScrollToTop } from './utils/scroll';
 import Header from './components/Header';
@@ -151,6 +152,7 @@ export default function App() {
     let tab = 'home';
     let productId: string | null = null;
     let subPage: string | null = null;
+    let subCategoryName: string | null = null;
 
     // 0. Dedicated SEO Comparison & Category Hub Pages
     if (['compare', 'collections', 'explore', 'sell-online', 'seo', 'directory'].includes(firstPart)) {
@@ -219,6 +221,15 @@ export default function App() {
         tab = secondPart;
         if (secondPart === 'categories' && thirdPart) {
           subPage = thirdPart;
+          if (parts[3]) {
+            subCategoryName = decodeURIComponent(parts[3]);
+          } else if (searchPart) {
+            const sp = new URLSearchParams(searchPart);
+            const sc = sp.get('subCategory');
+            if (sc) {
+              subCategoryName = decodeURIComponent(sc);
+            }
+          }
         } else if (secondPart === 'store' && thirdPart) {
           subPage = thirdPart;
         } else if (secondPart === 'profile' && thirdPart) {
@@ -248,6 +259,9 @@ export default function App() {
       tab = firstPart;
       if (firstPart === 'categories' && parts[1]) {
         subPage = parts[1];
+        if (parts[2]) {
+          subCategoryName = decodeURIComponent(parts[2]);
+        }
       } else if (firstPart === 'store' && parts[1]) {
         subPage = parts[1];
       } else if (firstPart === 'profile' && parts[1]) {
@@ -260,10 +274,10 @@ export default function App() {
       tab = 'landing';
     }
 
-    return { portal, tab, productId, subPage, search: searchPart ? `?${searchPart}` : '', fullPath: currentPath };
+    return { portal, tab, productId, subPage, subCategoryName, search: searchPart ? `?${searchPart}` : '', fullPath: currentPath };
   };
 
-  const { portal: activePortal, tab: activeTab, productId, subPage: activeSubPage } = parseCurrentPath();
+  const { portal: activePortal, tab: activeTab, productId, subPage: activeSubPage, subCategoryName: activeSubCategoryName } = parseCurrentPath();
 
   // User session state
   const [currentUser, setCurrentUser] = useState<any>(() => {
@@ -358,6 +372,7 @@ export default function App() {
     } catch (_) {}
     return initialBanners;
   });
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [isLoadingShopData, setIsLoadingShopData] = useState<boolean>(false);
 
   // Fetch / Refresh shop data with Prioritized Critical-First Streaming (Banners & Products first)
@@ -365,11 +380,16 @@ export default function App() {
     // 1. Critical visual pipeline (Banners, Categories, Products) - render immediately without waiting for background data
     const loadCriticalVisualData = async () => {
       try {
-        const [bannersData, categoriesData, productsData] = await Promise.all([
+        const [bannersData, categoriesData, productsData, subCatsData] = await Promise.all([
           fetchBannersUnified(),
           fetchCategoriesUnified(),
-          fetchProductsUnified()
+          fetchProductsUnified(),
+          fetchSubCategoriesUnified()
         ]);
+
+        if (subCatsData && Array.isArray(subCatsData)) {
+          setSubCategories(subCatsData);
+        }
 
         if (bannersData && Array.isArray(bannersData) && bannersData.length > 0) {
           setBanners(bannersData);
@@ -1134,6 +1154,7 @@ export default function App() {
                       activeSubPage ? (
                         <CategoryProductsView
                           filterName={decodeURIComponent(activeSubPage)}
+                          subCategoryFilter={activeSubCategoryName || undefined}
                           products={products}
                           categories={categories}
                           cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
@@ -1150,10 +1171,14 @@ export default function App() {
                         />
                       ) : (
                         <CategoriesView
-                          categoryFilters={categoryFilters}
                           categories={categories}
-                          onSelectCategory={(categoryName) => {
-                            navigateTo('/shop/categories/' + encodeURIComponent(categoryName));
+                          subCategories={subCategories}
+                          onSelectCategory={(categoryName, subCategoryName) => {
+                            if (subCategoryName) {
+                              navigateTo('/shop/categories/' + encodeURIComponent(categoryName) + '?subCategory=' + encodeURIComponent(subCategoryName));
+                            } else {
+                              navigateTo('/shop/categories/' + encodeURIComponent(categoryName));
+                            }
                           }}
                           onSelectTab={(tab) => navigateTo(tab === 'home' ? '/shop' : '/shop/' + tab)}
                           isLoading={isLoadingShopData}

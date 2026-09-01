@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from '@google/genai';
 import { mockProducts, initialOrders, mockCategories, initialBanners, mockCategoryFilters } from './src/data.js';
-import { Product, Order, Coupon, CartItem, Vendor, Category, Banner, CategoryFilter } from './src/types.js';
+import { Product, Order, Coupon, CartItem, Vendor, Category, Banner, CategoryFilter, SubCategory } from './src/types.js';
 import fs from 'fs';
 import crypto from 'crypto';
 
@@ -4253,6 +4253,66 @@ app.post('/api/categories/reorder', authenticateAdmin, async (req, res) => {
   } catch (err: any) {
     console.error('Category reorder error:', err);
     res.json({ success: true, message: 'Categories reordered locally' });
+  }
+});
+
+// --- SUB-CATEGORIES ---
+let localSubCategories: SubCategory[] = [];
+
+app.get('/api/sub-categories', async (req, res) => {
+  try {
+    if (useSupabase && supabase) {
+      const { data, error } = await supabase.from('sub_categories').select('*');
+      if (!error && data && data.length > 0) {
+        const mapped = data.map((r: any) => r.data || r);
+        localSubCategories = mapped;
+        return res.json(mapped);
+      }
+    }
+    res.json(localSubCategories);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch sub-categories' });
+  }
+});
+
+app.post('/api/sub-categories', authenticateAdmin, async (req, res) => {
+  const subCat: SubCategory = req.body;
+  if (!subCat || !subCat.id || !subCat.name) {
+    return res.status(400).json({ error: 'Invalid sub-category data' });
+  }
+  try {
+    if (useSupabase && supabase) {
+      await supabase.from('sub_categories').upsert({ id: subCat.id, data: subCat });
+    }
+    const idx = localSubCategories.findIndex(s => s.id === subCat.id);
+    if (idx >= 0) {
+      localSubCategories[idx] = subCat;
+    } else {
+      localSubCategories.push(subCat);
+    }
+    res.status(201).json(subCat);
+  } catch (err: any) {
+    const idx = localSubCategories.findIndex(s => s.id === subCat.id);
+    if (idx >= 0) {
+      localSubCategories[idx] = subCat;
+    } else {
+      localSubCategories.push(subCat);
+    }
+    res.status(201).json(subCat);
+  }
+});
+
+app.delete('/api/sub-categories/:id', authenticateAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (useSupabase && supabase) {
+      await supabase.from('sub_categories').delete().eq('id', id);
+    }
+    localSubCategories = localSubCategories.filter(s => s.id !== id);
+    res.json({ success: true, message: 'Sub-category deleted' });
+  } catch (err) {
+    localSubCategories = localSubCategories.filter(s => s.id !== id);
+    res.json({ success: true, message: 'Sub-category deleted' });
   }
 });
 

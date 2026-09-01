@@ -1,4 +1,4 @@
-import { Product, Category, Banner, CategoryFilter } from './types';
+import { Product, Category, Banner, CategoryFilter, SubCategory } from './types';
 
 // Core category definitions matching logo color theme (#143C6B Navy Blue & #FF8C00 Saffron Gold)
 export const mockCategories: Category[] = [
@@ -117,6 +117,9 @@ export const mockCategories: Category[] = [
     image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=300'
   }
 ];
+
+// Sub-categories hierarchy definitions (Initially empty, controlled and created by admin)
+export const mockSubCategories: SubCategory[] = [];
 
 // 3 Promotional Banners
 export const initialBanners: Banner[] = [

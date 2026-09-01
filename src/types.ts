@@ -260,11 +260,27 @@ export interface UserWallet {
   transactions: UserWalletTransaction[];
 }
 
+export type PolicyMode = 'compulsory' | 'optional' | 'disabled';
+
+export interface SubCategory {
+  id: string;
+  name: string;
+  categoryId: string;
+  categoryName?: string;
+  group?: string;
+  image?: string;
+  returnPolicyMode?: PolicyMode; // 'compulsory' | 'optional' | 'disabled'
+  returnDays?: number; // min 7
+  replacementPolicyMode?: PolicyMode; // 'compulsory' | 'optional' | 'disabled'
+  replacementDays?: number; // min 7
+}
+
 export interface Category {
   id: string;
   name: string;
   icon: string; // Lucide icon name or emoji
   image?: string;
+  subCategories?: SubCategory[];
 }
 
 export interface CategoryFilter {
