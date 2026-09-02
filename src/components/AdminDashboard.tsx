@@ -1234,6 +1234,48 @@ export default function AdminDashboard({
   const [pReturnPolicyType, setPReturnPolicyType] = useState<'return' | 'replacement' | 'no_return'>('return');
   const [pReturnDays, setPReturnDays] = useState(7);
 
+  // Mandatory HSN Code Verification States
+  const [pHsnCode, setPHsnCode] = useState('');
+  const [pHsnDescription, setPHsnDescription] = useState('');
+  const [isVerifyingHsn, setIsVerifyingHsn] = useState(false);
+  const [hsnVerified, setHsnVerified] = useState(false);
+  const [hsnError, setHsnError] = useState('');
+
+  const handleVerifyAdminHsn = async (codeToVerify?: string) => {
+    const code = (codeToVerify !== undefined ? codeToVerify : pHsnCode).trim();
+    if (!code) {
+      setHsnError('Please enter an HSN Code first.');
+      setHsnVerified(false);
+      setPHsnDescription('');
+      return;
+    }
+
+    setIsVerifyingHsn(true);
+    setHsnError('');
+
+    try {
+      const res = await fetch(`/api/verify-hsn?code=${encodeURIComponent(code)}`);
+      const data = await res.json();
+
+      if (data && data.success && data.description) {
+        setPHsnDescription(data.description);
+        setHsnVerified(true);
+        setHsnError('');
+      } else {
+        setHsnVerified(false);
+        setPHsnDescription('');
+        setHsnError(data.message || 'Invalid HSN Code. Please check the code.');
+      }
+    } catch (err: any) {
+      console.error('HSN verification error:', err);
+      setHsnVerified(false);
+      setPHsnDescription('');
+      setHsnError('Failed to reach HSN verification server.');
+    } finally {
+      setIsVerifyingHsn(false);
+    }
+  };
+
   // Extra fields to let admin edit absolutely everything
   const [pSoldBy, setPSoldBy] = useState('Gaurav Garments');
   const [pSoldByRating, setPSoldByRating] = useState(4.8);
@@ -1541,6 +1583,10 @@ export default function AdminDashboard({
       setPHasUpiOffer(product.hasUpiOffer || false);
       setPReturnPolicyType(product.returnPolicyType || 'return');
       setPReturnDays(product.returnDays || 7);
+      setPHsnCode(product.hsnCode || '');
+      setPHsnDescription(product.hsnDescription || '');
+      setHsnVerified(!!product.hsnCode);
+      setHsnError('');
       setPSoldBy(product.soldBy || 'Gaurav Garments');
       setPSoldByRating(product.soldByRating || 4.8);
       setPVendorId(product.vendorId || '');
@@ -1572,6 +1618,10 @@ export default function AdminDashboard({
       setPHasUpiOffer(true);
       setPReturnPolicyType('return');
       setPReturnDays(7);
+      setPHsnCode('');
+      setPHsnDescription('');
+      setHsnVerified(false);
+      setHsnError('');
       setPSoldBy('Gaurav Garments');
       setPSoldByRating(4.8);
       setPVendorId('');
@@ -1636,6 +1686,8 @@ export default function AdminDashboard({
       sizeOptions: pSizeOptions.filter(Boolean),
       vendorId: pVendorId || (editingProduct ? editingProduct.vendorId : undefined),
       tag: pTag || undefined,
+      hsnCode: pHsnCode.trim() || undefined,
+      hsnDescription: pHsnDescription.trim() || undefined,
       reviews: editingProduct ? editingProduct.reviews : []
     };
 
@@ -7746,6 +7798,66 @@ export default function AdminDashboard({
                       className="w-full bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-lucky-magenta text-slate-800"
                     />
                   </div>
+                </div>
+
+                {/* HSN CODE VERIFICATION FOR ADMIN */}
+                <div className="bg-slate-50 rounded-xl border border-slate-200/80 p-3.5 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-black text-slate-700 uppercase tracking-wide">
+                      HSN Code (GST Classification)
+                    </label>
+                    <span className="text-[10px] font-bold text-slate-500">Official Category Verification</span>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="e.g. 01011020"
+                      value={pHsnCode}
+                      onChange={(e) => {
+                        setPHsnCode(e.target.value);
+                        setHsnVerified(false);
+                        setHsnError('');
+                        setPHsnDescription('');
+                      }}
+                      className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-hidden focus:border-lucky-magenta text-slate-900"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleVerifyAdminHsn()}
+                      disabled={isVerifyingHsn || !pHsnCode.trim()}
+                      className="px-3.5 py-2 bg-lucky-navy hover:bg-slate-900 disabled:opacity-50 text-white font-bold text-xs rounded-lg transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
+                    >
+                      {isVerifyingHsn ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Verifying...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>{hsnVerified ? 'Re-Verify' : 'Verify HSN'}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {hsnVerified && pHsnDescription && (
+                    <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs space-y-0.5">
+                      <span className="font-extrabold text-emerald-800 text-[10.5px] uppercase block">
+                        Verified HSN Description:
+                      </span>
+                      <p className="text-slate-900 font-bold leading-tight">
+                        "{pHsnDescription}"
+                      </p>
+                    </div>
+                  )}
+
+                  {hsnError && (
+                    <p className="text-xs text-red-600 font-bold bg-red-50 p-2 rounded-lg border border-red-200">
+                      {hsnError}
+                    </p>
+                  )}
                 </div>
 
                 {/* Price and Original Price Row */}

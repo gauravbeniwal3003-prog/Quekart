@@ -450,42 +450,44 @@ async function testAndSeedSupabase() {
     }
 
     const existingProductIds = new Set((pCountData || []).map((row: any) => row.id));
-    if (existingProductIds.size === 0 && localProducts.length > 0) {
-      console.log('🌱 Products table is empty. Seeding default catalog...');
+    if (existingProductIds.size < localProducts.length) {
+      console.log(`🌱 Products in Supabase (${existingProductIds.size}) is less than default catalog (${localProducts.length}). Seeding missing products...`);
       for (const p of localProducts) {
-        const { error: insertErr } = await supabase.from('products').insert({ id: p.id, data: p });
-        if (insertErr) {
-          console.warn(`⚠️ Note seeding product ${p.id}:`, insertErr.message || insertErr);
+        if (!existingProductIds.has(p.id)) {
+          const { error: insertErr } = await supabase.from('products').upsert({ id: p.id, data: p });
+          if (insertErr) {
+            console.warn(`⚠️ Note seeding product ${p.id}:`, insertErr.message || insertErr);
+          }
         }
       }
-    } else {
-      console.log(`📊 Products in Supabase: ${existingProductIds.size}. Syncing live database products...`);
-      const { data: dbProdRows } = await supabase.from('products').select('*');
-      if (dbProdRows && dbProdRows.length > 0) {
-        localProducts = dbProdRows.map((r: any) => r.data || r);
-        saveMockDataFile();
-      }
+    }
+    console.log(`📊 Products in Supabase. Syncing live database products...`);
+    const { data: dbProdRows } = await supabase.from('products').select('*');
+    if (dbProdRows && dbProdRows.length > 0) {
+      localProducts = dbProdRows.map((r: any) => r.data || r);
+      saveMockDataFile();
     }
 
     // 2. Verify and seed coupons table
     const { data: cCountData, error: cError } = await supabase.from('coupons').select('code');
     if (!cError) {
       const existingCouponCodes = new Set((cCountData || []).map((row: any) => row.code));
-      if (existingCouponCodes.size === 0 && localCoupons.length > 0) {
-        console.log('🌱 Coupons table is empty. Seeding default coupons...');
+      if (existingCouponCodes.size < localCoupons.length) {
+        console.log(`🌱 Coupons in Supabase (${existingCouponCodes.size}) is less than local coupons (${localCoupons.length}). Seeding missing coupons...`);
         for (const c of localCoupons) {
-          const { error: insertErr } = await supabase.from('coupons').insert({ code: c.code, data: c });
-          if (insertErr) {
-            console.warn(`⚠️ Note seeding coupon ${c.code}:`, insertErr.message || insertErr);
+          if (!existingCouponCodes.has(c.code)) {
+            const { error: insertErr } = await supabase.from('coupons').upsert({ code: c.code, data: c });
+            if (insertErr) {
+              console.warn(`⚠️ Note seeding coupon ${c.code}:`, insertErr.message || insertErr);
+            }
           }
         }
-      } else {
-        console.log(`📊 Coupons in Supabase: ${existingCouponCodes.size}. Syncing live database coupons...`);
-        const { data: dbCouponRows } = await supabase.from('coupons').select('*');
-        if (dbCouponRows && dbCouponRows.length > 0) {
-          localCoupons = dbCouponRows.map((r: any) => r.data || r);
-          saveMockDataFile();
-        }
+      }
+      console.log(`📊 Coupons in Supabase. Syncing live database coupons...`);
+      const { data: dbCouponRows } = await supabase.from('coupons').select('*');
+      if (dbCouponRows && dbCouponRows.length > 0) {
+        localCoupons = dbCouponRows.map((r: any) => r.data || r);
+        saveMockDataFile();
       }
     } else {
       console.log('ℹ️ Coupons table in Supabase using local cache fallback.');
@@ -531,22 +533,23 @@ async function testAndSeedSupabase() {
     const { data: catCountData, error: catError } = await supabase.from('categories').select('id');
     if (!catError) {
       const existingCategoryIds = new Set((catCountData || []).map((row: any) => row.id));
-      if (existingCategoryIds.size === 0 && localCategories.length > 0) {
-        console.log('🌱 Categories table is empty. Seeding default categories...');
+      if (existingCategoryIds.size < localCategories.length) {
+        console.log(`🌱 Categories in Supabase (${existingCategoryIds.size}) is less than local categories (${localCategories.length}). Seeding missing categories...`);
         for (let i = 0; i < localCategories.length; i++) {
           const c = localCategories[i];
-          const { error: insertErr } = await supabase.from('categories').insert({ id: c.id, data: c, position: i });
-          if (insertErr) {
-            console.warn(`⚠️ Note seeding category ${c.id}:`, insertErr.message || insertErr);
+          if (!existingCategoryIds.has(c.id)) {
+            const { error: insertErr } = await supabase.from('categories').upsert({ id: c.id, data: c, position: i });
+            if (insertErr) {
+              console.warn(`⚠️ Note seeding category ${c.id}:`, insertErr.message || insertErr);
+            }
           }
         }
-      } else {
-        console.log(`📊 Categories in Supabase: ${existingCategoryIds.size}. Syncing live database categories...`);
-        const { data: dbCatRows } = await supabase.from('categories').select('*').order('position', { ascending: true });
-        if (dbCatRows) {
-          localCategories = dbCatRows.map((r: any) => r.data || r);
-          saveMockDataFile();
-        }
+      }
+      console.log(`📊 Categories in Supabase. Syncing live database categories...`);
+      const { data: dbCatRows } = await supabase.from('categories').select('*').order('position', { ascending: true });
+      if (dbCatRows) {
+        localCategories = dbCatRows.map((r: any) => r.data || r);
+        saveMockDataFile();
       }
     } else {
       console.log('ℹ️ Categories table in Supabase using local cache fallback.');
@@ -556,21 +559,23 @@ async function testAndSeedSupabase() {
     const { data: subCountData, error: subError } = await supabase.from('sub_categories').select('id');
     if (!subError) {
       const existingSubIds = new Set((subCountData || []).map((row: any) => row.id));
-      if (existingSubIds.size === 0 && localSubCategories.length > 0) {
-        console.log('🌱 sub_categories table is empty. Seeding default sub-categories...');
-        for (const s of localSubCategories) {
-          const { error: insertErr } = await supabase.from('sub_categories').insert({ id: s.id, data: s });
-          if (insertErr) {
-            console.warn(`⚠️ Note seeding sub-category ${s.id}:`, insertErr.message || insertErr);
+      if (existingSubIds.size < localSubCategories.length) {
+        console.log(`🌱 sub_categories in Supabase (${existingSubIds.size}) is less than local sub-categories (${localSubCategories.length}). Seeding missing sub-categories...`);
+        for (let i = 0; i < localSubCategories.length; i++) {
+          const s = localSubCategories[i];
+          if (!existingSubIds.has(s.id)) {
+            const { error: insertErr } = await supabase.from('sub_categories').upsert({ id: s.id, data: s, position: i });
+            if (insertErr) {
+              console.warn(`⚠️ Note seeding sub-category ${s.id}:`, insertErr.message || insertErr);
+            }
           }
         }
-      } else {
-        console.log(`📊 Sub-Categories in Supabase: ${existingSubIds.size}. Syncing live database sub-categories...`);
-        const { data: dbSubRows } = await supabase.from('sub_categories').select('*');
-        if (dbSubRows && dbSubRows.length > 0) {
-          localSubCategories = dbSubRows.map((r: any) => r.data || r);
-          saveMockDataFile();
-        }
+      }
+      console.log(`📊 Sub-Categories in Supabase. Syncing live database sub-categories...`);
+      const { data: dbSubRows } = await supabase.from('sub_categories').select('*');
+      if (dbSubRows && dbSubRows.length > 0) {
+        localSubCategories = dbSubRows.map((r: any) => r.data || r);
+        saveMockDataFile();
       }
     } else {
       console.log('ℹ️ sub_categories table in Supabase using local cache fallback.');
@@ -2082,6 +2087,37 @@ app.get('/api/system-status', async (req, res) => {
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed checking system status' });
+  }
+});
+
+// --- HSN VERIFICATION PROXY ---
+app.get('/api/verify-hsn', async (req, res) => {
+  try {
+    const { code } = req.query;
+    if (!code || typeof code !== 'string' || !code.trim()) {
+      return res.status(400).json({ success: false, message: 'HSN code parameter is required' });
+    }
+    const cleanCode = code.trim();
+    const apiUrl = `http://222.167.207.219/api/hsn?code=${encodeURIComponent(cleanCode)}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 7000); // 7s timeout
+
+    const response = await fetch(apiUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      return res.status(response.status).json({ success: false, message: `HSN API HTTP Error ${response.status}` });
+    }
+
+    const data = await response.json();
+    return res.json(data);
+  } catch (error: any) {
+    console.error('Error verifying HSN code via server proxy:', error.message || error);
+    return res.status(500).json({
+      success: false,
+      message: error.name === 'AbortError' ? 'HSN Verification API timed out' : 'Failed to connect to HSN Verification API'
+    });
   }
 });
 

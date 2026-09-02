@@ -1580,6 +1580,25 @@ export default function ProductDetail({
                     </div>
                   </>
                 )}
+
+                {/* HSN CODE TAX CLASSIFICATION DISPLAY */}
+                {product.hsnCode && (
+                  <div className="col-span-2 mt-1 p-3 bg-blue-50/80 border border-blue-200/80 rounded-xl text-xs space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#143C6B] text-[10.5px] uppercase font-extrabold tracking-wider flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" /> GST Tax HSN Code
+                      </span>
+                      <span className="font-mono bg-white px-2 py-0.5 rounded border border-blue-200 text-slate-800 font-black">
+                        HSN: {product.hsnCode}
+                      </span>
+                    </div>
+                    {product.hsnDescription && (
+                      <p className="text-[11px] text-slate-700 font-medium leading-normal bg-white/80 p-2 rounded-lg border border-blue-100/90 mt-1">
+                        <span className="font-bold text-slate-900">Verified Category:</span> {product.hsnDescription}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

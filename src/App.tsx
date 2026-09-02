@@ -1157,12 +1157,20 @@ export default function App() {
                           subCategoryFilter={activeSubCategoryName || undefined}
                           products={products}
                           categories={categories}
+                          subCategories={subCategories}
                           cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
                           wishlistCount={wishlist.length}
                           onOpenCart={() => navigateTo('/shop/cart')}
                           onOpenWishlist={() => navigateTo('/shop/wishlist')}
                           onBack={handleCategoryBack}
                           onSelectProduct={(id) => navigateTo('/shop/product/' + id)}
+                          onSelectSubCategory={(subCat) => {
+                            if (subCat) {
+                              navigateTo('/shop/category/' + encodeURIComponent(activeSubPage) + '/' + encodeURIComponent(subCat));
+                            } else {
+                              navigateTo('/shop/category/' + encodeURIComponent(activeSubPage));
+                            }
+                          }}
                           wishlist={wishlist}
                           onToggleWishlist={handleToggleWishlist}
                           currentUser={currentUser}

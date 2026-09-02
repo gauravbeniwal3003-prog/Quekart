@@ -63,7 +63,8 @@ import {
   Store,
   MessageCircle,
   Sliders,
-  Boxes
+  Boxes,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, Order, Vendor, Category, VariantSwatch, SubCategory } from '../types';
@@ -360,6 +361,48 @@ export default function VendorDashboard({
   const [pCategory, setPCategory] = useState('Women Ethnic Wear');
   const [allSubCategories, setAllSubCategories] = useState<SubCategory[]>([]);
   const [pSubCategory, setPSubCategory] = useState<string>('General');
+
+  // Mandatory HSN Code Verification States
+  const [pHsnCode, setPHsnCode] = useState('');
+  const [pHsnDescription, setPHsnDescription] = useState('');
+  const [isVerifyingHsn, setIsVerifyingHsn] = useState(false);
+  const [hsnVerified, setHsnVerified] = useState(false);
+  const [hsnError, setHsnError] = useState('');
+
+  const handleVerifyHsnCode = async (codeToVerify?: string) => {
+    const code = (codeToVerify !== undefined ? codeToVerify : pHsnCode).trim();
+    if (!code) {
+      setHsnError('Please enter an HSN Code first.');
+      setHsnVerified(false);
+      setPHsnDescription('');
+      return;
+    }
+
+    setIsVerifyingHsn(true);
+    setHsnError('');
+
+    try {
+      const res = await fetch(`/api/verify-hsn?code=${encodeURIComponent(code)}`);
+      const data = await res.json();
+
+      if (data && data.success && data.description) {
+        setPHsnDescription(data.description);
+        setHsnVerified(true);
+        setHsnError('');
+      } else {
+        setHsnVerified(false);
+        setPHsnDescription('');
+        setHsnError(data.message || 'Invalid HSN Code. Please check the code and try again.');
+      }
+    } catch (err: any) {
+      console.error('HSN verification error:', err);
+      setHsnVerified(false);
+      setPHsnDescription('');
+      setHsnError('Failed to reach HSN verification server. Please try again.');
+    } finally {
+      setIsVerifyingHsn(false);
+    }
+  };
 
   useEffect(() => {
     fetchSubCategoriesUnified().then(data => {
@@ -753,6 +796,10 @@ export default function VendorDashboard({
         setPUpiDiscountType(target.upiDiscountType || 'percentage');
         setPUpiDiscountValue(target.upiDiscountValue ?? 5);
         setPUpiOfferText(target.upiOfferText || 'Extra 5% Instant Discount on UPI Payment');
+        setPHsnCode(target.hsnCode || '');
+        setPHsnDescription(target.hsnDescription || '');
+        setHsnVerified(!!target.hsnCode);
+        setHsnError('');
         setPHighlights(target.productHighlights && target.productHighlights.length > 0 ? target.productHighlights : [
           { label: 'Net Quantity (N)', value: 'Pack of 1' },
           { label: 'Colour', value: 'Multicolor' },
@@ -797,6 +844,10 @@ export default function VendorDashboard({
         { label: 'Generic Name', value: 'Apparel / Item' },
         { label: 'Country of Origin', value: 'India' }
       ]);
+      setPHsnCode('');
+      setPHsnDescription('');
+      setHsnVerified(false);
+      setHsnError('');
     }
   }, [activeTabKey, queryId, products]);
 
@@ -921,6 +972,16 @@ export default function VendorDashboard({
       return;
     }
 
+    if (!pHsnCode.trim()) {
+      alert('HSN Code is mandatory. Please enter an HSN Code for this product.');
+      return;
+    }
+
+    if (!hsnVerified) {
+      alert('Please click "Verify" to validate the HSN Code before listing or saving the product.');
+      return;
+    }
+
     setIsSavingProduct(true);
     const discount = pOrigPrice > pPrice ? Math.round(((pOrigPrice - pPrice) / pOrigPrice) * 100) : 0;
 
@@ -994,6 +1055,8 @@ export default function VendorDashboard({
       upiDiscountType: pUpiDiscountType,
       upiDiscountValue: Number(pUpiDiscountValue) || 0,
       upiOfferText: finalUpiText,
+      hsnCode: pHsnCode.trim(),
+      hsnDescription: pHsnDescription.trim(),
       rating: existingProduct ? existingProduct.rating : 0,
       ratingCount: existingProduct ? existingProduct.ratingCount : 0,
       reviewCount: existingProduct ? existingProduct.reviewCount : 0,
@@ -2535,6 +2598,98 @@ export default function VendorDashboard({
                       </div>
                     </div>
 
+                    {/* MANDATORY HSN CODE VERIFICATION SECTION */}
+                    <div className="bg-slate-50/90 rounded-2xl border border-slate-200/90 p-3.5 sm:p-4 space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <label className="text-[11px] text-slate-800 font-black uppercase tracking-wider">
+                              HSN Code * (Mandatory GST Classification)
+                            </label>
+                            <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">
+                              Required
+                            </span>
+                          </div>
+                          <p className="text-[10.5px] text-slate-500 font-medium mt-0.5">
+                            Enter HSN code (e.g. 01011020) and click <strong>Verify</strong> to validate official tax classification.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row items-stretch gap-2">
+                        <div className="relative flex-1">
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. 01011020"
+                            value={pHsnCode}
+                            onChange={e => {
+                              setPHsnCode(e.target.value);
+                              setHsnVerified(false);
+                              setHsnError('');
+                              setPHsnDescription('');
+                            }}
+                            className={`w-full text-xs font-bold border rounded-xl p-3 focus:outline-hidden transition-colors ${
+                              hsnVerified 
+                                ? 'border-emerald-500 bg-emerald-50/30 text-emerald-950 focus:border-emerald-600' 
+                                : hsnError 
+                                ? 'border-red-400 bg-red-50/20 text-slate-900 focus:border-red-500' 
+                                : 'border-slate-300 bg-white text-slate-900 focus:border-[#143C6B]'
+                            }`}
+                            id="vendor-product-hsn-input"
+                          />
+                          {hsnVerified && (
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-emerald-700 text-[11px] font-black flex items-center gap-1 bg-emerald-100/90 border border-emerald-200 px-2 py-0.5 rounded-md shadow-2xs">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              Verified ✓
+                            </span>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleVerifyHsnCode()}
+                          disabled={isVerifyingHsn || !pHsnCode.trim()}
+                          className="px-4 py-2.5 bg-[#143C6B] hover:bg-[#0f2e52] disabled:opacity-50 text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 shrink-0 cursor-pointer active:scale-98"
+                          id="vendor-product-hsn-verify-btn"
+                        >
+                          {isVerifyingHsn ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Verifying...</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>{hsnVerified ? 'Re-Verify HSN' : 'Verify HSN Code'}</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Verified HSN Description Result Display */}
+                      {hsnVerified && pHsnDescription && (
+                        <div className="p-3 bg-emerald-50/90 border border-emerald-200/90 rounded-xl space-y-1 text-xs transition-all animate-fadeIn">
+                          <div className="flex items-center gap-1.5 text-emerald-800 font-black uppercase text-[10.5px] tracking-wider">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>Official HSN Classification / Category Description:</span>
+                          </div>
+                          <div className="bg-white/90 p-2.5 rounded-lg border border-emerald-100/80 shadow-2xs mt-1">
+                            <p className="text-slate-900 font-extrabold leading-relaxed text-xs">
+                              "{pHsnDescription}"
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {hsnError && (
+                        <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs text-red-700 font-bold">
+                          <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                          <span>{hsnError}</span>
+                        </div>
+                      )}
+                    </div>
+
                     {/* Pricing */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
                       <div>
@@ -3027,6 +3182,98 @@ export default function VendorDashboard({
                         value={pCategory}
                         className="w-full text-xs font-bold border border-slate-200 rounded-xl p-2.5 bg-slate-100 text-slate-500 cursor-not-allowed"
                       />
+                    </div>
+
+                    {/* MANDATORY HSN CODE VERIFICATION SECTION (EDIT MODE) */}
+                    <div className="bg-slate-50/90 rounded-2xl border border-slate-200/90 p-3.5 sm:p-4 space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <label className="text-[11px] text-slate-800 font-black uppercase tracking-wider">
+                              HSN Code * (Mandatory GST Classification)
+                            </label>
+                            <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">
+                              Required
+                            </span>
+                          </div>
+                          <p className="text-[10.5px] text-slate-500 font-medium mt-0.5">
+                            Verify or update HSN Code (e.g. 01011020) for official tax compliance.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row items-stretch gap-2">
+                        <div className="relative flex-1">
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. 01011020"
+                            value={pHsnCode}
+                            onChange={e => {
+                              setPHsnCode(e.target.value);
+                              setHsnVerified(false);
+                              setHsnError('');
+                              setPHsnDescription('');
+                            }}
+                            className={`w-full text-xs font-bold border rounded-xl p-3 focus:outline-hidden transition-colors ${
+                              hsnVerified 
+                                ? 'border-emerald-500 bg-emerald-50/30 text-emerald-950 focus:border-emerald-600' 
+                                : hsnError 
+                                ? 'border-red-400 bg-red-50/20 text-slate-900 focus:border-red-500' 
+                                : 'border-slate-300 bg-white text-slate-900 focus:border-[#143C6B]'
+                            }`}
+                            id="vendor-product-hsn-edit-input"
+                          />
+                          {hsnVerified && (
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-emerald-700 text-[11px] font-black flex items-center gap-1 bg-emerald-100/90 border border-emerald-200 px-2 py-0.5 rounded-md shadow-2xs">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              Verified ✓
+                            </span>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleVerifyHsnCode()}
+                          disabled={isVerifyingHsn || !pHsnCode.trim()}
+                          className="px-4 py-2.5 bg-[#143C6B] hover:bg-[#0f2e52] disabled:opacity-50 text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 shrink-0 cursor-pointer active:scale-98"
+                          id="vendor-product-hsn-edit-verify-btn"
+                        >
+                          {isVerifyingHsn ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Verifying...</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>{hsnVerified ? 'Re-Verify HSN' : 'Verify HSN Code'}</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Verified HSN Description Result Display */}
+                      {hsnVerified && pHsnDescription && (
+                        <div className="p-3 bg-emerald-50/90 border border-emerald-200/90 rounded-xl space-y-1 text-xs transition-all animate-fadeIn">
+                          <div className="flex items-center gap-1.5 text-emerald-800 font-black uppercase text-[10.5px] tracking-wider">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>Official HSN Classification / Category Description:</span>
+                          </div>
+                          <div className="bg-white/90 p-2.5 rounded-lg border border-emerald-100/80 shadow-2xs mt-1">
+                            <p className="text-slate-900 font-extrabold leading-relaxed text-xs">
+                              "{pHsnDescription}"
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {hsnError && (
+                        <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs text-red-700 font-bold">
+                          <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                          <span>{hsnError}</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Pricing Edit */}

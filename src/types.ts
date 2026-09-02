@@ -90,6 +90,8 @@ export interface Product {
   numericId?: number; // Sequential simple unique ID starting from 1
   sponsoredUntil?: string; // Timestamp until which product is sponsored
   isBestSeller?: boolean;
+  hsnCode?: string; // Mandatory HSN Code e.g. "01011020"
+  hsnDescription?: string; // HSN category description retrieved from verification API
   analytics?: ProductAnalytics; // Real-time product impression, view, and cart add analytics
 }
 

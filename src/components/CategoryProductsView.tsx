@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, MouseEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Heart, ShoppingBag, Loader2, ChevronDown, Check, Star, X, Sparkles, Filter, Zap } from 'lucide-react';
-import { Product, Category } from '../types';
+import { ArrowLeft, Heart, ShoppingBag, Loader2, ChevronDown, Check, Star, X, Sparkles, Filter, Zap, Search } from 'lucide-react';
+import { Product, Category, SubCategory } from '../types';
 import { resetScrollToTop } from '../utils/scroll';
 import { useInfiniteProductPagination } from '../hooks/useInfiniteProductPagination';
 import { getProductPricing } from '../utils/pricing';
@@ -16,12 +16,14 @@ interface CategoryProductsViewProps {
   subCategoryFilter?: string;
   products: Product[];
   categories?: Category[];
+  subCategories?: SubCategory[];
   cartCount?: number;
   wishlistCount?: number;
   onOpenCart?: () => void;
   onOpenWishlist?: () => void;
   onBack: () => void;
   onSelectProduct: (productId: string) => void;
+  onSelectSubCategory?: (subCat: string | null) => void;
   wishlist: string[];
   onToggleWishlist: (productId: string) => void;
   currentUser: any;
@@ -35,12 +37,14 @@ export default function CategoryProductsView({
   subCategoryFilter,
   products,
   categories = [],
+  subCategories = [],
   cartCount = 0,
   wishlistCount = 0,
   onOpenCart = () => {},
   onOpenWishlist = () => {},
   onBack,
   onSelectProduct,
+  onSelectSubCategory,
   wishlist,
   onToggleWishlist,
   currentUser,
@@ -53,7 +57,7 @@ export default function CategoryProductsView({
 
   useEffect(() => {
     resetScrollToTop();
-  }, [filterName]);
+  }, [filterName, subCategoryFilter]);
 
   // Local Search State
   const [localSearchQuery, setLocalSearchQuery] = useState('');
@@ -78,6 +82,12 @@ export default function CategoryProductsView({
     if (!categories || categories.length === 0) return null;
     return categories.find(c => c.name.toLowerCase() === filterName.toLowerCase()) || null;
   }, [categories, filterName]);
+
+  // Get relevant subcategories for the chips row
+  const siblingSubCategories = useMemo(() => {
+    if (!parentCategory) return [];
+    return subCategories.filter(sc => sc.categoryId === parentCategory.id || (sc.categoryName && sc.categoryName.toLowerCase() === parentCategory.name.toLowerCase()));
+  }, [subCategories, parentCategory]);
 
   // 1. Filter products by Category, SubCategory, Attributes (Price/Rating), and local Search
   const filteredProducts = useMemo(() => {
@@ -126,7 +136,7 @@ export default function CategoryProductsView({
 
       return true;
     });
-  }, [products, parentCategory, filterName, maxPrice, minRating, localSearchQuery]);
+  }, [products, parentCategory, filterName, maxPrice, minRating, localSearchQuery, subCategoryFilter]);
 
   // 2. Sort filtered products
   const sortedProducts = useMemo(() => {
@@ -175,265 +185,105 @@ export default function CategoryProductsView({
   return (
     <div className="flex flex-col bg-[#F8FAFC] min-h-full" id="category-products-page">
       {/* 1. Header Row (Sticky) */}
-      <div className="sticky top-[0px] z-50 bg-white border-b border-gray-100 px-4 py-3 shadow-3xs" id="category-page-header">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={onBack}
-              className="p-1.5 hover:bg-slate-100 active:scale-95 rounded-full transition-all cursor-pointer"
-              aria-label="Go back"
-              id="category-back-button"
-            >
-              <ArrowLeft className="w-5 h-5 text-gray-700" />
-            </button>
-            <div>
-              <h1 className="text-base font-black text-slate-800 tracking-tight font-display capitalize" id="category-page-title">
-                {subCategoryFilter || (parentCategory ? parentCategory.name : filterName)}
-              </h1>
-              <p className="text-[10px] text-gray-400 font-bold flex items-center gap-1" id="category-product-count">
-                {subCategoryFilter && (
-                  <>
-                    <span className="text-[#143C6B] font-extrabold">{parentCategory ? parentCategory.name : filterName}</span>
-                    <span>•</span>
-                  </>
-                )}
-                <span>{filteredProducts.length} {filteredProducts.length === 1 ? 'item' : 'items'} found</span>
-              </p>
-            </div>
-          </div>
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-100 px-4 py-3 shadow-sm flex items-center justify-between" id="category-page-header">
+        <button
+          onClick={onBack}
+          className="p-1.5 hover:bg-slate-100 active:scale-95 rounded-full transition-all cursor-pointer"
+          aria-label="Go back"
+          id="category-back-button"
+        >
+          <ArrowLeft className="w-6 h-6 text-slate-800" />
+        </button>
+        
+        <h1 className="text-lg font-normal text-slate-800 tracking-tight font-display capitalize absolute left-1/2 -translate-x-1/2" id="category-page-title">
+          {subCategoryFilter || (parentCategory ? parentCategory.name : filterName)}
+        </h1>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onOpenWishlist}
-              className="p-2 hover:bg-slate-100 active:scale-95 rounded-full transition-all cursor-pointer relative"
-              aria-label="View Wishlist"
-              id="category-wishlist-header-btn"
-            >
-              <Heart className="w-5 h-5 text-slate-700" />
-              {wishlistCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white shadow-3xs animate-pulse">
-                  {wishlistCount}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={onOpenCart}
-              className="p-2 hover:bg-slate-100 active:scale-95 rounded-full transition-all cursor-pointer relative"
-              aria-label="View Cart"
-              id="category-cart-header-btn"
-            >
-              <ShoppingBag className="w-5 h-5 text-slate-700" />
-              {cartCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 bg-[#143C6B] text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white shadow-3xs">
-                  {cartCount}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Pink/Rose search container matching the screenshot */}
-      <div className="bg-[#FFF1F2] px-4 py-3 border-b border-[#FFE4E6]" id="category-search-container">
-        <div className="max-w-7xl mx-auto flex gap-2">
-          <div className="relative flex-1">
-            <input
-              type="text"
-              value={localSearchQuery}
-              onChange={(e) => setLocalSearchQuery(e.target.value)}
-              placeholder={`Search in ${parentCategory ? parentCategory.name : filterName}...`}
-              className="w-full bg-white text-slate-800 text-xs px-4 py-2.5 rounded-lg border border-[#FCA5A5]/30 focus:outline-hidden focus:ring-2 focus:ring-[#143C6B]/20 focus:border-[#143C6B] placeholder-gray-400 font-semibold"
-              id="category-search-input"
-            />
-            {localSearchQuery && (
-              <button
-                onClick={() => setLocalSearchQuery('')}
-                className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
+        <div className="flex items-center gap-2 relative z-10">
           <button
-            className="bg-[#143C6B] hover:bg-[#0D2C4E] text-white px-4 rounded-lg flex items-center justify-center transition-colors shadow-xs active:scale-95 cursor-pointer"
-            id="category-search-submit-btn"
+            onClick={onOpenWishlist}
+            className="p-2 hover:bg-slate-100 active:scale-95 rounded-full transition-all cursor-pointer relative"
+            aria-label="View Wishlist"
+            id="category-wishlist-header-btn"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4.5 w-4.5 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* 4. Sorting & Filter Controls Row */}
-      <div className="bg-white border-b border-slate-100 px-4 py-2 flex items-center justify-between" id="category-quick-filters">
-        <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-1">
-            {/* Price Dropdown */}
-            <div className="relative flex-shrink-0">
-              <button
-                onClick={() => {
-                  setShowBudgetDropdown(!showBudgetDropdown);
-                  setShowSortDropdown(false);
-                  setShowRatingDropdown(false);
-                }}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold cursor-pointer transition-colors ${
-                  maxPrice !== null ? 'border-[#143C6B] text-[#143C6B] bg-blue-50 font-bold' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                }`}
-                id="category-budget-btn"
-              >
-                <span>{maxPrice ? `≤ ₹${maxPrice}` : 'Budget'}</span>
-                <ChevronDown className="w-3 h-3" />
-              </button>
-              {showBudgetDropdown && (
-                <div className="absolute left-0 mt-1.5 w-44 bg-white border border-gray-100 rounded-lg shadow-lg z-50 py-1" id="category-budget-dropdown">
-                  {[
-                    { label: 'Any Price', value: null },
-                    { label: 'Under ₹299', value: 299 },
-                    { label: 'Under ₹499', value: 499 },
-                    { label: 'Under ₹999', value: 999 },
-                    { label: 'Under ₹1,999', value: 1999 },
-                    { label: 'Under ₹4,999', value: 4999 },
-                  ].map((opt) => (
-                    <button
-                      key={opt.label}
-                      onClick={() => { setMaxPrice(opt.value); setShowBudgetDropdown(false); }}
-                      className={`w-full text-left px-3.5 py-2 text-xs hover:bg-blue-50 cursor-pointer flex items-center justify-between ${
-                        maxPrice === opt.value ? 'text-[#143C6B] font-bold bg-blue-50/50' : 'text-gray-700'
-                      }`}
-                    >
-                      <span>{opt.label}</span>
-                      {maxPrice === opt.value && <Check className="w-3.5 h-3.5 text-[#143C6B]" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Rating Dropdown */}
-            <div className="relative flex-shrink-0">
-              <button
-                onClick={() => {
-                  setShowRatingDropdown(!showRatingDropdown);
-                  setShowSortDropdown(false);
-                  setShowBudgetDropdown(false);
-                }}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold cursor-pointer transition-colors ${
-                  minRating > 0 ? 'border-amber-500 text-amber-700 bg-amber-50 font-bold' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                }`}
-                id="category-rating-btn"
-              >
-                <Star className={`w-3 h-3 ${minRating > 0 ? 'fill-amber-500 text-amber-500' : 'text-gray-400'}`} />
-                <span>{minRating > 0 ? `${minRating}★+` : 'Rating'}</span>
-                <ChevronDown className="w-3 h-3" />
-              </button>
-              {showRatingDropdown && (
-                <div className="absolute left-0 mt-1.5 w-40 bg-white border border-gray-100 rounded-lg shadow-lg z-50 py-1" id="category-rating-dropdown">
-                  {[
-                    { label: 'All Ratings', value: 0 },
-                    { label: '4.5★ & above', value: 4.5 },
-                    { label: '4.0★ & above', value: 4.0 },
-                    { label: '3.5★ & above', value: 3.5 },
-                  ].map((opt) => (
-                    <button
-                      key={opt.label}
-                      onClick={() => { setMinRating(opt.value); setShowRatingDropdown(false); }}
-                      className={`w-full text-left px-3.5 py-2 text-xs hover:bg-amber-50 cursor-pointer flex items-center justify-between ${
-                        minRating === opt.value ? 'text-amber-800 font-bold bg-amber-50/60' : 'text-gray-700'
-                      }`}
-                    >
-                      <span>{opt.label}</span>
-                      {minRating === opt.value && <Check className="w-3.5 h-3.5 text-amber-600" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Sort trigger */}
-          <div className="relative flex-shrink-0">
-            <button
-              onClick={() => {
-                setShowSortDropdown(!showSortDropdown);
-                setShowBudgetDropdown(false);
-                setShowRatingDropdown(false);
-              }}
-              className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 transition-colors cursor-pointer"
-              id="category-sort-trigger"
-            >
-              <Filter className="w-3 h-3" />
-              <span className="capitalize">
-                {sortBy === 'popular' ? 'Popular' : sortBy === 'price-low' ? 'Price: L-H' : sortBy === 'price-high' ? 'Price: H-L' : 'Rating'}
+            <Heart className="w-6 h-6 text-[#143C6B]" />
+            {wishlistCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white shadow-3xs animate-pulse">
+                {wishlistCount}
               </span>
-              <ChevronDown className="w-3 h-3" />
-            </button>
-            {showSortDropdown && (
-              <div className="absolute right-0 mt-1.5 w-40 bg-white border border-gray-100 rounded-lg shadow-lg py-1 z-50 animate-fadeIn" id="category-sort-options">
-                {[
-                  { value: 'popular', label: 'Popularity' },
-                  { value: 'price-low', label: 'Price: Low-High' },
-                  { value: 'price-high', label: 'Price: High-Low' },
-                  { value: 'rating', label: 'Top Rated' }
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => {
-                      setSortBy(opt.value);
-                      setShowSortDropdown(false);
-                    }}
-                    className={`w-full px-4 py-2 text-left text-xs font-semibold hover:bg-slate-50 block transition-colors ${
-                      sortBy === opt.value ? 'text-[#143C6B] bg-blue-50/50 font-bold' : 'text-gray-600'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
             )}
-          </div>
+          </button>
+          <button
+            onClick={onOpenCart}
+            className="p-2 hover:bg-slate-100 active:scale-95 rounded-full transition-all cursor-pointer relative"
+            aria-label="View Cart"
+            id="category-cart-header-btn"
+          >
+            <ShoppingBag className="w-6 h-6 text-[#143C6B]" />
+            {cartCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 bg-[#143C6B] text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white shadow-3xs">
+                {cartCount}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
-      {/* 5. Active Filter Indicator Badges */}
-      {(maxPrice !== null || minRating > 0 || localSearchQuery) && (
-        <div className="bg-[#F1F5F9]/50 border-b border-slate-100 px-4 py-2 flex flex-wrap gap-2 items-center text-xs">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Active Filters:</span>
-          {maxPrice !== null && (
-            <span className="inline-flex items-center gap-1 bg-[#143C6B]/10 text-[#143C6B] px-2 py-0.5 rounded-md text-[11px] font-bold">
-              <span>≤ ₹{maxPrice}</span>
-              <button onClick={() => setMaxPrice(null)} className="hover:text-red-500 cursor-pointer">
-                <X className="w-3 h-3" />
-              </button>
-            </span>
-          )}
-          {minRating > 0 && (
-            <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-950 px-2 py-0.5 rounded-md text-[11px] font-bold">
-              <span>★ {minRating}+</span>
-              <button onClick={() => setMinRating(0)} className="text-amber-500 hover:text-red-500 cursor-pointer">
-                <X className="w-3 h-3" />
-              </button>
-            </span>
-          )}
+      {/* 2. Search container matching Home Page */}
+      <div className="bg-white px-4 py-2 border-b border-gray-100 shadow-3xs" id="category-search-container">
+        <div className="max-w-2xl mx-auto flex items-center w-full relative">
+          <div className="absolute left-3.5 text-gray-400 pointer-events-none">
+            <Search className="w-4 h-4 md:w-5 md:h-5 stroke-2" />
+          </div>
+          <input
+            type="text"
+            value={localSearchQuery}
+            onChange={(e) => setLocalSearchQuery(e.target.value)}
+            placeholder="Search products, categories..."
+            className="w-full pl-10 md:pl-11 pr-10 py-2 md:py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs md:text-sm text-gray-800 placeholder-gray-400 focus:outline-hidden focus:border-[#143C6B] focus:bg-white transition-colors duration-150 shadow-inner"
+            id="category-search-input"
+            autoComplete="off"
+          />
           {localSearchQuery && (
-            <span className="inline-flex items-center gap-1 bg-[#FFF1F2] text-[#F43F5E] border border-[#FECDD3] px-2 py-0.5 rounded-md text-[11px] font-bold">
-              <span>"{localSearchQuery}"</span>
-              <button onClick={() => setLocalSearchQuery('')} className="hover:text-red-500 cursor-pointer">
-                <X className="w-3 h-3" />
-              </button>
-            </span>
+            <button
+              onClick={() => setLocalSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
           )}
-          <button
-            onClick={() => { setMaxPrice(null); setMinRating(0); setLocalSearchQuery(''); }}
-            className="text-[10px] font-black text-red-500 hover:underline cursor-pointer ml-auto"
-          >
-            Clear All
-          </button>
+        </div>
+      </div>
+
+      {/* 3. Sub-Category Chips (Horizontal Scroll) */}
+      {siblingSubCategories.length > 0 && (
+        <div className="bg-white border-b border-slate-100 px-4 py-3">
+          <div className="flex gap-2 overflow-x-auto hide-scrollbar whitespace-nowrap">
+            <button
+              onClick={() => onSelectSubCategory?.(null)}
+              className={`px-4 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors border shadow-sm ${
+                !subCategoryFilter ? 'bg-[#143C6B] text-white border-[#143C6B]' : 'bg-slate-50 text-slate-700 border-gray-200 hover:bg-slate-100'
+              }`}
+            >
+              All Products
+            </button>
+            {siblingSubCategories.map((sc) => (
+              <button
+                key={sc.id}
+                onClick={() => onSelectSubCategory?.(sc.name)}
+                className={`px-4 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors border shadow-sm ${
+                  subCategoryFilter === sc.name ? 'bg-[#143C6B] text-white border-[#143C6B]' : 'bg-slate-50 text-slate-700 border-gray-200 hover:bg-slate-100'
+                }`}
+              >
+                {sc.name}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* 6. Main Listing View Grid */}
-      <div className="flex-1 p-3 md:p-4 overflow-y-auto max-w-7xl mx-auto w-full" id="category-products-container">
+      {/* 4. Main Listing View Grid */}
+      <div className="flex-1 p-2 md:p-4 overflow-y-auto max-w-7xl mx-auto w-full" id="category-products-container">
         {isLoading ? (
           <ProductGridSkeleton count={8} />
         ) : sortedProducts.length === 0 ? (
@@ -456,7 +306,7 @@ export default function CategoryProductsView({
         ) : (
           <>
             {/* 2-Column Responsive Layout strictly like the screenshot */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5" id="category-products-grid">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2" id="category-products-grid">
               {visibleProducts.map((product, idx) => {
                 const isWishlisted = wishlist.includes(product.id);
                 const isTrigger = idx === triggerIndex;
@@ -472,15 +322,15 @@ export default function CategoryProductsView({
                       trackProductView(product.id);
                       onSelectProduct(product.id);
                     }}
-                    className="bg-white border border-slate-100/90 rounded-xl overflow-hidden hover:shadow-sm transition-all duration-200 cursor-pointer flex flex-col justify-between group relative shadow-3xs"
+                    className="bg-white border-0 rounded-xl overflow-hidden hover:shadow-sm transition-all duration-200 cursor-pointer flex flex-col justify-between group relative shadow-sm m-1"
                     id={`category-product-card-${product.id}`}
                   >
                     {/* Portrait Image frame aspect-[3/4] strictly like Meesho/Myntra style */}
-                    <div className="relative aspect-[3/4] w-full bg-slate-100 overflow-hidden flex-shrink-0">
+                    <div className="relative aspect-[4/5] w-full bg-slate-100 overflow-hidden flex-shrink-0">
                       <SmartImage
                         src={product.images?.[0] || 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=350'}
                         alt={product.title}
-                        aspectRatioClassName="aspect-[3/4]"
+                        aspectRatioClassName="aspect-[4/5]"
                         containerClassName="w-full h-full"
                         targetWidth={400}
                         loading={idx < 6 ? 'eager' : 'lazy'}
@@ -490,44 +340,32 @@ export default function CategoryProductsView({
                       {/* Floating Wishlist Button strictly overlayed on top right */}
                       <button
                         onClick={(e) => handleWishlistToggle(product.id, e)}
-                        className="absolute top-2.5 right-2.5 w-7 h-7 bg-white active:scale-90 rounded-full flex items-center justify-center shadow-xs transition-all cursor-pointer z-10 hover:shadow-md border border-slate-50"
+                        className="absolute top-2.5 right-2.5 w-8 h-8 bg-white/90 backdrop-blur-sm active:scale-90 rounded-full flex items-center justify-center shadow-sm transition-all cursor-pointer z-10 hover:shadow-md border border-slate-50"
                         aria-label="Toggle Wishlist"
                       >
                         <Heart
                           className={`w-4 h-4 transition-all ${
-                            isWishlisted ? 'text-red-500 fill-red-500 scale-110' : 'text-slate-400'
+                            isWishlisted ? 'text-[#143C6B] fill-[#143C6B] scale-110' : 'text-slate-600'
                           }`}
                         />
                       </button>
-
-                      {/* Left Side Badge Overlay for high-discount items */}
-                      {product.sponsoredUntil && new Date(product.sponsoredUntil) > new Date() && (
-                        <div className="absolute top-2.5 left-2.5 z-10">
-                          <span className="bg-[#143C6B] text-white font-extrabold text-[8px] px-1.5 py-0.5 rounded-sm border border-white/10 uppercase tracking-wide shadow-3xs">
-                            Sponsored
-                          </span>
-                        </div>
-                      )}
                     </div>
 
                     {/* Details Block matching screenshot labels, ratings, discounts & price pairing */}
-                    <div className="p-3 flex-1 flex flex-col justify-between bg-white">
+                    <div className="p-2.5 flex-1 flex flex-col justify-between bg-white">
                       <div className="space-y-1.5">
                         {/* Title */}
-                        <h3 className="text-[12px] font-semibold text-slate-800 line-clamp-1 leading-snug tracking-tight truncate break-words overflow-hidden" title={product.title}>
+                        <h3 className="text-[13px] font-semibold text-slate-800 line-clamp-1 leading-snug tracking-tight truncate break-words overflow-hidden" title={product.title}>
                           <HighlightedText text={product.title} query={localSearchQuery} />
                         </h3>
 
                         {/* Rating and Discount Badges */}
-                        <div className="flex items-center gap-1.5">
-                          {/* Star Rating Badge */}
+                        <div className="flex items-center justify-between">
                           <span className="bg-amber-50 text-amber-600 font-extrabold text-[10px] px-1.5 py-0.5 rounded-sm border border-amber-200/55 flex items-center gap-0.5">
                             ★ {product.rating || '4.0'}
                           </span>
-
-                          {/* Green Discount Badge */}
                           {product.discountPercent > 0 && (
-                            <span className="bg-[#E6FDF5] text-[#03a685] font-black text-[10px] px-1.5 py-0.5 rounded-sm border border-[#03a685]/15">
+                            <span className="bg-[#2e7d32] text-white font-bold text-[10px] px-2 py-0.5 rounded border border-[#2e7d32]">
                               {product.discountPercent}% OFF
                             </span>
                           )}
@@ -538,35 +376,13 @@ export default function CategoryProductsView({
                           return (
                             <>
                               {/* Price Display Block: Original and Effective Final */}
-                              <div className="flex items-baseline justify-between pt-1">
+                              <div className="flex items-baseline gap-1.5 pt-0.5">
                                 <span className="text-[11px] text-gray-400 line-through font-semibold">
                                   ₹{pricing.originalPrice}
                                 </span>
                                 <span className="text-sm font-black text-[#143C6B] premium-rupee">
                                   ₹{pricing.effectivePrice}
                                 </span>
-                              </div>
-
-                              {/* Dual COD & UPI representation */}
-                              <div className="mt-1 space-y-0.5 border-t border-slate-50 pt-1">
-                                {pricing.hasUpiOffer && (
-                                  <div className="text-[10px] font-extrabold text-[#143C6B] flex items-center justify-between">
-                                    <span className="flex items-center gap-0.5">
-                                      <Zap className="w-2.5 h-2.5 text-emerald-600 fill-emerald-600" />
-                                      ₹{pricing.upiPrice} with UPI
-                                    </span>
-                                  </div>
-                                )}
-                                {pricing.isCodAvailable ? (
-                                  <div className="text-[10px] text-slate-500 font-semibold flex items-center gap-1">
-                                    <span className="text-emerald-600 text-[9px] font-bold">✔</span>
-                                    <span>₹{pricing.codPrice} with COD</span>
-                                  </div>
-                                ) : (
-                                  <div className="text-[9.5px] text-indigo-700 font-bold">
-                                    Online Payment Only
-                                  </div>
-                                )}
                               </div>
                             </>
                           );
