@@ -564,7 +564,7 @@ async function testAndSeedSupabase() {
         for (let i = 0; i < localSubCategories.length; i++) {
           const s = localSubCategories[i];
           if (!existingSubIds.has(s.id)) {
-            const { error: insertErr } = await supabase.from('sub_categories').upsert({ id: s.id, data: s, position: i });
+            const { error: insertErr } = await supabase.from('sub_categories').upsert({ id: s.id, data: s });
             if (insertErr) {
               console.warn(`⚠️ Note seeding sub-category ${s.id}:`, insertErr.message || insertErr);
             }
@@ -2914,6 +2914,16 @@ let platformAnalyticsStats = {
 };
 
 function ensureProductAnalytics(product: Product) {
+  if (!product) {
+    return {
+      impressions: 0,
+      views: 0,
+      cartAdds: 0,
+      blockedImpressions: 0,
+      blockedViews: 0,
+      lastUpdated: new Date().toISOString()
+    };
+  }
   if (!product.analytics) {
     product.analytics = {
       impressions: 0,
@@ -3108,43 +3118,48 @@ app.get('/api/analytics/vendor/:vendorId', async (req, res) => {
     let totalBlockedImpressions = 0;
     let totalBlockedViews = 0;
 
-    const productStats = vendorProducts.map(p => {
-      const a = ensureProductAnalytics(p);
-      totalImpressions += a.impressions;
-      totalViews += a.views;
-      totalCartAdds += a.cartAdds;
-      totalBlockedImpressions += a.blockedImpressions;
-      totalBlockedViews += a.blockedViews;
+    const productStats = vendorProducts
+      .filter(p => Boolean(p && p.id))
+      .map(p => {
+        const a = ensureProductAnalytics(p);
+        totalImpressions += a.impressions;
+        totalViews += a.views;
+        totalCartAdds += a.cartAdds;
+        totalBlockedImpressions += a.blockedImpressions;
+        totalBlockedViews += a.blockedViews;
 
-      // Count orders for this product
-      const productOrderCount = localOrders.reduce((count, ord) => {
-        if (!ord.items) return count;
-        const matched = ord.items.some(item => item.product?.id === p.id);
-        return matched ? count + 1 : count;
-      }, 0);
+        // Count orders for this product
+        const productOrderCount = localOrders.reduce((count, ord) => {
+          if (!ord.items) return count;
+          const matched = ord.items.some(item => item.product?.id === p.id);
+          return matched ? count + 1 : count;
+        }, 0);
 
-      const ctr = a.impressions > 0 ? Number(((a.views / a.impressions) * 100).toFixed(1)) : 0;
-      const conversionRate = a.views > 0 ? Number(((a.cartAdds / a.views) * 100).toFixed(1)) : 0;
+        const ctr = a.impressions > 0 ? Number(((a.views / a.impressions) * 100).toFixed(1)) : 0;
+        const conversionRate = a.views > 0 ? Number(((a.cartAdds / a.views) * 100).toFixed(1)) : 0;
+        const productImage = (Array.isArray(p.images) && p.images[0]) 
+          ? p.images[0] 
+          : (typeof (p as any).image === 'string' ? (p as any).image : '');
 
-      return {
-        id: p.id,
-        numericId: p.numericId,
-        title: p.title,
-        category: p.category,
-        subCategory: p.subCategory,
-        image: p.images[0] || '',
-        price: p.price,
-        approvalStatus: p.approvalStatus || 'approved',
-        impressions: a.impressions,
-        views: a.views,
-        cartAdds: a.cartAdds,
-        blockedImpressions: a.blockedImpressions,
-        blockedViews: a.blockedViews,
-        ordersCount: productOrderCount,
-        ctr,
-        conversionRate
-      };
-    });
+        return {
+          id: p.id,
+          numericId: p.numericId,
+          title: p.title || 'Untitled Product',
+          category: p.category || '',
+          subCategory: p.subCategory || '',
+          image: productImage,
+          price: p.price || 0,
+          approvalStatus: p.approvalStatus || 'approved',
+          impressions: a.impressions,
+          views: a.views,
+          cartAdds: a.cartAdds,
+          blockedImpressions: a.blockedImpressions,
+          blockedViews: a.blockedViews,
+          ordersCount: productOrderCount,
+          ctr,
+          conversionRate
+        };
+      });
 
     const vendorCtr = totalImpressions > 0 ? Number(((totalViews / totalImpressions) * 100).toFixed(1)) : 0;
     const vendorConversionRate = totalViews > 0 ? Number(((totalCartAdds / totalViews) * 100).toFixed(1)) : 0;
@@ -3177,35 +3192,40 @@ app.get('/api/analytics/admin', authenticateAdmin, async (req, res) => {
     let grandBlockedImpressions = 0;
     let grandBlockedViews = 0;
 
-    const allProductStats = localProducts.map(p => {
-      const a = ensureProductAnalytics(p);
-      grandImpressions += a.impressions;
-      grandViews += a.views;
-      grandCartAdds += a.cartAdds;
-      grandBlockedImpressions += a.blockedImpressions;
-      grandBlockedViews += a.blockedViews;
+    const allProductStats = localProducts
+      .filter(p => Boolean(p && p.id))
+      .map(p => {
+        const a = ensureProductAnalytics(p);
+        grandImpressions += a.impressions;
+        grandViews += a.views;
+        grandCartAdds += a.cartAdds;
+        grandBlockedImpressions += a.blockedImpressions;
+        grandBlockedViews += a.blockedViews;
 
-      const ctr = a.impressions > 0 ? Number(((a.views / a.impressions) * 100).toFixed(1)) : 0;
-      const conversionRate = a.views > 0 ? Number(((a.cartAdds / a.views) * 100).toFixed(1)) : 0;
+        const ctr = a.impressions > 0 ? Number(((a.views / a.impressions) * 100).toFixed(1)) : 0;
+        const conversionRate = a.views > 0 ? Number(((a.cartAdds / a.views) * 100).toFixed(1)) : 0;
+        const productImage = (Array.isArray(p.images) && p.images[0]) 
+          ? p.images[0] 
+          : (typeof (p as any).image === 'string' ? (p as any).image : '');
 
-      return {
-        id: p.id,
-        numericId: p.numericId,
-        title: p.title,
-        category: p.category,
-        vendorId: p.vendorId || 'platform',
-        soldBy: p.soldBy,
-        price: p.price,
-        image: p.images[0] || '',
-        impressions: a.impressions,
-        views: a.views,
-        cartAdds: a.cartAdds,
-        blockedImpressions: a.blockedImpressions,
-        blockedViews: a.blockedViews,
-        ctr,
-        conversionRate
-      };
-    });
+        return {
+          id: p.id,
+          numericId: p.numericId,
+          title: p.title || 'Untitled Product',
+          category: p.category || '',
+          vendorId: p.vendorId || 'platform',
+          soldBy: p.soldBy || '',
+          price: p.price || 0,
+          image: productImage,
+          impressions: a.impressions,
+          views: a.views,
+          cartAdds: a.cartAdds,
+          blockedImpressions: a.blockedImpressions,
+          blockedViews: a.blockedViews,
+          ctr,
+          conversionRate
+        };
+      });
 
     // Vendor Performance Summaries
     const vendorMap = new Map<string, any>();

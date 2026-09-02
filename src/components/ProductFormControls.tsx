@@ -375,6 +375,10 @@ export const SizeAndParametersManager: React.FC<SizeAndParametersManagerProps> =
     { label: 'Apparel (S/M/L...)', sizes: ['S', 'M', 'L', 'XL', 'XXL'] },
     { label: 'Shoes (UK)', sizes: ['UK 6', 'UK 7', 'UK 8', 'UK 9', 'UK 10'] },
     { label: 'Pants (Waist)', sizes: ['28', '30', '32', '34', '36'] },
+    { label: 'Dimensions (2D)', sizes: ['8x12', '10x12', '12x12', '12x18'] },
+    { label: 'Dimensions (3D)', sizes: ['10x12x12', '12x12x12', '4x12x2'] },
+    { label: 'Volume (ml/L)', sizes: ['100ml', '200ml', '250ml', '500ml', '1L'] },
+    { label: 'Weight (g/kg)', sizes: ['100g', '250g', '500g', '1kg'] },
   ];
 
   const handleToggleSize = (size: string) => {
