@@ -3069,18 +3069,18 @@ export default function VendorDashboard({
                     </div>
 
                     {/* Submit Actions */}
-                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+                    <div className="pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3">
                       <button
                         type="button"
                         onClick={() => goToVendorRoute('products')}
-                        className="px-4 py-2.5 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl cursor-pointer"
+                        className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl cursor-pointer text-center"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
                         disabled={isSavingProduct || uploadedImages.length === 0}
-                        className="bg-[#143C6B] hover:bg-[#0D2C4E] disabled:bg-slate-300 text-white font-black text-xs py-2.5 px-6 rounded-xl cursor-pointer shadow-xs uppercase tracking-wider flex items-center gap-2"
+                        className="w-full sm:w-auto bg-[#143C6B] hover:bg-[#0D2C4E] disabled:bg-slate-300 text-white font-black text-xs py-2.5 px-6 rounded-xl cursor-pointer shadow-xs uppercase tracking-wider flex items-center justify-center gap-2"
                         id="vendor-publish-product-btn"
                       >
                         {isSavingProduct ? 'Publishing...' : 'Publish Product to Catalog'}
@@ -3530,18 +3530,18 @@ export default function VendorDashboard({
                       )}
                     </div>
 
-                    <div className="pt-3 border-t border-slate-100 flex justify-end gap-3">
+                    <div className="pt-3 border-t border-slate-100 flex flex-col-reverse sm:flex-row justify-end gap-3">
                       <button
                         type="button"
                         onClick={() => goToVendorRoute('products')}
-                        className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl cursor-pointer"
+                        className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl cursor-pointer text-center"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
                         disabled={isSavingProduct}
-                        className="bg-[#143C6B] hover:bg-[#0D2C4E] text-white font-bold text-xs py-2.5 px-6 rounded-xl cursor-pointer shadow-xs uppercase tracking-wider"
+                        className="w-full sm:w-auto bg-[#143C6B] hover:bg-[#0D2C4E] text-white font-bold text-xs py-2.5 px-6 rounded-xl cursor-pointer shadow-xs uppercase tracking-wider text-center"
                       >
                         {isSavingProduct ? 'Saving...' : 'Update Product'}
                       </button>

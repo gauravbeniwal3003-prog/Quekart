@@ -369,7 +369,13 @@ export const SizeAndParametersManager: React.FC<SizeAndParametersManagerProps> =
   themeColor = '#143C6B'
 }) => {
   const [customInput, setCustomInput] = useState('');
-  const [activeCategory, setActiveCategory] = useState<string>('Dimensions');
+
+  const commonPresets = [
+    { label: 'Free Size', sizes: ['Free Size'] },
+    { label: 'Apparel (S/M/L...)', sizes: ['S', 'M', 'L', 'XL', 'XXL'] },
+    { label: 'Shoes (UK)', sizes: ['UK 6', 'UK 7', 'UK 8', 'UK 9', 'UK 10'] },
+    { label: 'Pants (Waist)', sizes: ['28', '30', '32', '34', '36'] },
+  ];
 
   const handleToggleSize = (size: string) => {
     if (sizeOptions.includes(size)) {
@@ -398,40 +404,38 @@ export const SizeAndParametersManager: React.FC<SizeAndParametersManagerProps> =
     setSizeOptions([]);
   };
 
-  const handleAddPresetGroup = (groupKey: string) => {
-    const groupItems = SIZE_PRESETS[groupKey]?.items || [];
-    const merged = Array.from(new Set([...sizeOptions, ...groupItems]));
+  const addPreset = (sizes: string[]) => {
+    const merged = Array.from(new Set([...sizeOptions, ...sizes]));
     setSizeOptions(merged);
   };
 
   return (
-    <div className="space-y-3.5 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/90" id={`${idPrefix}-size-params-manager`}>
-      
-      {/* Header & Active Parameters Summary */}
+    <div className="space-y-4 bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200" id={`${idPrefix}-size-params-manager`}>
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs shrink-0">
+        <div className="flex items-start gap-2 sm:items-center">
+          <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold shrink-0 mt-0.5 sm:mt-0">
             <Ruler className="w-4 h-4" />
           </div>
           <div>
-            <label className="text-[11px] text-slate-800 font-extrabold uppercase tracking-wider block">
-              Product Size & Parameter Options *
+            <label className="text-xs text-slate-800 font-extrabold uppercase tracking-wide block">
+              Product Sizes *
             </label>
-            <span className="text-[10px] text-slate-400 font-medium">
-              Add dimensions (e.g. 12x5), standard apparel (S/M/L), footwear, or volume
+            <span className="text-[10px] sm:text-xs text-slate-500 font-medium">
+              Add sizes (S, M, L) or parameters (e.g. 500ml)
             </span>
           </div>
         </div>
 
         {sizeOptions.length > 0 && (
           <div className="flex items-center gap-2 self-start sm:self-auto">
-            <span className="text-[10.5px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+            <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-1 rounded border border-slate-200">
               {sizeOptions.length} Selected
             </span>
             <button
               type="button"
               onClick={handleClearAll}
-              className="text-[10.5px] font-bold text-red-600 hover:text-red-700 hover:underline cursor-pointer"
+              className="text-[10px] font-bold text-red-600 hover:underline cursor-pointer"
             >
               Clear All
             </button>
@@ -439,140 +443,75 @@ export const SizeAndParametersManager: React.FC<SizeAndParametersManagerProps> =
         )}
       </div>
 
-      {/* Selected Active Parameter Chips (With Delete 'X') */}
-      <div className="p-3 bg-white rounded-xl border border-slate-200 min-h-[48px] flex flex-wrap items-center gap-1.5">
+      {/* Selected Sizes */}
+      <div className="p-3 bg-white rounded-lg border border-slate-200 min-h-[48px] flex flex-wrap items-center gap-2">
         {sizeOptions.length === 0 ? (
-          <p className="text-xs text-slate-400 font-medium italic flex items-center gap-1.5">
-            <Info className="w-3.5 h-3.5 text-slate-300" />
-            No sizes or dimensions added yet. Type below or click quick presets.
+          <p className="text-xs text-slate-400 font-medium flex items-center gap-1.5">
+            <Info className="w-3.5 h-3.5" />
+            No sizes added yet. Use presets below or type custom sizes.
           </p>
         ) : (
           sizeOptions.map((sz, idx) => (
             <span
               key={idx}
-              className="inline-flex items-center gap-1.5 bg-[#143C6B] text-white px-3 py-1 rounded-lg text-xs font-bold shadow-2xs group"
+              className="inline-flex items-center gap-1 bg-[#143C6B] text-white pl-2.5 pr-1 py-1 rounded-md text-xs font-bold shadow-sm"
             >
               <span>{sz}</span>
               <button
                 type="button"
                 onClick={() => handleRemoveSize(sz)}
-                className="w-4 h-4 rounded-full bg-white/20 hover:bg-red-500 text-white flex items-center justify-center cursor-pointer transition-colors"
+                className="w-5 h-5 rounded hover:bg-red-500 flex items-center justify-center transition-colors ml-1 cursor-pointer"
                 title={`Remove ${sz}`}
               >
-                <X className="w-3 h-3" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </span>
           ))
         )}
       </div>
 
-      {/* 1. Custom Parameter Direct Input Bar */}
-      <div className="space-y-1.5">
-        <label className="text-[10.5px] text-slate-600 font-bold block">
-          Type Custom Parameter (e.g. 12x5, 10x8 inch, 500ml, UK 8, King Size):
-        </label>
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <input
-              type="text"
-              placeholder="e.g. 12x5, 10x8, 16x16, 250ml, UK 9, 34x32, Free Size"
-              value={customInput}
-              onChange={(e) => setCustomInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleAddCustom();
-                }
-              }}
-              className="w-full text-xs font-bold border border-slate-300 rounded-xl px-3 py-2 bg-white focus:outline-hidden focus:border-[#143C6B]"
-              id={`${idPrefix}-custom-size-input`}
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => handleAddCustom()}
-            disabled={!customInput.trim()}
-            className="bg-[#143C6B] hover:bg-[#0D2C4E] text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-3xs shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Parameter</span>
-          </button>
-        </div>
+      {/* Custom Input */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <input
+          type="text"
+          placeholder="Type custom size (e.g. XXL, 10x12, 100g)"
+          value={customInput}
+          onChange={(e) => setCustomInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleAddCustom();
+            }
+          }}
+          className="flex-1 text-xs font-medium border border-slate-300 rounded-lg px-3 py-2.5 bg-white focus:outline-hidden focus:border-[#143C6B]"
+        />
+        <button
+          type="button"
+          onClick={() => handleAddCustom()}
+          disabled={!customInput.trim()}
+          className="bg-[#143C6B] hover:bg-[#0D2C4E] text-white text-xs font-bold px-4 py-2.5 rounded-lg flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add</span>
+        </button>
       </div>
 
-      {/* 2. User-Friendly Parameter Preset Library & Quick-Pick Tabs */}
-      <div className="space-y-2 pt-1 border-t border-slate-200/80">
-        <div className="flex items-center justify-between">
-          <span className="text-[10.5px] text-slate-600 font-extrabold uppercase tracking-wide">
-            Quick-Select Preset Parameters:
-          </span>
-          <span className="text-[9.5px] text-slate-400 font-bold">
-            1-Click to toggle
-          </span>
-        </div>
-
-        {/* Preset Category Switcher Pills */}
-        <div className="flex flex-wrap gap-1.5 pb-1">
-          {Object.entries(SIZE_PRESETS).map(([key, group]) => {
-            const isActive = activeCategory === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setActiveCategory(key)}
-                className={`text-[11px] px-2.5 py-1 rounded-lg font-bold border transition-all cursor-pointer flex items-center gap-1 ${
-                  isActive
-                    ? 'bg-slate-900 text-white border-slate-900 shadow-3xs'
-                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
-                }`}
-              >
-                <span>{group.icon}</span>
-                <span>{group.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Chips for Active Preset Category */}
-        <div className="p-3 bg-white rounded-xl border border-slate-200/90 space-y-2">
-          <div className="flex flex-wrap gap-1.5">
-            {SIZE_PRESETS[activeCategory]?.items.map((sz) => {
-              const isSelected = sizeOptions.includes(sz);
-              return (
-                <button
-                  key={sz}
-                  type="button"
-                  onClick={() => handleToggleSize(sz)}
-                  className={`text-xs px-3 py-1.5 rounded-lg font-bold border transition-all cursor-pointer flex items-center gap-1 ${
-                    isSelected
-                      ? 'bg-[#143C6B] text-white border-[#143C6B] shadow-2xs'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
-                  <span>{sz}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Quick Select All from this category */}
-          <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px]">
-            <span className="text-slate-400 font-medium">
-              Preset Category: <strong>{SIZE_PRESETS[activeCategory]?.label}</strong>
-            </span>
+      {/* Quick Presets */}
+      <div className="pt-2">
+        <p className="text-[10.5px] text-slate-500 font-bold uppercase mb-2">Quick Add Presets:</p>
+        <div className="flex flex-wrap gap-2">
+          {commonPresets.map((preset, idx) => (
             <button
+              key={idx}
               type="button"
-              onClick={() => handleAddPresetGroup(activeCategory)}
-              className="text-[#143C6B] font-bold hover:underline cursor-pointer"
+              onClick={() => addPreset(preset.sizes)}
+              className="text-[11px] font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 px-2.5 py-1.5 rounded-md transition-colors cursor-pointer shadow-3xs"
             >
-              + Add All {SIZE_PRESETS[activeCategory]?.label}
+              + {preset.label}
             </button>
-          </div>
+          ))}
         </div>
       </div>
-
     </div>
   );
 };
@@ -650,7 +589,7 @@ export const StockInventoryManager: React.FC<StockInventoryManagerProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                Stock & Quantity Inventory (Kis Cheej Ki Kitni Quantity)
+                Stock & Quantity Inventory
               </h4>
               <span className="bg-emerald-50 text-emerald-800 text-[10.5px] font-black px-2.5 py-0.5 rounded-full border border-emerald-200">
                 Total: {calculatedTotal} Pcs
@@ -713,7 +652,7 @@ export const StockInventoryManager: React.FC<StockInventoryManagerProps> = ({
               return (
                 <div
                   key={sizeKey}
-                  className={`p-3 rounded-xl border transition-all flex items-center justify-between gap-3 ${
+                  className={`p-3 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 ${
                     isOutOfStock
                       ? 'bg-red-50/50 border-red-200'
                       : isLowStock
@@ -747,7 +686,7 @@ export const StockInventoryManager: React.FC<StockInventoryManagerProps> = ({
                   </div>
 
                   {/* Right: Stepper & Quick Add */}
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex flex-wrap items-center gap-1.5 shrink-0 mt-2 sm:mt-0">
                     {/* Decrement Button */}
                     <button
                       type="button"
