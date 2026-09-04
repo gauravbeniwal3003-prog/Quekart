@@ -1602,6 +1602,55 @@ export default function ProductDetail({
               </div>
             </div>
 
+            {/* Dimensions, Weight, SKU & Packaging Specifications */}
+            {(product.sku || product.dimensions || product.weight || (product.stock !== undefined && product.stock !== null)) && (
+              <div className="space-y-2 pt-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Package & Inventory Details</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs bg-slate-50 p-3.5 rounded-xl border border-slate-200/60" id="spec-physical-dimensions-box">
+                  {product.dimensions && (
+                    <div className="bg-white p-2.5 rounded-lg border border-slate-200/80">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Dimensions (L*B*H)</span>
+                      <span className="text-slate-900 font-extrabold flex items-center gap-1 mt-0.5">
+                        <span>📐</span> {product.dimensions} {product.dimensionUnit || 'cm'}
+                      </span>
+                    </div>
+                  )}
+
+                  {product.weight && (
+                    <div className="bg-white p-2.5 rounded-lg border border-slate-200/80">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Item Weight / Volume</span>
+                      <span className="text-slate-900 font-extrabold flex items-center gap-1 mt-0.5">
+                        <span>⚖️</span> {product.weight}
+                      </span>
+                    </div>
+                  )}
+
+                  {product.sku && (
+                    <div className="bg-white p-2.5 rounded-lg border border-slate-200/80">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Item SKU Code</span>
+                      <span className="text-slate-900 font-mono font-extrabold text-[11px] block mt-0.5 truncate">
+                        {product.sku}
+                      </span>
+                    </div>
+                  )}
+
+                  {product.stock !== undefined && product.stock !== null && (
+                    <div className="bg-white p-2.5 rounded-lg border border-slate-200/80">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Stock Status</span>
+                      <span className={`font-black text-[11px] flex items-center gap-1 mt-0.5 ${
+                        product.stock > 10 ? 'text-emerald-700' : product.stock > 0 ? 'text-amber-700' : 'text-red-700'
+                      }`}>
+                        <span className={`w-2 h-2 rounded-full ${
+                          product.stock > 10 ? 'bg-emerald-500' : product.stock > 0 ? 'bg-amber-500' : 'bg-red-500'
+                        }`}></span>
+                        {product.stock > 0 ? `${product.stock} Units In Stock` : 'Out of Stock'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
           </section>
         )}
 

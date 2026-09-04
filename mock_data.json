@@ -1,234 +1,70 @@
 {
   "products": [
     {
-      "id": "prod-we-1",
-      "price": 499,
-      "stock": 120,
-      "title": "Royal Embroidered Rayon Anarkali Kurti Set with Dupatta",
-      "images": [
-        "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.8,
-      "soldBy": "Surat Silk Mills & Weavers",
-      "category": "Women Ethnic Wear",
-      "variants": [],
-      "numericId": 1,
-      "sizeStock": {
-        "L": 30,
-        "M": 30,
-        "S": 20,
-        "XL": 20,
-        "XXL": 20
-      },
-      "description": "Exquisite festive wear Anarkali kurti crafted from premium rayon fabric with intricate zari embroidery and matching dupatta.",
-      "ratingCount": 1420,
-      "reviewCount": 380,
-      "sizeOptions": [
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
-      ],
-      "subCategory": "Designer Kurtis",
-      "soldByRating": 4.9,
-      "originalPrice": 1299,
+      "id": "prod-test-123",
+      "title": "Test Update Product",
+      "price": 999,
+      "category": "Men",
       "approvalStatus": "approved",
-      "discountPercent": 61,
-      "additionalDetails": [
-        {
-          "label": "Pack Contains",
-          "value": "1 Kurti, 1 Bottom, 1 Dupatta"
-        },
-        {
-          "label": "Wash Care",
-          "value": "Gentle Machine Wash"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Fabric",
-          "value": "100% Pure Rayon"
-        },
-        {
-          "label": "Work",
-          "value": "Zari Embroidery"
-        },
-        {
-          "label": "Occasion",
-          "value": "Festive & Wedding"
-        }
-      ]
+      "numericId": 52
     },
     {
-      "id": "prod-me-2",
-      "price": 2499,
-      "stock": 40,
-      "title": "Royal Wedding Sherwani with Intricate Hand Embroidery",
+      "id": "prod-home-cookware",
+      "tag": "Kitchen Star",
+      "price": 480,
+      "title": "Non-Stick Aluminum Cookware Kadai & Fry Pan Combo",
       "images": [
-        "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=800"
+        "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&q=80&w=600"
       ],
-      "rating": 4.9,
-      "soldBy": "Delhi Heritage Weaves",
-      "category": "Men Ethnic Wear",
-      "variants": [],
-      "numericId": 8,
-      "sizeStock": {
-        "38": 10,
-        "40": 15,
-        "42": 10,
-        "44": 5
-      },
-      "description": "Magnificent groom sherwani featuring regal metallic button detailing and delicate thread work embroidery.",
-      "ratingCount": 640,
-      "reviewCount": 180,
-      "sizeOptions": [
-        "38",
-        "40",
-        "42",
-        "44"
-      ],
-      "subCategory": "Designer Kurtis",
-      "soldByRating": 4.9,
-      "originalPrice": 5999,
-      "approvalStatus": "approved",
-      "discountPercent": 58,
-      "additionalDetails": [
+      "rating": 4.3,
+      "soldBy": "METRO_KITCHEN_MART",
+      "reviews": [],
+      "category": "Home & Kitchen",
+      "codPrice": 510,
+      "variants": [
         {
-          "label": "Included",
-          "value": "Sherwani Only"
-        },
-        {
-          "label": "Dry Clean",
-          "value": "Specialized Dry Clean Only"
+          "price": 480,
+          "imageUrl": "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&q=80&w=600",
+          "colorName": "Cherry Red Cookset",
+          "originalPrice": 960
         }
       ],
-      "productHighlights": [
-        {
-          "label": "Fabric",
-          "value": "Brocade Silk"
-        },
-        {
-          "label": "Embroidery",
-          "value": "Zardozi & Resham"
-        },
-        {
-          "label": "Occasion",
-          "value": "Reception & Wedding"
-        }
-      ]
-    },
-    {
-      "id": "prod-kb-3",
-      "price": 399,
-      "stock": 100,
-      "title": "Soft Organic Cotton Newborn Bodysuit Romper Set",
-      "images": [
-        "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1514090458221-65bb69cf63e6?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.8,
-      "soldBy": "Newborn Care Essentials",
-      "category": "Kids & Baby Wear",
-      "variants": [],
-      "numericId": 15,
-      "sizeStock": {
-        "0-3M": 30,
-        "3-6M": 30,
-        "6-9M": 20,
-        "9-12M": 20
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 12,
+        "lastUpdated": "2026-09-04T06:35:30.107Z",
+        "blockedViews": 0,
+        "blockedImpressions": 10
       },
-      "description": "Ultra-soft organic cotton bodysuits with snap buttons for effortless diaper changes and tender newborn care.",
-      "ratingCount": 1100,
-      "reviewCount": 310,
+      "numericId": 20,
+      "description": "Complete non-stick kitchen set featuring extra thick aluminum for heat distribution. Ergonomic cool-touch bakelite handles and matching heavy-duty glass lids.",
+      "hasUpiOffer": true,
+      "ratingCount": 824,
+      "reviewCount": 290,
       "sizeOptions": [
-        "0-3M",
-        "3-6M",
-        "6-9M",
-        "9-12M"
+        "Free Size"
       ],
-      "subCategory": "Toys & Games",
-      "soldByRating": 4.8,
-      "originalPrice": 999,
+      "subCategory": "Cookware",
+      "soldByRating": 4.2,
+      "originalPrice": 960,
       "approvalStatus": "approved",
-      "discountPercent": 60,
+      "discountPercent": 50,
       "additionalDetails": [
         {
-          "label": "Age Group",
-          "value": "0 to 12 Months"
-        },
-        {
-          "label": "Wash",
-          "value": "Machine Wash"
+          "label": "Induction Compatible",
+          "value": "Yes"
         }
       ],
       "productHighlights": [
         {
           "label": "Material",
-          "value": "100% Certified Organic Cotton"
+          "value": "Heavy Gauge Aluminum"
         },
         {
-          "label": "Pack",
-          "value": "Pack of 3 Rompers"
-        },
-        {
-          "label": "Safety",
-          "value": "Nontoxic Snaps"
-        }
-      ]
-    },
-    {
-      "id": "prod-bp-1",
-      "price": 299,
-      "stock": 200,
-      "title": "Professional Ayurvedic Onion Hair Growth & Scalp Oil (200ml)",
-      "images": [
-        "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1608248597359-974b1248041a?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.8,
-      "soldBy": "Herbal Essence Labs",
-      "category": "Beauty & Personal Care",
-      "variants": [],
-      "numericId": 22,
-      "sizeStock": {
-        "200ml": 200
-      },
-      "description": "Nutrient-rich hair oil infused with red onion extract, black seed oil, and botanical herbs to reduce hair fall and promote growth.",
-      "ratingCount": 4500,
-      "reviewCount": 1200,
-      "sizeOptions": [
-        "200ml"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.8,
-      "originalPrice": 599,
-      "approvalStatus": "approved",
-      "discountPercent": 50,
-      "additionalDetails": [
-        {
-          "label": "Hair Type",
-          "value": "All Hair Types"
-        },
-        {
-          "label": "Shelf Life",
-          "value": "36 Months"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Volume",
-          "value": "200 ml"
-        },
-        {
-          "label": "Key Ingredients",
-          "value": "Red Onion Oil, Redensyl, Amla"
-        },
-        {
-          "label": "Free From",
-          "value": "Paraben & Mineral Oil Free"
+          "label": "Coating",
+          "value": "3-Layer Scratch Resistant Non-Stick"
         }
       ]
     },
@@ -327,12 +163,12 @@
         }
       ],
       "analytics": {
-        "views": 0,
+        "views": 1,
         "cartAdds": 0,
-        "impressions": 4,
-        "lastUpdated": "2026-09-02T04:56:52.670Z",
+        "impressions": 11,
+        "lastUpdated": "2026-09-04T06:43:56.370Z",
         "blockedViews": 0,
-        "blockedImpressions": 2
+        "blockedImpressions": 4
       },
       "numericId": 12,
       "description": "Elevate your everyday look with this minimalist, classy analogue watch. Crafted with durable casing and a comfortable PU strap, this watch is suitable for casual outings, office wear, and gifting purposes.",
@@ -394,234 +230,123 @@
       ]
     },
     {
-      "id": "prod-we-2",
-      "price": 899,
-      "stock": 90,
-      "title": "Banarasi Silk Zari Woven Festive Saree with Unstitched Blouse",
+      "id": "prod-watch-fogg",
+      "tag": "Trending",
+      "price": 249,
+      "title": "Fogg Modern Men Analog Watch - Unique Hexagonal Casing",
       "images": [
-        "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800"
+        "https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1539874754764-5a96559165b0?auto=format&fit=crop&q=80&w=600"
       ],
-      "rating": 4.9,
-      "soldBy": "Varanasi Weavers Hub",
-      "category": "Women Ethnic Wear",
-      "variants": [],
-      "numericId": 2,
-      "sizeStock": {
-        "Free Size": 90
-      },
-      "description": "Traditional Banarasi handloom woven silk saree featuring rich zari pallu and intricate ethnic motifs for weddings.",
-      "ratingCount": 2150,
-      "reviewCount": 512,
-      "sizeOptions": [
-        "Free Size"
-      ],
-      "subCategory": "Silk & Banarasi Sarees",
-      "soldByRating": 4.8,
-      "originalPrice": 2499,
-      "approvalStatus": "approved",
-      "discountPercent": 64,
-      "additionalDetails": [
-        {
-          "label": "Included",
-          "value": "Saree + Unstitched Blouse Piece"
-        },
-        {
-          "label": "Care",
-          "value": "Dry Clean Only"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Fabric",
-          "value": "Art Banarasi Silk"
-        },
-        {
-          "label": "Length",
-          "value": "6.3 Meters with Blouse Piece"
-        },
-        {
-          "label": "Weave Type",
-          "value": "Jacquard Zari"
-        }
-      ]
-    },
-    {
-      "id": "prod-me-3",
-      "price": 699,
-      "stock": 95,
-      "title": "Casual Cotton Pathani Kurta and Salwar Set",
-      "images": [
-        "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.7,
-      "soldBy": "Punjab Traditional Hub",
-      "category": "Men Ethnic Wear",
-      "variants": [],
-      "numericId": 9,
-      "sizeStock": {
-        "L": 25,
-        "M": 25,
-        "S": 20,
-        "XL": 15,
-        "XXL": 10
-      },
-      "description": "Rugged yet refined 100% pure cotton Pathani suit designed for comfortable daily wear and festive gatherings.",
-      "ratingCount": 820,
-      "reviewCount": 210,
-      "sizeOptions": [
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
-      ],
-      "subCategory": "Designer Kurtis",
-      "soldByRating": 4.7,
-      "originalPrice": 1599,
-      "approvalStatus": "approved",
-      "discountPercent": 56,
-      "additionalDetails": [
-        {
-          "label": "Closure",
-          "value": "Front Placket Buttons"
-        },
-        {
-          "label": "Wash",
-          "value": "Machine Washable"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Fabric",
-          "value": "100% Heavy Cotton"
-        },
-        {
-          "label": "Pocket",
-          "value": "Dual Chest Pockets"
-        },
-        {
-          "label": "Bottom",
-          "value": "Matching Salwar"
-        }
-      ]
-    },
-    {
-      "id": "prod-fw-1",
-      "price": 699,
-      "stock": 140,
-      "title": "Men Lightweight Running & Walking Sports Shoes",
-      "images": [
-        "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.7,
-      "soldBy": "Agra Footwear Hub",
-      "category": "Footwear & Shoes",
-      "variants": [],
-      "numericId": 16,
-      "sizeStock": {
-        "UK 7": 30,
-        "UK 8": 50,
-        "UK 9": 40,
-        "UK 10": 20
-      },
-      "description": "Engineered mesh running shoes featuring shock-absorbing cushion sole and breathable upper for daily workouts.",
-      "ratingCount": 3200,
-      "reviewCount": 890,
-      "sizeOptions": [
-        "UK 7",
-        "UK 8",
-        "UK 9",
-        "UK 10"
-      ],
-      "subCategory": "Casual Sneakers",
-      "soldByRating": 4.8,
-      "originalPrice": 1999,
-      "approvalStatus": "approved",
-      "discountPercent": 65,
-      "additionalDetails": [
-        {
-          "label": "Closure",
-          "value": "Lace-Up"
-        },
-        {
-          "label": "Warranty",
-          "value": "3 Months Manufacturer"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Sole",
-          "value": "Phylon Lightweight Cushion"
-        },
-        {
-          "label": "Upper",
-          "value": "Breathable Knitted Mesh"
-        },
-        {
-          "label": "Usage",
-          "value": "Running & Gym"
-        }
-      ]
-    },
-    {
-      "id": "prod-home-decor",
-      "price": 180,
-      "title": "Royal Floral Print Ceramic Cushion Covers (Pack of 5)",
-      "images": [
-        "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&q=80&w=600"
-      ],
-      "rating": 3.8,
-      "soldBy": "CREATIVE_HOMES",
+      "rating": 3.9,
+      "soldBy": "FOGG_RETAILERS",
       "reviews": [],
-      "category": "Home & Kitchen",
-      "codPrice": 210,
+      "category": "Men",
+      "codPrice": 282,
       "variants": [
         {
-          "price": 180,
-          "imageUrl": "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&q=80&w=600",
-          "colorName": "Floral Cream Multi",
-          "originalPrice": 360
+          "price": 249,
+          "imageUrl": "https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?auto=format&fit=crop&q=80&w=600",
+          "colorName": "Fogg Charcoal",
+          "originalPrice": 337
         }
       ],
       "analytics": {
         "views": 0,
         "cartAdds": 0,
-        "impressions": 2,
-        "lastUpdated": "2026-09-01T16:39:33.725Z",
+        "impressions": 16,
+        "lastUpdated": "2026-09-04T06:43:57.028Z",
         "blockedViews": 0,
-        "blockedImpressions": 1
+        "blockedImpressions": 3
       },
-      "numericId": 19,
-      "description": "Transform your living room setup with these glossy, ultra-soft printed decorative cushion covers. Comes with robust hidden zip closures and stitch interlocking.",
+      "numericId": 13,
+      "description": "Stand out from the crowd with Fogg Modern watch. It features an exquisite dark dial face, designer hour indicators, and a solid premium strap.",
       "hasUpiOffer": true,
-      "ratingCount": 152,
-      "reviewCount": 39,
+      "ratingCount": 751,
+      "reviewCount": 240,
       "sizeOptions": [
         "Free Size"
       ],
-      "subCategory": "Fruits",
-      "soldByRating": 3.9,
-      "originalPrice": 360,
+      "subCategory": "Watches",
+      "soldByRating": 4.2,
+      "originalPrice": 337,
       "approvalStatus": "approved",
-      "discountPercent": 50,
+      "discountPercent": 26,
       "additionalDetails": [
         {
-          "label": "Wash Care",
-          "value": "Cold Machine Wash"
+          "label": "Net Quantity",
+          "value": "1 Piece"
         }
       ],
       "productHighlights": [
         {
-          "label": "Material",
-          "value": "Polyester Velvet Blend"
+          "label": "Strap Material",
+          "value": "Genuine Leather Mix"
         },
         {
-          "label": "Size",
-          "value": "16x16 Inches"
+          "label": "Dial Shape",
+          "value": "Hexagon"
+        }
+      ]
+    },
+    {
+      "id": "prod-jw-2",
+      "price": 349,
+      "stock": 110,
+      "title": "Traditional Antique Temple Design Mangalsutra",
+      "images": [
+        "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.7,
+      "soldBy": "South India Gold Covering",
+      "category": "Jewellery & Ornaments",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:05.779Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 20,
+      "sizeStock": {
+        "Standard": 110
+      },
+      "description": "Classic black bead chain with intricate antique gold goddess Lakshmi pendant for traditional married women.",
+      "ratingCount": 940,
+      "reviewCount": 260,
+      "sizeOptions": [
+        "Standard"
+      ],
+      "subCategory": "Kundan & Gold Necklaces",
+      "soldByRating": 4.8,
+      "originalPrice": 999,
+      "approvalStatus": "approved",
+      "discountPercent": 65,
+      "additionalDetails": [
+        {
+          "label": "Closure",
+          "value": "S-Hook"
+        },
+        {
+          "label": "Care",
+          "value": "Keep Away from Perfume & Water"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Chain Length",
+          "value": "24 Inches"
+        },
+        {
+          "label": "Design",
+          "value": "Temple Antique Finish"
+        },
+        {
+          "label": "Durability",
+          "value": "Long Lasting Anti-Tarnish"
         }
       ]
     },
@@ -643,8 +368,8 @@
       "analytics": {
         "views": 0,
         "cartAdds": 0,
-        "impressions": 2,
-        "lastUpdated": "2026-09-01T16:39:34.383Z",
+        "impressions": 6,
+        "lastUpdated": "2026-09-04T06:35:10.323Z",
         "blockedViews": 0,
         "blockedImpressions": 1
       },
@@ -727,10 +452,10 @@
       "analytics": {
         "views": 0,
         "cartAdds": 0,
-        "impressions": 2,
-        "lastUpdated": "2026-09-01T16:39:37.779Z",
+        "impressions": 10,
+        "lastUpdated": "2026-09-04T06:35:13.688Z",
         "blockedViews": 0,
-        "blockedImpressions": 1
+        "blockedImpressions": 2
       },
       "createdAt": "2026-08-24T02:31:45.372Z",
       "numericId": 24,
@@ -797,144 +522,1903 @@
     },
     {
       "id": "prod-wooden-clock",
-      "mrp": 1599,
-      "price": 799,
-      "stock": 25,
       "title": "Handcrafted Vintage Wall Clock",
-      "rating": 4.5,
-      "category": "home",
-      "discount": 50,
-      "imageUrl": "https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?w=600",
-      "vendorId": "demo-vendor",
-      "analytics": {
-        "views": 0,
-        "cartAdds": 0,
-        "impressions": 2,
-        "lastUpdated": "2026-09-01T16:39:38.601Z",
-        "blockedViews": 0,
-        "blockedImpressions": 1
-      },
-      "numericId": 23,
       "description": "Elegant wooden wall clock with Roman numerals, designed to give your living room a classic touch.",
-      "reviewsCount": 18
+      "category": "Home & Kitchen",
+      "subCategory": "Decor",
+      "price": 799,
+      "originalPrice": 1599,
+      "discountPercent": 50,
+      "codPrice": 839,
+      "hasUpiOffer": true,
+      "images": [
+        "https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?w=600"
+      ],
+      "rating": 4.5,
+      "ratingCount": 85,
+      "reviewCount": 18,
+      "stock": 25,
+      "vendorId": "vendor-small-craft",
+      "soldBy": "Jaipur Handcrafted Decors",
+      "soldByRating": 4.5,
+      "approvalStatus": "approved",
+      "numericId": 9,
+      "reviews": []
     },
     {
-      "id": "prod-we-3",
-      "price": 649,
-      "stock": 100,
-      "title": "Designer Party Wear Georgette Palazzo Suit Set",
+      "id": "prod-kids-suit",
+      "tag": "Value Pack",
+      "price": 245,
+      "title": "Kids Soft Cotton T-Shirt & Shorts Set (Pack of 2 Sets)",
       "images": [
-        "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800"
+        "https://images.unsplash.com/photo-1519457431-44ccd64a579b?auto=format&fit=crop&q=80&w=600"
       ],
-      "rating": 4.7,
-      "soldBy": "Jaipur Textile Direct",
-      "category": "Women Ethnic Wear",
-      "variants": [],
-      "numericId": 3,
-      "sizeStock": {
-        "L": 35,
-        "M": 25,
-        "XL": 25,
-        "XXL": 15
+      "rating": 4.1,
+      "soldBy": "TINY_TOTS_APPAREL",
+      "reviews": [],
+      "category": "Kids & Toys",
+      "codPrice": 270,
+      "variants": [
+        {
+          "price": 245,
+          "imageUrl": "https://images.unsplash.com/photo-1519457431-44ccd64a579b?auto=format&fit=crop&q=80&w=600",
+          "colorName": "Yellow & Peach Mix",
+          "originalPrice": 490
+        }
+      ],
+      "analytics": {
+        "views": 3,
+        "cartAdds": 0,
+        "impressions": 31,
+        "lastUpdated": "2026-09-04T06:35:30.342Z",
+        "blockedViews": 4,
+        "blockedImpressions": 33
       },
-      "description": "Modern Georgette kurti paired with flared palazzo pants and embroidered dupatta. Lightweight and comfortable.",
-      "ratingCount": 980,
-      "reviewCount": 245,
+      "numericId": 15,
+      "description": "Crafted with premium skin-friendly combed cotton, this pack includes two bright colored t-shirts and two comfortable active shorts for kids daily wear.",
+      "hasUpiOffer": true,
+      "ratingCount": 1450,
+      "reviewCount": 520,
       "sizeOptions": [
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "2-3 Years",
+        "3-4 Years",
+        "4-5 Years",
+        "5-6 Years"
       ],
-      "subCategory": "Lehengas & Anarkalis",
-      "soldByRating": 4.7,
-      "originalPrice": 1799,
+      "subCategory": "Kids",
+      "soldByRating": 4.1,
+      "originalPrice": 490,
       "approvalStatus": "approved",
-      "discountPercent": 64,
+      "discountPercent": 50,
       "additionalDetails": [
         {
-          "label": "Set",
-          "value": "Kurti + Palazzo + Dupatta"
-        },
-        {
-          "label": "Wash",
-          "value": "Hand Wash"
+          "label": "Ideal for",
+          "value": "Unisex Kids"
         }
       ],
       "productHighlights": [
         {
-          "label": "Fabric",
-          "value": "Faux Georgette"
+          "label": "Material",
+          "value": "100% Breathable Cotton"
         },
         {
-          "label": "Inner",
-          "value": "Micro Cotton Lining"
-        },
-        {
-          "label": "Sleeve",
-          "value": "Three-Quarter Sleeves"
+          "label": "Pack of",
+          "value": "2 Sets"
         }
       ]
     },
     {
-      "id": "prod-mw-1",
-      "price": 449,
-      "stock": 160,
-      "title": "Premium Slim Fit Cotton Casual Shirt for Men",
+      "id": "prod-we-2",
+      "price": 899,
+      "stock": 90,
+      "title": "Banarasi Silk Zari Woven Festive Saree with Unstitched Blouse",
       "images": [
-        "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=800"
+        "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800"
       ],
-      "rating": 4.7,
-      "soldBy": "Tirupur Garments Direct",
-      "category": "Men Western & Casuals",
+      "rating": 4.9,
+      "soldBy": "Varanasi Weavers Hub",
+      "category": "Women Ethnic Wear",
       "variants": [],
-      "numericId": 10,
-      "sizeStock": {
-        "L": 40,
-        "M": 50,
-        "S": 30,
-        "XL": 30,
-        "XXL": 10
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 8,
+        "lastUpdated": "2026-09-04T06:43:58.846Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
       },
-      "description": "Crisp and durable solid cotton casual shirt tailored in modern slim fit. Ideal for office and weekend outings.",
-      "ratingCount": 1890,
-      "reviewCount": 450,
+      "numericId": 2,
+      "sizeStock": {
+        "Free Size": 90
+      },
+      "description": "Traditional Banarasi handloom woven silk saree featuring rich zari pallu and intricate ethnic motifs for weddings.",
+      "ratingCount": 2150,
+      "reviewCount": 512,
       "sizeOptions": [
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "Free Size"
       ],
-      "subCategory": "Casual Shirts",
+      "subCategory": "Silk & Banarasi Sarees",
       "soldByRating": 4.8,
-      "originalPrice": 1199,
+      "originalPrice": 2499,
       "approvalStatus": "approved",
-      "discountPercent": 62,
+      "discountPercent": 64,
       "additionalDetails": [
         {
-          "label": "Sleeve",
-          "value": "Full Sleeves"
+          "label": "Included",
+          "value": "Saree + Unstitched Blouse Piece"
         },
         {
-          "label": "Pattern",
-          "value": "Solid Color"
+          "label": "Care",
+          "value": "Dry Clean Only"
         }
       ],
       "productHighlights": [
         {
           "label": "Fabric",
-          "value": "Combed Cotton"
+          "value": "Art Banarasi Silk"
+        },
+        {
+          "label": "Length",
+          "value": "6.3 Meters with Blouse Piece"
+        },
+        {
+          "label": "Weave Type",
+          "value": "Jacquard Zari"
+        }
+      ]
+    },
+    {
+      "id": "prod-tb-2",
+      "price": 899,
+      "stock": 75,
+      "title": "Remote Control High-Speed Racing Monster Truck",
+      "images": [
+        "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.8,
+      "soldBy": "SpeedJoy Toys Hub",
+      "category": "Toys, Games & Baby Care",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:02.071Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
+      },
+      "numericId": 41,
+      "sizeStock": {
+        "Standard RC": 75
+      },
+      "description": "All-terrain rechargeable RC monster truck with shock-absorbing suspension and rugged anti-slip rubber tires.",
+      "ratingCount": 3400,
+      "reviewCount": 910,
+      "sizeOptions": [
+        "Standard RC"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.8,
+      "originalPrice": 2499,
+      "approvalStatus": "approved",
+      "discountPercent": 64,
+      "additionalDetails": [
+        {
+          "label": "Terrain",
+          "value": "Off-road, Sand, Grass"
+        },
+        {
+          "label": "Age",
+          "value": "6+ Years"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Scale",
+          "value": "1:18 High Speed RC"
+        },
+        {
+          "label": "Control",
+          "value": "2.4GHz Anti-Interference Remote"
+        },
+        {
+          "label": "Battery",
+          "value": "Rechargeable Battery Pack Included"
+        }
+      ]
+    },
+    {
+      "id": "prod-hk-1",
+      "price": 599,
+      "stock": 130,
+      "title": "100% Cotton King Size Luxury Bedsheet with 2 Pillow Covers",
+      "images": [
+        "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.8,
+      "soldBy": "Panipat Handloom Direct",
+      "category": "Home & Kitchen Decor",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 8,
+        "lastUpdated": "2026-09-04T06:44:04.277Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 28,
+      "sizeStock": {
+        "King Size": 130
+      },
+      "description": "Breathable high-thread-count pure cotton bedsheet with vibrant ethnic floral print that adds elegance to your bedroom.",
+      "ratingCount": 2800,
+      "reviewCount": 750,
+      "sizeOptions": [
+        "King Size"
+      ],
+      "subCategory": "Royal Bedding & Cushions",
+      "soldByRating": 4.9,
+      "originalPrice": 1599,
+      "approvalStatus": "approved",
+      "discountPercent": 62,
+      "additionalDetails": [
+        {
+          "label": "Fade Resistant",
+          "value": "Yes"
+        },
+        {
+          "label": "Wash Care",
+          "value": "Machine Washable"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Material",
+          "value": "100% Glace Cotton"
+        },
+        {
+          "label": "Dimensions",
+          "value": "108 x 108 Inches (King)"
+        },
+        {
+          "label": "Includes",
+          "value": "1 Bedsheet & 2 Pillow Covers"
+        }
+      ]
+    },
+    {
+      "id": "prod-bp-3",
+      "price": 349,
+      "stock": 175,
+      "title": "Ayurvedic Brightening Vitamin C Face Serum (30ml)",
+      "images": [
+        "https://images.unsplash.com/photo-1608248597359-974b1248041a?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.8,
+      "soldBy": "Botanical Skincare Co.",
+      "category": "Beauty & Personal Care",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:08.828Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
+      },
+      "numericId": 24,
+      "sizeStock": {
+        "30ml": 175
+      },
+      "description": "Potent antioxidant face serum with 20% Vitamin C and Hyaluronic acid for glowing skin and dark spot reduction.",
+      "ratingCount": 2300,
+      "reviewCount": 620,
+      "sizeOptions": [
+        "30ml"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.9,
+      "originalPrice": 799,
+      "approvalStatus": "approved",
+      "discountPercent": 56,
+      "additionalDetails": [
+        {
+          "label": "Usage",
+          "value": "Day & Night"
+        },
+        {
+          "label": "Dermatologically Tested",
+          "value": "Yes"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Volume",
+          "value": "30 ml"
+        },
+        {
+          "label": "Active",
+          "value": "20% Vitamin C + Hyaluronic Acid"
+        },
+        {
+          "label": "Skin Type",
+          "value": "All Skin Types"
+        }
+      ]
+    },
+    {
+      "id": "prod-sg-1",
+      "price": 399,
+      "stock": 150,
+      "title": "Adjustable Resistance Rubber Exercise Toning Bands (Set of 5)",
+      "images": [
+        "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.8,
+      "soldBy": "FitPro Fitness Equipment",
+      "category": "Sports & Active Gym",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:07.060Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
+      },
+      "numericId": 37,
+      "sizeStock": {
+        "Standard Set": 150
+      },
+      "description": "Color-coded stackable resistance bands with door anchor, handles, and ankle straps for home gym workouts and physical therapy.",
+      "ratingCount": 2600,
+      "reviewCount": 710,
+      "sizeOptions": [
+        "Standard Set"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.8,
+      "originalPrice": 999,
+      "approvalStatus": "approved",
+      "discountPercent": 60,
+      "additionalDetails": [
+        {
+          "label": "Portability",
+          "value": "Includes Carry Pouch"
+        },
+        {
+          "label": "Usage",
+          "value": "Strength & Yoga Training"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Material",
+          "value": "100% Natural Malaysian Latex"
+        },
+        {
+          "label": "Resistance Levels",
+          "value": "10 lbs to 50 lbs Combined 150 lbs"
+        },
+        {
+          "label": "Kit Includes",
+          "value": "5 Bands, 2 Handles, Door Anchor, 2 Straps"
+        }
+      ]
+    },
+    {
+      "id": "prod-gg-2",
+      "price": 349,
+      "stock": 140,
+      "title": "Organic Raw Wild Forest Honey in Glass Jar (500g)",
+      "images": [
+        "https://images.unsplash.com/photo-1587049352847-4a222e784d38?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.8,
+      "soldBy": "NaturePure Organic Farms",
+      "category": "Grocery & Gourmet Food",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:09.500Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
+      },
+      "numericId": 47,
+      "sizeStock": {
+        "500g Jar": 140
+      },
+      "description": "Unprocessed, unfiltered raw wild honey collected directly from deep forest beehives retaining natural pollen and enzymes.",
+      "ratingCount": 3100,
+      "reviewCount": 840,
+      "sizeOptions": [
+        "500g Jar"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.8,
+      "originalPrice": 799,
+      "approvalStatus": "approved",
+      "discountPercent": 56,
+      "additionalDetails": [
+        {
+          "label": "Adulteration",
+          "value": "Zero Added Sugar or Syrup"
+        },
+        {
+          "label": "Shelf Life",
+          "value": "24 Months"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Weight",
+          "value": "500 grams"
+        },
+        {
+          "label": "Type",
+          "value": "100% Raw Unheated Honey"
+        },
+        {
+          "label": "Packaging",
+          "value": "Reusable Glass Jar"
+        }
+      ]
+    },
+    {
+      "id": "prod-mw-3",
+      "price": 599,
+      "stock": 115,
+      "title": "Stretchable Multi-Pocket Cargo Jogger Pants",
+      "images": [
+        "https://images.unsplash.com/photo-1517445312882-bc9910d016b7?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.7,
+      "soldBy": "Urban Streetwear Hub",
+      "category": "Men Western & Casuals",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:09.924Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
+      },
+      "numericId": 12,
+      "sizeStock": {
+        "L": 35,
+        "M": 40,
+        "S": 25,
+        "XL": 15
+      },
+      "description": "Modern utility cargo joggers crafted with stretch cotton twill fabric, elastic waistband, and deep secure pockets.",
+      "ratingCount": 1320,
+      "reviewCount": 340,
+      "sizeOptions": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "subCategory": "Formal Trousers",
+      "soldByRating": 4.7,
+      "originalPrice": 1499,
+      "approvalStatus": "approved",
+      "discountPercent": 60,
+      "additionalDetails": [
+        {
+          "label": "Fit",
+          "value": "Tapered Jogger Fit"
+        },
+        {
+          "label": "Care",
+          "value": "Gentle Wash"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Fabric",
+          "value": "Cotton Twill with Elastane"
+        },
+        {
+          "label": "Pockets",
+          "value": "6 Functional Pockets"
+        },
+        {
+          "label": "Waist",
+          "value": "Elasticated with Drawstring"
+        }
+      ]
+    },
+    {
+      "id": "prod-ww-3",
+      "price": 799,
+      "stock": 85,
+      "title": "Elegant Pleated Midi Dress with Belt",
+      "images": [
+        "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.7,
+      "soldBy": "Blossom Apparel Co.",
+      "category": "Women Western Wear",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T03:51:41.636Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 6,
+      "sizeStock": {
+        "L": 25,
+        "M": 30,
+        "S": 20,
+        "XL": 10
+      },
+      "description": "Chic pleated midi dress featuring flattering waist belt and premium fluid fabric for evening parties and outings.",
+      "ratingCount": 890,
+      "reviewCount": 210,
+      "sizeOptions": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "subCategory": "Western Dresses",
+      "soldByRating": 4.7,
+      "originalPrice": 1999,
+      "approvalStatus": "approved",
+      "discountPercent": 60,
+      "additionalDetails": [
+        {
+          "label": "Neckline",
+          "value": "V-Neck"
+        },
+        {
+          "label": "Occasion",
+          "value": "Party & Casual"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Fabric",
+          "value": "Poly Crepe"
+        },
+        {
+          "label": "Length",
+          "value": "Midi Length"
+        },
+        {
+          "label": "Accessory",
+          "value": "Matching Waist Belt Included"
+        }
+      ]
+    },
+    {
+      "id": "prod-jw-1",
+      "price": 699,
+      "stock": 80,
+      "title": "Gold-Plated Kundan Choker Necklace Set with Earrings",
+      "images": [
+        "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.8,
+      "soldBy": "Jaipur Royal Jewelers",
+      "category": "Jewellery & Ornaments",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 9,
+        "lastUpdated": "2026-09-04T06:43:57.513Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 19,
+      "sizeStock": {
+        "Standard": 80
+      },
+      "description": "Regal bridal Kundan choker necklace set adorned with sparkling faux pearls and matching jhumka earrings.",
+      "ratingCount": 1650,
+      "reviewCount": 420,
+      "sizeOptions": [
+        "Standard"
+      ],
+      "subCategory": "Kundan & Gold Necklaces",
+      "soldByRating": 4.9,
+      "originalPrice": 2499,
+      "approvalStatus": "approved",
+      "discountPercent": 72,
+      "additionalDetails": [
+        {
+          "label": "Skin Friendly",
+          "value": "Hypoallergenic & Nickel Free"
+        },
+        {
+          "label": "Occasion",
+          "value": "Wedding & Festivals"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Plating",
+          "value": "22K Glossy Gold Plated"
+        },
+        {
+          "label": "Stones",
+          "value": "Simulated Kundan & Pearls"
+        },
+        {
+          "label": "Set Includes",
+          "value": "1 Necklace & 1 Pair Earrings"
+        }
+      ]
+    },
+    {
+      "id": "prod-kb-2",
+      "price": 499,
+      "stock": 75,
+      "title": "Festive Ethnic Kurta Dhoti Set for Boys",
+      "images": [
+        "https://images.unsplash.com/photo-1503944583220-7eeecac9c68c?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1514090458221-65bb69cf63e6?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.9,
+      "soldBy": "Kids Ethnic Studio",
+      "category": "Kids & Baby Wear",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 8,
+        "lastUpdated": "2026-09-04T06:43:59.074Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
+      },
+      "numericId": 14,
+      "sizeStock": {
+        "2-3Y": 20,
+        "3-4Y": 25,
+        "4-5Y": 20,
+        "5-6Y": 10
+      },
+      "description": "Traditional yet comfortable cotton silk kurta paired with dhoti pants for baby boys during festive celebrations.",
+      "ratingCount": 780,
+      "reviewCount": 195,
+      "sizeOptions": [
+        "2-3Y",
+        "3-4Y",
+        "4-5Y",
+        "5-6Y"
+      ],
+      "subCategory": "Boys Festive Wear",
+      "soldByRating": 4.9,
+      "originalPrice": 1299,
+      "approvalStatus": "approved",
+      "discountPercent": 61,
+      "additionalDetails": [
+        {
+          "label": "Age Group",
+          "value": "2 to 6 Years"
+        },
+        {
+          "label": "Care",
+          "value": "Gentle Hand Wash"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Fabric",
+          "value": "Cotton Silk Blend"
+        },
+        {
+          "label": "Set",
+          "value": "Kurta with Attached Dhoti"
+        },
+        {
+          "label": "Skin Safe",
+          "value": "Hypoallergenic Dyes"
+        }
+      ]
+    },
+    {
+      "id": "prod-bp-2",
+      "price": 399,
+      "stock": 150,
+      "title": "Matte Finish Long-Lasting Liquid Lipstick Combo (Pack of 4)",
+      "images": [
+        "https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.7,
+      "soldBy": "Glamour Cosmetics India",
+      "category": "Beauty & Personal Care",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:08.612Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
+      },
+      "numericId": 23,
+      "sizeStock": {
+        "Standard Combo": 150
+      },
+      "description": "Waterproof, transfer-proof pigmented liquid lipsticks enriched with Vitamin E for comfortable all-day wear.",
+      "ratingCount": 1890,
+      "reviewCount": 510,
+      "sizeOptions": [
+        "Standard Combo"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.7,
+      "originalPrice": 999,
+      "approvalStatus": "approved",
+      "discountPercent": 60,
+      "additionalDetails": [
+        {
+          "label": "Formulation",
+          "value": "Liquid"
+        },
+        {
+          "label": "Cruelty Free",
+          "value": "100% Vegan & Cruelty Free"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Finish",
+          "value": "Ultra Matte"
+        },
+        {
+          "label": "Longevity",
+          "value": 16
+        },
+        {
+          "label": "Pack",
+          "value": "Set of 4 Trending Shades"
+        }
+      ]
+    },
+    {
+      "id": "prod-ww-1",
+      "price": 399,
+      "stock": 110,
+      "title": "Casual Cotton Checkered Oversized Shirt for Women",
+      "images": [
+        "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.6,
+      "soldBy": "Mumbai Urban Fashion",
+      "category": "Women Western Wear",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 5,
+        "lastUpdated": "2026-09-04T03:51:41.691Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 4,
+      "sizeStock": {
+        "L": 25,
+        "M": 40,
+        "S": 30,
+        "XL": 15
+      },
+      "description": "Trendy casual oversized shirt in breathable cotton fabric. Perfect for college, office, or daily casual layering.",
+      "ratingCount": 750,
+      "reviewCount": 190,
+      "sizeOptions": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "subCategory": "Tops & Tunics",
+      "soldByRating": 4.7,
+      "originalPrice": 999,
+      "approvalStatus": "approved",
+      "discountPercent": 60,
+      "additionalDetails": [
+        {
+          "label": "Closure",
+          "value": "Button-Down"
+        },
+        {
+          "label": "Sleeve",
+          "value": "Full Sleeve"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Material",
+          "value": "100% Cotton"
         },
         {
           "label": "Fit",
-          "value": "Slim Fit"
+          "value": "Oversized Relaxed"
         },
         {
-          "label": "Collar",
-          "value": "Button-Down Collar"
+          "label": "Pattern",
+          "value": "Classic Checkered"
+        }
+      ]
+    },
+    {
+      "id": "prod-ws-2",
+      "price": 1499,
+      "stock": 160,
+      "title": "Bluetooth Calling AMOLED Smartwatch with Fitness Tracker",
+      "images": [
+        "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.9,
+      "soldBy": "SmartWear Innovations",
+      "category": "Watches & Smartbands",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 11,
+        "lastUpdated": "2026-09-04T06:43:57.257Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
+      },
+      "numericId": 35,
+      "sizeStock": {
+        "Standard": 160
+      },
+      "description": "Feature-packed smartwatch with crisp AMOLED display, Bluetooth calling speaker, SpO2 monitoring, and 100+ sports modes.",
+      "ratingCount": 4800,
+      "reviewCount": 1350,
+      "sizeOptions": [
+        "Standard"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.9,
+      "originalPrice": 4999,
+      "approvalStatus": "approved",
+      "discountPercent": 70,
+      "additionalDetails": [
+        {
+          "label": "Battery Life",
+          "value": "Up to 7 Days"
+        },
+        {
+          "label": "App Support",
+          "value": "iOS & Android"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Display",
+          "value": "1.96\" HD AMOLED Always-On"
+        },
+        {
+          "label": "Calling",
+          "value": "Single-Chip Bluetooth Calling"
+        },
+        {
+          "label": "Health Sensors",
+          "value": "Heart Rate, SpO2 & Sleep Tracker"
+        }
+      ]
+    },
+    {
+      "id": "prod-home-decor",
+      "price": 180,
+      "title": "Royal Floral Print Ceramic Cushion Covers (Pack of 5)",
+      "images": [
+        "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&q=80&w=600"
+      ],
+      "rating": 3.8,
+      "soldBy": "CREATIVE_HOMES",
+      "reviews": [],
+      "category": "Home & Kitchen",
+      "codPrice": 210,
+      "variants": [
+        {
+          "price": 180,
+          "imageUrl": "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&q=80&w=600",
+          "colorName": "Floral Cream Multi",
+          "originalPrice": 360
+        }
+      ],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 10,
+        "lastUpdated": "2026-09-04T06:35:09.663Z",
+        "blockedViews": 0,
+        "blockedImpressions": 2
+      },
+      "numericId": 19,
+      "description": "Transform your living room setup with these glossy, ultra-soft printed decorative cushion covers. Comes with robust hidden zip closures and stitch interlocking.",
+      "hasUpiOffer": true,
+      "ratingCount": 152,
+      "reviewCount": 39,
+      "sizeOptions": [
+        "Free Size"
+      ],
+      "subCategory": "Fruits",
+      "soldByRating": 3.9,
+      "originalPrice": 360,
+      "approvalStatus": "approved",
+      "discountPercent": 50,
+      "additionalDetails": [
+        {
+          "label": "Wash Care",
+          "value": "Cold Machine Wash"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Material",
+          "value": "Polyester Velvet Blend"
+        },
+        {
+          "label": "Size",
+          "value": "16x16 Inches"
+        }
+      ]
+    },
+    {
+      "id": "prod-em-1",
+      "price": 899,
+      "stock": 250,
+      "title": "Active Noise Cancelling Wireless Bluetooth Earbuds",
+      "images": [
+        "https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.8,
+      "soldBy": "TechNova Gadgets India",
+      "category": "Electronics & Mobiles",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 8,
+        "lastUpdated": "2026-09-04T06:43:57.962Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 31,
+      "sizeStock": {
+        "Standard": 250
+      },
+      "description": "Immersive sound quality TWS earbuds featuring ENC mic, 40-hour playback with case, and ultra-low latency gaming mode.",
+      "ratingCount": 5400,
+      "reviewCount": 1420,
+      "sizeOptions": [
+        "Standard"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.8,
+      "originalPrice": 2999,
+      "approvalStatus": "approved",
+      "discountPercent": 70,
+      "additionalDetails": [
+        {
+          "label": "Water Resistance",
+          "value": "IPX5 Splashproof"
+        },
+        {
+          "label": "Warranty",
+          "value": "6 Months Replacement"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Bluetooth Version",
+          "value": "v5.3 Ultra Stable"
+        },
+        {
+          "label": "Playback",
+          "value": "Up to 40 Hours with Case"
+        },
+        {
+          "label": "Charging",
+          "value": "Type-C Fast Charge"
+        }
+      ]
+    },
+    {
+      "id": "prod-bl-2",
+      "price": 799,
+      "stock": 120,
+      "title": "Durable Water-Resistant Laptop Backpack (15.6 Inch)",
+      "images": [
+        "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.9,
+      "soldBy": "Apex Travel Gear",
+      "category": "Bags & Luggage",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:01.610Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
+      },
+      "numericId": 26,
+      "sizeStock": {
+        "Standard 30L": 120
+      },
+      "description": "Ergonomic business laptop backpack with USB charging port, padded shoulder straps, and multi-utility organizer pockets.",
+      "ratingCount": 3100,
+      "reviewCount": 840,
+      "sizeOptions": [
+        "Standard 30L"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.9,
+      "originalPrice": 1999,
+      "approvalStatus": "approved",
+      "discountPercent": 60,
+      "additionalDetails": [
+        {
+          "label": "Capacity",
+          "value": "30 Liters"
+        },
+        {
+          "label": "Warranty",
+          "value": "1 Year Manufacturer"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Laptop Capacity",
+          "value": "Up to 15.6 Inches"
+        },
+        {
+          "label": "Fabric",
+          "value": "Water-Repellent Polyester"
+        },
+        {
+          "label": "Special Feature",
+          "value": "Integrated USB Charging Port"
+        }
+      ]
+    },
+    {
+      "id": "prod-em-2",
+      "price": 999,
+      "stock": 140,
+      "title": "Fast Charging 20000mAh Power Bank with LED Display",
+      "images": [
+        "https://images.unsplash.com/photo-1609592424158-450f3835626a?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.9,
+      "soldBy": "PowerGrid Electronics",
+      "category": "Electronics & Mobiles",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:01.841Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
+      },
+      "numericId": 32,
+      "sizeStock": {
+        "20000mAh": 140
+      },
+      "description": "High-capacity dual USB output power bank with intelligent power distribution and digital percentage battery indicator.",
+      "ratingCount": 3800,
+      "reviewCount": 990,
+      "sizeOptions": [
+        "20000mAh"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.9,
+      "originalPrice": 2499,
+      "approvalStatus": "approved",
+      "discountPercent": 60,
+      "additionalDetails": [
+        {
+          "label": "Ports",
+          "value": "Dual USB-A & Type-C"
+        },
+        {
+          "label": "Safety",
+          "value": "9-Layer Circuit Protection"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Capacity",
+          "value": "20000 mAh Li-Polymer"
+        },
+        {
+          "label": "Output",
+          "value": "22.5W Fast Two-Way Charging"
+        },
+        {
+          "label": "Display",
+          "value": "Smart LED Battery Percentage"
+        }
+      ]
+    },
+    {
+      "id": "prod-tb-1",
+      "price": 349,
+      "stock": 100,
+      "title": "Educational Wooden Alphabet & Number Puzzle Board",
+      "images": [
+        "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.9,
+      "soldBy": "EduPlay Toys India",
+      "category": "Toys, Games & Baby Care",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:43:59.746Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
+      },
+      "numericId": 40,
+      "sizeStock": {
+        "Standard Board": 100
+      },
+      "description": "Montessori wooden educational puzzle board featuring vibrant letters and numbers to stimulate early childhood learning.",
+      "ratingCount": 2100,
+      "reviewCount": 560,
+      "sizeOptions": [
+        "Standard Board"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.9,
+      "originalPrice": 899,
+      "approvalStatus": "approved",
+      "discountPercent": 61,
+      "additionalDetails": [
+        {
+          "label": "Safety Certified",
+          "value": "BIS Approved"
+        },
+        {
+          "label": "Smooth Edges",
+          "value": "Child-Safe Rounded Corners"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Material",
+          "value": "Natural Eco Wood with Non-Toxic Paint"
+        },
+        {
+          "label": "Skill Set",
+          "value": "Alphabet, Numbers & Motor Skills"
+        },
+        {
+          "label": "Age",
+          "value": "2 to 6 Years"
+        }
+      ]
+    },
+    {
+      "id": "prod-aa-1",
+      "price": 299,
+      "stock": 130,
+      "title": "Dual USB Fast Car Charger with LED Voltage Display",
+      "images": [
+        "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.8,
+      "soldBy": "AutoCraft Direct India",
+      "category": "Automotive Accessories",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:02.923Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
+      },
+      "numericId": 49,
+      "sizeStock": {
+        "Standard": 130
+      },
+      "description": "Smart multi-protection car charger with 3.1A fast dual USB ports and real-time car battery voltage digital monitor.",
+      "ratingCount": 1920,
+      "reviewCount": 510,
+      "sizeOptions": [
+        "Standard"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.8,
+      "originalPrice": 799,
+      "approvalStatus": "approved",
+      "discountPercent": 62,
+      "additionalDetails": [
+        {
+          "label": "Material",
+          "value": "Fireproof ABS + Aluminium"
+        },
+        {
+          "label": "Safety",
+          "value": "Short Circuit & Surge Protection"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Output",
+          "value": "Dual USB 5V/3.1A Fast Charge"
+        },
+        {
+          "label": "Display",
+          "value": "LED Battery Voltage Monitor"
+        },
+        {
+          "label": "Compatibility",
+          "value": "Universal 12V-24V Cars & SUVs"
+        }
+      ]
+    },
+    {
+      "id": "prod-ws-1",
+      "price": 899,
+      "stock": 95,
+      "title": "Luxury Golden Analog Quartz Wristwatch for Men",
+      "images": [
+        "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.8,
+      "soldBy": "Titanium Timepieces",
+      "category": "Watches & Smartbands",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 8,
+        "lastUpdated": "2026-09-04T06:43:58.192Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 34,
+      "sizeStock": {
+        "Standard Dial": 95
+      },
+      "description": "Sophisticated golden stainless steel wrist watch with luminous hands, date display, and water resistance.",
+      "ratingCount": 2200,
+      "reviewCount": 590,
+      "sizeOptions": [
+        "Standard Dial"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.8,
+      "originalPrice": 2999,
+      "approvalStatus": "approved",
+      "discountPercent": 70,
+      "additionalDetails": [
+        {
+          "label": "Dial Shape",
+          "value": "Round"
+        },
+        {
+          "label": "Warranty",
+          "value": "1 Year Movement Warranty"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Movement",
+          "value": "Japanese Quartz"
+        },
+        {
+          "label": "Strap",
+          "value": "Stainless Steel Golden Mesh"
+        },
+        {
+          "label": "Water Resistance",
+          "value": "30 Meters (3 ATM)"
+        }
+      ]
+    },
+    {
+      "id": "prod-aa-2",
+      "price": 249,
+      "stock": 200,
+      "title": "Premium Microfiber Cleaning Cloth Set for Car & Home (Pack of 4)",
+      "images": [
+        "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.9,
+      "soldBy": "CleanPro Automotive",
+      "category": "Automotive Accessories",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:03.153Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 50,
+      "sizeStock": {
+        "Pack of 4": 200
+      },
+      "description": "Ultra-absorbent lint-free 400GSM microfiber towels designed for streak-free car washing, polishing, and glass cleaning.",
+      "ratingCount": 3400,
+      "reviewCount": 920,
+      "sizeOptions": [
+        "Pack of 4"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.9,
+      "originalPrice": 599,
+      "approvalStatus": "approved",
+      "discountPercent": 58,
+      "additionalDetails": [
+        {
+          "label": "Scratch Free",
+          "value": "100% Safe on Paint & Glass"
+        },
+        {
+          "label": "Washable",
+          "value": "Machine Washable & Reusable"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Density",
+          "value": "400 GSM High Absorption"
+        },
+        {
+          "label": "Size",
+          "value": "40 x 40 cm Each"
+        },
+        {
+          "label": "Pack",
+          "value": "Set of 4 Assorted Colors"
+        }
+      ]
+    },
+    {
+      "id": "prod-tb-3",
+      "price": 699,
+      "stock": 90,
+      "title": "Soft Plush Teddy Bear Stuffed Toy (Large 60cm)",
+      "images": [
+        "https://images.unsplash.com/photo-1534349762230-e0cadfefcffc?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.9,
+      "soldBy": "CuddleCraft Toys",
+      "category": "Toys, Games & Baby Care",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:00.388Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
+      },
+      "numericId": 42,
+      "sizeStock": {
+        "60cm Large": 90
+      },
+      "description": "Extremely soft and cuddly plush teddy bear crafted with premium fur and hypoallergenic poly-fiber stuffing.",
+      "ratingCount": 4100,
+      "reviewCount": 1120,
+      "sizeOptions": [
+        "60cm Large"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.9,
+      "originalPrice": 1799,
+      "approvalStatus": "approved",
+      "discountPercent": 61,
+      "additionalDetails": [
+        {
+          "label": "Washable",
+          "value": "Surface Washable"
+        },
+        {
+          "label": "Gift Ready",
+          "value": "Perfect for Birthdays & Festivals"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Size",
+          "value": "60 cm (Large Height)"
+        },
+        {
+          "label": "Material",
+          "value": "Super Soft Velour Fur"
+        },
+        {
+          "label": "Stuffing",
+          "value": "100% Virgin Hollow Polyester"
+        }
+      ]
+    },
+    {
+      "id": "prod-gg-3",
+      "price": 499,
+      "stock": 110,
+      "title": "Gourmet Roasted Cashews & Almonds Festive Gift Pack (400g)",
+      "images": [
+        "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.9,
+      "soldBy": "Royal Dry Fruits Hub",
+      "category": "Grocery & Gourmet Food",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:03.608Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 48,
+      "sizeStock": {
+        "400g Box": 110
+      },
+      "description": "Crunchy premium quality dry roasted almonds and cashews lightly salted in an elegant airtight festive gift box.",
+      "ratingCount": 2400,
+      "reviewCount": 650,
+      "sizeOptions": [
+        "400g Box"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.9,
+      "originalPrice": 1199,
+      "approvalStatus": "approved",
+      "discountPercent": 58,
+      "additionalDetails": [
+        {
+          "label": "Packaging",
+          "value": "Festive Gift Box"
+        },
+        {
+          "label": "Storage",
+          "value": "Store in Cool Dry Place"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Contents",
+          "value": "200g Almonds + 200g Cashews"
+        },
+        {
+          "label": "Quality",
+          "value": "Jumbo Size W320 & Calibre 27"
+        },
+        {
+          "label": "Occasion",
+          "value": "Festival Gifting & Healthy Snacking"
+        }
+      ]
+    },
+    {
+      "id": "prod-watch-csamon",
+      "tag": "Top rated",
+      "isAd": true,
+      "price": 83,
+      "title": "CSAMON Fabulous Men Black Dial Analog Watch with Metal strap",
+      "images": [
+        "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&q=80&w=600"
+      ],
+      "rating": 3.9,
+      "soldBy": "CSAMON_ENTERPRISE",
+      "reviews": [
+        {
+          "id": "rev-cs-1",
+          "title": "Good watch",
+          "images": [],
+          "rating": 4,
+          "comment": "Chain quality is solid. Perfect matching for formals.",
+          "userName": "Manish G.",
+          "postedDate": "01 May, 2024",
+          "helpfulCount": 42
+        }
+      ],
+      "category": "Men",
+      "codPrice": 116,
+      "variants": [
+        {
+          "price": 83,
+          "imageUrl": "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&q=80&w=600",
+          "colorName": "Metallic Black",
+          "originalPrice": 160
+        }
+      ],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 10,
+        "lastUpdated": "2026-09-04T06:43:55.755Z",
+        "blockedViews": 0,
+        "blockedImpressions": 3
+      },
+      "numericId": 17,
+      "description": "Add a touch of elegance to your attire with CSAMON watches. Fitted with metal chain link straps and a durable casing, this is a premium look watch for wedding and formal occasions.",
+      "hasUpiOffer": true,
+      "ratingCount": 3171,
+      "reviewCount": 981,
+      "sizeOptions": [
+        "Free Size"
+      ],
+      "subCategory": "Watches",
+      "soldByRating": 3.9,
+      "timeLeftText": "01h : 26m : 58s",
+      "originalPrice": 160,
+      "approvalStatus": "approved",
+      "discountPercent": 48,
+      "additionalDetails": [
+        {
+          "label": "Warranty",
+          "value": "6 Months Manufacturer"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Strap Material",
+          "value": "Stainless Steel"
+        },
+        {
+          "label": "Dial Shape",
+          "value": "Round"
+        }
+      ]
+    },
+    {
+      "id": "prod-bo-3",
+      "price": 349,
+      "stock": 95,
+      "title": "Ergonomic Desktop Pen & Mobile Stand Organizer",
+      "images": [
+        "https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.8,
+      "soldBy": "Workspace Solutions",
+      "category": "Books & Office Supplies",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:04.924Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 45,
+      "sizeStock": {
+        "Standard": 95
+      },
+      "description": "Multi-compartment desk organizer crafted from sturdy wood and metal mesh to keep your workspace clutter-free.",
+      "ratingCount": 920,
+      "reviewCount": 250,
+      "sizeOptions": [
+        "Standard"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.8,
+      "originalPrice": 899,
+      "approvalStatus": "approved",
+      "discountPercent": 61,
+      "additionalDetails": [
+        {
+          "label": "Usage",
+          "value": "Study Desk, Office Table"
+        },
+        {
+          "label": "Assembly",
+          "value": "Pre-Assembled"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Compartments",
+          "value": "6 Multi-Size Slots"
+        },
+        {
+          "label": "Material",
+          "value": "Durable Metal Mesh & Wood"
+        },
+        {
+          "label": "Feature",
+          "value": "Integrated Mobile Phone Stand"
+        }
+      ]
+    },
+    {
+      "id": "prod-hk-3",
+      "price": 399,
+      "stock": 100,
+      "title": "Modern Ceramic Table Vase for Living Room Decor",
+      "images": [
+        "https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.8,
+      "soldBy": "Artisan Home Decor",
+      "category": "Home & Kitchen Decor",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:06.239Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
+      },
+      "numericId": 30,
+      "sizeStock": {
+        "Standard": 100
+      },
+      "description": "Minimalist handcrafted ceramic vase designed to elevate home decor, living room shelves, and festive floral arrangements.",
+      "ratingCount": 740,
+      "reviewCount": 190,
+      "sizeOptions": [
+        "Standard"
+      ],
+      "subCategory": "Festive Home Decors",
+      "soldByRating": 4.8,
+      "originalPrice": 999,
+      "approvalStatus": "approved",
+      "discountPercent": 60,
+      "additionalDetails": [
+        {
+          "label": "Placement",
+          "value": "Living Room, Office, Dining"
+        },
+        {
+          "label": "Care",
+          "value": "Wipe with Damp Cloth"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Material",
+          "value": "High-Fired Ceramic"
+        },
+        {
+          "label": "Height",
+          "value": "8 Inches"
+        },
+        {
+          "label": "Finish",
+          "value": "Matte Glazed"
+        }
+      ]
+    },
+    {
+      "id": "prod-kb-3",
+      "price": 399,
+      "stock": 100,
+      "title": "Soft Organic Cotton Newborn Bodysuit Romper Set",
+      "images": [
+        "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1514090458221-65bb69cf63e6?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.8,
+      "soldBy": "Newborn Care Essentials",
+      "category": "Kids & Baby Wear",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:06.604Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
+      },
+      "numericId": 15,
+      "sizeStock": {
+        "0-3M": 30,
+        "3-6M": 30,
+        "6-9M": 20,
+        "9-12M": 20
+      },
+      "description": "Ultra-soft organic cotton bodysuits with snap buttons for effortless diaper changes and tender newborn care.",
+      "ratingCount": 1100,
+      "reviewCount": 310,
+      "sizeOptions": [
+        "0-3M",
+        "3-6M",
+        "6-9M",
+        "9-12M"
+      ],
+      "subCategory": "Toys & Games",
+      "soldByRating": 4.8,
+      "originalPrice": 999,
+      "approvalStatus": "approved",
+      "discountPercent": 60,
+      "additionalDetails": [
+        {
+          "label": "Age Group",
+          "value": "0 to 12 Months"
+        },
+        {
+          "label": "Wash",
+          "value": "Machine Wash"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Material",
+          "value": "100% Certified Organic Cotton"
+        },
+        {
+          "label": "Pack",
+          "value": "Pack of 3 Rompers"
+        },
+        {
+          "label": "Safety",
+          "value": "Nontoxic Snaps"
+        }
+      ]
+    },
+    {
+      "id": "prod-sg-2",
+      "price": 549,
+      "stock": 110,
+      "title": "Anti-Skid TPE Yoga Mat with Carrying Strap (6mm)",
+      "images": [
+        "https://images.unsplash.com/photo-1592432678016-e910b452f9a2?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.7,
+      "soldBy": "Zenith Sports & Yoga",
+      "category": "Sports & Active Gym",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:08.155Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 38,
+      "sizeStock": {
+        "Standard 6mm": 110
+      },
+      "description": "Eco-friendly dual-layer anti-slip yoga mat providing superior cushioning and joint protection for floor exercises and yoga.",
+      "ratingCount": 1890,
+      "reviewCount": 490,
+      "sizeOptions": [
+        "Standard 6mm"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.7,
+      "originalPrice": 1499,
+      "approvalStatus": "approved",
+      "discountPercent": 63,
+      "additionalDetails": [
+        {
+          "label": "Dimensions",
+          "value": "183 cm x 61 cm"
+        },
+        {
+          "label": "Strap",
+          "value": "Free Carrying Strap Included"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Thickness",
+          "value": "6mm High Density"
+        },
+        {
+          "label": "Material",
+          "value": "Eco-Friendly TPE Material"
+        },
+        {
+          "label": "Grip",
+          "value": "Double-Sided Anti-Skid Texture"
+        }
+      ]
+    },
+    {
+      "id": "prod-jw-3",
+      "price": 499,
+      "stock": 75,
+      "title": "925 Sterling Silver Sparkling Zircon Solitaire Ring",
+      "images": [
+        "https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.9,
+      "soldBy": "Silver Shine Creations",
+      "category": "Jewellery & Ornaments",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 9,
+        "lastUpdated": "2026-09-04T06:43:57.742Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 21,
+      "sizeStock": {
+        "US 6": 15,
+        "US 7": 25,
+        "US 8": 25,
+        "US 9": 10
+      },
+      "description": "Elegant sterling silver ring featuring brilliant cut AAA+ zircon crystal with high polish platinum finish.",
+      "ratingCount": 1280,
+      "reviewCount": 345,
+      "sizeOptions": [
+        "US 6",
+        "US 7",
+        "US 8",
+        "US 9"
+      ],
+      "subCategory": "Kundan & Gold Necklaces",
+      "soldByRating": 4.9,
+      "originalPrice": 1599,
+      "approvalStatus": "approved",
+      "discountPercent": 68,
+      "additionalDetails": [
+        {
+          "label": "Certification",
+          "value": "Authenticity Certificate Included"
+        },
+        {
+          "label": "Gift Box",
+          "value": "Includes Velvet Gift Box"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Metal",
+          "value": "925 Sterling Silver"
+        },
+        {
+          "label": "Stone",
+          "value": "AAA+ Austrian Zircon"
+        },
+        {
+          "label": "Finish",
+          "value": "Rhodium Anti-Tarnish"
         }
       ]
     },
@@ -951,6 +2435,14 @@
       "soldBy": "Jaipur Artisans Craft",
       "category": "Footwear & Shoes",
       "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 6,
+        "lastUpdated": "2026-09-04T03:51:40.147Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
       "numericId": 17,
       "sizeStock": {
         "EU 36": 20,
@@ -1000,167 +2492,1160 @@
       ]
     },
     {
-      "id": "prod-bp-2",
-      "price": 399,
-      "stock": 150,
-      "title": "Matte Finish Long-Lasting Liquid Lipstick Combo (Pack of 4)",
+      "id": "prod-bp-1",
+      "price": 299,
+      "stock": 200,
+      "title": "Professional Ayurvedic Onion Hair Growth & Scalp Oil (200ml)",
       "images": [
-        "https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.7,
-      "soldBy": "Glamour Cosmetics India",
-      "category": "Beauty & Personal Care",
-      "variants": [],
-      "numericId": 23,
-      "sizeStock": {
-        "Standard Combo": 150
-      },
-      "description": "Waterproof, transfer-proof pigmented liquid lipsticks enriched with Vitamin E for comfortable all-day wear.",
-      "ratingCount": 1890,
-      "reviewCount": 510,
-      "sizeOptions": [
-        "Standard Combo"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.7,
-      "originalPrice": 999,
-      "approvalStatus": "approved",
-      "discountPercent": 60,
-      "additionalDetails": [
-        {
-          "label": "Formulation",
-          "value": "Liquid"
-        },
-        {
-          "label": "Cruelty Free",
-          "value": "100% Vegan & Cruelty Free"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Finish",
-          "value": "Ultra Matte"
-        },
-        {
-          "label": "Longevity",
-          "value": 16
-        },
-        {
-          "label": "Pack",
-          "value": "Set of 4 Trending Shades"
-        }
-      ]
-    },
-    {
-      "id": "prod-bp-3",
-      "price": 349,
-      "stock": 175,
-      "title": "Ayurvedic Brightening Vitamin C Face Serum (30ml)",
-      "images": [
-        "https://images.unsplash.com/photo-1608248597359-974b1248041a?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=800"
+        "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1608248597359-974b1248041a?auto=format&fit=crop&q=80&w=800"
       ],
       "rating": 4.8,
-      "soldBy": "Botanical Skincare Co.",
+      "soldBy": "Herbal Essence Labs",
       "category": "Beauty & Personal Care",
       "variants": [],
-      "numericId": 24,
-      "sizeStock": {
-        "30ml": 175
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 5,
+        "lastUpdated": "2026-09-04T03:51:42.341Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
       },
-      "description": "Potent antioxidant face serum with 20% Vitamin C and Hyaluronic acid for glowing skin and dark spot reduction.",
-      "ratingCount": 2300,
-      "reviewCount": 620,
+      "numericId": 22,
+      "sizeStock": {
+        "200ml": 200
+      },
+      "description": "Nutrient-rich hair oil infused with red onion extract, black seed oil, and botanical herbs to reduce hair fall and promote growth.",
+      "ratingCount": 4500,
+      "reviewCount": 1200,
       "sizeOptions": [
-        "30ml"
+        "200ml"
       ],
       "subCategory": "General",
-      "soldByRating": 4.9,
-      "originalPrice": 799,
+      "soldByRating": 4.8,
+      "originalPrice": 599,
       "approvalStatus": "approved",
-      "discountPercent": 56,
+      "discountPercent": 50,
       "additionalDetails": [
         {
-          "label": "Usage",
-          "value": "Day & Night"
+          "label": "Hair Type",
+          "value": "All Hair Types"
         },
         {
-          "label": "Dermatologically Tested",
-          "value": "Yes"
+          "label": "Shelf Life",
+          "value": "36 Months"
         }
       ],
       "productHighlights": [
         {
           "label": "Volume",
-          "value": "30 ml"
+          "value": "200 ml"
         },
         {
-          "label": "Active",
-          "value": "20% Vitamin C + Hyaluronic Acid"
+          "label": "Key Ingredients",
+          "value": "Red Onion Oil, Redensyl, Amla"
         },
         {
-          "label": "Skin Type",
-          "value": "All Skin Types"
+          "label": "Free From",
+          "value": "Paraben & Mineral Oil Free"
         }
       ]
     },
     {
-      "id": "prod-ww-1",
-      "price": 399,
-      "stock": 110,
-      "title": "Casual Cotton Checkered Oversized Shirt for Women",
+      "id": "prod-me-1",
+      "price": 749,
+      "stock": 100,
+      "title": "Festive Silk Blend Jacquard Kurta Pajama Set for Men",
       "images": [
-        "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=800"
+        "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=800"
       ],
-      "rating": 4.6,
-      "soldBy": "Mumbai Urban Fashion",
-      "category": "Women Western Wear",
+      "rating": 4.8,
+      "soldBy": "Royal Ethnic Studio",
+      "category": "Men Ethnic Wear",
       "variants": [],
-      "numericId": 4,
-      "sizeStock": {
-        "L": 25,
-        "M": 40,
-        "S": 30,
-        "XL": 15
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:06.828Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
       },
-      "description": "Trendy casual oversized shirt in breathable cotton fabric. Perfect for college, office, or daily casual layering.",
-      "ratingCount": 750,
-      "reviewCount": 190,
+      "numericId": 7,
+      "sizeStock": {
+        "38": 25,
+        "40": 35,
+        "42": 25,
+        "44": 15
+      },
+      "description": "Traditional yet modern jacquard woven silk blend kurta paired with comfortable cotton churidar pajama.",
+      "ratingCount": 1120,
+      "reviewCount": 295,
       "sizeOptions": [
-        "S",
+        "38",
+        "40",
+        "42",
+        "44"
+      ],
+      "subCategory": "Silk & Banarasi Sarees",
+      "soldByRating": 4.9,
+      "originalPrice": 1899,
+      "approvalStatus": "approved",
+      "discountPercent": 60,
+      "additionalDetails": [
+        {
+          "label": "Fit Type",
+          "value": "Regular Fit"
+        },
+        {
+          "label": "Care",
+          "value": "Dry Clean Recommended"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Fabric",
+          "value": "Silk Blend Jacquard"
+        },
+        {
+          "label": "Set Includes",
+          "value": "Kurta & Pajama"
+        },
+        {
+          "label": "Collar",
+          "value": "Mandarin Collar"
+        }
+      ]
+    },
+    {
+      "id": "prod-ws-3",
+      "price": 799,
+      "stock": 85,
+      "title": "Minimalist Rose Gold Mesh Strap Watch for Women",
+      "images": [
+        "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.8,
+      "soldBy": "Chic Timepieces Co.",
+      "category": "Watches & Smartbands",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:01.016Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
+      },
+      "numericId": 36,
+      "sizeStock": {
+        "Standard": 85
+      },
+      "description": "Elegant minimalist women timepiece featuring sunray dial and rose gold adjustable mesh bracelet.",
+      "ratingCount": 1240,
+      "reviewCount": 340,
+      "sizeOptions": [
+        "Standard"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.8,
+      "originalPrice": 2299,
+      "approvalStatus": "approved",
+      "discountPercent": 65,
+      "additionalDetails": [
+        {
+          "label": "Clasp",
+          "value": "Hook Buckle"
+        },
+        {
+          "label": "Gift Box",
+          "value": "Included"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Strap",
+          "value": "Rose Gold Stainless Steel Mesh"
+        },
+        {
+          "label": "Dial Glass",
+          "value": "Mineral Hardened Crystal"
+        },
+        {
+          "label": "Style",
+          "value": "Formal & Casual Elegance"
+        }
+      ]
+    },
+    {
+      "id": "prod-bl-1",
+      "price": 699,
+      "stock": 90,
+      "title": "Premium PU Leather Casual Handbag & Sling Bag Combo",
+      "images": [
+        "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.8,
+      "soldBy": "Delhi Leather Works",
+      "category": "Bags & Luggage",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:02.291Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
+      },
+      "numericId": 25,
+      "sizeStock": {
+        "Standard": 90
+      },
+      "description": "Stylish structured handbag crafted from durable PU leather with spacious compartments and detachable sling strap.",
+      "ratingCount": 1420,
+      "reviewCount": 380,
+      "sizeOptions": [
+        "Standard"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.8,
+      "originalPrice": 1899,
+      "approvalStatus": "approved",
+      "discountPercent": 63,
+      "additionalDetails": [
+        {
+          "label": "Closure",
+          "value": "Zip Closure"
+        },
+        {
+          "label": "Water Resistant",
+          "value": "Yes"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Material",
+          "value": "Premium Vegan PU Leather"
+        },
+        {
+          "label": "Compartments",
+          "value": "3 Zipped Compartments"
+        },
+        {
+          "label": "Set",
+          "value": "Handbag + Matching Sling Pouch"
+        }
+      ]
+    },
+    {
+      "id": "prod-sg-3",
+      "price": 349,
+      "stock": 130,
+      "title": "Professional Steel Shaker Bottle for Gym Protein (700ml)",
+      "images": [
+        "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.8,
+      "soldBy": "IronFlex Fitness Gear",
+      "category": "Sports & Active Gym",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:06.463Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 39,
+      "sizeStock": {
+        "700ml": 130
+      },
+      "description": "BPA-free stainless steel protein shaker bottle featuring wire mixing whisk ball and leak-proof secure flip cap.",
+      "ratingCount": 1450,
+      "reviewCount": 380,
+      "sizeOptions": [
+        "700ml"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.8,
+      "originalPrice": 899,
+      "approvalStatus": "approved",
+      "discountPercent": 61,
+      "additionalDetails": [
+        {
+          "label": "Leak Proof",
+          "value": "100% Leak-Proof Guarantee"
+        },
+        {
+          "label": "Odour Free",
+          "value": "Yes"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Material",
+          "value": "Food Grade 18/8 Stainless Steel"
+        },
+        {
+          "label": "Capacity",
+          "value": "700 ml"
+        },
+        {
+          "label": "Mixing",
+          "value": "Stainless Steel Whisk Ball"
+        }
+      ]
+    },
+    {
+      "id": "prod-gg-1",
+      "price": 399,
+      "stock": 150,
+      "title": "Premium Kashmiri Mongra Saffron Grade-1 (1g)",
+      "images": [
+        "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.9,
+      "soldBy": "Kashmir Valley Spices",
+      "category": "Grocery & Gourmet Food",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:07.941Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 46,
+      "sizeStock": {
+        "1 Gram": 150
+      },
+      "description": "100% pure hand-harvested Kashmiri saffron threads known for rich aroma, deep crimson color, and supreme culinary quality.",
+      "ratingCount": 1800,
+      "reviewCount": 490,
+      "sizeOptions": [
+        "1 Gram"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.9,
+      "originalPrice": 899,
+      "approvalStatus": "approved",
+      "discountPercent": 55,
+      "additionalDetails": [
+        {
+          "label": "Packaging",
+          "value": "Airtight Glass Vial"
+        },
+        {
+          "label": "Purity",
+          "value": "100% Lab Tested Pure"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Grade",
+          "value": "ISO Grade-1 Mongra Saffron"
+        },
+        {
+          "label": "Weight",
+          "value": "1 Gram"
+        },
+        {
+          "label": "Aroma",
+          "value": "Intense Natural Fragrance"
+        }
+      ]
+    },
+    {
+      "id": "prod-bl-3",
+      "price": 1899,
+      "stock": 50,
+      "title": "Travel Friendly Lightweight Cabin Hard Trolley Suitcase (20 Inch)",
+      "images": [
+        "https://images.unsplash.com/photo-1581557991964-125469da3b8a?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.8,
+      "soldBy": "Voyager Luggage Co.",
+      "category": "Bags & Luggage",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:03.377Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 27,
+      "sizeStock": {
+        "20 Inch Cabin": 50
+      },
+      "description": "Scratch-resistant polycarbonate hard-sided cabin luggage featuring 360-degree silent spinner wheels and TSA lock.",
+      "ratingCount": 980,
+      "reviewCount": 290,
+      "sizeOptions": [
+        "20 Inch Cabin"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.8,
+      "originalPrice": 4999,
+      "approvalStatus": "approved",
+      "discountPercent": 62,
+      "additionalDetails": [
+        {
+          "label": "Size",
+          "value": "Cabin Size (20 Inch)"
+        },
+        {
+          "label": "Warranty",
+          "value": "3 Years International"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Shell Material",
+          "value": "Polycarbonate Hard Shell"
+        },
+        {
+          "label": "Wheels",
+          "value": "4 Silent 360° Spinner Wheels"
+        },
+        {
+          "label": "Lock",
+          "value": "Built-in Number Combination Lock"
+        }
+      ]
+    },
+    {
+      "id": "prod-we-3",
+      "price": 649,
+      "stock": 100,
+      "title": "Designer Party Wear Georgette Palazzo Suit Set",
+      "images": [
+        "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.7,
+      "soldBy": "Jaipur Textile Direct",
+      "category": "Women Ethnic Wear",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:07.705Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
+      },
+      "numericId": 3,
+      "sizeStock": {
+        "L": 35,
+        "M": 25,
+        "XL": 25,
+        "XXL": 15
+      },
+      "description": "Modern Georgette kurti paired with flared palazzo pants and embroidered dupatta. Lightweight and comfortable.",
+      "ratingCount": 980,
+      "reviewCount": 245,
+      "sizeOptions": [
         "M",
         "L",
-        "XL"
+        "XL",
+        "XXL"
       ],
-      "subCategory": "Tops & Tunics",
+      "subCategory": "Lehengas & Anarkalis",
+      "soldByRating": 4.7,
+      "originalPrice": 1799,
+      "approvalStatus": "approved",
+      "discountPercent": 64,
+      "additionalDetails": [
+        {
+          "label": "Set",
+          "value": "Kurti + Palazzo + Dupatta"
+        },
+        {
+          "label": "Wash",
+          "value": "Hand Wash"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Fabric",
+          "value": "Faux Georgette"
+        },
+        {
+          "label": "Inner",
+          "value": "Micro Cotton Lining"
+        },
+        {
+          "label": "Sleeve",
+          "value": "Three-Quarter Sleeves"
+        }
+      ]
+    },
+    {
+      "id": "prod-em-3",
+      "price": 499,
+      "stock": 110,
+      "title": "Ultra-Slim Portable Wireless Fast Charging Pad",
+      "images": [
+        "https://images.unsplash.com/photo-1586816879360-004f5b0c51e3?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.7,
+      "soldBy": "GadgetCraft Solutions",
+      "category": "Electronics & Mobiles",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:03.966Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 33,
+      "sizeStock": {
+        "Standard": 110
+      },
+      "description": "Qi-certified wireless charger pad with intelligent foreign object detection and LED sleep-friendly indicator.",
+      "ratingCount": 1150,
+      "reviewCount": 310,
+      "sizeOptions": [
+        "Standard"
+      ],
+      "subCategory": "General",
+      "soldByRating": 4.7,
+      "originalPrice": 1299,
+      "approvalStatus": "approved",
+      "discountPercent": 62,
+      "additionalDetails": [
+        {
+          "label": "Input Port",
+          "value": "USB Type-C"
+        },
+        {
+          "label": "Protection",
+          "value": "Over-Temperature Protection"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Output",
+          "value": "15W Max Fast Wireless Charge"
+        },
+        {
+          "label": "Compatibility",
+          "value": "All Qi-Enabled Phones & Earbuds"
+        },
+        {
+          "label": "Design",
+          "value": "Ultra-Slim Aluminum Alloy"
+        }
+      ]
+    },
+    {
+      "id": "prod-kb-1",
+      "price": 299,
+      "stock": 90,
+      "title": "Cute Cotton Printed Frock for Baby Girls",
+      "images": [
+        "https://images.unsplash.com/photo-1514090458221-65bb69cf63e6?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.8,
+      "soldBy": "Tiny Tots Garments",
+      "category": "Kids & Baby Wear",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:04.485Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 13,
+      "sizeStock": {
+        "1-2Y": 20,
+        "2-3Y": 30,
+        "3-4Y": 25,
+        "4-5Y": 15
+      },
+      "description": "Adorable and soft breathable cotton frock featuring cheerful floral prints and comfortable flare for little girls.",
+      "ratingCount": 920,
+      "reviewCount": 240,
+      "sizeOptions": [
+        "1-2Y",
+        "2-3Y",
+        "3-4Y",
+        "4-5Y"
+      ],
+      "subCategory": "Girls Lehengas",
+      "soldByRating": 4.8,
+      "originalPrice": 799,
+      "approvalStatus": "approved",
+      "discountPercent": 62,
+      "additionalDetails": [
+        {
+          "label": "Age Group",
+          "value": "1 to 5 Years"
+        },
+        {
+          "label": "Wash",
+          "value": "Machine Washable"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Fabric",
+          "value": "100% Skin-Friendly Cotton"
+        },
+        {
+          "label": "Closure",
+          "value": "Back Button"
+        },
+        {
+          "label": "Pattern",
+          "value": "Floral Printed"
+        }
+      ]
+    },
+    {
+      "id": "prod-ww-2",
+      "price": 699,
+      "stock": 130,
+      "title": "High-Waist Slim Fit Stretchable Denim Jeans",
+      "images": [
+        "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.8,
+      "soldBy": "Denim House India",
+      "category": "Women Western Wear",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 6,
+        "lastUpdated": "2026-09-04T03:51:40.950Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 5,
+      "sizeStock": {
+        "28": 30,
+        "30": 40,
+        "32": 40,
+        "34": 20
+      },
+      "description": "Comfortable high-rise stretch denim jeans designed with flattering fit and durable fade-resistant cotton denim.",
+      "ratingCount": 1620,
+      "reviewCount": 430,
+      "sizeOptions": [
+        "28",
+        "30",
+        "32",
+        "34"
+      ],
+      "subCategory": "Jeans & Jeggings",
+      "soldByRating": 4.8,
+      "originalPrice": 1599,
+      "approvalStatus": "approved",
+      "discountPercent": 56,
+      "additionalDetails": [
+        {
+          "label": "Closure",
+          "value": "Button and Zip"
+        },
+        {
+          "label": "Stretch",
+          "value": "4-Way Stretch"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Rise",
+          "value": "High Rise"
+        },
+        {
+          "label": "Fabric",
+          "value": "Cotton Lycra Stretch"
+        },
+        {
+          "label": "Pocket",
+          "value": "5 Pocket Styling"
+        }
+      ]
+    },
+    {
+      "id": "prod-me-2",
+      "price": 2499,
+      "stock": 40,
+      "title": "Royal Wedding Sherwani with Intricate Hand Embroidery",
+      "images": [
+        "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.9,
+      "soldBy": "Delhi Heritage Weaves",
+      "category": "Men Ethnic Wear",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:04.708Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 8,
+      "sizeStock": {
+        "38": 10,
+        "40": 15,
+        "42": 10,
+        "44": 5
+      },
+      "description": "Magnificent groom sherwani featuring regal metallic button detailing and delicate thread work embroidery.",
+      "ratingCount": 640,
+      "reviewCount": 180,
+      "sizeOptions": [
+        "38",
+        "40",
+        "42",
+        "44"
+      ],
+      "subCategory": "Designer Kurtis",
+      "soldByRating": 4.9,
+      "originalPrice": 5999,
+      "approvalStatus": "approved",
+      "discountPercent": 58,
+      "additionalDetails": [
+        {
+          "label": "Included",
+          "value": "Sherwani Only"
+        },
+        {
+          "label": "Dry Clean",
+          "value": "Specialized Dry Clean Only"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Fabric",
+          "value": "Brocade Silk"
+        },
+        {
+          "label": "Embroidery",
+          "value": "Zardozi & Resham"
+        },
+        {
+          "label": "Occasion",
+          "value": "Reception & Wedding"
+        }
+      ]
+    },
+    {
+      "id": "prod-aa-3",
+      "price": 399,
+      "stock": 115,
+      "title": "Universal Waterproof Car Mobile Dashboard Mount Holder",
+      "images": [
+        "https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.7,
+      "soldBy": "DriveSafe Accessories",
+      "category": "Automotive Accessories",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:03.749Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 51,
+      "sizeStock": {
+        "Standard Mount": 115
+      },
+      "description": "One-touch lock and release 360-degree rotating car phone mount with strong suction cup and dashboard sticky gel pad.",
+      "ratingCount": 1650,
+      "reviewCount": 440,
+      "sizeOptions": [
+        "Standard Mount"
+      ],
+      "subCategory": "General",
       "soldByRating": 4.7,
       "originalPrice": 999,
       "approvalStatus": "approved",
       "discountPercent": 60,
       "additionalDetails": [
         {
-          "label": "Closure",
-          "value": "Button-Down"
+          "label": "One-Touch",
+          "value": "Easy Release Mechanism"
         },
         {
-          "label": "Sleeve",
-          "value": "Full Sleeve"
+          "label": "Stability",
+          "value": "Anti-Vibration Arm Lock"
         }
       ],
       "productHighlights": [
         {
-          "label": "Material",
-          "value": "100% Cotton"
+          "label": "Rotation",
+          "value": "360° Ball Joint Adjustment"
         },
         {
-          "label": "Fit",
-          "value": "Oversized Relaxed"
+          "label": "Mounting",
+          "value": "Dashboard & Windshield Mount"
+        },
+        {
+          "label": "Compatibility",
+          "value": "Fits All 4.0 to 6.8 inch Phones"
+        }
+      ]
+    },
+    {
+      "id": "prod-hk-2",
+      "price": 899,
+      "stock": 80,
+      "title": "Non-Stick Aluminium Fry Pan & Kadhai Cooking Set",
+      "images": [
+        "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.7,
+      "soldBy": "KitchenKing Appliances",
+      "category": "Home & Kitchen Decor",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:09.712Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
+      },
+      "numericId": 29,
+      "sizeStock": {
+        "Standard Set": 80
+      },
+      "description": "Heavy gauge 3-layer non-stick cookware set with cool-touch handles for healthy, oil-free daily cooking.",
+      "ratingCount": 1920,
+      "reviewCount": 510,
+      "sizeOptions": [
+        "Standard Set"
+      ],
+      "subCategory": "Kitchenware & Dining",
+      "soldByRating": 4.7,
+      "originalPrice": 2299,
+      "approvalStatus": "approved",
+      "discountPercent": 60,
+      "additionalDetails": [
+        {
+          "label": "PFOA Free",
+          "value": "100% Safe & Nontoxic"
+        },
+        {
+          "label": "Warranty",
+          "value": "1 Year"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Coating",
+          "value": "German 3-Layer Non-Stick"
+        },
+        {
+          "label": "Compatibility",
+          "value": "Gas & Induction Compatible"
+        },
+        {
+          "label": "Set",
+          "value": "Fry Pan + Kadhai with Glass Lid"
+        }
+      ]
+    },
+    {
+      "id": "prod-me-3",
+      "price": 699,
+      "stock": 95,
+      "title": "Casual Cotton Pathani Kurta and Salwar Set",
+      "images": [
+        "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.7,
+      "soldBy": "Punjab Traditional Hub",
+      "category": "Men Ethnic Wear",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 6,
+        "lastUpdated": "2026-09-04T03:51:40.386Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 9,
+      "sizeStock": {
+        "L": 25,
+        "M": 25,
+        "S": 20,
+        "XL": 15,
+        "XXL": 10
+      },
+      "description": "Rugged yet refined 100% pure cotton Pathani suit designed for comfortable daily wear and festive gatherings.",
+      "ratingCount": 820,
+      "reviewCount": 210,
+      "sizeOptions": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "subCategory": "Designer Kurtis",
+      "soldByRating": 4.7,
+      "originalPrice": 1599,
+      "approvalStatus": "approved",
+      "discountPercent": 56,
+      "additionalDetails": [
+        {
+          "label": "Closure",
+          "value": "Front Placket Buttons"
+        },
+        {
+          "label": "Wash",
+          "value": "Machine Washable"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Fabric",
+          "value": "100% Heavy Cotton"
+        },
+        {
+          "label": "Pocket",
+          "value": "Dual Chest Pockets"
+        },
+        {
+          "label": "Bottom",
+          "value": "Matching Salwar"
+        }
+      ]
+    },
+    {
+      "id": "prod-fw-1",
+      "price": 699,
+      "stock": 140,
+      "title": "Men Lightweight Running & Walking Sports Shoes",
+      "images": [
+        "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.7,
+      "soldBy": "Agra Footwear Hub",
+      "category": "Footwear & Shoes",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:05.553Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 16,
+      "sizeStock": {
+        "UK 7": 30,
+        "UK 8": 50,
+        "UK 9": 40,
+        "UK 10": 20
+      },
+      "description": "Engineered mesh running shoes featuring shock-absorbing cushion sole and breathable upper for daily workouts.",
+      "ratingCount": 3200,
+      "reviewCount": 890,
+      "sizeOptions": [
+        "UK 7",
+        "UK 8",
+        "UK 9",
+        "UK 10"
+      ],
+      "subCategory": "Casual Sneakers",
+      "soldByRating": 4.8,
+      "originalPrice": 1999,
+      "approvalStatus": "approved",
+      "discountPercent": 65,
+      "additionalDetails": [
+        {
+          "label": "Closure",
+          "value": "Lace-Up"
+        },
+        {
+          "label": "Warranty",
+          "value": "3 Months Manufacturer"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Sole",
+          "value": "Phylon Lightweight Cushion"
+        },
+        {
+          "label": "Upper",
+          "value": "Breathable Knitted Mesh"
+        },
+        {
+          "label": "Usage",
+          "value": "Running & Gym"
+        }
+      ]
+    },
+    {
+      "id": "prod-we-1",
+      "price": 499,
+      "stock": 120,
+      "title": "Royal Embroidered Rayon Anarkali Kurti Set with Dupatta",
+      "images": [
+        "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.8,
+      "soldBy": "Surat Silk Mills & Weavers",
+      "category": "Women Ethnic Wear",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:06.686Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 1,
+      "sizeStock": {
+        "L": 30,
+        "M": 30,
+        "S": 20,
+        "XL": 20,
+        "XXL": 20
+      },
+      "description": "Exquisite festive wear Anarkali kurti crafted from premium rayon fabric with intricate zari embroidery and matching dupatta.",
+      "ratingCount": 1420,
+      "reviewCount": 380,
+      "sizeOptions": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "subCategory": "Designer Kurtis",
+      "soldByRating": 4.9,
+      "originalPrice": 1299,
+      "approvalStatus": "approved",
+      "discountPercent": 61,
+      "additionalDetails": [
+        {
+          "label": "Pack Contains",
+          "value": "1 Kurti, 1 Bottom, 1 Dupatta"
+        },
+        {
+          "label": "Wash Care",
+          "value": "Gentle Machine Wash"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Fabric",
+          "value": "100% Pure Rayon"
+        },
+        {
+          "label": "Work",
+          "value": "Zari Embroidery"
+        },
+        {
+          "label": "Occasion",
+          "value": "Festive & Wedding"
+        }
+      ]
+    },
+    {
+      "id": "prod-mw-1",
+      "price": 449,
+      "stock": 160,
+      "title": "Premium Slim Fit Cotton Casual Shirt for Men",
+      "images": [
+        "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=800"
+      ],
+      "rating": 4.7,
+      "soldBy": "Tirupur Garments Direct",
+      "category": "Men Western & Casuals",
+      "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:04.183Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
+      "numericId": 10,
+      "sizeStock": {
+        "L": 40,
+        "M": 50,
+        "S": 30,
+        "XL": 30,
+        "XXL": 10
+      },
+      "description": "Crisp and durable solid cotton casual shirt tailored in modern slim fit. Ideal for office and weekend outings.",
+      "ratingCount": 1890,
+      "reviewCount": 450,
+      "sizeOptions": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "subCategory": "Casual Shirts",
+      "soldByRating": 4.8,
+      "originalPrice": 1199,
+      "approvalStatus": "approved",
+      "discountPercent": 62,
+      "additionalDetails": [
+        {
+          "label": "Sleeve",
+          "value": "Full Sleeves"
         },
         {
           "label": "Pattern",
-          "value": "Classic Checkered"
+          "value": "Solid Color"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Fabric",
+          "value": "Combed Cotton"
+        },
+        {
+          "label": "Fit",
+          "value": "Slim Fit"
+        },
+        {
+          "label": "Collar",
+          "value": "Button-Down Collar"
         }
       ]
     },
@@ -1177,6 +3662,14 @@
       "soldBy": "Apex Apparel Manufacturers",
       "category": "Men Western & Casuals",
       "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:06.393Z",
+        "blockedViews": 0,
+        "blockedImpressions": 0
+      },
       "numericId": 11,
       "sizeStock": {
         "L": 50,
@@ -1238,6 +3731,14 @@
       "soldBy": "Metro Footwear Direct",
       "category": "Footwear & Shoes",
       "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:06.022Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
+      },
       "numericId": 18,
       "sizeStock": {
         "UK 7": 25,
@@ -1285,1187 +3786,6 @@
       ]
     },
     {
-      "id": "prod-bl-1",
-      "price": 699,
-      "stock": 90,
-      "title": "Premium PU Leather Casual Handbag & Sling Bag Combo",
-      "images": [
-        "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.8,
-      "soldBy": "Delhi Leather Works",
-      "category": "Bags & Luggage",
-      "variants": [],
-      "numericId": 25,
-      "sizeStock": {
-        "Standard": 90
-      },
-      "description": "Stylish structured handbag crafted from durable PU leather with spacious compartments and detachable sling strap.",
-      "ratingCount": 1420,
-      "reviewCount": 380,
-      "sizeOptions": [
-        "Standard"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.8,
-      "originalPrice": 1899,
-      "approvalStatus": "approved",
-      "discountPercent": 63,
-      "additionalDetails": [
-        {
-          "label": "Closure",
-          "value": "Zip Closure"
-        },
-        {
-          "label": "Water Resistant",
-          "value": "Yes"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Material",
-          "value": "Premium Vegan PU Leather"
-        },
-        {
-          "label": "Compartments",
-          "value": "3 Zipped Compartments"
-        },
-        {
-          "label": "Set",
-          "value": "Handbag + Matching Sling Pouch"
-        }
-      ]
-    },
-    {
-      "id": "prod-watch-fogg",
-      "tag": "Trending",
-      "price": 249,
-      "title": "Fogg Modern Men Analog Watch - Unique Hexagonal Casing",
-      "images": [
-        "https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1539874754764-5a96559165b0?auto=format&fit=crop&q=80&w=600"
-      ],
-      "rating": 3.9,
-      "soldBy": "FOGG_RETAILERS",
-      "reviews": [],
-      "category": "Men",
-      "codPrice": 282,
-      "variants": [
-        {
-          "price": 249,
-          "imageUrl": "https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?auto=format&fit=crop&q=80&w=600",
-          "colorName": "Fogg Charcoal",
-          "originalPrice": 337
-        }
-      ],
-      "analytics": {
-        "views": 0,
-        "cartAdds": 0,
-        "impressions": 2,
-        "lastUpdated": "2026-09-01T16:39:32.856Z",
-        "blockedViews": 0,
-        "blockedImpressions": 1
-      },
-      "numericId": 13,
-      "description": "Stand out from the crowd with Fogg Modern watch. It features an exquisite dark dial face, designer hour indicators, and a solid premium strap.",
-      "hasUpiOffer": true,
-      "ratingCount": 751,
-      "reviewCount": 240,
-      "sizeOptions": [
-        "Free Size"
-      ],
-      "subCategory": "Watches",
-      "soldByRating": 4.2,
-      "originalPrice": 337,
-      "approvalStatus": "approved",
-      "discountPercent": 26,
-      "additionalDetails": [
-        {
-          "label": "Net Quantity",
-          "value": "1 Piece"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Strap Material",
-          "value": "Genuine Leather Mix"
-        },
-        {
-          "label": "Dial Shape",
-          "value": "Hexagon"
-        }
-      ]
-    },
-    {
-      "id": "prod-ww-2",
-      "price": 699,
-      "stock": 130,
-      "title": "High-Waist Slim Fit Stretchable Denim Jeans",
-      "images": [
-        "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.8,
-      "soldBy": "Denim House India",
-      "category": "Women Western Wear",
-      "variants": [],
-      "numericId": 5,
-      "sizeStock": {
-        "28": 30,
-        "30": 40,
-        "32": 40,
-        "34": 20
-      },
-      "description": "Comfortable high-rise stretch denim jeans designed with flattering fit and durable fade-resistant cotton denim.",
-      "ratingCount": 1620,
-      "reviewCount": 430,
-      "sizeOptions": [
-        "28",
-        "30",
-        "32",
-        "34"
-      ],
-      "subCategory": "Jeans & Jeggings",
-      "soldByRating": 4.8,
-      "originalPrice": 1599,
-      "approvalStatus": "approved",
-      "discountPercent": 56,
-      "additionalDetails": [
-        {
-          "label": "Closure",
-          "value": "Button and Zip"
-        },
-        {
-          "label": "Stretch",
-          "value": "4-Way Stretch"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Rise",
-          "value": "High Rise"
-        },
-        {
-          "label": "Fabric",
-          "value": "Cotton Lycra Stretch"
-        },
-        {
-          "label": "Pocket",
-          "value": "5 Pocket Styling"
-        }
-      ]
-    },
-    {
-      "id": "prod-mw-3",
-      "price": 599,
-      "stock": 115,
-      "title": "Stretchable Multi-Pocket Cargo Jogger Pants",
-      "images": [
-        "https://images.unsplash.com/photo-1517445312882-bc9910d016b7?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.7,
-      "soldBy": "Urban Streetwear Hub",
-      "category": "Men Western & Casuals",
-      "variants": [],
-      "numericId": 12,
-      "sizeStock": {
-        "L": 35,
-        "M": 40,
-        "S": 25,
-        "XL": 15
-      },
-      "description": "Modern utility cargo joggers crafted with stretch cotton twill fabric, elastic waistband, and deep secure pockets.",
-      "ratingCount": 1320,
-      "reviewCount": 340,
-      "sizeOptions": [
-        "S",
-        "M",
-        "L",
-        "XL"
-      ],
-      "subCategory": "Formal Trousers",
-      "soldByRating": 4.7,
-      "originalPrice": 1499,
-      "approvalStatus": "approved",
-      "discountPercent": 60,
-      "additionalDetails": [
-        {
-          "label": "Fit",
-          "value": "Tapered Jogger Fit"
-        },
-        {
-          "label": "Care",
-          "value": "Gentle Wash"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Fabric",
-          "value": "Cotton Twill with Elastane"
-        },
-        {
-          "label": "Pockets",
-          "value": "6 Functional Pockets"
-        },
-        {
-          "label": "Waist",
-          "value": "Elasticated with Drawstring"
-        }
-      ]
-    },
-    {
-      "id": "prod-jw-1",
-      "price": 699,
-      "stock": 80,
-      "title": "Gold-Plated Kundan Choker Necklace Set with Earrings",
-      "images": [
-        "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.8,
-      "soldBy": "Jaipur Royal Jewelers",
-      "category": "Jewellery & Ornaments",
-      "variants": [],
-      "numericId": 19,
-      "sizeStock": {
-        "Standard": 80
-      },
-      "description": "Regal bridal Kundan choker necklace set adorned with sparkling faux pearls and matching jhumka earrings.",
-      "ratingCount": 1650,
-      "reviewCount": 420,
-      "sizeOptions": [
-        "Standard"
-      ],
-      "subCategory": "Kundan & Gold Necklaces",
-      "soldByRating": 4.9,
-      "originalPrice": 2499,
-      "approvalStatus": "approved",
-      "discountPercent": 72,
-      "additionalDetails": [
-        {
-          "label": "Skin Friendly",
-          "value": "Hypoallergenic & Nickel Free"
-        },
-        {
-          "label": "Occasion",
-          "value": "Wedding & Festivals"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Plating",
-          "value": "22K Glossy Gold Plated"
-        },
-        {
-          "label": "Stones",
-          "value": "Simulated Kundan & Pearls"
-        },
-        {
-          "label": "Set Includes",
-          "value": "1 Necklace & 1 Pair Earrings"
-        }
-      ]
-    },
-    {
-      "id": "prod-watch-voguish",
-      "tag": "Budget Pick",
-      "price": 85,
-      "title": "Voguish Men Analog Watches with Minimal Black Dial Face",
-      "images": [
-        "https://images.unsplash.com/photo-1542496658-e33a6d0d50f6?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&q=80&w=600"
-      ],
-      "rating": 4.1,
-      "soldBy": "VOGUE_TRENDS",
-      "reviews": [],
-      "category": "Men",
-      "codPrice": 116,
-      "variants": [
-        {
-          "price": 85,
-          "imageUrl": "https://images.unsplash.com/photo-1542496658-e33a6d0d50f6?auto=format&fit=crop&q=80&w=600",
-          "colorName": "Voguish Matte Black",
-          "originalPrice": 145
-        }
-      ],
-      "analytics": {
-        "views": 0,
-        "cartAdds": 0,
-        "impressions": 2,
-        "lastUpdated": "2026-09-01T16:39:33.070Z",
-        "blockedViews": 0,
-        "blockedImpressions": 1
-      },
-      "numericId": 16,
-      "description": "Sleek and clean design for those who love minimalism. Perfectly matches both ethnic and casual outfits.",
-      "hasUpiOffer": true,
-      "ratingCount": 161,
-      "reviewCount": 43,
-      "sizeOptions": [
-        "Free Size"
-      ],
-      "subCategory": "Watches",
-      "soldByRating": 4,
-      "originalPrice": 145,
-      "approvalStatus": "approved",
-      "discountPercent": 41,
-      "additionalDetails": [
-        {
-          "label": "Warranty",
-          "value": "No Warranty"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Strap Material",
-          "value": "Silicon Strap"
-        }
-      ]
-    },
-    {
-      "id": "prod-bl-2",
-      "price": 799,
-      "stock": 120,
-      "title": "Durable Water-Resistant Laptop Backpack (15.6 Inch)",
-      "images": [
-        "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.9,
-      "soldBy": "Apex Travel Gear",
-      "category": "Bags & Luggage",
-      "variants": [],
-      "numericId": 26,
-      "sizeStock": {
-        "Standard 30L": 120
-      },
-      "description": "Ergonomic business laptop backpack with USB charging port, padded shoulder straps, and multi-utility organizer pockets.",
-      "ratingCount": 3100,
-      "reviewCount": 840,
-      "sizeOptions": [
-        "Standard 30L"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.9,
-      "originalPrice": 1999,
-      "approvalStatus": "approved",
-      "discountPercent": 60,
-      "additionalDetails": [
-        {
-          "label": "Capacity",
-          "value": "30 Liters"
-        },
-        {
-          "label": "Warranty",
-          "value": "1 Year Manufacturer"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Laptop Capacity",
-          "value": "Up to 15.6 Inches"
-        },
-        {
-          "label": "Fabric",
-          "value": "Water-Repellent Polyester"
-        },
-        {
-          "label": "Special Feature",
-          "value": "Integrated USB Charging Port"
-        }
-      ]
-    },
-    {
-      "id": "prod-kb-1",
-      "price": 299,
-      "stock": 90,
-      "title": "Cute Cotton Printed Frock for Baby Girls",
-      "images": [
-        "https://images.unsplash.com/photo-1514090458221-65bb69cf63e6?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.8,
-      "soldBy": "Tiny Tots Garments",
-      "category": "Kids & Baby Wear",
-      "variants": [],
-      "numericId": 13,
-      "sizeStock": {
-        "1-2Y": 20,
-        "2-3Y": 30,
-        "3-4Y": 25,
-        "4-5Y": 15
-      },
-      "description": "Adorable and soft breathable cotton frock featuring cheerful floral prints and comfortable flare for little girls.",
-      "ratingCount": 920,
-      "reviewCount": 240,
-      "sizeOptions": [
-        "1-2Y",
-        "2-3Y",
-        "3-4Y",
-        "4-5Y"
-      ],
-      "subCategory": "Girls Lehengas",
-      "soldByRating": 4.8,
-      "originalPrice": 799,
-      "approvalStatus": "approved",
-      "discountPercent": 62,
-      "additionalDetails": [
-        {
-          "label": "Age Group",
-          "value": "1 to 5 Years"
-        },
-        {
-          "label": "Wash",
-          "value": "Machine Washable"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Fabric",
-          "value": "100% Skin-Friendly Cotton"
-        },
-        {
-          "label": "Closure",
-          "value": "Back Button"
-        },
-        {
-          "label": "Pattern",
-          "value": "Floral Printed"
-        }
-      ]
-    },
-    {
-      "id": "prod-jw-2",
-      "price": 349,
-      "stock": 110,
-      "title": "Traditional Antique Temple Design Mangalsutra",
-      "images": [
-        "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.7,
-      "soldBy": "South India Gold Covering",
-      "category": "Jewellery & Ornaments",
-      "variants": [],
-      "numericId": 20,
-      "sizeStock": {
-        "Standard": 110
-      },
-      "description": "Classic black bead chain with intricate antique gold goddess Lakshmi pendant for traditional married women.",
-      "ratingCount": 940,
-      "reviewCount": 260,
-      "sizeOptions": [
-        "Standard"
-      ],
-      "subCategory": "Kundan & Gold Necklaces",
-      "soldByRating": 4.8,
-      "originalPrice": 999,
-      "approvalStatus": "approved",
-      "discountPercent": 65,
-      "additionalDetails": [
-        {
-          "label": "Closure",
-          "value": "S-Hook"
-        },
-        {
-          "label": "Care",
-          "value": "Keep Away from Perfume & Water"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Chain Length",
-          "value": "24 Inches"
-        },
-        {
-          "label": "Design",
-          "value": "Temple Antique Finish"
-        },
-        {
-          "label": "Durability",
-          "value": "Long Lasting Anti-Tarnish"
-        }
-      ]
-    },
-    {
-      "id": "prod-bl-3",
-      "price": 1899,
-      "stock": 50,
-      "title": "Travel Friendly Lightweight Cabin Hard Trolley Suitcase (20 Inch)",
-      "images": [
-        "https://images.unsplash.com/photo-1581557991964-125469da3b8a?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.8,
-      "soldBy": "Voyager Luggage Co.",
-      "category": "Bags & Luggage",
-      "variants": [],
-      "numericId": 27,
-      "sizeStock": {
-        "20 Inch Cabin": 50
-      },
-      "description": "Scratch-resistant polycarbonate hard-sided cabin luggage featuring 360-degree silent spinner wheels and TSA lock.",
-      "ratingCount": 980,
-      "reviewCount": 290,
-      "sizeOptions": [
-        "20 Inch Cabin"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.8,
-      "originalPrice": 4999,
-      "approvalStatus": "approved",
-      "discountPercent": 62,
-      "additionalDetails": [
-        {
-          "label": "Size",
-          "value": "Cabin Size (20 Inch)"
-        },
-        {
-          "label": "Warranty",
-          "value": "3 Years International"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Shell Material",
-          "value": "Polycarbonate Hard Shell"
-        },
-        {
-          "label": "Wheels",
-          "value": "4 Silent 360° Spinner Wheels"
-        },
-        {
-          "label": "Lock",
-          "value": "Built-in Number Combination Lock"
-        }
-      ]
-    },
-    {
-      "id": "prod-ww-3",
-      "price": 799,
-      "stock": 85,
-      "title": "Elegant Pleated Midi Dress with Belt",
-      "images": [
-        "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.7,
-      "soldBy": "Blossom Apparel Co.",
-      "category": "Women Western Wear",
-      "variants": [],
-      "analytics": {
-        "views": 0,
-        "cartAdds": 0,
-        "impressions": 1,
-        "lastUpdated": "2026-09-02T04:53:15.146Z",
-        "blockedViews": 0,
-        "blockedImpressions": 0
-      },
-      "numericId": 6,
-      "sizeStock": {
-        "L": 25,
-        "M": 30,
-        "S": 20,
-        "XL": 10
-      },
-      "description": "Chic pleated midi dress featuring flattering waist belt and premium fluid fabric for evening parties and outings.",
-      "ratingCount": 890,
-      "reviewCount": 210,
-      "sizeOptions": [
-        "S",
-        "M",
-        "L",
-        "XL"
-      ],
-      "subCategory": "Western Dresses",
-      "soldByRating": 4.7,
-      "originalPrice": 1999,
-      "approvalStatus": "approved",
-      "discountPercent": 60,
-      "additionalDetails": [
-        {
-          "label": "Neckline",
-          "value": "V-Neck"
-        },
-        {
-          "label": "Occasion",
-          "value": "Party & Casual"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Fabric",
-          "value": "Poly Crepe"
-        },
-        {
-          "label": "Length",
-          "value": "Midi Length"
-        },
-        {
-          "label": "Accessory",
-          "value": "Matching Waist Belt Included"
-        }
-      ]
-    },
-    {
-      "id": "prod-me-1",
-      "price": 749,
-      "stock": 100,
-      "title": "Festive Silk Blend Jacquard Kurta Pajama Set for Men",
-      "images": [
-        "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.8,
-      "soldBy": "Royal Ethnic Studio",
-      "category": "Men Ethnic Wear",
-      "variants": [],
-      "numericId": 7,
-      "sizeStock": {
-        "38": 25,
-        "40": 35,
-        "42": 25,
-        "44": 15
-      },
-      "description": "Traditional yet modern jacquard woven silk blend kurta paired with comfortable cotton churidar pajama.",
-      "ratingCount": 1120,
-      "reviewCount": 295,
-      "sizeOptions": [
-        "38",
-        "40",
-        "42",
-        "44"
-      ],
-      "subCategory": "Silk & Banarasi Sarees",
-      "soldByRating": 4.9,
-      "originalPrice": 1899,
-      "approvalStatus": "approved",
-      "discountPercent": 60,
-      "additionalDetails": [
-        {
-          "label": "Fit Type",
-          "value": "Regular Fit"
-        },
-        {
-          "label": "Care",
-          "value": "Dry Clean Recommended"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Fabric",
-          "value": "Silk Blend Jacquard"
-        },
-        {
-          "label": "Set Includes",
-          "value": "Kurta & Pajama"
-        },
-        {
-          "label": "Collar",
-          "value": "Mandarin Collar"
-        }
-      ]
-    },
-    {
-      "id": "prod-kb-2",
-      "price": 499,
-      "stock": 75,
-      "title": "Festive Ethnic Kurta Dhoti Set for Boys",
-      "images": [
-        "https://images.unsplash.com/photo-1503944583220-7eeecac9c68c?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1514090458221-65bb69cf63e6?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.9,
-      "soldBy": "Kids Ethnic Studio",
-      "category": "Kids & Baby Wear",
-      "variants": [],
-      "numericId": 14,
-      "sizeStock": {
-        "2-3Y": 20,
-        "3-4Y": 25,
-        "4-5Y": 20,
-        "5-6Y": 10
-      },
-      "description": "Traditional yet comfortable cotton silk kurta paired with dhoti pants for baby boys during festive celebrations.",
-      "ratingCount": 780,
-      "reviewCount": 195,
-      "sizeOptions": [
-        "2-3Y",
-        "3-4Y",
-        "4-5Y",
-        "5-6Y"
-      ],
-      "subCategory": "Boys Festive Wear",
-      "soldByRating": 4.9,
-      "originalPrice": 1299,
-      "approvalStatus": "approved",
-      "discountPercent": 61,
-      "additionalDetails": [
-        {
-          "label": "Age Group",
-          "value": "2 to 6 Years"
-        },
-        {
-          "label": "Care",
-          "value": "Gentle Hand Wash"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Fabric",
-          "value": "Cotton Silk Blend"
-        },
-        {
-          "label": "Set",
-          "value": "Kurta with Attached Dhoti"
-        },
-        {
-          "label": "Skin Safe",
-          "value": "Hypoallergenic Dyes"
-        }
-      ]
-    },
-    {
-      "id": "prod-jw-3",
-      "price": 499,
-      "stock": 75,
-      "title": "925 Sterling Silver Sparkling Zircon Solitaire Ring",
-      "images": [
-        "https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.9,
-      "soldBy": "Silver Shine Creations",
-      "category": "Jewellery & Ornaments",
-      "variants": [],
-      "numericId": 21,
-      "sizeStock": {
-        "US 6": 15,
-        "US 7": 25,
-        "US 8": 25,
-        "US 9": 10
-      },
-      "description": "Elegant sterling silver ring featuring brilliant cut AAA+ zircon crystal with high polish platinum finish.",
-      "ratingCount": 1280,
-      "reviewCount": 345,
-      "sizeOptions": [
-        "US 6",
-        "US 7",
-        "US 8",
-        "US 9"
-      ],
-      "subCategory": "Kundan & Gold Necklaces",
-      "soldByRating": 4.9,
-      "originalPrice": 1599,
-      "approvalStatus": "approved",
-      "discountPercent": 68,
-      "additionalDetails": [
-        {
-          "label": "Certification",
-          "value": "Authenticity Certificate Included"
-        },
-        {
-          "label": "Gift Box",
-          "value": "Includes Velvet Gift Box"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Metal",
-          "value": "925 Sterling Silver"
-        },
-        {
-          "label": "Stone",
-          "value": "AAA+ Austrian Zircon"
-        },
-        {
-          "label": "Finish",
-          "value": "Rhodium Anti-Tarnish"
-        }
-      ]
-    },
-    {
-      "id": "prod-hk-1",
-      "price": 599,
-      "stock": 130,
-      "title": "100% Cotton King Size Luxury Bedsheet with 2 Pillow Covers",
-      "images": [
-        "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.8,
-      "soldBy": "Panipat Handloom Direct",
-      "category": "Home & Kitchen Decor",
-      "variants": [],
-      "analytics": {
-        "views": 0,
-        "cartAdds": 0,
-        "impressions": 1,
-        "lastUpdated": "2026-09-02T04:48:01.734Z",
-        "blockedViews": 0,
-        "blockedImpressions": 0
-      },
-      "numericId": 28,
-      "sizeStock": {
-        "King Size": 130
-      },
-      "description": "Breathable high-thread-count pure cotton bedsheet with vibrant ethnic floral print that adds elegance to your bedroom.",
-      "ratingCount": 2800,
-      "reviewCount": 750,
-      "sizeOptions": [
-        "King Size"
-      ],
-      "subCategory": "Royal Bedding & Cushions",
-      "soldByRating": 4.9,
-      "originalPrice": 1599,
-      "approvalStatus": "approved",
-      "discountPercent": 62,
-      "additionalDetails": [
-        {
-          "label": "Fade Resistant",
-          "value": "Yes"
-        },
-        {
-          "label": "Wash Care",
-          "value": "Machine Washable"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Material",
-          "value": "100% Glace Cotton"
-        },
-        {
-          "label": "Dimensions",
-          "value": "108 x 108 Inches (King)"
-        },
-        {
-          "label": "Includes",
-          "value": "1 Bedsheet & 2 Pillow Covers"
-        }
-      ]
-    },
-    {
-      "id": "prod-hk-2",
-      "price": 899,
-      "stock": 80,
-      "title": "Non-Stick Aluminium Fry Pan & Kadhai Cooking Set",
-      "images": [
-        "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.7,
-      "soldBy": "KitchenKing Appliances",
-      "category": "Home & Kitchen Decor",
-      "variants": [],
-      "numericId": 29,
-      "sizeStock": {
-        "Standard Set": 80
-      },
-      "description": "Heavy gauge 3-layer non-stick cookware set with cool-touch handles for healthy, oil-free daily cooking.",
-      "ratingCount": 1920,
-      "reviewCount": 510,
-      "sizeOptions": [
-        "Standard Set"
-      ],
-      "subCategory": "Kitchenware & Dining",
-      "soldByRating": 4.7,
-      "originalPrice": 2299,
-      "approvalStatus": "approved",
-      "discountPercent": 60,
-      "additionalDetails": [
-        {
-          "label": "PFOA Free",
-          "value": "100% Safe & Nontoxic"
-        },
-        {
-          "label": "Warranty",
-          "value": "1 Year"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Coating",
-          "value": "German 3-Layer Non-Stick"
-        },
-        {
-          "label": "Compatibility",
-          "value": "Gas & Induction Compatible"
-        },
-        {
-          "label": "Set",
-          "value": "Fry Pan + Kadhai with Glass Lid"
-        }
-      ]
-    },
-    {
-      "id": "prod-ws-3",
-      "price": 799,
-      "stock": 85,
-      "title": "Minimalist Rose Gold Mesh Strap Watch for Women",
-      "images": [
-        "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.8,
-      "soldBy": "Chic Timepieces Co.",
-      "category": "Watches & Smartbands",
-      "variants": [],
-      "numericId": 36,
-      "sizeStock": {
-        "Standard": 85
-      },
-      "description": "Elegant minimalist women timepiece featuring sunray dial and rose gold adjustable mesh bracelet.",
-      "ratingCount": 1240,
-      "reviewCount": 340,
-      "sizeOptions": [
-        "Standard"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.8,
-      "originalPrice": 2299,
-      "approvalStatus": "approved",
-      "discountPercent": 65,
-      "additionalDetails": [
-        {
-          "label": "Clasp",
-          "value": "Hook Buckle"
-        },
-        {
-          "label": "Gift Box",
-          "value": "Included"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Strap",
-          "value": "Rose Gold Stainless Steel Mesh"
-        },
-        {
-          "label": "Dial Glass",
-          "value": "Mineral Hardened Crystal"
-        },
-        {
-          "label": "Style",
-          "value": "Formal & Casual Elegance"
-        }
-      ]
-    },
-    {
-      "id": "prod-bo-1",
-      "price": 299,
-      "stock": 160,
-      "title": "Premium Hardcover Ruled Journal & Notebook Diary",
-      "images": [
-        "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.8,
-      "soldBy": "Stationery King India",
-      "category": "Books & Office Supplies",
-      "variants": [],
-      "numericId": 43,
-      "sizeStock": {
-        "A5 Size": 160
-      },
-      "description": "Elegant executive notebook featuring fountain-pen friendly acid-free pages, ribbon bookmark, and elastic closure band.",
-      "ratingCount": 1540,
-      "reviewCount": 410,
-      "sizeOptions": [
-        "A5 Size"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.8,
-      "originalPrice": 699,
-      "approvalStatus": "approved",
-      "discountPercent": 57,
-      "additionalDetails": [
-        {
-          "label": "Size",
-          "value": "A5 Standard"
-        },
-        {
-          "label": "Pocket",
-          "value": "Expandable Inner Back Pocket"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Pages",
-          "value": "192 Ruled Pages"
-        },
-        {
-          "label": "Paper GSM",
-          "value": "100 GSM Natural Shade"
-        },
-        {
-          "label": "Binding",
-          "value": "Strong Smyth Sewn Hardbound"
-        }
-      ]
-    },
-    {
-      "id": "prod-aa-2",
-      "price": 249,
-      "stock": 200,
-      "title": "Premium Microfiber Cleaning Cloth Set for Car & Home (Pack of 4)",
-      "images": [
-        "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.9,
-      "soldBy": "CleanPro Automotive",
-      "category": "Automotive Accessories",
-      "variants": [],
-      "numericId": 50,
-      "sizeStock": {
-        "Pack of 4": 200
-      },
-      "description": "Ultra-absorbent lint-free 400GSM microfiber towels designed for streak-free car washing, polishing, and glass cleaning.",
-      "ratingCount": 3400,
-      "reviewCount": 920,
-      "sizeOptions": [
-        "Pack of 4"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.9,
-      "originalPrice": 599,
-      "approvalStatus": "approved",
-      "discountPercent": 58,
-      "additionalDetails": [
-        {
-          "label": "Scratch Free",
-          "value": "100% Safe on Paint & Glass"
-        },
-        {
-          "label": "Washable",
-          "value": "Machine Washable & Reusable"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Density",
-          "value": "400 GSM High Absorption"
-        },
-        {
-          "label": "Size",
-          "value": "40 x 40 cm Each"
-        },
-        {
-          "label": "Pack",
-          "value": "Set of 4 Assorted Colors"
-        }
-      ]
-    },
-    {
-      "id": "prod-hk-3",
-      "price": 399,
-      "stock": 100,
-      "title": "Modern Ceramic Table Vase for Living Room Decor",
-      "images": [
-        "https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.8,
-      "soldBy": "Artisan Home Decor",
-      "category": "Home & Kitchen Decor",
-      "variants": [],
-      "numericId": 30,
-      "sizeStock": {
-        "Standard": 100
-      },
-      "description": "Minimalist handcrafted ceramic vase designed to elevate home decor, living room shelves, and festive floral arrangements.",
-      "ratingCount": 740,
-      "reviewCount": 190,
-      "sizeOptions": [
-        "Standard"
-      ],
-      "subCategory": "Festive Home Decors",
-      "soldByRating": 4.8,
-      "originalPrice": 999,
-      "approvalStatus": "approved",
-      "discountPercent": 60,
-      "additionalDetails": [
-        {
-          "label": "Placement",
-          "value": "Living Room, Office, Dining"
-        },
-        {
-          "label": "Care",
-          "value": "Wipe with Damp Cloth"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Material",
-          "value": "High-Fired Ceramic"
-        },
-        {
-          "label": "Height",
-          "value": "8 Inches"
-        },
-        {
-          "label": "Finish",
-          "value": "Matte Glazed"
-        }
-      ]
-    },
-    {
-      "id": "prod-sg-1",
-      "price": 399,
-      "stock": 150,
-      "title": "Adjustable Resistance Rubber Exercise Toning Bands (Set of 5)",
-      "images": [
-        "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.8,
-      "soldBy": "FitPro Fitness Equipment",
-      "category": "Sports & Active Gym",
-      "variants": [],
-      "numericId": 37,
-      "sizeStock": {
-        "Standard Set": 150
-      },
-      "description": "Color-coded stackable resistance bands with door anchor, handles, and ankle straps for home gym workouts and physical therapy.",
-      "ratingCount": 2600,
-      "reviewCount": 710,
-      "sizeOptions": [
-        "Standard Set"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.8,
-      "originalPrice": 999,
-      "approvalStatus": "approved",
-      "discountPercent": 60,
-      "additionalDetails": [
-        {
-          "label": "Portability",
-          "value": "Includes Carry Pouch"
-        },
-        {
-          "label": "Usage",
-          "value": "Strength & Yoga Training"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Material",
-          "value": "100% Natural Malaysian Latex"
-        },
-        {
-          "label": "Resistance Levels",
-          "value": "10 lbs to 50 lbs Combined 150 lbs"
-        },
-        {
-          "label": "Kit Includes",
-          "value": "5 Bands, 2 Handles, Door Anchor, 2 Straps"
-        }
-      ]
-    },
-    {
       "id": "prod-bo-2",
       "price": 199,
       "stock": 220,
@@ -2478,6 +3798,14 @@
       "soldBy": "OfficeMart Supplies",
       "category": "Books & Office Supplies",
       "variants": [],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:08.386Z",
+        "blockedViews": 0,
+        "blockedImpressions": 1
+      },
       "numericId": 44,
       "sizeStock": {
         "Pack of 10": 220
@@ -2519,1045 +3847,119 @@
       ]
     },
     {
-      "id": "prod-aa-3",
-      "price": 399,
-      "stock": 115,
-      "title": "Universal Waterproof Car Mobile Dashboard Mount Holder",
+      "id": "prod-watch-voguish",
+      "tag": "Budget Pick",
+      "price": 85,
+      "title": "Voguish Men Analog Watches with Minimal Black Dial Face",
       "images": [
-        "https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.7,
-      "soldBy": "DriveSafe Accessories",
-      "category": "Automotive Accessories",
-      "variants": [],
-      "numericId": 51,
-      "sizeStock": {
-        "Standard Mount": 115
-      },
-      "description": "One-touch lock and release 360-degree rotating car phone mount with strong suction cup and dashboard sticky gel pad.",
-      "ratingCount": 1650,
-      "reviewCount": 440,
-      "sizeOptions": [
-        "Standard Mount"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.7,
-      "originalPrice": 999,
-      "approvalStatus": "approved",
-      "discountPercent": 60,
-      "additionalDetails": [
-        {
-          "label": "One-Touch",
-          "value": "Easy Release Mechanism"
-        },
-        {
-          "label": "Stability",
-          "value": "Anti-Vibration Arm Lock"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Rotation",
-          "value": "360° Ball Joint Adjustment"
-        },
-        {
-          "label": "Mounting",
-          "value": "Dashboard & Windshield Mount"
-        },
-        {
-          "label": "Compatibility",
-          "value": "Fits All 4.0 to 6.8 inch Phones"
-        }
-      ]
-    },
-    {
-      "id": "prod-em-1",
-      "price": 899,
-      "stock": 250,
-      "title": "Active Noise Cancelling Wireless Bluetooth Earbuds",
-      "images": [
-        "https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.8,
-      "soldBy": "TechNova Gadgets India",
-      "category": "Electronics & Mobiles",
-      "variants": [],
-      "numericId": 31,
-      "sizeStock": {
-        "Standard": 250
-      },
-      "description": "Immersive sound quality TWS earbuds featuring ENC mic, 40-hour playback with case, and ultra-low latency gaming mode.",
-      "ratingCount": 5400,
-      "reviewCount": 1420,
-      "sizeOptions": [
-        "Standard"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.8,
-      "originalPrice": 2999,
-      "approvalStatus": "approved",
-      "discountPercent": 70,
-      "additionalDetails": [
-        {
-          "label": "Water Resistance",
-          "value": "IPX5 Splashproof"
-        },
-        {
-          "label": "Warranty",
-          "value": "6 Months Replacement"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Bluetooth Version",
-          "value": "v5.3 Ultra Stable"
-        },
-        {
-          "label": "Playback",
-          "value": "Up to 40 Hours with Case"
-        },
-        {
-          "label": "Charging",
-          "value": "Type-C Fast Charge"
-        }
-      ]
-    },
-    {
-      "id": "prod-sg-2",
-      "price": 549,
-      "stock": 110,
-      "title": "Anti-Skid TPE Yoga Mat with Carrying Strap (6mm)",
-      "images": [
-        "https://images.unsplash.com/photo-1592432678016-e910b452f9a2?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.7,
-      "soldBy": "Zenith Sports & Yoga",
-      "category": "Sports & Active Gym",
-      "variants": [],
-      "numericId": 38,
-      "sizeStock": {
-        "Standard 6mm": 110
-      },
-      "description": "Eco-friendly dual-layer anti-slip yoga mat providing superior cushioning and joint protection for floor exercises and yoga.",
-      "ratingCount": 1890,
-      "reviewCount": 490,
-      "sizeOptions": [
-        "Standard 6mm"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.7,
-      "originalPrice": 1499,
-      "approvalStatus": "approved",
-      "discountPercent": 63,
-      "additionalDetails": [
-        {
-          "label": "Dimensions",
-          "value": "183 cm x 61 cm"
-        },
-        {
-          "label": "Strap",
-          "value": "Free Carrying Strap Included"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Thickness",
-          "value": "6mm High Density"
-        },
-        {
-          "label": "Material",
-          "value": "Eco-Friendly TPE Material"
-        },
-        {
-          "label": "Grip",
-          "value": "Double-Sided Anti-Skid Texture"
-        }
-      ]
-    },
-    {
-      "id": "prod-bo-3",
-      "price": 349,
-      "stock": 95,
-      "title": "Ergonomic Desktop Pen & Mobile Stand Organizer",
-      "images": [
-        "https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.8,
-      "soldBy": "Workspace Solutions",
-      "category": "Books & Office Supplies",
-      "variants": [],
-      "numericId": 45,
-      "sizeStock": {
-        "Standard": 95
-      },
-      "description": "Multi-compartment desk organizer crafted from sturdy wood and metal mesh to keep your workspace clutter-free.",
-      "ratingCount": 920,
-      "reviewCount": 250,
-      "sizeOptions": [
-        "Standard"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.8,
-      "originalPrice": 899,
-      "approvalStatus": "approved",
-      "discountPercent": 61,
-      "additionalDetails": [
-        {
-          "label": "Usage",
-          "value": "Study Desk, Office Table"
-        },
-        {
-          "label": "Assembly",
-          "value": "Pre-Assembled"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Compartments",
-          "value": "6 Multi-Size Slots"
-        },
-        {
-          "label": "Material",
-          "value": "Durable Metal Mesh & Wood"
-        },
-        {
-          "label": "Feature",
-          "value": "Integrated Mobile Phone Stand"
-        }
-      ]
-    },
-    {
-      "id": "prod-em-2",
-      "price": 999,
-      "stock": 140,
-      "title": "Fast Charging 20000mAh Power Bank with LED Display",
-      "images": [
-        "https://images.unsplash.com/photo-1609592424158-450f3835626a?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.9,
-      "soldBy": "PowerGrid Electronics",
-      "category": "Electronics & Mobiles",
-      "variants": [],
-      "numericId": 32,
-      "sizeStock": {
-        "20000mAh": 140
-      },
-      "description": "High-capacity dual USB output power bank with intelligent power distribution and digital percentage battery indicator.",
-      "ratingCount": 3800,
-      "reviewCount": 990,
-      "sizeOptions": [
-        "20000mAh"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.9,
-      "originalPrice": 2499,
-      "approvalStatus": "approved",
-      "discountPercent": 60,
-      "additionalDetails": [
-        {
-          "label": "Ports",
-          "value": "Dual USB-A & Type-C"
-        },
-        {
-          "label": "Safety",
-          "value": "9-Layer Circuit Protection"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Capacity",
-          "value": "20000 mAh Li-Polymer"
-        },
-        {
-          "label": "Output",
-          "value": "22.5W Fast Two-Way Charging"
-        },
-        {
-          "label": "Display",
-          "value": "Smart LED Battery Percentage"
-        }
-      ]
-    },
-    {
-      "id": "prod-sg-3",
-      "price": 349,
-      "stock": 130,
-      "title": "Professional Steel Shaker Bottle for Gym Protein (700ml)",
-      "images": [
-        "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.8,
-      "soldBy": "IronFlex Fitness Gear",
-      "category": "Sports & Active Gym",
-      "variants": [],
-      "numericId": 39,
-      "sizeStock": {
-        "700ml": 130
-      },
-      "description": "BPA-free stainless steel protein shaker bottle featuring wire mixing whisk ball and leak-proof secure flip cap.",
-      "ratingCount": 1450,
-      "reviewCount": 380,
-      "sizeOptions": [
-        "700ml"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.8,
-      "originalPrice": 899,
-      "approvalStatus": "approved",
-      "discountPercent": 61,
-      "additionalDetails": [
-        {
-          "label": "Leak Proof",
-          "value": "100% Leak-Proof Guarantee"
-        },
-        {
-          "label": "Odour Free",
-          "value": "Yes"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Material",
-          "value": "Food Grade 18/8 Stainless Steel"
-        },
-        {
-          "label": "Capacity",
-          "value": "700 ml"
-        },
-        {
-          "label": "Mixing",
-          "value": "Stainless Steel Whisk Ball"
-        }
-      ]
-    },
-    {
-      "id": "prod-gg-1",
-      "price": 399,
-      "stock": 150,
-      "title": "Premium Kashmiri Mongra Saffron Grade-1 (1g)",
-      "images": [
-        "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.9,
-      "soldBy": "Kashmir Valley Spices",
-      "category": "Grocery & Gourmet Food",
-      "variants": [],
-      "numericId": 46,
-      "sizeStock": {
-        "1 Gram": 150
-      },
-      "description": "100% pure hand-harvested Kashmiri saffron threads known for rich aroma, deep crimson color, and supreme culinary quality.",
-      "ratingCount": 1800,
-      "reviewCount": 490,
-      "sizeOptions": [
-        "1 Gram"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.9,
-      "originalPrice": 899,
-      "approvalStatus": "approved",
-      "discountPercent": 55,
-      "additionalDetails": [
-        {
-          "label": "Packaging",
-          "value": "Airtight Glass Vial"
-        },
-        {
-          "label": "Purity",
-          "value": "100% Lab Tested Pure"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Grade",
-          "value": "ISO Grade-1 Mongra Saffron"
-        },
-        {
-          "label": "Weight",
-          "value": "1 Gram"
-        },
-        {
-          "label": "Aroma",
-          "value": "Intense Natural Fragrance"
-        }
-      ]
-    },
-    {
-      "id": "prod-em-3",
-      "price": 499,
-      "stock": 110,
-      "title": "Ultra-Slim Portable Wireless Fast Charging Pad",
-      "images": [
-        "https://images.unsplash.com/photo-1586816879360-004f5b0c51e3?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.7,
-      "soldBy": "GadgetCraft Solutions",
-      "category": "Electronics & Mobiles",
-      "variants": [],
-      "numericId": 33,
-      "sizeStock": {
-        "Standard": 110
-      },
-      "description": "Qi-certified wireless charger pad with intelligent foreign object detection and LED sleep-friendly indicator.",
-      "ratingCount": 1150,
-      "reviewCount": 310,
-      "sizeOptions": [
-        "Standard"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.7,
-      "originalPrice": 1299,
-      "approvalStatus": "approved",
-      "discountPercent": 62,
-      "additionalDetails": [
-        {
-          "label": "Input Port",
-          "value": "USB Type-C"
-        },
-        {
-          "label": "Protection",
-          "value": "Over-Temperature Protection"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Output",
-          "value": "15W Max Fast Wireless Charge"
-        },
-        {
-          "label": "Compatibility",
-          "value": "All Qi-Enabled Phones & Earbuds"
-        },
-        {
-          "label": "Design",
-          "value": "Ultra-Slim Aluminum Alloy"
-        }
-      ]
-    },
-    {
-      "id": "prod-tb-1",
-      "price": 349,
-      "stock": 100,
-      "title": "Educational Wooden Alphabet & Number Puzzle Board",
-      "images": [
-        "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.9,
-      "soldBy": "EduPlay Toys India",
-      "category": "Toys, Games & Baby Care",
-      "variants": [],
-      "numericId": 40,
-      "sizeStock": {
-        "Standard Board": 100
-      },
-      "description": "Montessori wooden educational puzzle board featuring vibrant letters and numbers to stimulate early childhood learning.",
-      "ratingCount": 2100,
-      "reviewCount": 560,
-      "sizeOptions": [
-        "Standard Board"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.9,
-      "originalPrice": 899,
-      "approvalStatus": "approved",
-      "discountPercent": 61,
-      "additionalDetails": [
-        {
-          "label": "Safety Certified",
-          "value": "BIS Approved"
-        },
-        {
-          "label": "Smooth Edges",
-          "value": "Child-Safe Rounded Corners"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Material",
-          "value": "Natural Eco Wood with Non-Toxic Paint"
-        },
-        {
-          "label": "Skill Set",
-          "value": "Alphabet, Numbers & Motor Skills"
-        },
-        {
-          "label": "Age",
-          "value": "2 to 6 Years"
-        }
-      ]
-    },
-    {
-      "id": "prod-gg-2",
-      "price": 349,
-      "stock": 140,
-      "title": "Organic Raw Wild Forest Honey in Glass Jar (500g)",
-      "images": [
-        "https://images.unsplash.com/photo-1587049352847-4a222e784d38?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.8,
-      "soldBy": "NaturePure Organic Farms",
-      "category": "Grocery & Gourmet Food",
-      "variants": [],
-      "numericId": 47,
-      "sizeStock": {
-        "500g Jar": 140
-      },
-      "description": "Unprocessed, unfiltered raw wild honey collected directly from deep forest beehives retaining natural pollen and enzymes.",
-      "ratingCount": 3100,
-      "reviewCount": 840,
-      "sizeOptions": [
-        "500g Jar"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.8,
-      "originalPrice": 799,
-      "approvalStatus": "approved",
-      "discountPercent": 56,
-      "additionalDetails": [
-        {
-          "label": "Adulteration",
-          "value": "Zero Added Sugar or Syrup"
-        },
-        {
-          "label": "Shelf Life",
-          "value": "24 Months"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Weight",
-          "value": "500 grams"
-        },
-        {
-          "label": "Type",
-          "value": "100% Raw Unheated Honey"
-        },
-        {
-          "label": "Packaging",
-          "value": "Reusable Glass Jar"
-        }
-      ]
-    },
-    {
-      "id": "prod-ws-1",
-      "price": 899,
-      "stock": 95,
-      "title": "Luxury Golden Analog Quartz Wristwatch for Men",
-      "images": [
-        "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.8,
-      "soldBy": "Titanium Timepieces",
-      "category": "Watches & Smartbands",
-      "variants": [],
-      "numericId": 34,
-      "sizeStock": {
-        "Standard Dial": 95
-      },
-      "description": "Sophisticated golden stainless steel wrist watch with luminous hands, date display, and water resistance.",
-      "ratingCount": 2200,
-      "reviewCount": 590,
-      "sizeOptions": [
-        "Standard Dial"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.8,
-      "originalPrice": 2999,
-      "approvalStatus": "approved",
-      "discountPercent": 70,
-      "additionalDetails": [
-        {
-          "label": "Dial Shape",
-          "value": "Round"
-        },
-        {
-          "label": "Warranty",
-          "value": "1 Year Movement Warranty"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Movement",
-          "value": "Japanese Quartz"
-        },
-        {
-          "label": "Strap",
-          "value": "Stainless Steel Golden Mesh"
-        },
-        {
-          "label": "Water Resistance",
-          "value": "30 Meters (3 ATM)"
-        }
-      ]
-    },
-    {
-      "id": "prod-tb-2",
-      "price": 899,
-      "stock": 75,
-      "title": "Remote Control High-Speed Racing Monster Truck",
-      "images": [
-        "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.8,
-      "soldBy": "SpeedJoy Toys Hub",
-      "category": "Toys, Games & Baby Care",
-      "variants": [],
-      "numericId": 41,
-      "sizeStock": {
-        "Standard RC": 75
-      },
-      "description": "All-terrain rechargeable RC monster truck with shock-absorbing suspension and rugged anti-slip rubber tires.",
-      "ratingCount": 3400,
-      "reviewCount": 910,
-      "sizeOptions": [
-        "Standard RC"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.8,
-      "originalPrice": 2499,
-      "approvalStatus": "approved",
-      "discountPercent": 64,
-      "additionalDetails": [
-        {
-          "label": "Terrain",
-          "value": "Off-road, Sand, Grass"
-        },
-        {
-          "label": "Age",
-          "value": "6+ Years"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Scale",
-          "value": "1:18 High Speed RC"
-        },
-        {
-          "label": "Control",
-          "value": "2.4GHz Anti-Interference Remote"
-        },
-        {
-          "label": "Battery",
-          "value": "Rechargeable Battery Pack Included"
-        }
-      ]
-    },
-    {
-      "id": "prod-gg-3",
-      "price": 499,
-      "stock": 110,
-      "title": "Gourmet Roasted Cashews & Almonds Festive Gift Pack (400g)",
-      "images": [
-        "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.9,
-      "soldBy": "Royal Dry Fruits Hub",
-      "category": "Grocery & Gourmet Food",
-      "variants": [],
-      "numericId": 48,
-      "sizeStock": {
-        "400g Box": 110
-      },
-      "description": "Crunchy premium quality dry roasted almonds and cashews lightly salted in an elegant airtight festive gift box.",
-      "ratingCount": 2400,
-      "reviewCount": 650,
-      "sizeOptions": [
-        "400g Box"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.9,
-      "originalPrice": 1199,
-      "approvalStatus": "approved",
-      "discountPercent": 58,
-      "additionalDetails": [
-        {
-          "label": "Packaging",
-          "value": "Festive Gift Box"
-        },
-        {
-          "label": "Storage",
-          "value": "Store in Cool Dry Place"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Contents",
-          "value": "200g Almonds + 200g Cashews"
-        },
-        {
-          "label": "Quality",
-          "value": "Jumbo Size W320 & Calibre 27"
-        },
-        {
-          "label": "Occasion",
-          "value": "Festival Gifting & Healthy Snacking"
-        }
-      ]
-    },
-    {
-      "id": "prod-ws-2",
-      "price": 1499,
-      "stock": 160,
-      "title": "Bluetooth Calling AMOLED Smartwatch with Fitness Tracker",
-      "images": [
-        "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.9,
-      "soldBy": "SmartWear Innovations",
-      "category": "Watches & Smartbands",
-      "variants": [],
-      "numericId": 35,
-      "sizeStock": {
-        "Standard": 160
-      },
-      "description": "Feature-packed smartwatch with crisp AMOLED display, Bluetooth calling speaker, SpO2 monitoring, and 100+ sports modes.",
-      "ratingCount": 4800,
-      "reviewCount": 1350,
-      "sizeOptions": [
-        "Standard"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.9,
-      "originalPrice": 4999,
-      "approvalStatus": "approved",
-      "discountPercent": 70,
-      "additionalDetails": [
-        {
-          "label": "Battery Life",
-          "value": "Up to 7 Days"
-        },
-        {
-          "label": "App Support",
-          "value": "iOS & Android"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Display",
-          "value": "1.96\" HD AMOLED Always-On"
-        },
-        {
-          "label": "Calling",
-          "value": "Single-Chip Bluetooth Calling"
-        },
-        {
-          "label": "Health Sensors",
-          "value": "Heart Rate, SpO2 & Sleep Tracker"
-        }
-      ]
-    },
-    {
-      "id": "prod-tb-3",
-      "price": 699,
-      "stock": 90,
-      "title": "Soft Plush Teddy Bear Stuffed Toy (Large 60cm)",
-      "images": [
-        "https://images.unsplash.com/photo-1534349762230-e0cadfefcffc?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.9,
-      "soldBy": "CuddleCraft Toys",
-      "category": "Toys, Games & Baby Care",
-      "variants": [],
-      "numericId": 42,
-      "sizeStock": {
-        "60cm Large": 90
-      },
-      "description": "Extremely soft and cuddly plush teddy bear crafted with premium fur and hypoallergenic poly-fiber stuffing.",
-      "ratingCount": 4100,
-      "reviewCount": 1120,
-      "sizeOptions": [
-        "60cm Large"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.9,
-      "originalPrice": 1799,
-      "approvalStatus": "approved",
-      "discountPercent": 61,
-      "additionalDetails": [
-        {
-          "label": "Washable",
-          "value": "Surface Washable"
-        },
-        {
-          "label": "Gift Ready",
-          "value": "Perfect for Birthdays & Festivals"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Size",
-          "value": "60 cm (Large Height)"
-        },
-        {
-          "label": "Material",
-          "value": "Super Soft Velour Fur"
-        },
-        {
-          "label": "Stuffing",
-          "value": "100% Virgin Hollow Polyester"
-        }
-      ]
-    },
-    {
-      "id": "prod-aa-1",
-      "price": 299,
-      "stock": 130,
-      "title": "Dual USB Fast Car Charger with LED Voltage Display",
-      "images": [
-        "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&q=80&w=800"
-      ],
-      "rating": 4.8,
-      "soldBy": "AutoCraft Direct India",
-      "category": "Automotive Accessories",
-      "variants": [],
-      "numericId": 49,
-      "sizeStock": {
-        "Standard": 130
-      },
-      "description": "Smart multi-protection car charger with 3.1A fast dual USB ports and real-time car battery voltage digital monitor.",
-      "ratingCount": 1920,
-      "reviewCount": 510,
-      "sizeOptions": [
-        "Standard"
-      ],
-      "subCategory": "General",
-      "soldByRating": 4.8,
-      "originalPrice": 799,
-      "approvalStatus": "approved",
-      "discountPercent": 62,
-      "additionalDetails": [
-        {
-          "label": "Material",
-          "value": "Fireproof ABS + Aluminium"
-        },
-        {
-          "label": "Safety",
-          "value": "Short Circuit & Surge Protection"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Output",
-          "value": "Dual USB 5V/3.1A Fast Charge"
-        },
-        {
-          "label": "Display",
-          "value": "LED Battery Voltage Monitor"
-        },
-        {
-          "label": "Compatibility",
-          "value": "Universal 12V-24V Cars & SUVs"
-        }
-      ]
-    },
-    {
-      "id": "prod-kids-suit",
-      "tag": "Value Pack",
-      "price": 245,
-      "title": "Kids Soft Cotton T-Shirt & Shorts Set (Pack of 2 Sets)",
-      "images": [
-        "https://images.unsplash.com/photo-1519457431-44ccd64a579b?auto=format&fit=crop&q=80&w=600"
-      ],
-      "rating": 4.1,
-      "soldBy": "TINY_TOTS_APPAREL",
-      "reviews": [],
-      "category": "Kids & Toys",
-      "codPrice": 270,
-      "variants": [
-        {
-          "price": 245,
-          "imageUrl": "https://images.unsplash.com/photo-1519457431-44ccd64a579b?auto=format&fit=crop&q=80&w=600",
-          "colorName": "Yellow & Peach Mix",
-          "originalPrice": 490
-        }
-      ],
-      "analytics": {
-        "views": 1,
-        "cartAdds": 0,
-        "impressions": 8,
-        "lastUpdated": "2026-09-02T04:53:07.742Z",
-        "blockedViews": 1,
-        "blockedImpressions": 8
-      },
-      "numericId": 15,
-      "description": "Crafted with premium skin-friendly combed cotton, this pack includes two bright colored t-shirts and two comfortable active shorts for kids daily wear.",
-      "hasUpiOffer": true,
-      "ratingCount": 1450,
-      "reviewCount": 520,
-      "sizeOptions": [
-        "2-3 Years",
-        "3-4 Years",
-        "4-5 Years",
-        "5-6 Years"
-      ],
-      "subCategory": "Kids",
-      "soldByRating": 4.1,
-      "originalPrice": 490,
-      "approvalStatus": "approved",
-      "discountPercent": 50,
-      "additionalDetails": [
-        {
-          "label": "Ideal for",
-          "value": "Unisex Kids"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Material",
-          "value": "100% Breathable Cotton"
-        },
-        {
-          "label": "Pack of",
-          "value": "2 Sets"
-        }
-      ]
-    },
-    {
-      "id": "prod-watch-csamon",
-      "tag": "Top rated",
-      "isAd": true,
-      "price": 83,
-      "title": "CSAMON Fabulous Men Black Dial Analog Watch with Metal strap",
-      "images": [
-        "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1542496658-e33a6d0d50f6?auto=format&fit=crop&q=80&w=600",
         "https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&q=80&w=600"
       ],
-      "rating": 3.9,
-      "soldBy": "CSAMON_ENTERPRISE",
-      "reviews": [
-        {
-          "id": "rev-cs-1",
-          "title": "Good watch",
-          "images": [],
-          "rating": 4,
-          "comment": "Chain quality is solid. Perfect matching for formals.",
-          "userName": "Manish G.",
-          "postedDate": "01 May, 2024",
-          "helpfulCount": 42
-        }
-      ],
+      "rating": 4.1,
+      "soldBy": "VOGUE_TRENDS",
+      "reviews": [],
       "category": "Men",
       "codPrice": 116,
       "variants": [
         {
-          "price": 83,
-          "imageUrl": "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&q=80&w=600",
-          "colorName": "Metallic Black",
-          "originalPrice": 160
+          "price": 85,
+          "imageUrl": "https://images.unsplash.com/photo-1542496658-e33a6d0d50f6?auto=format&fit=crop&q=80&w=600",
+          "colorName": "Voguish Matte Black",
+          "originalPrice": 145
         }
       ],
       "analytics": {
         "views": 0,
         "cartAdds": 0,
-        "impressions": 4,
-        "lastUpdated": "2026-09-02T04:56:52.383Z",
+        "impressions": 10,
+        "lastUpdated": "2026-09-04T06:35:09.451Z",
         "blockedViews": 0,
         "blockedImpressions": 2
       },
-      "numericId": 17,
-      "description": "Add a touch of elegance to your attire with CSAMON watches. Fitted with metal chain link straps and a durable casing, this is a premium look watch for wedding and formal occasions.",
+      "numericId": 16,
+      "description": "Sleek and clean design for those who love minimalism. Perfectly matches both ethnic and casual outfits.",
       "hasUpiOffer": true,
-      "ratingCount": 3171,
-      "reviewCount": 981,
+      "ratingCount": 161,
+      "reviewCount": 43,
       "sizeOptions": [
         "Free Size"
       ],
       "subCategory": "Watches",
-      "soldByRating": 3.9,
-      "timeLeftText": "01h : 26m : 58s",
-      "originalPrice": 160,
+      "soldByRating": 4,
+      "originalPrice": 145,
       "approvalStatus": "approved",
-      "discountPercent": 48,
+      "discountPercent": 41,
       "additionalDetails": [
         {
           "label": "Warranty",
-          "value": "6 Months Manufacturer"
+          "value": "No Warranty"
         }
       ],
       "productHighlights": [
         {
           "label": "Strap Material",
-          "value": "Stainless Steel"
-        },
-        {
-          "label": "Dial Shape",
-          "value": "Round"
+          "value": "Silicon Strap"
         }
       ]
     },
     {
-      "id": "prod-home-cookware",
-      "tag": "Kitchen Star",
-      "price": 480,
-      "title": "Non-Stick Aluminum Cookware Kadai & Fry Pan Combo",
+      "id": "prod-bo-1",
+      "price": 299,
+      "stock": 160,
+      "title": "Premium Hardcover Ruled Journal & Notebook Diary",
       "images": [
-        "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&q=80&w=600"
+        "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&q=80&w=800"
       ],
-      "rating": 4.3,
-      "soldBy": "METRO_KITCHEN_MART",
-      "reviews": [],
-      "category": "Home & Kitchen",
-      "codPrice": 510,
-      "variants": [
-        {
-          "price": 480,
-          "imageUrl": "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&q=80&w=600",
-          "colorName": "Cherry Red Cookset",
-          "originalPrice": 960
-        }
-      ],
+      "rating": 4.8,
+      "soldBy": "Stationery King India",
+      "category": "Books & Office Supplies",
+      "variants": [],
       "analytics": {
         "views": 0,
         "cartAdds": 0,
-        "impressions": 8,
-        "lastUpdated": "2026-09-02T04:53:07.625Z",
+        "impressions": 7,
+        "lastUpdated": "2026-09-04T06:44:03.523Z",
         "blockedViews": 0,
-        "blockedImpressions": 8
+        "blockedImpressions": 0
       },
-      "numericId": 20,
-      "description": "Complete non-stick kitchen set featuring extra thick aluminum for heat distribution. Ergonomic cool-touch bakelite handles and matching heavy-duty glass lids.",
-      "hasUpiOffer": true,
-      "ratingCount": 824,
-      "reviewCount": 290,
+      "numericId": 43,
+      "sizeStock": {
+        "A5 Size": 160
+      },
+      "description": "Elegant executive notebook featuring fountain-pen friendly acid-free pages, ribbon bookmark, and elastic closure band.",
+      "ratingCount": 1540,
+      "reviewCount": 410,
       "sizeOptions": [
-        "Free Size"
+        "A5 Size"
       ],
-      "subCategory": "Cookware",
-      "soldByRating": 4.2,
-      "originalPrice": 960,
+      "subCategory": "General",
+      "soldByRating": 4.8,
+      "originalPrice": 699,
       "approvalStatus": "approved",
-      "discountPercent": 50,
+      "discountPercent": 57,
       "additionalDetails": [
         {
-          "label": "Induction Compatible",
-          "value": "Yes"
+          "label": "Size",
+          "value": "A5 Standard"
+        },
+        {
+          "label": "Pocket",
+          "value": "Expandable Inner Back Pocket"
         }
       ],
       "productHighlights": [
         {
-          "label": "Material",
-          "value": "Heavy Gauge Aluminum"
+          "label": "Pages",
+          "value": "192 Ruled Pages"
         },
         {
-          "label": "Coating",
-          "value": "3-Layer Scratch Resistant Non-Stick"
+          "label": "Paper GSM",
+          "value": "100 GSM Natural Shade"
+        },
+        {
+          "label": "Binding",
+          "value": "Strong Smyth Sewn Hardbound"
         }
       ]
     }
@@ -3573,43 +3975,32 @@
     {
       "id": "clothing",
       "icon": "Shirt",
-      "name": "Fashion & Clothing",
-      "image": "https://i.ibb.co/7Ng4fVGf/dbe25ca606df.jpg",
-      "subCategories": []
+      "name": "Watches",
+      "image": "https://i.ibb.co/7Ng4fVGf/dbe25ca606df.jpg"
     },
     {
       "id": "electronics",
       "icon": "Laptop",
-      "name": "Electronics & Gadgets",
-      "image": "https://i.ibb.co/C5sZ3G2b/11b1017de09a.jpg",
-      "subCategories": []
+      "name": "Electronics",
+      "image": "https://i.ibb.co/C5sZ3G2b/11b1017de09a.jpg"
     },
     {
       "id": "beauty",
       "icon": "Sparkles",
-      "name": "Beauty Products",
-      "image": "https://i.ibb.co/20Y4FktP/e3f2af998d41.jpg",
-      "subCategories": []
+      "name": "Beauty & Health",
+      "image": "https://i.ibb.co/20Y4FktP/e3f2af998d41.jpg"
     },
     {
       "id": "cat-bags-accessories",
       "icon": "shopping-bag",
-      "name": "Bags & Accessories",
-      "image": "https://i.ibb.co/wZpZsxQ3/06f0c79511c4.jpg",
-      "subCategories": []
+      "name": "Bags & Footwear",
+      "image": "https://i.ibb.co/wZpZsxQ3/06f0c79511c4.jpg"
     },
     {
       "id": "cat-toys",
       "icon": "baby",
-      "name": "Toys",
-      "image": "https://i.ibb.co/4ZBN4Wsf/34c55556791f.jpg",
-      "subCategories": []
-    },
-    {
-      "id": "cat-footwears",
-      "icon": "shopping-bag",
-      "name": "Footwears",
-      "image": "https://i.ibb.co/BVNvv9FP/ad6718496f5b.jpg"
+      "name": "Kids & Toys",
+      "image": "https://i.ibb.co/4ZBN4Wsf/34c55556791f.jpg"
     },
     {
       "id": "cat-kurti-sarees-lehanga",
@@ -3635,26 +4026,25 @@
     {
       "id": "cat-kitchen-items",
       "icon": "shopping-bag",
-      "name": "Kitchen Items",
-      "image": "https://i.ibb.co/QFf4s3Tc/628b7d339f5f.jpg",
-      "subCategories": []
+      "name": "Pet Supplies",
+      "image": "https://i.ibb.co/QFf4s3Tc/628b7d339f5f.jpg"
     },
     {
       "id": "cat-popular",
       "icon": "star",
-      "name": "Popular",
+      "name": "Viral",
       "image": "https://i.ibb.co/BH2Pxdj5/b2d0fb6143d6.jpg"
     },
     {
       "id": "cat-women-western",
       "icon": "sparkles",
-      "name": "Women's Wear",
+      "name": "Women Western",
       "image": "https://i.ibb.co/6cL7nD2D/50f1b1387016.jpg"
     },
     {
       "id": "cat-men",
       "icon": "user",
-      "name": "Men's Wear",
+      "name": "Men",
       "image": "https://i.ibb.co/vvDVC0d0/8bff0002c526.jpg"
     },
     {
@@ -3666,14 +4056,32 @@
     {
       "id": "cat-kids",
       "icon": "baby",
-      "name": "Kids Wear",
+      "name": "Sports & Fitness",
       "image": "https://i.ibb.co/JjmVLHvZ/c5e7d77d31ea.jpg"
     },
     {
       "id": "cat-home",
       "icon": "home",
-      "name": "Home & Living",
+      "name": "Home & Kitchen",
       "image": "https://i.ibb.co/kg1YLG3d/cd09e956ca49.jpg"
+    },
+    {
+      "id": "cat-footwears",
+      "icon": "shopping-bag",
+      "name": "Car & Bike",
+      "image": "https://i.ibb.co/BVNvv9FP/ad6718496f5b.jpg"
+    },
+    {
+      "id": "cat-lingerie",
+      "icon": "shopping-bag",
+      "name": "Lingerie",
+      "image": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300"
+    },
+    {
+      "id": "cat-musical-instruments-",
+      "icon": "shopping-bag",
+      "name": "Musical Instruments",
+      "image": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300"
     }
   ],
   "subCategories": [
@@ -3983,28 +4391,6 @@
       "businessCategory": "Home & Kitchen"
     },
     {
-      "id": "vendor-1787538519321",
-      "city": "Panchkula",
-      "name": "PASI E-Commerce Services",
-      "email": "9499337741@seller.quekart.com",
-      "gstin": "06KLFPS7562K2Z8",
-      "phone": "919499337741",
-      "state": "Haryana",
-      "rating": 5,
-      "status": "active",
-      "address": "H. NO- 24, NEAR GOVT. SEN. SEC. SCHOOL, NA, NAWAGAON URF NAYAGAON, BARWALA, Industrial Estate Barwala, Panchkula, Haryana, 134118",
-      "pincode": "134118",
-      "createdAt": "2026-08-24T02:28:39.321Z",
-      "numericId": 3,
-      "ownerName": "LAKHWINDER SINGH",
-      "tradeName": "PASI E-Commerce Services",
-      "vendorType": "big",
-      "description": "GST-Verified Seller (06KLFPS7562K2Z8) - LAKHWINDER SINGH, Panchkula, Haryana.",
-      "businessType": "Registered Business",
-      "businessCategory": "Apparel & Sarees",
-      "legalBusinessName": "LAKHWINDER SINGH"
-    },
-    {
       "id": "vendor-1788075566947",
       "city": "Moradabad",
       "name": "M/S AUDACE INDUSTRIES",
@@ -4047,6 +4433,51 @@
       "businessType": "Registered Business",
       "businessCategory": "Apparel & Sarees",
       "legalBusinessName": "TEK  CHAND"
+    },
+    {
+      "id": "vendor-1787538519321",
+      "city": "Panchkula",
+      "name": "PASI E-Commerce Services",
+      "email": "9499337741@seller.quekart.com",
+      "gstin": "06KLFPS7562K2Z8",
+      "phone": "919499337741",
+      "state": "Haryana",
+      "rating": 5,
+      "status": "active",
+      "address": "H. NO- 24, NEAR GOVT. SEN. SEC. SCHOOL, NA, NAWAGAON URF NAYAGAON, BARWALA, Industrial Estate Barwala, Panchkula, Haryana, 134118",
+      "pincode": "134118",
+      "createdAt": "2026-08-24T02:28:39.321Z",
+      "numericId": 3,
+      "ownerName": "LAKHWINDER SINGH",
+      "tradeName": "PASI E-Commerce Services",
+      "isVerified": false,
+      "vendorType": "small",
+      "description": "GST-Verified Seller (06KLFPS7562K2Z8) - LAKHWINDER SINGH, Panchkula, Haryana.",
+      "businessType": "Registered Business",
+      "businessCategory": "Apparel & Sarees",
+      "legalBusinessName": "LAKHWINDER SINGH"
+    },
+    {
+      "id": "vendor-1788510349787",
+      "city": "Jaipur",
+      "name": "Brijbasket",
+      "email": "7610874002@seller.quekart.com",
+      "gstin": "09AUWPS5785L1Z7",
+      "phone": "917610874002",
+      "state": "Rajasthan",
+      "rating": 5,
+      "status": "active",
+      "address": "Jaipur, Rajasthan",
+      "pincode": "302001",
+      "createdAt": "2026-09-04T08:25:49.787Z",
+      "ownerName": "Ok prakash saini",
+      "tradeName": "Brijbasket",
+      "vendorType": "big",
+      "description": "GST-Verified Seller (09AUWPS5785L1Z7) - Ok prakash saini, Jaipur, Rajasthan.",
+      "businessType": "Registered Business",
+      "businessCategory": "Apparel & Sarees",
+      "legalBusinessName": "Ok prakash saini",
+      "numericId": 6
     }
   ],
   "users": [
@@ -4109,6 +4540,21 @@
       "createdAt": "2026-09-01T03:19:46.115Z",
       "savedAddresses": [],
       "alternativePhone": "",
+      "isProfileComplete": true
+    },
+    {
+      "id": "user-1788450777266",
+      "city": "Bulandshahr",
+      "name": "aakash kumar",
+      "email": "abgurjar232@gmail.cm",
+      "phone": "917088525302",
+      "state": "Uttar Pradesh",
+      "gender": "Male",
+      "address": "Asia, Bulandshahr, Uttar Pradesh - 203150",
+      "pincode": "203150",
+      "createdAt": "2026-09-03T15:52:57.266Z",
+      "savedAddresses": [],
+      "alternativePhone": "7088525302",
       "isProfileComplete": true
     }
   ],

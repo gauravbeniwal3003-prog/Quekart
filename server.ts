@@ -450,18 +450,16 @@ async function testAndSeedSupabase() {
     }
 
     const existingProductIds = new Set((pCountData || []).map((row: any) => row.id));
-    if (existingProductIds.size < localProducts.length) {
-      console.log(`🌱 Products in Supabase (${existingProductIds.size}) is less than default catalog (${localProducts.length}). Seeding missing products...`);
+    if (existingProductIds.size === 0 && localProducts.length > 0) {
+      console.log(`🌱 Products table in Supabase is empty. Seeding initial catalog (${localProducts.length} items)...`);
       for (const p of localProducts) {
-        if (!existingProductIds.has(p.id)) {
-          const { error: insertErr } = await supabase.from('products').upsert({ id: p.id, data: p });
-          if (insertErr) {
-            console.warn(`⚠️ Note seeding product ${p.id}:`, insertErr.message || insertErr);
-          }
+        const { error: insertErr } = await supabase.from('products').upsert({ id: p.id, data: p });
+        if (insertErr) {
+          console.warn(`⚠️ Note seeding product ${p.id}:`, insertErr.message || insertErr);
         }
       }
     }
-    console.log(`📊 Products in Supabase. Syncing live database products...`);
+    console.log(`📊 Products in Supabase (${existingProductIds.size}). Syncing live database products...`);
     const { data: dbProdRows } = await supabase.from('products').select('*');
     if (dbProdRows && dbProdRows.length > 0) {
       localProducts = dbProdRows.map((r: any) => r.data || r);
@@ -2127,9 +2125,23 @@ app.get('/api/products', async (req, res) => {
   const vendorIdParam = req.query.vendorId as string;
 
   try {
-    // Set high-performance browser & CDN caching headers
-    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=120');
-    res.setHeader('Vary', 'Accept-Encoding');
+    // Set no-cache headers so client refresh always receives fresh, real-time database state
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    // Real-time synchronization with Supabase database if connected
+    if (useSupabase && supabase) {
+      try {
+        const { data: dbProds, error: dbErr } = await supabase.from('products').select('*');
+        if (!dbErr && dbProds && dbProds.length > 0) {
+          localProducts = dbProds.map((r: any) => r.data || r);
+          saveMockDataFile();
+        }
+      } catch (sbErr) {
+        console.warn('⚠️ Supabase product sync note in GET /api/products:', sbErr);
+      }
+    }
 
     // Instant zero-latency serving from in-memory synchronized store
     let productsList: Product[] = [...localProducts];
@@ -2149,14 +2161,15 @@ app.get('/api/products', async (req, res) => {
 
     // Smart filtering for products
     productsList = productsList.filter(p => {
+      if (allParam) return true; // Admin catalog mode: show all products
       if (!p.vendorId) return true; // Admin/system product
       
       const v = vendorMap.get(p.vendorId);
-      // Rule 1: If vendor is deleted (does not exist in vendors table), hide product entirely
-      if (!v) return false;
+      // Rule 1: If vendor is deleted (does not exist in vendors table), allow demo/system products
+      if (!v && p.vendorId !== 'demo-vendor') return false;
 
       // Rule 2: If vendor is banned/suspended, hide product on public customer views
-      if (!allParam && (v.status === 'banned' || v.status === 'suspended' || (v as any).isBanned)) {
+      if (v && (v.status === 'banned' || v.status === 'suspended' || (v as any).isBanned)) {
         return false;
       }
       return true;
@@ -4239,8 +4252,13 @@ app.delete('/api/coupons/:code', authenticateAdmin, async (req, res) => {
 // --- CATEGORIES ---
 app.get('/api/categories', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=120');
-    res.setHeader('Vary', 'Accept-Encoding');
+    if (useSupabase && supabase) {
+      const { data: dbCatRows, error } = await supabase.from('categories').select('*').order('position', { ascending: true });
+      if (!error && dbCatRows && dbCatRows.length > 0) {
+        localCategories = dbCatRows.map((r: any) => r.data || r);
+      }
+    }
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.json(localCategories);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch categories' });
@@ -4248,6 +4266,27 @@ app.get('/api/categories', async (req, res) => {
 });
 
 app.post('/api/categories', authenticateAdmin, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  // Support bulk categories update (e.g. from handleSetCategories)
+  if (req.body.categories && Array.isArray(req.body.categories)) {
+    const rawCategories: Category[] = req.body.categories.filter((c: any) => c && c.id && c.id !== 'cat-all');
+    try {
+      if (useSupabase && supabase) {
+        for (let i = 0; i < rawCategories.length; i++) {
+          const cat = rawCategories[i];
+          await supabase.from('categories').upsert({ id: cat.id, data: cat, position: i });
+        }
+      }
+      localCategories = rawCategories;
+      saveMockDataFile();
+      return res.json({ success: true, categories: localCategories });
+    } catch (err: any) {
+      localCategories = rawCategories;
+      saveMockDataFile();
+      return res.json({ success: true, categories: localCategories });
+    }
+  }
+
   const newCategory: Category = req.body;
   if (!newCategory || !newCategory.id) {
     return res.status(400).json({ error: 'Invalid category data' });
@@ -4285,6 +4324,7 @@ app.post('/api/categories', authenticateAdmin, async (req, res) => {
 });
 
 app.put('/api/categories/:id', authenticateAdmin, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   const { id } = req.params;
   const updatedCategory: Category = req.body;
   if (!updatedCategory) {
@@ -4311,6 +4351,7 @@ app.put('/api/categories/:id', authenticateAdmin, async (req, res) => {
 });
 
 app.delete('/api/categories/:id', authenticateAdmin, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   const { id } = req.params;
   try {
     if (useSupabase && supabase) {
@@ -4332,33 +4373,47 @@ app.delete('/api/categories/:id', authenticateAdmin, async (req, res) => {
 });
 
 app.post('/api/categories/reorder', authenticateAdmin, async (req, res) => {
-  const { ids } = req.body;
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  const { ids, categories: passedCategories } = req.body;
   if (!ids || !Array.isArray(ids)) {
     return res.status(400).json({ error: 'Invalid ids array' });
   }
 
+  const cleanIds = ids.filter(id => id && id !== 'cat-all');
+
   try {
+    if (passedCategories && Array.isArray(passedCategories)) {
+      const cleanPassed = passedCategories.filter((c: any) => c && c.id && c.id !== 'cat-all');
+      localCategories = cleanPassed;
+    } else {
+      const ordered: Category[] = [];
+      for (const cid of cleanIds) {
+        const found = localCategories.find(c => c.id === cid);
+        if (found) ordered.push(found);
+      }
+      for (const c of localCategories) {
+        if (!cleanIds.includes(c.id)) ordered.push(c);
+      }
+      localCategories = ordered;
+    }
+
     if (useSupabase && supabase) {
-      for (let i = 0; i < ids.length; i++) {
-        await supabase.from('categories').update({ position: i }).eq('id', ids[i]);
+      for (let i = 0; i < localCategories.length; i++) {
+        const cat = localCategories[i];
+        const { error } = await supabase.from('categories').upsert({ id: cat.id, data: cat, position: i });
+        if (error) {
+          console.warn(`⚠️ Supabase category reorder error for ${cat.id}:`, error.message || error);
+        }
       }
     }
 
-    const ordered: Category[] = [];
-    for (const cid of ids) {
-      const found = localCategories.find(c => c.id === cid);
-      if (found) ordered.push(found);
-    }
-    for (const c of localCategories) {
-      if (!ids.includes(c.id)) ordered.push(c);
-    }
-    localCategories = ordered;
     saveMockDataFile();
 
-    res.json({ success: true, message: 'Categories reordered successfully' });
+    res.json({ success: true, message: 'Categories reordered successfully', categories: localCategories });
   } catch (err: any) {
     console.error('Category reorder error:', err);
-    res.json({ success: true, message: 'Categories reordered locally' });
+    saveMockDataFile();
+    res.json({ success: true, message: 'Categories reordered locally', categories: localCategories });
   }
 });
 

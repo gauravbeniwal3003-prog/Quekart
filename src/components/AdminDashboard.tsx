@@ -842,37 +842,57 @@ export default function AdminDashboard({
     }
   };
 
+  const [categoryReorderStatus, setCategoryReorderStatus] = useState<string>('');
+
   const handleCategoryMoveUp = async (index: number) => {
     if (index === 0) return;
-    const newCats = [...categories];
+    const realCats = categories.filter(c => c.id !== 'cat-all');
+    const newCats = [...realCats];
     const temp = newCats[index];
     newCats[index] = newCats[index - 1];
     newCats[index - 1] = temp;
     
-    // Optimistic UI update
-    onSetCategories(newCats);
+    // Optimistic UI update preserving cat-all
+    const hasCatAll = categories.some(c => c.id === 'cat-all');
+    const allCat = categories.find(c => c.id === 'cat-all');
+    const updatedFullList = hasCatAll && allCat ? [allCat, ...newCats] : newCats;
+    onSetCategories(updatedFullList);
+    setCategoryReorderStatus('Saving new category order to database...');
 
     try {
-      await reorderCategoriesUnified(newCats.map(c => c.id), adminPasscode);
+      await reorderCategoriesUnified(newCats.map(c => c.id), adminPasscode, newCats);
+      setCategoryReorderStatus('✅ Category sort order saved permanently to database!');
+      onRefreshShopData();
+      setTimeout(() => setCategoryReorderStatus(''), 3000);
     } catch (err) {
       console.error('Network error during category reordering:', err);
+      setCategoryReorderStatus('❌ Network error saving order');
     }
   };
 
   const handleCategoryMoveDown = async (index: number) => {
-    if (index === categories.length - 1) return;
-    const newCats = [...categories];
+    const realCats = categories.filter(c => c.id !== 'cat-all');
+    if (index === realCats.length - 1) return;
+    const newCats = [...realCats];
     const temp = newCats[index];
     newCats[index] = newCats[index + 1];
     newCats[index + 1] = temp;
 
-    // Optimistic UI update
-    onSetCategories(newCats);
+    // Optimistic UI update preserving cat-all
+    const hasCatAll = categories.some(c => c.id === 'cat-all');
+    const allCat = categories.find(c => c.id === 'cat-all');
+    const updatedFullList = hasCatAll && allCat ? [allCat, ...newCats] : newCats;
+    onSetCategories(updatedFullList);
+    setCategoryReorderStatus('Saving new category order to database...');
 
     try {
-      await reorderCategoriesUnified(newCats.map(c => c.id), adminPasscode);
+      await reorderCategoriesUnified(newCats.map(c => c.id), adminPasscode, newCats);
+      setCategoryReorderStatus('✅ Category sort order saved permanently to database!');
+      onRefreshShopData();
+      setTimeout(() => setCategoryReorderStatus(''), 3000);
     } catch (err) {
       console.error('Network error during category reordering:', err);
+      setCategoryReorderStatus('❌ Network error saving order');
     }
   };
 
@@ -1241,6 +1261,13 @@ export default function AdminDashboard({
   const [hsnVerified, setHsnVerified] = useState(false);
   const [hsnError, setHsnError] = useState('');
 
+  // SKU, Dimensions & Weight Inventory Attributes
+  const [pSku, setPSku] = useState('');
+  const [pDimensions, setPDimensions] = useState('');
+  const [pDimensionUnit, setPDimensionUnit] = useState('cm');
+  const [pWeight, setPWeight] = useState('');
+  const [pStock, setPStock] = useState<number>(50);
+
   const handleVerifyAdminHsn = async (codeToVerify?: string) => {
     const code = (codeToVerify !== undefined ? codeToVerify : pHsnCode).trim();
     if (!code) {
@@ -1587,6 +1614,11 @@ export default function AdminDashboard({
       setPHsnDescription(product.hsnDescription || '');
       setHsnVerified(!!product.hsnCode);
       setHsnError('');
+      setPSku(product.sku || '');
+      setPDimensions(product.dimensions || '');
+      setPDimensionUnit(product.dimensionUnit || 'cm');
+      setPWeight(product.weight || '');
+      setPStock(product.stock !== undefined ? product.stock : 50);
       setPSoldBy(product.soldBy || 'Gaurav Garments');
       setPSoldByRating(product.soldByRating || 4.8);
       setPVendorId(product.vendorId || '');
@@ -1622,6 +1654,11 @@ export default function AdminDashboard({
       setPHsnDescription('');
       setHsnVerified(false);
       setHsnError('');
+      setPSku('');
+      setPDimensions('');
+      setPDimensionUnit('cm');
+      setPWeight('');
+      setPStock(50);
       setPSoldBy('Gaurav Garments');
       setPSoldByRating(4.8);
       setPVendorId('');
@@ -1652,6 +1689,7 @@ export default function AdminDashboard({
     const discountPercent = Math.round(((pOriginalPrice - pPrice) / pOriginalPrice) * 100);
 
     const productPayload: Product = {
+      ...(editingProduct || {}),
       id: editingProduct ? editingProduct.id : `prod-${Date.now()}`,
       title: pTitle,
       description: pDescription || 'Premium high quality product with direct-from-factory pricing.',
@@ -1676,7 +1714,8 @@ export default function AdminDashboard({
           colorName: 'Standard',
           imageUrl: cleanImages[0],
           price: pPrice,
-          originalPrice: pOriginalPrice
+          originalPrice: pOriginalPrice,
+          sku: pSku.trim() ? `${pSku.trim()}-STD` : undefined
         }
       ],
       soldBy: pSoldBy,
@@ -1688,6 +1727,13 @@ export default function AdminDashboard({
       tag: pTag || undefined,
       hsnCode: pHsnCode.trim() || undefined,
       hsnDescription: pHsnDescription.trim() || undefined,
+      sku: pSku.trim() || undefined,
+      dimensions: pDimensions.trim() || undefined,
+      dimensionUnit: pDimensionUnit,
+      weight: pWeight.trim() || undefined,
+      stock: pStock !== undefined ? Number(pStock) : 50,
+      approvalStatus: editingProduct?.approvalStatus || 'approved',
+      numericId: editingProduct?.numericId,
       reviews: editingProduct ? editingProduct.reviews : []
     };
 
@@ -1698,6 +1744,8 @@ export default function AdminDashboard({
       onAddProduct(productPayload);
       setLiveProducts(prev => [productPayload, ...prev]);
     }
+    // Immediately trigger fresh shop sync
+    onRefreshShopData();
     setEditingProduct(null);
     if (window.history.length > 1) {
       window.history.back();
@@ -5248,17 +5296,49 @@ export default function AdminDashboard({
                   </div>
                 </div>
 
-                <button
-                  onClick={() => {
-                    resetProductForm();
-                    setActiveTab('add-product');
-                  }}
-                  className="bg-lucky-magenta text-white hover:bg-opacity-95 font-extrabold text-xs px-4 py-2.5 rounded-lg flex items-center justify-center gap-1.5 shadow-xs transition-transform hover:scale-[1.02] cursor-pointer"
-                  id="admin-add-product-btn"
-                >
-                  <Plus className="w-4 h-4 stroke-[3]" />
-                  <span>Add New Product</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onRefreshShopData();
+                    }}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3 py-2.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+                    title="Force refresh data directly from database"
+                    id="admin-sync-products-btn"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-slate-600" />
+                    <span className="hidden sm:inline">Sync DB</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      resetProductForm();
+                      setActiveTab('add-product');
+                    }}
+                    className="bg-lucky-magenta text-white hover:bg-opacity-95 font-extrabold text-xs px-4 py-2.5 rounded-lg flex items-center justify-center gap-1.5 shadow-xs transition-transform hover:scale-[1.02] cursor-pointer"
+                    id="admin-add-product-btn"
+                  >
+                    <Plus className="w-4 h-4 stroke-[3]" />
+                    <span>Add New Product</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Product Live Database Count Banner */}
+              <div className="bg-blue-50/70 border border-blue-200/80 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span className="font-extrabold text-slate-800">
+                    Database Active: <span className="text-[#143C6B]">{products.length} Products in Catalog</span>
+                  </span>
+                  <span className="text-slate-400">•</span>
+                  <span className="text-slate-600 font-bold">
+                    Showing {filteredProducts.length} filtered items
+                  </span>
+                </div>
+                <span className="text-[11px] font-bold text-slate-500">
+                  ⚡ All edits & additions save permanently to Supabase in real-time
+                </span>
               </div>
 
               {/* Product table list (Responsive desktop/mobile) */}
@@ -5289,10 +5369,30 @@ export default function AdminDashboard({
                             />
                           </td>
                           <td className="py-3 px-4 max-w-xs">
-                            <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                               <span className="bg-[#143C6B]/10 text-[#143C6B] font-mono font-black text-[10px] px-2 py-0.5 rounded-md border border-[#143C6B]/20">
                                 #{product.numericId !== undefined ? product.numericId : product.id}
                               </span>
+                              {product.sku && (
+                                <span className="bg-amber-100 text-amber-900 font-mono font-black text-[9px] px-1.5 py-0.5 rounded-sm border border-amber-300">
+                                  SKU: {product.sku}
+                                </span>
+                              )}
+                              {product.dimensions && (
+                                <span className="bg-purple-100 text-purple-900 font-black text-[9px] px-1.5 py-0.5 rounded-sm border border-purple-200">
+                                  📐 {product.dimensions} {product.dimensionUnit || 'cm'}
+                                </span>
+                              )}
+                              {product.weight && (
+                                <span className="bg-emerald-100 text-emerald-900 font-black text-[9px] px-1.5 py-0.5 rounded-sm border border-emerald-200">
+                                  ⚖️ {product.weight}
+                                </span>
+                              )}
+                              {product.stock !== undefined && (
+                                <span className={`font-black text-[9px] px-1.5 py-0.5 rounded-sm border ${product.stock > 10 ? 'bg-slate-100 text-slate-700 border-slate-200' : product.stock > 0 ? 'bg-orange-100 text-orange-800 border-orange-200' : 'bg-red-100 text-red-700 border-red-200'}`}>
+                                  Stock: {product.stock}
+                                </span>
+                              )}
                               {product.tag && (
                                 <span className="bg-lucky-magenta/10 text-lucky-magenta font-black text-[9px] px-1.5 py-0.5 rounded-sm uppercase tracking-wide">
                                   {product.tag}
@@ -5386,10 +5486,25 @@ export default function AdminDashboard({
                       />
                       <div className="flex-1 min-w-0 flex flex-col justify-between">
                         <div>
-                          <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                          <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                             <span className="bg-[#143C6B]/10 text-[#143C6B] font-mono font-black text-[9px] px-1.5 py-0.5 rounded-sm border border-[#143C6B]/20">
                               #{product.numericId !== undefined ? product.numericId : product.id}
                             </span>
+                            {product.sku && (
+                              <span className="bg-amber-100 text-amber-900 font-mono font-black text-[8.5px] px-1 rounded-xs border border-amber-300">
+                                SKU: {product.sku}
+                              </span>
+                            )}
+                            {product.dimensions && (
+                              <span className="bg-purple-100 text-purple-900 font-black text-[8.5px] px-1 rounded-xs border border-purple-200">
+                                📐 {product.dimensions} {product.dimensionUnit || 'cm'}
+                              </span>
+                            )}
+                            {product.weight && (
+                              <span className="bg-emerald-100 text-emerald-900 font-black text-[8.5px] px-1 rounded-xs border border-emerald-200">
+                                ⚖️ {product.weight}
+                              </span>
+                            )}
                             {product.tag && (
                               <span className="bg-lucky-magenta/10 text-lucky-magenta font-black text-[8px] px-1 rounded-xs uppercase tracking-wide">
                                 {product.tag}
@@ -5865,19 +5980,39 @@ export default function AdminDashboard({
                           </div>
                         </div>
                         
-                        <button
-                          onClick={triggerAddCategory}
-                          className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs bg-[#143C6B] hover:bg-[#143C6B]/90 text-white font-bold rounded-xl shadow-xs cursor-pointer transition-colors"
-                          id="create-category-btn"
-                        >
-                          <Plus className="w-4 h-4" />
-                          <span>Create New Category</span>
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => onRefreshShopData()}
+                            className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors cursor-pointer"
+                            title="Sync categories from database"
+                          >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            <span>Sync DB</span>
+                          </button>
+
+                          <button
+                            onClick={triggerAddCategory}
+                            className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs bg-[#143C6B] hover:bg-[#143C6B]/90 text-white font-bold rounded-xl shadow-xs cursor-pointer transition-colors"
+                            id="create-category-btn"
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span>Create New Category</span>
+                          </button>
+                        </div>
                       </div>
+
+                      {/* Reorder Status Notification */}
+                      {categoryReorderStatus && (
+                        <div className="bg-blue-50 border border-blue-200 text-blue-900 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2">
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                          <span>{categoryReorderStatus}</span>
+                        </div>
+                      )}
 
                       {/* Categories Cards layout Grid */}
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="categories-cards-grid">
-                        {categories.map((cat, idx) => {
+                        {categories.filter(c => c.id !== 'cat-all').map((cat, idx, arr) => {
                           const displayImg = cat.image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=300';
                           
                           return (
@@ -5929,9 +6064,9 @@ export default function AdminDashboard({
                                   <button
                                     type="button"
                                     onClick={() => handleCategoryMoveDown(idx)}
-                                    disabled={idx === categories.length - 1}
+                                    disabled={idx === arr.length - 1}
                                     className={`p-1 rounded-sm text-xs cursor-pointer transition-colors ${
-                                      idx === categories.length - 1 ? 'text-slate-300' : 'text-slate-600 hover:bg-white hover:text-slate-900 shadow-2xs'
+                                      idx === arr.length - 1 ? 'text-slate-300' : 'text-slate-600 hover:bg-white hover:text-slate-900 shadow-2xs'
                                     }`}
                                     title="Move Down (Decrease Display Rank)"
                                   >
@@ -7952,6 +8087,157 @@ export default function AdminDashboard({
                         </button>
                       );
                     })}
+                  </div>
+                </div>
+
+                {/* SKU, INVENTORY & PHYSICAL SPECIFICATIONS */}
+                <div className="bg-slate-50/80 rounded-2xl border border-slate-200/90 p-4 space-y-4" id="inventory-specs-section">
+                  <div className="flex items-center justify-between border-b border-slate-200/70 pb-2.5">
+                    <div>
+                      <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <span>📦</span>
+                        <span>Inventory & Physical Specifications</span>
+                      </h4>
+                      <p className="text-[10px] font-bold text-slate-500">
+                        Manage SKU stock tracking, product dimensions (L*B*H), volume/weight, and warehouse quantity.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* SKU & Stock Row */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {/* SKU Input */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-[11px] font-black text-slate-700 uppercase tracking-wide">
+                          SKU (Stock Keeping Unit)
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const catPrefix = (pCategory || 'PRD').substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'PRD');
+                            const rand = Math.random().toString(36).substring(2, 7).toUpperCase();
+                            setPSku(`QK-${catPrefix}-${rand}`);
+                          }}
+                          className="text-[10px] font-black text-lucky-navy hover:text-lucky-magenta hover:underline cursor-pointer"
+                        >
+                          ⚡ Auto-Generate
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="e.g. QK-KUR-8921"
+                        value={pSku}
+                        onChange={(e) => setPSku(e.target.value.toUpperCase())}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-black tracking-wider text-slate-900 focus:outline-hidden focus:border-lucky-magenta"
+                      />
+                      <p className="text-[9.5px] text-slate-400 font-bold mt-1">
+                        Unique alphanumeric inventory code for orders and fulfillment.
+                      </p>
+                    </div>
+
+                    {/* Available Stock */}
+                    <div>
+                      <label className="block text-[11px] font-black text-slate-700 uppercase tracking-wide mb-1.5">
+                        In-Stock Quantity
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={pStock}
+                        onChange={(e) => setPStock(Math.max(0, parseInt(e.target.value) || 0))}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-black text-slate-900 focus:outline-hidden focus:border-lucky-magenta"
+                        placeholder="50"
+                      />
+                      <p className="text-[9.5px] text-slate-400 font-bold mt-1">
+                        Current units available in stock.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Dimensions (L*B or L*B*H) Row */}
+                  <div className="space-y-2 pt-1 border-t border-slate-200/60">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-black text-slate-700 uppercase tracking-wide">
+                        Dimensions (L*B or L*B*H)
+                      </label>
+                      <span className="text-[10px] font-bold text-slate-400">Standard e.g. 8*12, 10*12, 10*12*12</span>
+                    </div>
+
+                    {/* Standard Dimensions Quick Selector Pills */}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-slate-500 mr-1">Quick Select:</span>
+                      {['8*12', '10*12', '12*18', '10*12*12', '12*12*12', '4*12*2'].map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => setPDimensions(preset)}
+                          className={`px-2.5 py-1 text-[10.5px] font-black rounded-lg border transition-all cursor-pointer ${
+                            pDimensions === preset
+                              ? 'bg-lucky-navy text-white border-lucky-navy shadow-3xs'
+                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
+                          }`}
+                        >
+                          {preset}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Custom Dimensions e.g. 10*12*12"
+                        value={pDimensions}
+                        onChange={(e) => setPDimensions(e.target.value)}
+                        className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-black text-slate-900 focus:outline-hidden focus:border-lucky-magenta"
+                      />
+                      <select
+                        value={pDimensionUnit}
+                        onChange={(e) => setPDimensionUnit(e.target.value)}
+                        className="w-24 bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs font-bold text-slate-800 focus:outline-hidden focus:border-lucky-magenta cursor-pointer"
+                      >
+                        <option value="cm">cm</option>
+                        <option value="inches">inches</option>
+                        <option value="mm">mm</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Weight / Volume Row */}
+                  <div className="space-y-2 pt-1 border-t border-slate-200/60">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-black text-slate-700 uppercase tracking-wide">
+                        Weight / Volume (e.g. 100ml, 200ml, 500ml, 1kg)
+                      </label>
+                      <span className="text-[10px] font-bold text-slate-400">Shipping & packaging specification</span>
+                    </div>
+
+                    {/* Standard Weight / Volume Quick Selector Pills */}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-slate-500 mr-1">Quick Select:</span>
+                      {['100ml', '200ml', '500ml', '1L', '100g', '250g', '500g', '1kg'].map((wPreset) => (
+                        <button
+                          key={wPreset}
+                          type="button"
+                          onClick={() => setPWeight(wPreset)}
+                          className={`px-2.5 py-1 text-[10.5px] font-black rounded-lg border transition-all cursor-pointer ${
+                            pWeight === wPreset
+                              ? 'bg-lucky-navy text-white border-lucky-navy shadow-3xs'
+                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
+                          }`}
+                        >
+                          {wPreset}
+                        </button>
+                      ))}
+                    </div>
+
+                    <input
+                      type="text"
+                      placeholder="e.g. 100ml, 500ml, 250g, 1kg"
+                      value={pWeight}
+                      onChange={(e) => setPWeight(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-black text-slate-900 focus:outline-hidden focus:border-lucky-magenta"
+                    />
                   </div>
                 </div>
 

@@ -174,8 +174,8 @@ function getAdminSecret(providedSecret?: string): string {
  * Fetch all products with 3-tier fallback (Backend API -> Supabase -> Cache/Default)
  */
 export async function fetchProductsUnified(): Promise<Product[]> {
-  // 1. Try Backend API (Authoritative Server Database)
-  const apiProducts = await fetchSafeJson(getApiUrl('/api/products?all=true'));
+  // 1. Try Backend API (Authoritative Server Database) with cache-busting query
+  const apiProducts = await fetchSafeJson(getApiUrl(`/api/products?all=true&_t=${Date.now()}`));
   if (apiProducts && Array.isArray(apiProducts)) {
     memoryProductsCache = apiProducts;
     try {
@@ -229,10 +229,13 @@ export async function fetchProductsUnified(): Promise<Product[]> {
  * Fetch Categories
  */
 export async function fetchCategoriesUnified(): Promise<Category[]> {
-  const apiCats = await fetchSafeJson(getApiUrl('/api/categories'));
+  const apiCats = await fetchSafeJson(getApiUrl(`/api/categories?_t=${Date.now()}`));
   if (apiCats && Array.isArray(apiCats) && apiCats.length > 0) {
     memoryCategoriesCache = apiCats;
-    try { localStorage.setItem('quekart_cached_categories', JSON.stringify(apiCats)); } catch (_) {}
+    try {
+      localStorage.setItem('quekart_cached_categories', JSON.stringify(apiCats));
+      localStorage.setItem('quekart_categories', JSON.stringify(apiCats));
+    } catch (_) {}
     return apiCats;
   }
 
@@ -247,14 +250,17 @@ export async function fetchCategoriesUnified(): Promise<Category[]> {
       if (!error && data && data.length > 0) {
         const mapped = data.map((r: any) => r.data || r);
         memoryCategoriesCache = mapped;
-        try { localStorage.setItem('quekart_cached_categories', JSON.stringify(mapped)); } catch (_) {}
+        try {
+          localStorage.setItem('quekart_cached_categories', JSON.stringify(mapped));
+          localStorage.setItem('quekart_categories', JSON.stringify(mapped));
+        } catch (_) {}
         return mapped;
       }
     } catch (_) {}
   }
 
   try {
-    const cached = localStorage.getItem('quekart_cached_categories');
+    const cached = localStorage.getItem('quekart_cached_categories') || localStorage.getItem('quekart_categories');
     if (cached) {
       const parsed = JSON.parse(cached);
       if (Array.isArray(parsed) && parsed.length > 0) {
@@ -571,18 +577,15 @@ export async function saveProductUnified(product: Product, adminSecret?: string,
   }
   try {
     const cached = localStorage.getItem('quekart_cached_products');
-    if (cached) {
-      const list = JSON.parse(cached);
-      if (Array.isArray(list)) {
-        const idx = list.findIndex((p: any) => p.id === savedProduct.id);
-        if (idx >= 0) {
-          list[idx] = savedProduct;
-        } else {
-          list.unshift(savedProduct);
-        }
-        localStorage.setItem('quekart_cached_products', JSON.stringify(list));
-      }
+    let list: any[] = cached ? JSON.parse(cached) : [];
+    if (!Array.isArray(list)) list = [];
+    const idx = list.findIndex((p: any) => p.id === savedProduct.id);
+    if (idx >= 0) {
+      list[idx] = savedProduct;
+    } else {
+      list.unshift(savedProduct);
     }
+    localStorage.setItem('quekart_cached_products', JSON.stringify(list));
   } catch (_) {}
 
   return savedProduct;
@@ -936,14 +939,31 @@ export async function deleteCategoryUnified(categoryId: string, adminSecret?: st
 /**
  * Reorder Categories in Database (Admin only)
  */
-export async function reorderCategoriesUnified(ids: string[], adminSecret?: string): Promise<boolean> {
+export async function reorderCategoriesUnified(ids: string[], adminSecret?: string, fullCategoriesList?: Category[]): Promise<boolean> {
   const secret = getAdminSecret(adminSecret);
   let userToken = '';
   try {
     userToken = localStorage.getItem('quekart_token') || '';
   } catch (_) {}
 
-  // 1. Try Backend API
+  // 1. Immediately update local in-memory & localStorage caches
+  if (fullCategoriesList && fullCategoriesList.length > 0) {
+    memoryCategoriesCache = fullCategoriesList;
+    try { localStorage.setItem('quekart_cached_categories', JSON.stringify(fullCategoriesList)); } catch (_) {}
+  } else if (memoryCategoriesCache && memoryCategoriesCache.length > 0) {
+    const ordered: Category[] = [];
+    for (const id of ids) {
+      const found = memoryCategoriesCache.find(c => c.id === id);
+      if (found) ordered.push(found);
+    }
+    for (const c of memoryCategoriesCache) {
+      if (!ids.includes(c.id)) ordered.push(c);
+    }
+    memoryCategoriesCache = ordered;
+    try { localStorage.setItem('quekart_cached_categories', JSON.stringify(ordered)); } catch (_) {}
+  }
+
+  // 2. Try Backend API
   try {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -955,14 +975,24 @@ export async function reorderCategoriesUnified(ids: string[], adminSecret?: stri
     const res = await fetch(getApiUrl("/api/categories/reorder"), {
       method: "POST",
       headers,
-      body: JSON.stringify({ ids })
+      body: JSON.stringify({ ids, categories: fullCategoriesList })
     });
-    if (res.ok) return true;
+    if (res.ok) {
+      const json = await res.json();
+      if (json && Array.isArray(json.categories)) {
+        memoryCategoriesCache = json.categories;
+        try {
+          localStorage.setItem('quekart_cached_categories', JSON.stringify(json.categories));
+          localStorage.setItem('quekart_categories', JSON.stringify(json.categories));
+        } catch (_) {}
+      }
+      return true;
+    }
   } catch (apiErr) {
     console.warn("⚠️ API category reorder fallback to Supabase:", apiErr);
   }
 
-  // 2. Direct Supabase Reorder
+  // 3. Direct Supabase Reorder
   const sb = getSupabase();
   if (sb) {
     try {

@@ -19,7 +19,11 @@ import {
   CheckCircle2,
   AlertCircle,
   TrendingUp,
-  Hash
+  Hash,
+  Barcode,
+  Copy,
+  RefreshCw,
+  Search
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -819,6 +823,250 @@ export const StockInventoryManager: React.FC<StockInventoryManagerProps> = ({
         </div>
       )}
 
+    </div>
+  );
+};
+
+export function generateAutoSku(category?: string, title?: string): string {
+  const prefix = 'QK';
+  let catCode = 'GEN';
+  if (category) {
+    const cleanCat = category.replace(/[^a-zA-Z]/g, '').toUpperCase();
+    if (cleanCat.length >= 3) {
+      catCode = cleanCat.substring(0, 3);
+    } else if (cleanCat.length > 0) {
+      catCode = cleanCat;
+    }
+  } else if (title) {
+    const cleanTitle = title.replace(/[^a-zA-Z]/g, '').toUpperCase();
+    if (cleanTitle.length >= 3) {
+      catCode = cleanTitle.substring(0, 3);
+    }
+  }
+  const randomNum = Math.floor(10000 + Math.random() * 90000);
+  return `${prefix}-${catCode}-${randomNum}`;
+}
+
+export interface SkuManagerProps {
+  sku: string;
+  setSku: (val: string) => void;
+  category?: string;
+  title?: string;
+  sizeOptions?: string[];
+  sizeSkus?: Record<string, string>;
+  setSizeSkus?: (val: Record<string, string>) => void;
+  idPrefix?: string;
+}
+
+export const SkuManager: React.FC<SkuManagerProps> = ({
+  sku,
+  setSku,
+  category = '',
+  title = '',
+  sizeOptions = [],
+  sizeSkus = {},
+  setSizeSkus,
+  idPrefix = 'vendor'
+}) => {
+  const [copied, setCopied] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+  const [showSizeSkus, setShowSizeSkus] = useState(false);
+
+  const handleAutoGenerate = () => {
+    const newSku = generateAutoSku(category, title);
+    setSku(newSku);
+
+    // If size SKUs are present or enabled, update them too
+    if (sizeOptions.length > 0 && setSizeSkus) {
+      const nextSizeSkus: Record<string, string> = {};
+      sizeOptions.forEach(sz => {
+        const cleanSize = sz.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        nextSizeSkus[sz] = `${newSku}-${cleanSize || sz}`;
+      });
+      setSizeSkus(nextSizeSkus);
+    }
+  };
+
+  const handleCopy = () => {
+    if (!sku) return;
+    navigator.clipboard.writeText(sku);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSizeSkuChange = (sz: string, val: string) => {
+    if (!setSizeSkus) return;
+    setSizeSkus({
+      ...sizeSkus,
+      [sz]: val
+    });
+  };
+
+  const handleAutoGenerateSizeSkus = () => {
+    if (!setSizeSkus || sizeOptions.length === 0) return;
+    const base = sku || generateAutoSku(category, title);
+    if (!sku) setSku(base);
+
+    const nextSizeSkus: Record<string, string> = {};
+    sizeOptions.forEach(sz => {
+      const cleanSize = sz.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      nextSizeSkus[sz] = `${base}-${cleanSize || sz}`;
+    });
+    setSizeSkus(nextSizeSkus);
+  };
+
+  return (
+    <div className="bg-slate-50/80 rounded-2xl border border-slate-200/90 p-4 space-y-3.5 shadow-2xs" id={`${idPrefix}-sku-manager`}>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-200/80">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-800 flex items-center justify-center font-black shrink-0 shadow-2xs">
+            <Barcode className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                Product SKU (Stock Keeping Unit)
+              </h4>
+              <button
+                type="button"
+                onClick={() => setShowInfo(!showInfo)}
+                className="text-[10px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2 py-0.5 rounded-full flex items-center gap-1 cursor-pointer transition-colors"
+              >
+                <Info className="w-3 h-3" />
+                <span>What is SKU?</span>
+              </button>
+            </div>
+            <p className="text-[10.5px] text-slate-500 font-medium mt-0.5">
+              Unique internal code for inventory tracking, barcode scanning & fast order fulfillment.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleAutoGenerate}
+          className="text-xs font-bold text-purple-800 bg-purple-100/80 hover:bg-purple-200/90 border border-purple-300 px-3 py-1.5 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all self-start sm:self-auto shrink-0 shadow-2xs"
+          title="Auto-generate a standardized SKU code"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          <span>Auto-Generate SKU</span>
+        </button>
+      </div>
+
+      {/* Info Card explaining What an SKU Does */}
+      <AnimatePresence>
+        {showInfo && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-3.5 text-xs text-purple-950 space-y-2">
+              <div className="font-extrabold flex items-center gap-1.5 text-purple-900">
+                <Barcode className="w-4 h-4 text-purple-700" />
+                <span>What an SKU (Stock Keeping Unit) Does:</span>
+              </div>
+              <ul className="list-disc list-inside space-y-1 text-[11px] font-medium text-purple-900/90">
+                <li><strong className="font-bold">Identifies specific products & variants</strong> (unique size, color, style).</li>
+                <li><strong className="font-bold">Stays internal</strong> — custom code created specifically for your store inventory.</li>
+                <li><strong className="font-bold">Speeds up order fulfillment</strong> & prevents out-of-stock / wrong item dispatches.</li>
+              </ul>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Primary SKU Input */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+        <div className="relative flex-1">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+            <Hash className="w-4 h-4" />
+          </div>
+          <input
+            type="text"
+            placeholder="e.g. QK-ETH-10294"
+            value={sku}
+            onChange={(e) => setSku(e.target.value.toUpperCase().replace(/\s+/g, '-'))}
+            className="w-full pl-9 pr-20 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-black tracking-wider text-slate-900 focus:outline-hidden focus:border-purple-600 uppercase"
+            id={`${idPrefix}-sku-input`}
+          />
+          {sku && (
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[10.5px] font-bold text-slate-600 hover:text-purple-700 bg-slate-100 hover:bg-purple-50 border border-slate-200 px-2 py-1 rounded-md flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              {copied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+              <span>{copied ? 'Copied' : 'Copy'}</span>
+            </button>
+          )}
+        </div>
+
+        {!sku && (
+          <button
+            type="button"
+            onClick={handleAutoGenerate}
+            className="bg-[#143C6B] hover:bg-[#0d2a4e] text-white font-bold text-xs px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Generate Now</span>
+          </button>
+        )}
+      </div>
+
+      {/* Optional Size-wise SKU Mapping */}
+      {sizeOptions.length > 0 && setSizeSkus && (
+        <div className="pt-2 border-t border-slate-200/80 space-y-2">
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setShowSizeSkus(!showSizeSkus)}
+              className="text-xs font-bold text-slate-700 hover:text-purple-700 flex items-center gap-1 cursor-pointer"
+            >
+              {showSizeSkus ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              <span>Configure Size-wise Unique SKUs ({sizeOptions.length} Sizes)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleAutoGenerateSizeSkus}
+              className="text-[10.5px] font-bold text-purple-700 hover:underline cursor-pointer"
+            >
+              Auto-fill Size SKUs
+            </button>
+          </div>
+
+          <AnimatePresence>
+            {showSizeSkus && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                  {sizeOptions.map((sz) => (
+                    <div key={sz} className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200">
+                      <span className="text-xs font-black text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md min-w-[36px] text-center shrink-0">
+                        {sz}
+                      </span>
+                      <input
+                        type="text"
+                        placeholder={`e.g. ${sku || 'QK-PRD'}-${sz}`}
+                        value={sizeSkus[sz] || ''}
+                        onChange={(e) => handleSizeSkuChange(sz, e.target.value.toUpperCase().replace(/\s+/g, '-'))}
+                        className="flex-1 text-[11px] font-bold text-slate-900 border border-slate-200 rounded px-2 py-1 bg-slate-50/50 focus:bg-white focus:outline-hidden focus:border-purple-600 uppercase"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
     </div>
   );
 };

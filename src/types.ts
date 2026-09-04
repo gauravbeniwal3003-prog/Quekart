@@ -36,6 +36,7 @@ export interface VariantSwatch {
   originalPrice: number;
   stock?: number;
   sizeStock?: Record<string, number>;
+  sku?: string; // Unique SKU code for this color variant
 }
 
 export interface ProductAnalytics {
@@ -92,6 +93,12 @@ export interface Product {
   isBestSeller?: boolean;
   hsnCode?: string; // Mandatory HSN Code e.g. "01011020"
   hsnDescription?: string; // HSN category description retrieved from verification API
+  sku?: string; // Stock Keeping Unit (Unique inventory code e.g. "QK-ETH-10294")
+  sizeSkus?: Record<string, string>; // Individual SKUs for specific sizes e.g. { "S": "QK-ETH-10294-S", "M": "QK-ETH-10294-M" }
+  dimensions?: string; // Standard or 3D dimensions e.g. "8*12", "10*12", "12*18", "10*12*12", "12*12*12", "4*12*2" (L*B*H)
+  dimensionUnit?: string; // "cm" | "inches" | "mm"
+  weight?: string; // Product weight / volume e.g. "100ml", "200ml", "500ml", "1kg", "250g", "500g"
+  weightUnit?: string; // "ml" | "L" | "g" | "kg"
   analytics?: ProductAnalytics; // Real-time product impression, view, and cart add analytics
 }
 

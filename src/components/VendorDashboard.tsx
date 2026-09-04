@@ -75,7 +75,7 @@ import VendorExportReports from './VendorExportReports';
 import { VendorAnalyticsView } from './VendorAnalyticsView';
 import { MASTER_CATEGORIES, MasterCategory, getSubcategoriesForCategory } from '../data/categoriesData';
 import { fetchVendorAnalytics } from '../utils/analytics';
-import { ReturnPolicyAccordion, SizeAndParametersManager, StockInventoryManager } from './ProductFormControls';
+import { ReturnPolicyAccordion, SizeAndParametersManager, StockInventoryManager, SkuManager, generateAutoSku } from './ProductFormControls';
 import { VendorUpiPricingSelector } from './VendorUpiPricingSelector';
 
 export function WhatsAppIcon({ className = "w-4 h-4" }: { className?: string }) {
@@ -361,6 +361,8 @@ export default function VendorDashboard({
   const [pCategory, setPCategory] = useState('Women Ethnic Wear');
   const [allSubCategories, setAllSubCategories] = useState<SubCategory[]>([]);
   const [pSubCategory, setPSubCategory] = useState<string>('General');
+  const [pSku, setPSku] = useState<string>('');
+  const [pSizeSkus, setPSizeSkus] = useState<Record<string, string>>({});
 
   // Mandatory HSN Code Verification States
   const [pHsnCode, setPHsnCode] = useState('');
@@ -800,6 +802,8 @@ export default function VendorDashboard({
         setPHsnDescription(target.hsnDescription || '');
         setHsnVerified(!!target.hsnCode);
         setHsnError('');
+        setPSku(target.sku || generateAutoSku(target.category, target.title));
+        setPSizeSkus(target.sizeSkus || {});
         setPHighlights(target.productHighlights && target.productHighlights.length > 0 ? target.productHighlights : [
           { label: 'Net Quantity (N)', value: 'Pack of 1' },
           { label: 'Colour', value: 'Multicolor' },
@@ -848,6 +852,8 @@ export default function VendorDashboard({
       setPHsnDescription('');
       setHsnVerified(false);
       setHsnError('');
+      setPSku(generateAutoSku(pCategory, pTitle));
+      setPSizeSkus({});
     }
   }, [activeTabKey, queryId, products]);
 
@@ -1057,6 +1063,8 @@ export default function VendorDashboard({
       upiOfferText: finalUpiText,
       hsnCode: pHsnCode.trim(),
       hsnDescription: pHsnDescription.trim(),
+      sku: pSku.trim() || generateAutoSku(pCategory, finalTitle),
+      sizeSkus: pSizeSkus,
       rating: existingProduct ? existingProduct.rating : 0,
       ratingCount: existingProduct ? existingProduct.ratingCount : 0,
       reviewCount: existingProduct ? existingProduct.reviewCount : 0,
@@ -1209,7 +1217,9 @@ export default function VendorDashboard({
   const vendorProducts = products.filter(p => p.vendorId === currentVendor?.id);
   const filteredProducts = vendorProducts.filter(p => {
     const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          p.category.toLowerCase().includes(searchQuery.toLowerCase());
+                          p.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (p.sku && p.sku.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                          p.id.toLowerCase().includes(searchQuery.toLowerCase());
     const matchStatus = statusFilter === 'all' || 
                         (statusFilter === 'approved' && (p.approvalStatus === 'approved' || !p.approvalStatus)) ||
                         (statusFilter === 'pending' && p.approvalStatus === 'pending') ||
@@ -2008,6 +2018,11 @@ export default function VendorDashboard({
                                       {isApproved ? '✓ Live' : isPending ? '⏳ Reviewing' : '✕ Needs Fix'}
                                     </span>
                                     <span className="text-[10px] text-slate-400 font-mono">#{product.numericId || product.id.slice(-4)}</span>
+                                    {product.sku && (
+                                      <span className="bg-purple-100/90 text-purple-900 border border-purple-200 font-mono text-[9.5px] font-bold px-1.5 py-0.5 rounded shadow-3xs" title={`SKU: ${product.sku}`}>
+                                        SKU: {product.sku}
+                                      </span>
+                                    )}
                                   </div>
                                   <h4 className="text-xs font-bold text-slate-900 truncate" title={product.title}>
                                     {product.title}
@@ -2225,6 +2240,7 @@ export default function VendorDashboard({
                         const matchesSearch = !searchQuery.trim() || 
                           p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           p.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (p.sku && p.sku.toLowerCase().includes(searchQuery.toLowerCase())) ||
                           p.id.toLowerCase().includes(searchQuery.toLowerCase());
                         
                         if (!matchesSearch) return false;
@@ -2278,6 +2294,11 @@ export default function VendorDashboard({
                                   <div className="min-w-0">
                                     <div className="flex items-center gap-1.5 mb-0.5">
                                       <span className="text-[10px] font-mono text-slate-400">#{product.numericId || product.id.slice(-4)}</span>
+                                      {product.sku && (
+                                        <span className="bg-purple-100/90 text-purple-900 border border-purple-200 font-mono text-[9.5px] font-bold px-1.5 py-0.2 rounded" title={`SKU: ${product.sku}`}>
+                                          SKU: {product.sku}
+                                        </span>
+                                      )}
                                       <span className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded ${
                                         isOos ? 'bg-red-100 text-red-700' : isLow ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
                                       }`}>
@@ -2753,6 +2774,20 @@ export default function VendorDashboard({
                         setSizeStock={setPSizeStock}
                         totalStock={pStock}
                         setTotalStock={setPStock}
+                        idPrefix="vendor-add"
+                      />
+                    </div>
+
+                    {/* Stock Keeping Unit (SKU) */}
+                    <div className="pt-2">
+                      <SkuManager
+                        sku={pSku}
+                        setSku={setPSku}
+                        category={pCategory}
+                        title={pTitle}
+                        sizeOptions={pSizeOptions}
+                        sizeSkus={pSizeSkus}
+                        setSizeSkus={setPSizeSkus}
                         idPrefix="vendor-add"
                       />
                     </div>
@@ -3331,6 +3366,20 @@ export default function VendorDashboard({
                         setSizeStock={setPSizeStock}
                         totalStock={pStock}
                         setTotalStock={setPStock}
+                        idPrefix="vendor-edit"
+                      />
+                    </div>
+
+                    {/* Stock Keeping Unit (SKU) */}
+                    <div className="pt-2">
+                      <SkuManager
+                        sku={pSku}
+                        setSku={setPSku}
+                        category={pCategory}
+                        title={pTitle}
+                        sizeOptions={pSizeOptions}
+                        sizeSkus={pSizeSkus}
+                        setSizeSkus={setPSizeSkus}
                         idPrefix="vendor-edit"
                       />
                     </div>

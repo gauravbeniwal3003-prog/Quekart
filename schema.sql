@@ -137,11 +137,85 @@ CREATE TABLE IF NOT EXISTS otp_verifications (
 ALTER TABLE otp_verifications DISABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow full access on otp_verifications to all" ON otp_verifications FOR ALL TO public USING (true) WITH CHECK (true);
 
+-- 12. GST VERIFICATION RESULTS CACHE TABLE
+CREATE TABLE IF NOT EXISTS gst_results (
+    gstin TEXT PRIMARY KEY,
+    verified BOOLEAN DEFAULT false,
+    status TEXT,
+    legal_name TEXT,
+    trade_name TEXT,
+    business_type TEXT,
+    registration_date TEXT,
+    address TEXT,
+    state TEXT,
+    data JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+ALTER TABLE gst_results DISABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow full access on gst_results to all" ON gst_results FOR ALL TO public USING (true) WITH CHECK (true);
+
+-- 13. USER WALLETS (REFUND WALLET BALANCE) TABLE
+CREATE TABLE IF NOT EXISTS user_wallets (
+    phone TEXT PRIMARY KEY,
+    user_id TEXT,
+    balance NUMERIC DEFAULT 0,
+    total_refunds NUMERIC DEFAULT 0,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+ALTER TABLE user_wallets DISABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow full access on user_wallets to all" ON user_wallets FOR ALL TO public USING (true) WITH CHECK (true);
+
+-- 14. VENDOR PAYOUT REQUESTS TABLE
+CREATE TABLE IF NOT EXISTS vendor_payout_requests (
+    id TEXT PRIMARY KEY,
+    vendor_id TEXT NOT NULL,
+    method TEXT NOT NULL,
+    account_number TEXT,
+    ifsc_code TEXT,
+    account_holder_name TEXT,
+    bank_name TEXT,
+    upi_id TEXT,
+    amount NUMERIC NOT NULL,
+    status TEXT DEFAULT 'pending',
+    requested_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    processed_at TIMESTAMP WITH TIME ZONE,
+    utr_number TEXT,
+    admin_note TEXT,
+    data JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+ALTER TABLE vendor_payout_requests DISABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow full access on vendor_payout_requests to all" ON vendor_payout_requests FOR ALL TO public USING (true) WITH CHECK (true);
+
+-- 15. VENDOR WALLET LEDGER TABLE
+CREATE TABLE IF NOT EXISTS vendor_wallet_ledger (
+    id TEXT PRIMARY KEY,
+    vendor_id TEXT NOT NULL,
+    transaction_type TEXT NOT NULL,
+    type_label TEXT,
+    reference_id TEXT,
+    order_id TEXT,
+    product_title TEXT,
+    quantity INTEGER DEFAULT 1,
+    description TEXT,
+    credit_amount NUMERIC DEFAULT 0,
+    debit_amount NUMERIC DEFAULT 0,
+    running_balance NUMERIC DEFAULT 0,
+    status TEXT DEFAULT 'completed',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    data JSONB
+);
+ALTER TABLE vendor_wallet_ledger DISABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow full access on vendor_wallet_ledger to all" ON vendor_wallet_ledger FOR ALL TO public USING (true) WITH CHECK (true);
+
 -- INDEXES & STORED COLUMNS
 CREATE INDEX IF NOT EXISTS idx_products_vendor_id ON products ((data->>'vendorId'));
 CREATE INDEX IF NOT EXISTS idx_products_approval_status ON products ((data->>'approvalStatus'));
 CREATE INDEX IF NOT EXISTS idx_products_category ON products ((data->>'category'));
 CREATE INDEX IF NOT EXISTS idx_products_subcategory ON products ((data->>'subCategory'));
+CREATE INDEX IF NOT EXISTS idx_vendor_ledger_vendor_id ON vendor_wallet_ledger (vendor_id);
+CREATE INDEX IF NOT EXISTS idx_vendor_payouts_vendor_id ON vendor_payout_requests (vendor_id);
 
 ALTER TABLE products ADD COLUMN IF NOT EXISTS title TEXT GENERATED ALWAYS AS (data->>'title') STORED;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS vendor_id TEXT GENERATED ALWAYS AS (data->>'vendorId') STORED;
