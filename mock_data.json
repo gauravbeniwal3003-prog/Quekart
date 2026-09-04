@@ -1,74 +1,6 @@
 {
   "products": [
     {
-      "id": "prod-test-123",
-      "title": "Test Update Product",
-      "price": 999,
-      "category": "Men",
-      "approvalStatus": "approved",
-      "numericId": 52
-    },
-    {
-      "id": "prod-home-cookware",
-      "tag": "Kitchen Star",
-      "price": 480,
-      "title": "Non-Stick Aluminum Cookware Kadai & Fry Pan Combo",
-      "images": [
-        "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&q=80&w=600"
-      ],
-      "rating": 4.3,
-      "soldBy": "METRO_KITCHEN_MART",
-      "reviews": [],
-      "category": "Home & Kitchen",
-      "codPrice": 510,
-      "variants": [
-        {
-          "price": 480,
-          "imageUrl": "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&q=80&w=600",
-          "colorName": "Cherry Red Cookset",
-          "originalPrice": 960
-        }
-      ],
-      "analytics": {
-        "views": 0,
-        "cartAdds": 0,
-        "impressions": 12,
-        "lastUpdated": "2026-09-04T06:35:30.107Z",
-        "blockedViews": 0,
-        "blockedImpressions": 10
-      },
-      "numericId": 20,
-      "description": "Complete non-stick kitchen set featuring extra thick aluminum for heat distribution. Ergonomic cool-touch bakelite handles and matching heavy-duty glass lids.",
-      "hasUpiOffer": true,
-      "ratingCount": 824,
-      "reviewCount": 290,
-      "sizeOptions": [
-        "Free Size"
-      ],
-      "subCategory": "Cookware",
-      "soldByRating": 4.2,
-      "originalPrice": 960,
-      "approvalStatus": "approved",
-      "discountPercent": 50,
-      "additionalDetails": [
-        {
-          "label": "Induction Compatible",
-          "value": "Yes"
-        }
-      ],
-      "productHighlights": [
-        {
-          "label": "Material",
-          "value": "Heavy Gauge Aluminum"
-        },
-        {
-          "label": "Coating",
-          "value": "3-Layer Scratch Resistant Non-Stick"
-        }
-      ]
-    },
-    {
       "id": "prod-watch-lr05",
       "tag": "Lowest Price",
       "price": 93,
@@ -351,6 +283,66 @@
       ]
     },
     {
+      "id": "prod-home-cookware",
+      "tag": "Kitchen Star",
+      "price": 480,
+      "title": "Non-Stick Aluminum Cookware Kadai & Fry Pan Combo",
+      "images": [
+        "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&q=80&w=600"
+      ],
+      "rating": 4.3,
+      "soldBy": "METRO_KITCHEN_MART",
+      "reviews": [],
+      "category": "Home & Kitchen",
+      "codPrice": 510,
+      "variants": [
+        {
+          "price": 480,
+          "imageUrl": "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&q=80&w=600",
+          "colorName": "Cherry Red Cookset",
+          "originalPrice": 960
+        }
+      ],
+      "analytics": {
+        "views": 0,
+        "cartAdds": 0,
+        "impressions": 12,
+        "lastUpdated": "2026-09-04T06:35:30.107Z",
+        "blockedViews": 0,
+        "blockedImpressions": 10
+      },
+      "numericId": 20,
+      "description": "Complete non-stick kitchen set featuring extra thick aluminum for heat distribution. Ergonomic cool-touch bakelite handles and matching heavy-duty glass lids.",
+      "hasUpiOffer": true,
+      "ratingCount": 824,
+      "reviewCount": 290,
+      "sizeOptions": [
+        "Free Size"
+      ],
+      "subCategory": "Cookware",
+      "soldByRating": 4.2,
+      "originalPrice": 960,
+      "approvalStatus": "approved",
+      "discountPercent": 50,
+      "additionalDetails": [
+        {
+          "label": "Induction Compatible",
+          "value": "Yes"
+        }
+      ],
+      "productHighlights": [
+        {
+          "label": "Material",
+          "value": "Heavy Gauge Aluminum"
+        },
+        {
+          "label": "Coating",
+          "value": "3-Layer Scratch Resistant Non-Stick"
+        }
+      ]
+    },
+    {
       "id": "prod-rxmra9y",
       "price": 199,
       "title": "Kids Sleeper",
@@ -519,31 +511,6 @@
           "value": "COD Available (₹148) & Online UPI"
         }
       ]
-    },
-    {
-      "id": "prod-wooden-clock",
-      "title": "Handcrafted Vintage Wall Clock",
-      "description": "Elegant wooden wall clock with Roman numerals, designed to give your living room a classic touch.",
-      "category": "Home & Kitchen",
-      "subCategory": "Decor",
-      "price": 799,
-      "originalPrice": 1599,
-      "discountPercent": 50,
-      "codPrice": 839,
-      "hasUpiOffer": true,
-      "images": [
-        "https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?w=600"
-      ],
-      "rating": 4.5,
-      "ratingCount": 85,
-      "reviewCount": 18,
-      "stock": 25,
-      "vendorId": "vendor-small-craft",
-      "soldBy": "Jaipur Handcrafted Decors",
-      "soldByRating": 4.5,
-      "approvalStatus": "approved",
-      "numericId": 9,
-      "reviews": []
     },
     {
       "id": "prod-kids-suit",
@@ -728,6 +695,31 @@
           "value": "Rechargeable Battery Pack Included"
         }
       ]
+    },
+    {
+      "id": "prod-wooden-clock",
+      "price": 799,
+      "stock": 25,
+      "title": "Handcrafted Vintage Wall Clock",
+      "images": [
+        "https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?w=600"
+      ],
+      "rating": 4.5,
+      "soldBy": "Jaipur Handcrafted Decors",
+      "reviews": [],
+      "category": "Home & Kitchen",
+      "codPrice": 839,
+      "vendorId": "vendor-small-craft",
+      "numericId": 9,
+      "description": "Elegant wooden wall clock with Roman numerals, designed to give your living room a classic touch.",
+      "hasUpiOffer": true,
+      "ratingCount": 85,
+      "reviewCount": 18,
+      "subCategory": "Decor",
+      "soldByRating": 4.5,
+      "originalPrice": 1599,
+      "approvalStatus": "approved",
+      "discountPercent": 50
     },
     {
       "id": "prod-hk-1",
@@ -3967,6 +3959,12 @@
   "orders": [],
   "categories": [
     {
+      "id": "electronics",
+      "icon": "Laptop",
+      "name": "Electronics",
+      "image": "https://i.ibb.co/C5sZ3G2b/11b1017de09a.jpg"
+    },
+    {
       "id": "cat-all",
       "icon": "shopping-bag",
       "name": "All Categories",
@@ -3977,12 +3975,6 @@
       "icon": "Shirt",
       "name": "Watches",
       "image": "https://i.ibb.co/7Ng4fVGf/dbe25ca606df.jpg"
-    },
-    {
-      "id": "electronics",
-      "icon": "Laptop",
-      "name": "Electronics",
-      "image": "https://i.ibb.co/C5sZ3G2b/11b1017de09a.jpg"
     },
     {
       "id": "beauty",
@@ -4470,14 +4462,14 @@
       "address": "Jaipur, Rajasthan",
       "pincode": "302001",
       "createdAt": "2026-09-04T08:25:49.787Z",
+      "numericId": 6,
       "ownerName": "Ok prakash saini",
       "tradeName": "Brijbasket",
       "vendorType": "big",
       "description": "GST-Verified Seller (09AUWPS5785L1Z7) - Ok prakash saini, Jaipur, Rajasthan.",
       "businessType": "Registered Business",
       "businessCategory": "Apparel & Sarees",
-      "legalBusinessName": "Ok prakash saini",
-      "numericId": 6
+      "legalBusinessName": "Ok prakash saini"
     }
   ],
   "users": [

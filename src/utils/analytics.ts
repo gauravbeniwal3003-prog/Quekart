@@ -98,7 +98,7 @@ export async function fetchVendorAnalytics(vendorId: string) {
  */
 export async function fetchAdminAnalytics(adminSecret?: string) {
   try {
-    const secret = adminSecret || localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+    const secret = adminSecret || localStorage.getItem('lucky_admin_secret') || '';
     const res = await fetch(getApiUrl('/api/analytics/admin'), {
       headers: { 'X-Admin-Secret': secret }
     });

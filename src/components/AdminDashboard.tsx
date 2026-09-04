@@ -134,9 +134,9 @@ export default function AdminDashboard({
   // Admin Passcode State
   const [adminPasscode, setAdminPasscode] = useState(() => {
     try {
-      return localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+      return localStorage.getItem('lucky_admin_secret') || '';
     } catch (_) {
-      return 'lucky-secret-admin-pass-123';
+      return '';
     }
   });
   const handlePasscodeChange = (newPass: string) => {
@@ -167,7 +167,7 @@ export default function AdminDashboard({
     setIsSyncing(true);
     setSyncStatus('idle');
     try {
-      const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
+      const adminSecret = adminPasscode || '';
       const res = await fetch(getApiUrl('/api/admin/sync-demo-products'), {
         method: 'POST',
         headers: {
@@ -281,7 +281,7 @@ export default function AdminDashboard({
   // Product Approval Operations
   const handleApproveProduct = async (productId: string) => {
     try {
-      const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
+      const adminSecret = adminPasscode || '';
       let userToken = '';
       try { userToken = localStorage.getItem('quekart_token') || ''; } catch (_) {}
       const headers: Record<string, string> = {
@@ -321,7 +321,7 @@ export default function AdminDashboard({
   const handleRejectProduct = async (productId: string) => {
     const reason = rejectionReasonInput[productId]?.trim() || 'Product listing contains low-resolution images or invalid descriptions.';
     try {
-      const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
+      const adminSecret = adminPasscode || '';
       let userToken = '';
       try { userToken = localStorage.getItem('quekart_token') || ''; } catch (_) {}
       const headers: Record<string, string> = {
@@ -363,7 +363,7 @@ export default function AdminDashboard({
   const handleToggleVendorStatus = async (vendor: Vendor) => {
     const nextStatus = vendor.status === 'active' ? 'suspended' : 'active';
     const updatedVendor: Vendor = { ...vendor, status: nextStatus };
-    const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
+    const adminSecret = adminPasscode || '';
     let userToken = '';
     try { userToken = localStorage.getItem('quekart_token') || ''; } catch (_) {}
     const headers: Record<string, string> = {
@@ -393,7 +393,7 @@ export default function AdminDashboard({
     const isNowVerified = !(vendor.isVerified ?? (vendor.vendorType === 'big'));
     const nextType = isNowVerified ? 'big' : 'small';
     const updatedVendor: Vendor = { ...vendor, vendorType: nextType, isVerified: isNowVerified };
-    const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
+    const adminSecret = adminPasscode || '';
     let userToken = '';
     try { userToken = localStorage.getItem('quekart_token') || ''; } catch (_) {}
     const headers: Record<string, string> = {
@@ -423,7 +423,7 @@ export default function AdminDashboard({
     const isCurrentlyBanned = vendor.status === 'banned';
     const nextStatus = isCurrentlyBanned ? 'active' : 'banned';
     const updatedVendor: Vendor = { ...vendor, status: nextStatus };
-    const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
+    const adminSecret = adminPasscode || '';
     let userToken = '';
     try { userToken = localStorage.getItem('quekart_token') || ''; } catch (_) {}
     const headers: Record<string, string> = {
@@ -458,7 +458,7 @@ export default function AdminDashboard({
     if (!confirm(`Are you sure you want to permanently delete seller "${vendor.name}"?\n\nSMART LOGIC: All products listed under this seller will also be deleted automatically!`)) {
       return;
     }
-    const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
+    const adminSecret = adminPasscode || '';
     let userToken = '';
     try { userToken = localStorage.getItem('quekart_token') || ''; } catch (_) {}
     const headers: Record<string, string> = {
@@ -496,7 +496,7 @@ export default function AdminDashboard({
     const newStatus = isCurrentlyBanned ? 'active' : 'banned';
     const updatedCustomer = { ...customer, status: newStatus, isBanned: !isCurrentlyBanned };
     const idOrPhone = customer.id || customer.phone;
-    const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
+    const adminSecret = adminPasscode || '';
     let userToken = '';
     try { userToken = localStorage.getItem('quekart_token') || ''; } catch (_) {}
     const headers: Record<string, string> = {
@@ -530,7 +530,7 @@ export default function AdminDashboard({
       return;
     }
     const idOrPhone = customer.id || customer.phone;
-    const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
+    const adminSecret = adminPasscode || '';
     let userToken = '';
     try { userToken = localStorage.getItem('quekart_token') || ''; } catch (_) {}
     const headers: Record<string, string> = {
@@ -799,7 +799,7 @@ export default function AdminDashboard({
     if (!sponsorProduct) return;
     setIsSponsoringSubmitting(true);
     try {
-      const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
+      const adminSecret = adminPasscode || '';
       const response = await fetch(getApiUrl('/api/products/sponsor'), {
         method: 'POST',
         headers: {
@@ -961,7 +961,7 @@ export default function AdminDashboard({
   const handleCategoryCropConfirm = async (croppedDataUrl: string) => {
     setIsUploadingCategoryImage(true);
     try {
-      const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
+      const adminSecret = adminPasscode || '';
       let finalImageUrl = croppedDataUrl;
 
       // Host through proxied server endpoint
@@ -1418,7 +1418,7 @@ export default function AdminDashboard({
       const base64Data = canvas.toDataURL('image/jpeg', 0.85);
       setCroppingSrc(null); // Close modal instantly
 
-      const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
+      const adminSecret = adminPasscode || '';
       const res = await fetch(getApiUrl('/api/upload-image'), {
         method: 'POST',
         headers: {
@@ -1532,7 +1532,7 @@ export default function AdminDashboard({
         stopCamera();
 
         // Safe secure upload through our proxied endpoint
-        const adminSecret = adminPasscode || 'lucky-secret-admin-pass-123';
+        const adminSecret = adminPasscode || '';
         const res = await fetch(getApiUrl('/api/upload-image'), {
           method: 'POST',
           headers: {

@@ -30,7 +30,7 @@ const getEnvVar = (key: string, viteKey: string): string => {
 export const SUPABASE_URL = getEnvVar('SUPABASE_URL', 'VITE_SUPABASE_URL');
 export const SUPABASE_ANON_KEY = getEnvVar('SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY');
 export const BACKEND_URL = getEnvVar('BACKEND_URL', 'VITE_BACKEND_URL') || getEnvVar('API_URL', 'VITE_API_URL');
-export const IMGBB_API_KEY = getEnvVar('IMGBB_API_KEY', 'VITE_IMGBB_API_KEY') || '55179f3e39711f9b8a5f1b568b5567a9';
+export const IMGBB_API_KEY = getEnvVar('IMGBB_API_KEY', 'VITE_IMGBB_API_KEY') || '';
 
 // Initialize Supabase Client
 let clientInstance: SupabaseClient | null = null;
@@ -43,9 +43,8 @@ export function getSupabase(): SupabaseClient | null {
       clientInstance = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         auth: { persistSession: true }
       });
-      console.log('⚡ Client-side Supabase client active:', SUPABASE_URL);
     } catch (err) {
-      console.error('❌ Failed to initialize client-side Supabase:', err);
+      console.error('Database connection note:', err);
     }
   }
   return clientInstance;
@@ -164,10 +163,10 @@ function getAdminSecret(providedSecret?: string): string {
   if (providedSecret) return providedSecret;
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
-      return localStorage.getItem('lucky_admin_secret') || 'lucky-secret-admin-pass-123';
+      return localStorage.getItem('lucky_admin_secret') || '';
     }
   } catch (_) {}
-  return 'lucky-secret-admin-pass-123';
+  return '';
 }
 
 /**
@@ -338,7 +337,12 @@ export async function saveSubCategoryUnified(subCat: SubCategory): Promise<SubCa
   const sb = getSupabase();
   if (sb) {
     try {
-      await sb.from('sub_categories').upsert({ id: subCat.id, data: subCat });
+      await sb.from('sub_categories').upsert({
+        id: subCat.id,
+        category_id: subCat.categoryId || (subCat as any).category_id || '',
+        name: subCat.name || '',
+        data: subCat
+      });
     } catch (_) {}
   }
 

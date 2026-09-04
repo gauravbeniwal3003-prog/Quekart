@@ -206,6 +206,151 @@ app.use((req, res, next) => {
   next();
 });
 
+// Hide technology stack signatures from banner grabbers and Burp Suite scanners
+app.disable('x-powered-by');
+
+// Anti-Burp Suite & HTTP Security Defense Headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('X-DNS-Prefetch-Control', 'off');
+  res.setHeader('X-Download-Options', 'noopen');
+  res.removeHeader('X-Powered-By');
+  res.removeHeader('Server');
+  next();
+});
+
+// WAF & Security Shield: Detection and Blocking of Burp Suite, Scanners, and Path Traversals
+app.use((req, res, next) => {
+  const userAgent = req.headers['user-agent'] || '';
+  const urlPath = req.path || '';
+  const rawUrl = req.originalUrl || req.url || '';
+
+  // 1. Block Burp Suite & Vulnerability Scanner signatures
+  const isSuspiciousScanner = 
+    /burpcollaborator/i.test(JSON.stringify(req.headers)) ||
+    /burp/i.test(userAgent) ||
+    /sqlmap/i.test(userAgent) ||
+    /nikto/i.test(userAgent) ||
+    /wpscan/i.test(userAgent) ||
+    /acunetix/i.test(userAgent) ||
+    /nessus/i.test(userAgent) ||
+    /openvas/i.test(userAgent) ||
+    /dirbuster/i.test(userAgent) ||
+    /gobuster/i.test(userAgent) ||
+    /nuclei/i.test(userAgent) ||
+    /fuzzdb/i.test(userAgent) ||
+    /zgrab/i.test(userAgent) ||
+    /masscan/i.test(userAgent);
+
+  if (isSuspiciousScanner) {
+    console.warn(`🛡️ [SECURITY SHIELD] Blocked automated vulnerability scanner / Burp Suite request from IP ${req.ip} (UA: ${userAgent})`);
+    return res.status(403).json({ error: 'Access Denied: Automated security scanning tool signature blocked.' });
+  }
+
+  // 2. Block sensitive file probing commonly tested by Burp Suite Scanner
+  const isSensitiveProbe = 
+    /\/\.env/i.test(urlPath) ||
+    /\/\.git/i.test(urlPath) ||
+    /\/\.svn/i.test(urlPath) ||
+    /\/server\.ts/i.test(urlPath) ||
+    /\/package\.json/i.test(urlPath) ||
+    /\/tsconfig\.json/i.test(urlPath) ||
+    /\/wp-admin/i.test(urlPath) ||
+    /\/wp-login\.php/i.test(urlPath) ||
+    /\/xmlrpc\.php/i.test(urlPath) ||
+    /\/phpinfo/i.test(urlPath) ||
+    /\/etc\/passwd/i.test(urlPath) ||
+    /\/win\.ini/i.test(urlPath) ||
+    /\/\.\./.test(rawUrl); // Directory traversal
+
+  if (isSensitiveProbe) {
+    console.warn(`🛡️ [SECURITY SHIELD] Blocked sensitive file probe attempt: ${urlPath} from IP ${req.ip}`);
+    return res.status(403).json({ error: 'Access Denied: Forbidden resource probe.' });
+  }
+
+  // 3. Block malicious SQL injection patterns in query parameters
+  const rawQuery = (req.originalUrl || req.url || '').split('?')[1] || '';
+  let decodedQuery = rawQuery;
+  try {
+    decodedQuery = decodeURIComponent(rawQuery);
+  } catch (_) {}
+  const fullTarget = `${rawQuery} ${decodedQuery} ${JSON.stringify(req.query || {})}`;
+
+  if (
+    /(\bunion\b.*\bselect\b)/i.test(fullTarget) ||
+    /(\binformation_schema\b)/i.test(fullTarget) ||
+    /(\bpg_sleep\s*\()/i.test(fullTarget) ||
+    /(\bwaitfor\s+delay\b)/i.test(fullTarget) ||
+    /(\bbenchmark\s*\()/i.test(fullTarget) ||
+    /(;\s*drop\s+table\b)/i.test(fullTarget) ||
+    /(\bxp_cmdshell\b)/i.test(fullTarget)
+  ) {
+    console.warn(`🛡️ [SECURITY SHIELD] Blocked SQL injection probe from IP ${req.ip}`);
+    return res.status(400).json({ error: 'Invalid request parameters detected.' });
+  }
+
+  next();
+});
+
+// Rate Limiting & Anti-Intruder Brute Force Shield
+interface RateLimitRecord {
+  count: number;
+  firstRequestTime: number;
+  blockedUntil?: number;
+}
+const ipRateLimits = new Map<string, RateLimitRecord>();
+const adminLoginAttempts = new Map<string, { count: number; lockedUntil?: number }>();
+
+// Cleanup stale records periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, record] of ipRateLimits.entries()) {
+    if (now - record.firstRequestTime > 60000 && (!record.blockedUntil || now > record.blockedUntil)) {
+      ipRateLimits.delete(key);
+    }
+  }
+  for (const [key, record] of adminLoginAttempts.entries()) {
+    if (record.lockedUntil && now > record.lockedUntil) {
+      adminLoginAttempts.delete(key);
+    }
+  }
+}, 60000);
+
+// Global API rate limiter for /api/* (protects against Burp Intruder flooding & endpoint fuzzing)
+app.use('/api', (req, res, next) => {
+  const clientIp = (req.headers['x-forwarded-for'] as string) || req.ip || 'unknown';
+  const now = Date.now();
+  const record = ipRateLimits.get(clientIp) || { count: 0, firstRequestTime: now };
+
+  if (record.blockedUntil && now < record.blockedUntil) {
+    const remainingSeconds = Math.ceil((record.blockedUntil - now) / 1000);
+    return res.status(429).json({
+      error: `Too Many Requests: Rate limit exceeded. Please retry in ${remainingSeconds} seconds.`
+    });
+  }
+
+  if (now - record.firstRequestTime < 10000) {
+    record.count++;
+    if (record.count > 120) {
+      // Exceeded 120 requests in 10s window (typical Burp Intruder scan)
+      record.blockedUntil = now + 30000; // 30s cooldown
+      ipRateLimits.set(clientIp, record);
+      console.warn(`🛡️ [SECURITY SHIELD] IP ${clientIp} rate limited (Burp Intruder / flood protection)`);
+      return res.status(429).json({ error: 'Too Many Requests: Automated burst traffic detected.' });
+    }
+  } else {
+    record.count = 1;
+    record.firstRequestTime = now;
+  }
+
+  ipRateLimits.set(clientIp, record);
+  next();
+});
+
 // Enable JSON parser with payload size limit to accommodate base64 image uploads
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -562,7 +707,13 @@ async function testAndSeedSupabase() {
         for (let i = 0; i < localSubCategories.length; i++) {
           const s = localSubCategories[i];
           if (!existingSubIds.has(s.id)) {
-            const { error: insertErr } = await supabase.from('sub_categories').upsert({ id: s.id, data: s });
+            const catId = s.categoryId || (s as any).category_id || '';
+            const { error: insertErr } = await supabase.from('sub_categories').upsert({
+              id: s.id,
+              category_id: catId,
+              name: s.name || '',
+              data: s
+            });
             if (insertErr) {
               console.warn(`⚠️ Note seeding sub-category ${s.id}:`, insertErr.message || insertErr);
             }
@@ -572,7 +723,13 @@ async function testAndSeedSupabase() {
       console.log(`📊 Sub-Categories in Supabase. Syncing live database sub-categories...`);
       const { data: dbSubRows } = await supabase.from('sub_categories').select('*');
       if (dbSubRows && dbSubRows.length > 0) {
-        localSubCategories = dbSubRows.map((r: any) => r.data || r);
+        localSubCategories = dbSubRows.map((r: any) => {
+          const item = r.data || r;
+          if (!item.categoryId && r.category_id) {
+            item.categoryId = r.category_id;
+          }
+          return item;
+        });
         saveMockDataFile();
       }
     } else {
@@ -1918,12 +2075,36 @@ app.post('/api/auth/user-register', async (req, res) => {
   }
 });
 
-// Admin JWT Authentication Endpoint
+// Admin JWT Authentication Endpoint with Anti-Brute-Force & Burp Intruder Lockout
 app.post('/api/auth/admin-login', (req, res) => {
+  const clientIp = (req.headers['x-forwarded-for'] as string) || req.ip || 'unknown';
+  const now = Date.now();
+  const attempt = adminLoginAttempts.get(clientIp) || { count: 0 };
+
+  if (attempt.lockedUntil && now < attempt.lockedUntil) {
+    const remainingMinutes = Math.ceil((attempt.lockedUntil - now) / 60000);
+    return res.status(429).json({
+      error: `Security Lockout: Too many failed admin login attempts. Access temporarily blocked for ${remainingMinutes} minutes.`
+    });
+  }
+
   const { secret } = req.body;
   if (!secret || secret !== ADMIN_SECRET) {
+    attempt.count = (attempt.count || 0) + 1;
+    if (attempt.count >= 5) {
+      attempt.lockedUntil = now + 15 * 60 * 1000; // 15-minute lockout
+      adminLoginAttempts.set(clientIp, attempt);
+      console.warn(`🛡️ [SECURITY SHIELD] IP ${clientIp} locked out after 5 failed admin login attempts.`);
+      return res.status(429).json({
+        error: 'Security Lockout: Too many failed attempts. Access blocked for 15 minutes.'
+      });
+    }
+    adminLoginAttempts.set(clientIp, attempt);
     return res.status(401).json({ error: 'Invalid admin credentials.' });
   }
+
+  // Clear attempts on success
+  adminLoginAttempts.delete(clientIp);
   const token = signToken({ role: 'admin' });
   res.json({ success: true, token });
 });
@@ -4442,7 +4623,12 @@ app.post('/api/sub-categories', authenticateAdmin, async (req, res) => {
   }
   try {
     if (useSupabase && supabase) {
-      await supabase.from('sub_categories').upsert({ id: subCat.id, data: subCat });
+      await supabase.from('sub_categories').upsert({
+        id: subCat.id,
+        category_id: subCat.categoryId || (subCat as any).category_id || '',
+        name: subCat.name || '',
+        data: subCat
+      });
     }
     const idx = localSubCategories.findIndex(s => s.id === subCat.id);
     if (idx >= 0) {
