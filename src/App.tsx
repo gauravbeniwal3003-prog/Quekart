@@ -1086,7 +1086,7 @@ export default function App() {
             ) : (
               <>
                 {/* Render Header on customer storefront tabs */}
-                {activeTab !== 'profile' && activeTab !== 'user' && activeTab !== 'logo' && activeTab !== 'cart' && !(activeTab === 'categories' && activeSubPage) && (
+                {activeTab !== 'user' && activeTab !== 'logo' && activeTab !== 'cart' && !(activeTab === 'categories' && activeSubPage) && (
                   <Header
                     cart={cart}
                     onOpenCart={() => navigateTo('/shop/cart')}

@@ -505,29 +505,6 @@ export default function ProfileView({
           style={{ willChange: 'transform, opacity' }}
           className="max-w-3xl mx-auto md:my-4 md:border md:border-gray-200/80 md:rounded-2xl md:overflow-hidden md:shadow-xs bg-white"
         >
-          {/* Header Bar */}
-          <header className={`px-4 py-3 border-b sticky top-0 z-50 flex items-center justify-between ${simulatedTwilightTheme ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'}`} id="profile-header">
-            <div className="flex items-center gap-4">
-              <button onClick={onBack} className="p-1 -ml-1 hover:bg-opacity-10 rounded-full cursor-pointer transition-colors" id="profile-back-btn">
-                <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
-              </button>
-              <span className="text-sm font-extrabold tracking-wider uppercase" id="profile-header-title">Account Settings</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <button onClick={() => triggerToast("Opening search options...")} className="p-1.5 hover:bg-opacity-10 rounded-full cursor-pointer transition-colors" id="profile-search-btn">
-                <Search className="w-5 h-5 stroke-[2]" />
-              </button>
-              <button onClick={onOpenCart} className="p-1.5 hover:bg-opacity-10 rounded-full cursor-pointer transition-colors relative" id="profile-cart-btn">
-                <ShoppingCart className="w-5 h-5 stroke-[2]" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-lucky-magenta text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
-                    {cartCount}
-                  </span>
-                )}
-              </button>
-            </div>
-          </header>
-
           {/* User Info Section / Guest Banner */}
           {!currentUser ? (
             <div className="px-4 py-5 border-b bg-gradient-to-r from-blue-50/80 via-indigo-50/50 to-white flex items-center justify-between gap-3 shadow-3xs" id="profile-guest-card">

@@ -628,16 +628,16 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
         </section>
 
         {/* 5. PROFESSIONAL FOOTER - ENTERPRISE MULTI-COLUMN ON PC, CLEAN STACK ON MOBILE */}
-        <footer className="bg-white border-t border-[#E8EEF5] pt-12 sm:pt-16 pb-12 px-4 sm:px-6 lg:px-8 mt-12" id="landing-footer-section">
+        <footer className="bg-white border-t border-[#E8EEF5] pt-10 sm:pt-12 pb-6 sm:pb-8 px-4 sm:px-6 lg:px-8 mt-10" id="landing-footer-section">
           <div className="max-w-6xl lg:max-w-7xl mx-auto w-full">
             
-            {/* Desktop 3-Column Layout / Mobile Stack */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-10 lg:gap-12 pb-10">
+            {/* Desktop 3-Column Layout / Mobile Stack - Perfectly aligned with items-start */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-8 lg:gap-10 pb-8 items-start">
               
               {/* Column 1: Brand Logo & Mission Statement (5 cols on Desktop) */}
-              <div className="md:col-span-5 flex flex-col justify-between">
+              <div className="md:col-span-5 flex flex-col gap-4">
                 <div>
-                  <div className="flex items-center gap-2 mb-3.5">
+                  <div className="flex items-center gap-2 mb-2.5">
                     <BrandLogo size="md" animated={false} layout="row" className="justify-start" />
                   </div>
                   <p className="text-sm text-[#556987] font-normal leading-relaxed max-w-md">
@@ -645,63 +645,81 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
                   </p>
                 </div>
 
-                {/* Direct Contact Pills on Desktop */}
-                <div className="mt-6 flex flex-wrap gap-2.5">
+                {/* Direct Contact Pills */}
+                <div className="flex flex-wrap gap-2">
                   <a 
                     href="mailto:support@quekart.com" 
-                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#F0F5FA] hover:bg-[#E2EAF2] text-[#143C6B] text-xs font-bold transition-colors border border-[#D8E6F3]"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#F0F5FA] hover:bg-[#E2EAF2] text-[#143C6B] text-xs font-bold transition-colors border border-[#D8E6F3]"
                   >
                     <Mail className="w-4 h-4 text-[#143C6B]" />
                     <span>support@quekart.com</span>
                   </a>
                   <a 
                     href="tel:+911412891000" 
-                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#F0F5FA] hover:bg-[#E2EAF2] text-[#143C6B] text-xs font-bold transition-colors border border-[#D8E6F3]"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#F0F5FA] hover:bg-[#E2EAF2] text-[#143C6B] text-xs font-bold transition-colors border border-[#D8E6F3]"
                   >
                     <Phone className="w-4 h-4 text-[#143C6B]" />
                     <span>+91 141-289-1000</span>
                   </a>
                 </div>
+
+                {/* Support Helpdesk & Quick Seller Link Badge */}
+                <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-100 flex items-center justify-between gap-3 max-w-md">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
+                    <div className="text-xs min-w-0">
+                      <span className="font-bold text-[#0B1E36] block">Support Helpdesk</span>
+                      <span className="text-[#6B7F96] text-[11px] block truncate">Mon – Sat: 9:00 AM – 8:00 PM IST</span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => onNavigate('/vendor/signup')} 
+                    className="text-xs font-bold text-[#E57E00] hover:text-[#C46A00] flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap flex-shrink-0"
+                  >
+                    <span>Sell on QueKart</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
 
               {/* Column 2: Enterprise & Corporate Information (4 cols on Desktop) */}
-              <div className="md:col-span-4 flex flex-col gap-4">
-                <h4 className="text-xs font-bold text-[#0B1E36] uppercase tracking-wider mb-1">
+              <div className="md:col-span-4 flex flex-col gap-3">
+                <h4 className="text-xs font-bold text-[#0B1E36] uppercase tracking-wider">
                   CORPORATE &amp; LEGAL ENTITY
                 </h4>
 
-                <div className="flex flex-col gap-3.5">
+                <div className="flex flex-col gap-2.5">
                   {/* Item 1: Registered Firm */}
-                  <div className="flex items-start gap-3.5 bg-slate-50/70 p-3 rounded-2xl border border-slate-100">
-                    <div className="w-10 h-10 rounded-full bg-[#EAF3FA] border border-[#D8E6F3] flex items-center justify-center flex-shrink-0 text-[#143C6B]">
+                  <div className="flex items-start gap-3 bg-slate-50/80 p-2.5 sm:p-3 rounded-2xl border border-slate-100">
+                    <div className="w-9 h-9 rounded-full bg-[#EAF3FA] border border-[#D8E6F3] flex items-center justify-center flex-shrink-0 text-[#143C6B]">
                       <Building2 className="w-4.5 h-4.5 stroke-[2.2]" />
                     </div>
-                    <div className="flex flex-col justify-center">
-                      <span className="text-[10.5px] font-bold text-[#8B9EB2] tracking-wider uppercase">
+                    <div className="flex flex-col justify-center min-w-0">
+                      <span className="text-[10px] font-bold text-[#8B9EB2] tracking-wider uppercase">
                         REGISTERED FIRM
                       </span>
-                      <span className="text-[14px] font-bold text-[#0B1E36] leading-snug">
+                      <span className="text-[13.5px] font-bold text-[#0B1E36] leading-snug truncate">
                         PASI E-COMMERCE SERVICES
                       </span>
-                      <span className="text-xs text-[#6B7F96]">
+                      <span className="text-[11px] text-[#6B7F96]">
                         Proprietorship Firm
                       </span>
                     </div>
                   </div>
 
                   {/* Item 2: GST Registration Number */}
-                  <div className="flex items-start gap-3.5 bg-slate-50/70 p-3 rounded-2xl border border-slate-100">
-                    <div className="w-10 h-10 rounded-full bg-[#EAF3FA] border border-[#D8E6F3] flex items-center justify-center flex-shrink-0 text-[#143C6B]">
+                  <div className="flex items-start gap-3 bg-slate-50/80 p-2.5 sm:p-3 rounded-2xl border border-slate-100">
+                    <div className="w-9 h-9 rounded-full bg-[#EAF3FA] border border-[#D8E6F3] flex items-center justify-center flex-shrink-0 text-[#143C6B]">
                       <FileText className="w-4.5 h-4.5 stroke-[2.2]" />
                     </div>
-                    <div className="flex flex-col justify-center">
-                      <span className="text-[10.5px] font-bold text-[#8B9EB2] tracking-wider uppercase">
+                    <div className="flex flex-col justify-center min-w-0">
+                      <span className="text-[10px] font-bold text-[#8B9EB2] tracking-wider uppercase">
                         GST REGISTRATION NUMBER
                       </span>
-                      <span className="text-[14px] font-bold text-[#0B1E36] leading-snug font-mono">
+                      <span className="text-[13.5px] font-bold text-[#0B1E36] leading-snug font-mono">
                         06KLFPS7562K2Z8
                       </span>
-                      <div className="flex items-center gap-1 text-xs text-emerald-700 font-semibold mt-0.5">
+                      <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-semibold mt-0.5">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 fill-emerald-100" />
                         <span>GSTIN Verified &amp; Active</span>
                       </div>
@@ -709,18 +727,18 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
                   </div>
 
                   {/* Item 3: Registered Address */}
-                  <div className="flex items-start gap-3.5 bg-slate-50/70 p-3 rounded-2xl border border-slate-100">
-                    <div className="w-10 h-10 rounded-full bg-[#EAF3FA] border border-[#D8E6F3] flex items-center justify-center flex-shrink-0 text-[#143C6B]">
+                  <div className="flex items-start gap-3 bg-slate-50/80 p-2.5 sm:p-3 rounded-2xl border border-slate-100">
+                    <div className="w-9 h-9 rounded-full bg-[#EAF3FA] border border-[#D8E6F3] flex items-center justify-center flex-shrink-0 text-[#143C6B]">
                       <MapPin className="w-4.5 h-4.5 stroke-[2.2]" />
                     </div>
-                    <div className="flex flex-col justify-center">
-                      <span className="text-[10.5px] font-bold text-[#8B9EB2] tracking-wider uppercase">
+                    <div className="flex flex-col justify-center min-w-0">
+                      <span className="text-[10px] font-bold text-[#8B9EB2] tracking-wider uppercase">
                         REGISTERED ADDRESS
                       </span>
-                      <span className="text-[14px] font-bold text-[#0B1E36] leading-snug">
+                      <span className="text-[13.5px] font-bold text-[#0B1E36] leading-snug truncate">
                         PASI E-COMMERCE SERVICES
                       </span>
-                      <span className="text-xs text-[#6B7F96]">
+                      <span className="text-[11px] text-[#6B7F96]">
                         Panchkula, Haryana – 134118, India
                       </span>
                     </div>
@@ -729,15 +747,15 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
               </div>
 
               {/* Column 3: Compliance & Policies (3 cols on Desktop) */}
-              <div className="md:col-span-3 flex flex-col">
-                <h4 className="text-xs font-bold text-[#0B1E36] uppercase tracking-wider mb-3">
+              <div className="md:col-span-3 flex flex-col gap-2.5">
+                <h4 className="text-xs font-bold text-[#0B1E36] uppercase tracking-wider">
                   COMPLIANCE &amp; POLICIES
                 </h4>
-                <div className="flex flex-col divide-y divide-slate-100/90 border border-slate-100 rounded-2xl p-2 bg-slate-50/50">
+                <div className="flex flex-col divide-y divide-slate-100/90 border border-slate-100 rounded-2xl p-1.5 bg-slate-50/50">
                   {/* Contact Us */}
                   <button 
                     onClick={() => onNavigate('/contact')} 
-                    className="w-full flex items-center justify-between py-2.5 px-2 hover:bg-white rounded-xl hover:text-[#143C6B] transition-all text-left group cursor-pointer"
+                    className="w-full flex items-center justify-between py-2 px-2 hover:bg-white rounded-xl hover:text-[#143C6B] transition-all text-left group cursor-pointer"
                   >
                     <div className="flex items-center gap-2.5">
                       <Mail className="w-4 h-4 text-[#0B1E36] stroke-[2.2] flex-shrink-0" />
@@ -751,7 +769,7 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
                   {/* Refund & Cancellations */}
                   <button 
                     onClick={() => onNavigate('/refund')} 
-                    className="w-full flex items-center justify-between py-2.5 px-2 hover:bg-white rounded-xl hover:text-[#143C6B] transition-all text-left group cursor-pointer"
+                    className="w-full flex items-center justify-between py-2 px-2 hover:bg-white rounded-xl hover:text-[#143C6B] transition-all text-left group cursor-pointer"
                   >
                     <div className="flex items-center gap-2.5">
                       <RotateCcw className="w-4 h-4 text-[#0B1E36] stroke-[2.2] flex-shrink-0" />
@@ -765,7 +783,7 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
                   {/* Terms & Conditions */}
                   <button 
                     onClick={() => onNavigate('/terms')} 
-                    className="w-full flex items-center justify-between py-2.5 px-2 hover:bg-white rounded-xl hover:text-[#143C6B] transition-all text-left group cursor-pointer"
+                    className="w-full flex items-center justify-between py-2 px-2 hover:bg-white rounded-xl hover:text-[#143C6B] transition-all text-left group cursor-pointer"
                   >
                     <div className="flex items-center gap-2.5">
                       <FileText className="w-4 h-4 text-[#0B1E36] stroke-[2.2] flex-shrink-0" />
@@ -779,7 +797,7 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
                   {/* Privacy Policy */}
                   <button 
                     onClick={() => onNavigate('/privacy')} 
-                    className="w-full flex items-center justify-between py-2.5 px-2 hover:bg-white rounded-xl hover:text-[#143C6B] transition-all text-left group cursor-pointer"
+                    className="w-full flex items-center justify-between py-2 px-2 hover:bg-white rounded-xl hover:text-[#143C6B] transition-all text-left group cursor-pointer"
                   >
                     <div className="flex items-center gap-2.5">
                       <ShieldCheck className="w-4 h-4 text-[#0B1E36] stroke-[2.2] flex-shrink-0" />
@@ -789,17 +807,42 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors flex-shrink-0" />
                   </button>
+
+                  {/* Grievance Redressal */}
+                  <button 
+                    onClick={() => onNavigate('/contact')} 
+                    className="w-full flex items-center justify-between py-2 px-2 hover:bg-white rounded-xl hover:text-[#143C6B] transition-all text-left group cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <HelpCircle className="w-4 h-4 text-[#0B1E36] stroke-[2.2] flex-shrink-0" />
+                      <span className="text-xs font-bold text-[#0B1E36] group-hover:text-[#143C6B] transition-colors whitespace-nowrap">
+                        Grievance Redressal
+                      </span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors flex-shrink-0" />
+                  </button>
+                </div>
+
+                {/* Buyer Protection Trust Card (Fills height naturally with Col 1 & 2) */}
+                <div className="p-2.5 rounded-2xl bg-[#EBF5EE] border border-[#D3EBD9] flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-2xs">
+                    <ShieldCheck className="w-4.5 h-4.5 stroke-[2.2]" />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-bold text-[#0B1E36]">100% Buyer Protection</span>
+                    <span className="text-[11px] text-[#3D5B46] leading-tight truncate">Verified sellers &amp; genuine products</span>
+                  </div>
                 </div>
               </div>
 
             </div>
 
-            {/* SEO Directory & Comparison Links for Maximum Google Indexation */}
-            <div className="py-6 border-t border-[#E8EEF5]">
-              <h4 className="text-xs font-black text-[#0B1E36] uppercase tracking-wider mb-3">
+            {/* SEO Directory & Comparison Links - Balanced responsive grid */}
+            <div className="py-5 border-t border-[#E8EEF5]">
+              <h4 className="text-xs font-black text-[#0B1E36] uppercase tracking-wider mb-2.5">
                 POPULAR WHOLESALE SEARCHES &amp; MARKETPLACE COMPARISONS
               </h4>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 text-[11px] font-semibold text-[#556987]">
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-x-4 gap-y-2 text-[11px] font-semibold text-[#556987]">
                 <button
                   type="button"
                   onClick={() => onNavigate('/compare/quekart-vs-meesho')}
@@ -874,7 +917,7 @@ export default function LandingGateway({ onNavigate }: LandingGatewayProps) {
             </div>
 
             {/* Bottom Copyright, Address & Certifications */}
-            <div className="pt-6 border-t border-[#E8EEF5] flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="pt-4 border-t border-[#E8EEF5] flex flex-col md:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 {/* Hexagonal / Shield Copyright Emblem */}
                 <div className="w-7 h-7 rounded-lg border-2 border-[#143C6B] flex items-center justify-center flex-shrink-0 text-[#143C6B] font-bold text-xs">
