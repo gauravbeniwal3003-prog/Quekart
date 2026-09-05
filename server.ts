@@ -711,7 +711,6 @@ async function testAndSeedSupabase() {
             const { error: insertErr } = await supabase.from('sub_categories').upsert({
               id: s.id,
               category_id: catId,
-              name: s.name || '',
               data: s
             });
             if (insertErr) {
@@ -4370,8 +4369,15 @@ app.post('/api/user/wallet/pay', async (req, res) => {
 // --- COUPONS ---
 app.get('/api/coupons', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=120');
-    res.setHeader('Vary', 'Accept-Encoding');
+    if (useSupabase && supabase) {
+      const { data, error } = await supabase.from('coupons').select('*');
+      if (!error && data && data.length > 0) {
+        localCoupons = data.map((r: any) => r.data || r);
+      }
+    }
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.json(localCoupons);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch coupons' });
@@ -4607,9 +4613,15 @@ app.get('/api/sub-categories', async (req, res) => {
       if (!error && data && data.length > 0) {
         const mapped = data.map((r: any) => r.data || r);
         localSubCategories = mapped;
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
         return res.json(mapped);
       }
     }
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.json(localSubCategories);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch sub-categories' });
@@ -4626,7 +4638,6 @@ app.post('/api/sub-categories', authenticateAdmin, async (req, res) => {
       await supabase.from('sub_categories').upsert({
         id: subCat.id,
         category_id: subCat.categoryId || (subCat as any).category_id || '',
-        name: subCat.name || '',
         data: subCat
       });
     }
@@ -4665,8 +4676,15 @@ app.delete('/api/sub-categories/:id', authenticateAdmin, async (req, res) => {
 // --- CATEGORY FILTERS ---
 app.get('/api/category-filters', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=120');
-    res.setHeader('Vary', 'Accept-Encoding');
+    if (useSupabase && supabase) {
+      const { data, error } = await supabase.from('category_filters').select('*').order('position', { ascending: true });
+      if (!error && data && data.length > 0) {
+        localCategoryFilters = data.map((r: any) => r.data || r);
+      }
+    }
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.json(localCategoryFilters);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch category filters' });
@@ -4786,8 +4804,15 @@ app.post('/api/category-filters/reorder', authenticateAdmin, async (req, res) =>
 // --- BANNERS ---
 app.get('/api/banners', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=120');
-    res.setHeader('Vary', 'Accept-Encoding');
+    if (useSupabase && supabase) {
+      const { data: dbBanners, error } = await supabase.from('banners').select('*');
+      if (!error && dbBanners && dbBanners.length > 0) {
+        localBanners = dbBanners.map((r: any) => r.data || r);
+      }
+    }
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.json(localBanners);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch banners' });

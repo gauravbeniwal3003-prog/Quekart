@@ -13,7 +13,8 @@ import {
   saveProductUnified, 
   deleteProductUnified, 
   saveOrderUnified,
-  isSupabaseConfigured 
+  isSupabaseConfigured,
+  purgeCatalogLocalCaches
 } from './supabase';
 import { Product, CartItem, Order, Coupon, Banner, Category, CategoryFilter, SubCategory } from './types';
 import { getApiUrl } from './utils/api';
@@ -328,17 +329,8 @@ export default function App() {
     safeSetLocalStorage('quekart_current_user', JSON.stringify(updatedUser));
   };
 
-  // Database-driven products state (initialized with cached or mock products to prevent blank flash)
-  const [products, setProducts] = useState<Product[]>(() => {
-    try {
-      const cached = safeGetLocalStorage('quekart_cached_products');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (_) {}
-    return [];
-  });
+  // Database-driven products state (Live direct fetch, no localStorage caching)
+  const [products, setProducts] = useState<Product[]>([]);
 
   // Database-driven orders state
   const [orders, setOrders] = useState<Order[]>(initialOrders);
@@ -346,34 +338,16 @@ export default function App() {
   // Database-driven coupons state
   const [coupons, setCoupons] = useState<Coupon[]>(initialCoupons);
 
-  // Database-driven categories state (pre-initialized from cache)
-  const [categories, setCategories] = useState<Category[]>(() => {
-    try {
-      const cached = safeGetLocalStorage('quekart_cached_categories');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (_) {}
-    return [];
-  });
+  // Database-driven categories state (Live direct fetch, no localStorage caching)
+  const [categories, setCategories] = useState<Category[]>([]);
 
   // Database-driven category filters state (left sidebar on /shop/categories)
   const [categoryFilters, setCategoryFilters] = useState<CategoryFilter[]>([]);
 
-  // Dynamic persistent banners state (pre-initialized from cache)
-  const [banners, setBanners] = useState<Banner[]>(() => {
-    try {
-      const cached = safeGetLocalStorage('quekart_cached_banners');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (_) {}
-    return initialBanners;
-  });
+  // Dynamic persistent banners state (Live direct fetch, no localStorage caching)
+  const [banners, setBanners] = useState<Banner[]>([]);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
-  const [isLoadingShopData, setIsLoadingShopData] = useState<boolean>(false);
+  const [isLoadingShopData, setIsLoadingShopData] = useState<boolean>(true);
 
   // Fetch / Refresh shop data with Prioritized Critical-First Streaming (Banners & Products first)
   const refreshShopData = useCallback(async () => {
@@ -415,6 +389,8 @@ export default function App() {
         }
       } catch (err) {
         console.warn('⚠️ Critical visual loading notice:', err);
+      } finally {
+        setIsLoadingShopData(false);
       }
     };
 
@@ -448,6 +424,8 @@ export default function App() {
 
   useEffect(() => {
     let isMounted = true;
+    // Automatically purge old catalog caches from user's device
+    purgeCatalogLocalCaches();
     refreshShopData();
 
     const fetchUserProfile = async () => {
@@ -1108,7 +1086,7 @@ export default function App() {
             ) : (
               <>
                 {/* Render Header on customer storefront tabs */}
-                {activeTab !== 'profile' && activeTab !== 'user' && activeTab !== 'logo' && activeTab !== 'cart' && activeTab !== 'orders' && !(activeTab === 'categories' && activeSubPage) && (
+                {activeTab !== 'profile' && activeTab !== 'user' && activeTab !== 'logo' && activeTab !== 'cart' && !(activeTab === 'categories' && activeSubPage) && (
                   <Header
                     cart={cart}
                     onOpenCart={() => navigateTo('/shop/cart')}
